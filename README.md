@@ -49,7 +49,7 @@ El backend se ha estructurado seguiendo los principios de la Arquitectura Hexago
 - 🟣 **Application** 🟣: Contiene todo a la lógica de aplicación así como los puertos que implementan los adaptadores en la capa de infraestructura para comunicarse con la capa de dominio
   - ```use-cases``` (Acción única y específica que se puede realizar, es un punto específico de interacción, también conocidos como input Ports, ejemplo: creación de kahoot)
   - ```application-services``` (poseen las reglas de negocio específicas para la capa de aplicación y coordinan/orquestran los use-cases)
-  - ``` dtos ``` (Data Transfer Objects: Definen la estructura de datos para las entradas y salidas de la aplicación. Se encargan de la validación de datos (ej. class-validator) y aseguran que las Entidades de Dominio nunca se expongan directamente al exterior)
+  - ``` dtos ``` (Estructuras de datos expuestas públicamente que definen los contratos de entrada y salida para los Casos de Uso de la aplicación. Garantizan que la lógica de negocio central permanezca independiente de cualquier tecnología externa)
 - 🔵 **Infrastructure** 🔵: Contiene todo lo relacionado a las implementaciones específicas que utilizan librerías de terceros, definiciones de entidades necesarias para interactuar con el modelo de datos, conexiones a servicioes externos, configuraciones, y los modulos de NestJS con los cuales la API procesa las solicitudes del front
   - ```controllers```(contiene los controladores de NestJS respectivos al modulo (Solicitudes HTTP))
   - ```gateways```(contiene los gateways de NestJS respectivos al modulo  (Manejo de WebSockets))
