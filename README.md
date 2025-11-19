@@ -40,6 +40,9 @@ $ yarn run test:cov
 
 El backend se ha estructurado seguiendo los principios de la Arquitectura Hexagonal, cada modulo de Nest contiene internamente los siguientes directorios, de tal forma que cada modulo es su propio Hexágono fomentando la Separación de Responsabilidades a nivel de código y entre desarrolladores
 
+Para una comprensión visual del modelo de dominio, consulta el siguiente diagrama:
+👉 **[Ver Diagrama Modelo de Dominio](https://lucid.app/lucidchart/ece44902-e188-405b-98a2-99114bfce612/edit?invitationId=inv_5ebb1b27-3046-48d7-bb6f-ddbeccdac5bc&page=5WW8gG8tv4Q4#)** 👈
+
 - 🟡 **Domain** 🟡: Contiene todo lo relacionado al core del negocio así como sus procesos, aquí se hayan todas las clases que componen el modelo de dominio
   - ```entities```
   - ```value-objects```
