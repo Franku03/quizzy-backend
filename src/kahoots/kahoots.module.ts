@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { KahootsController } from './infrastructure/controllers/kahoots.controller';
+import { KahootsController } from './infrastructure/nestJs/kahoots.controller';
 
 @Module({
   controllers: [KahootsController],
