@@ -10,14 +10,47 @@
 $ yarn install
 ```
 
+## Compilar y ejecutar el proyecto en modo desarrollador 🧠
+
+Sigue estos pasos para levantar y ejecutar el proyecto localmente en modo desarrollador:
+
+### 1. ⚙️ Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)
+
+Si necesitas una base de datos local, puedes levantar los contenedores de Docker.
+
+- PostgreSQL:
+
+```bash
+$ docker compose -f docker-compose.dev.postgres.yaml up -d
+```
+
+- PostgreSQL:
+
+```bash
+$ docker compose -f docker-compose.dev.mongo.yaml up -d
+```
+
+### 2. 📝 Configurar Variables de Entorno
+
+Debes configurar las variables de conexión a la base de datos que hayas elegido.
+
+1. Crea una copia del archivo .env.template y renómbralo a .env.
+
+2. Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
+
+### 3. ▶️ Ejecutar el Proyecto
+
+Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios (conocido como watch mode).
+
+```bash
+$ yarn start:dev
+```
+
 ## Compilar y ejecutar el proyecto 💽
 
 ```bash
 # development
 $ yarn run start
-
-# watch mode
-$ yarn start:dev
 
 # production mode
 $ yarn start:prod
