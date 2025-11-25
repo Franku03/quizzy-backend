@@ -23,7 +23,5 @@ export class PlayNumber extends ValueObject<PlayNumberProps> {
         return new PlayNumber(this.properties.count + 1);
     }
     
-    public get count(): number {
-        return this.properties.count;
-    }
+    public get count(): number {return this.properties.count;}
 }

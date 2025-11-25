@@ -38,5 +38,5 @@ export abstract class Entity<TProps, TId extends UuidVO> {
         return this.id.value; 
     }
     
-    public abstract toPrimitives(): TProps & { id: string };
+    /*public abstract toPrimitives(): TProps & { id: string };*/
 }

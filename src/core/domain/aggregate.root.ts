@@ -22,5 +22,5 @@ export abstract class AggregateRoot<TProps, TId extends UuidVO> extends Entity<T
 
     protected abstract checkInvariants(): void;
 
-    public abstract toPrimitives(): TProps & { id: string };
+    /*public abstract toPrimitives(): TProps & { id: string };*/
 }

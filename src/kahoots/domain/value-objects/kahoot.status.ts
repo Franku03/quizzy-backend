@@ -1,6 +1,6 @@
 import { ValueObject } from "src/core/domain/value.object";
 
-enum KahootStatusEnum {
+export enum KahootStatusEnum {
     DRAFT = "DRAFT",
     PUBLISHED = "PUBLISHED"
 }
@@ -18,7 +18,5 @@ export class KahootStatus extends ValueObject<KahootStatusProps> {
         super({ value: status });
     }
     
-    public get value(): KahootStatusEnum {
-        return this.properties.value;
-    }
+    public get value(): KahootStatusEnum {return this.properties.value;}
 }

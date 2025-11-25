@@ -32,7 +32,5 @@ export class TimeLimitSeconds extends ValueObject<TimeLimitProps> {
         super({ value: seconds });
     }
     
-    public get value(): number {
-        return this.properties.value;
-    }
+    public get value(): number {return this.properties.value;}
 }

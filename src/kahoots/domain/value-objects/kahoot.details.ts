@@ -1,8 +1,8 @@
 import { ValueObject } from "src/core/domain/value.object";
 import { Optional } from "src/core/types/optional";
+import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../constants/kahoot.rules";
 
-const MAX_TITLE_LENGTH = 95;
-const MAX_DESCRIPTION_LENGTH = 500;
+
 
 interface KahootDetailsProps {
     readonly title: Optional<string>;
@@ -31,11 +31,6 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
         }
         super({ title, description, category });
     }
-
-    public equals(other?: KahootDetails): boolean {
-        return super.equals(other);
-    }
-
     public get title(): Optional<string> { return this.properties.title; }
     public get description(): Optional<string> { return this.properties.description; }
     public get category(): Optional<string> { return this.properties.category; }
