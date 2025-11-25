@@ -92,11 +92,11 @@ Para una comprensión visual del modelo de dominio, consulta el siguiente diagra
 
 - 🔵 **Infrastructure** 🔵: Contiene todo lo relacionado a las implementaciones específicas que utilizan librerías de terceros, conexiones a servicios externos, configuraciones, y los controladores y gateways de NestJS con los cuales la API procesa las solicitudes del front. Contiene también el archivo .module de NestJS que organiza el código relavante para la feature (módulo) en cuestión.
 
-  - ```nestJs```contiene los controladores (manejo de solicitudes HTTP), gateways (manejo de WebSockets) y decoradores custom de NestJS respectivos al módulo
+  - ```nest-js```contiene los controladores (manejo de solicitudes HTTP), gateways (manejo de WebSockets) y decoradores custom de NestJS respectivos al módulo
   - ```external-services```(Conexiones con servicios de terceros)
   - ```repositories``` (implementación de las interfaces de los repositorios definidas en Domain)
 
 También existen módulos compartidos entre desarrolladores, siendo estos los siguientes:
 
-- 🟡🟣🔵**Modulo core** 🔵🟣🟡: Inserte definición
-- 🔵**Modulo databases** 🔵 Definiciones de las entidades bajo las librerías de terceros [TypeORM, Mongoose] para trabajar con el modelo de datos y las implementaciones respectivas de cada respositorio perteneciente a los módulos de la aplicación. Permite cambiar dinámicamente de Base de datos y de un ORM a un ODM.
+- 🟡🟣🔵 **Modulo core** 🔵🟣🟡: Inserte definición
+- 🔵 **Modulo databases** 🔵 Definiciones de las entidades bajo las librerías de terceros [TypeORM, Mongoose] para trabajar con el modelo de datos y las implementaciones respectivas de cada respositorio perteneciente a los módulos de la aplicación. Permite cambiar dinámicamente de Base de datos y de un ORM a un ODM.
