@@ -24,6 +24,10 @@ export class MultipleChoiceType extends SlideType {
         }
     }
     
+    public getMaxOptions(): number {
+        return 6; 
+    }
+    
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType {
         return new MultipleChoiceType(newStrategy); 
     }

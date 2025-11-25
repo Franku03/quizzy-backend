@@ -86,7 +86,7 @@ export class Slide extends Entity<SlideProps, SlideId> {
         const newOptionsArray = [...currentOptions, newOption];
         
         this.properties.options = new Optional(newOptionsArray);
-        this.validateInvariants();
+        this.checkStructuralOptionLimits(this.getOptions());
     }
 
     public removeOptionByIndex(indexToDelete: number): void {
@@ -102,4 +102,28 @@ export class Slide extends Entity<SlideProps, SlideId> {
         
         this.properties.options = new Optional(newOptionsArray);
     }
+
+    public updateOption(indexToUpdate: number, newOption: Option): void {
+        const currentOptions = this.getOptions();
+        
+        if (indexToUpdate < 0 || indexToUpdate >= currentOptions.length) {
+            throw new Error("Índice de opción fuera de rango para actualizar.");
+        }
+        
+        const newOptionsArray = [...currentOptions];
+        
+        newOptionsArray[indexToUpdate] = newOption; 
+
+        this.properties.options = new Optional(newOptionsArray);
+    }
+
+    private checkStructuralOptionLimits(options: Option[]): void {
+
+        const max = this.properties.slideType.getMaxOptions(); 
+        
+        if (options.length > max) {
+            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType.getType()} solo permite ${max} opciones.`);
+        }
+    }
+    
 }

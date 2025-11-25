@@ -35,6 +35,10 @@ export class DisplaySlideType extends SlideType {
         return new DisplaySlideType(newStrategy, this.description); 
     }
     
+    public getMaxOptions(): number {
+        return 0; 
+    }
+
     public getDescription(): string {
         return this.description;
     }

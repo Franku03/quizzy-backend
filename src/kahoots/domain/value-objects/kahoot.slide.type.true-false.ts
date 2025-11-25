@@ -27,4 +27,8 @@ export class TrueFalseType extends SlideType {
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType {
         return new TrueFalseType(newStrategy); 
     }
+
+    public getMaxOptions(): number { 
+        return 2;
+    }
 }

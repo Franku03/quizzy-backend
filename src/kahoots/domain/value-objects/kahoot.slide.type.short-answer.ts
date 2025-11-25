@@ -29,6 +29,9 @@ export class ShortAnswerType extends SlideType {
         }
     }
     
+    public getMaxOptions(): number {
+        return 4; 
+    }   
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType {
         return new ShortAnswerType(newStrategy); 
     }

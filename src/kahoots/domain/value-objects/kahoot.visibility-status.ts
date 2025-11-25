@@ -1,6 +1,6 @@
 import { ValueObject } from "src/core/domain/value.object";
 
-enum VisibilityStatusEnum {
+export enum VisibilityStatusEnum {
     PRIVATE = "PRIVATE",
     PUBLIC = "PUBLIC"
 }

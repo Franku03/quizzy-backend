@@ -23,6 +23,9 @@ export class SingleChoiceType extends SlideType {
         }
     }
 
+    public getMaxOptions(): number {
+        return 6;   
+    }
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType {
         return new SingleChoiceType(newStrategy); 
     }

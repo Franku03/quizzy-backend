@@ -32,7 +32,9 @@ export abstract class SlideType extends ValueObject<SlideTypeProps> {
 
     public abstract validateInvariants(slide: Slide): void;
 
-    public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType;
+    public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType 
+
+    public abstract getMaxOptions(): number;
 
     public evaluateAnswer(submission: Submission, options: Option[]): Result {
         return this.properties.evalStrategy.evaluateAnswer(submission, options );
