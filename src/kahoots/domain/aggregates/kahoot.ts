@@ -8,6 +8,7 @@ import { VisibilityStatus } from "../value-objects/kahoot.visibility-status";
 import { KahootId } from "../value-objects/kahoot.id";
 import { AggregateRoot } from "src/core/domain/aggregate.root";
 import { Question } from "../value-objects/kahoot.slide.question";
+import { Option } from "../value-objects/kahoot.slide.option";
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { Submission } from "../helpers/parameter.object.submission";
 import { Result } from "../helpers/parameter.object.result";
@@ -118,11 +119,31 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
 
     public evaluateAnswer(submission: Submission): Result {
-        const slideId = submission.slideId
+        const slideId = submission.slideID
         const slide = this.getSlideById(slideId);
         if (!slide) {
             throw new Error(`No se puede evaluar: Slide ID ${slideId.value} no encontrado.`);
         }
         return slide.evaluateAnswer(submission);
+    }
+
+    public addSlideOption(slideId: SlideId, newOption: Option): void {
+        const slide = this.getSlideById(slideId);
+        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
+        slide.addOption(newOption); 
+        this.checkInvariants();
+    }
+
+    public removeSlideOptionByIndex(slideId: SlideId, indexToDelete: number): void {
+        const slide = this.getSlideById(slideId);
+        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
+        
+        // Delega la mutación.
+        slide.removeOptionByIndex(indexToDelete);
+        this.checkInvariants();
+    }
+
+    public updateSlideOption(indexToUpdate: number, newOption: Option): void {
+        this.checkInvariants();
     }
 }
