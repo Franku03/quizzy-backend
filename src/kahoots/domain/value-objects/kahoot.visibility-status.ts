@@ -18,7 +18,5 @@ export class VisibilityStatus extends ValueObject<VisibilityStatusProps> {
         super({ value: status });
     }
     
-    public get value(): VisibilityStatusEnum {
-        return this.properties.value;
-    }
+    public get value(): VisibilityStatusEnum {return this.properties.value;}
 }

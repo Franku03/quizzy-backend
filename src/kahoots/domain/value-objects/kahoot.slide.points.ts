@@ -1,10 +1,11 @@
 import { ValueObject } from "src/core/domain/value.object";
 
-enum PointsEnum {
+export enum PointsEnum {
     CERO_POINTS = 0,
     FIVE_HUNDRED_POINTS = 500,
     THOUSAND_POINTS = 1000,
     TWO_THOUSAND_POINTS = 2000,
+    includes,
 }
 
 interface PointsProps {
@@ -25,7 +26,5 @@ export class Points extends ValueObject<PointsProps> {
         super({ value: points });
     }
     
-    public get value(): number {
-        return this.properties.value;
-    }
+    public get value(): number {return this.properties.value;}
 }
