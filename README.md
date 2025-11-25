@@ -10,14 +10,47 @@
 $ yarn install
 ```
 
+## Compilar y ejecutar el proyecto en modo desarrollador 🧠
+
+Sigue estos pasos para levantar y ejecutar el proyecto localmente en modo desarrollador:
+
+### 1. ⚙️ Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)
+
+Si necesitas una base de datos local, puedes levantar los contenedores de Docker.
+
+- PostgreSQL:
+
+```bash
+$ docker compose -f docker-compose.dev.postgres.yaml up -d
+```
+
+- MongoDB:
+
+```bash
+$ docker compose -f docker-compose.dev.mongo.yaml up -d
+```
+
+### 2. 📝 Configurar Variables de Entorno
+
+Debes configurar las variables de conexión a la base de datos que hayas elegido.
+
+1. Crea una copia del archivo .env.template y renómbralo a .env.
+
+2. Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
+
+### 3. ▶️ Ejecutar el Proyecto
+
+Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios (conocido como watch mode).
+
+```bash
+$ yarn start:dev
+```
+
 ## Compilar y ejecutar el proyecto 💽
 
 ```bash
 # development
 $ yarn run start
-
-# watch mode
-$ yarn start:dev
 
 # production mode
 $ yarn start:prod
@@ -57,9 +90,13 @@ Para una comprensión visual del modelo de dominio, consulta el siguiente diagra
   - ```application-services``` (poseen las reglas de negocio específicas para la capa de aplicación y coordinan/orquestran los use-cases)
   - ``` dtos ``` (Estructuras de datos expuestas públicamente que definen los contratos de entrada y salida para los Casos de Uso de la aplicación. Garantizan que la lógica de negocio central permanezca independiente de cualquier tecnología externa)
 
-- 🔵 **Infrastructure** 🔵: Contiene todo lo relacionado a las implementaciones específicas que utilizan librerías de terceros, definiciones de entidades necesarias para interactuar con el modelo de datos, conexiones a servicios externos, configuraciones, y los controladores y gateways de NestJS con los cuales la API procesa las solicitudes del front. Contiene también el archivo .module de NestJS que organiza el código relavante para la feature (módulo) en cuestión.
+- 🔵 **Infrastructure** 🔵: Contiene todo lo relacionado a las implementaciones específicas que utilizan librerías de terceros, conexiones a servicios externos, configuraciones, y los controladores y gateways de NestJS con los cuales la API procesa las solicitudes del front. Contiene también el archivo .module de NestJS que organiza el código relavante para la feature (módulo) en cuestión.
 
   - ```nestJs```contiene los controladores (manejo de solicitudes HTTP), gateways (manejo de WebSockets) y decoradores custom de NestJS respectivos al módulo
-  - ```databases```(Definiciones de las entidades bajo las librerías de terceros [TypeORM, Mongoose] para trabajar con el modelo de datos)
   - ```external-services```(Conexiones con servicios de terceros)
   - ```repositories``` (implementación de las interfaces de los repositorios definidas en Domain)
+
+También existen módulos compartidos entre desarrolladores, siendo estos los siguientes:
+
+- 🟡🟣🔵**Modulo core** 🔵🟣🟡: Inserte definición
+- 🔵**Modulo databases** 🔵 Definiciones de las entidades bajo las librerías de terceros [TypeORM, Mongoose] para trabajar con el modelo de datos y las implementaciones respectivas de cada respositorio perteneciente a los módulos de la aplicación. Permite cambiar dinámicamente de Base de datos y de un ORM a un ODM.
