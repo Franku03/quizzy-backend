@@ -1,6 +1,8 @@
 import { EvaluationStrategy } from "./i-evalutaion.strategy";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
+import { Score } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.score";
+import { Optional } from "src/core/types/optional";
 
 //Sere honesto luego de tanta sobre ingenieria yo no se que poner aqui realmente creo q estamos obligando a una clase a existir sin un proposito real
 //todo por el slideDisplay q es un tipo muy particular de slide
@@ -9,6 +11,8 @@ export class NoEvaluationStrategy implements EvaluationStrategy {
 
     public evaluateAnswer(submission: Submission): Result {
         
-        throw new Error("ERROR: Se intentó evaluar un Display Slide. Este tipo de slide no tiene lógica de puntuación.");
+        //throw new Error("ERROR: Se intentó evaluar un Display Slide. Este tipo de slide no tiene lógica de puntuación.");
+        return new Result(submission,new Optional<Score>(Score.create(0)), false);
+        
     }
 }
