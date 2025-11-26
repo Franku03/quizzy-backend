@@ -1,7 +1,7 @@
 import { Optional } from "src/core/types/optional";
 import { Question } from "../value-objects/kahoot.slide.question";
-import { TimeLimitSeconds } from "../value-objects/kahoot.slide.time-limit-seconds";
-import { Points } from "../value-objects/kahoot.slide.points";
+import { TimeLimitSeconds } from "../../../core/domain/shared-value-objects/value-objects/value.object..time-limit-seconds";
+import { Points } from "../../../core/domain/shared-value-objects/value-objects/value.object.points";
 import { SlideType } from "../value-objects/kahoot.slide.type.abstract";
 import { Entity } from "src/core/domain/abstractions/entity";
 import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
