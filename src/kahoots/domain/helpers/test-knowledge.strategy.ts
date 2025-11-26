@@ -8,6 +8,8 @@ import { Score } from "src/core/domain/shared-value-objects/value-objects/value.
 export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
 
     public evaluateAnswer(submission: Submission, options: Option[]): Result {
+
+        const answerIndexOptional = submission.getAnswerIndex();
         
         // 1. Determinar si la Respuesta es Correcta (Debe ser el primer paso)
         const isCorrect = this.determineCorrectness(submission.getAnswerIndex(), options);
