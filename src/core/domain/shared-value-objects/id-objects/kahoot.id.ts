@@ -1,4 +1,4 @@
-import { UuidVO } from "src/core/domain/vo.id"; 
+import { UuidVO } from "../../abstractions/vo.id";
 
 export class KahootId extends UuidVO {
     public constructor(id: string) {

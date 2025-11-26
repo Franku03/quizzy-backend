@@ -1,4 +1,4 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 
 interface PlayNumberProps {
     readonly count: number;

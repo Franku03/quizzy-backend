@@ -1,4 +1,4 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 
 enum TimeLimitSecondsEnum {
     FIVE_SECONDS = 5,

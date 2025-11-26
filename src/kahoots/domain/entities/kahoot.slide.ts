@@ -3,13 +3,13 @@ import { Question } from "../value-objects/kahoot.slide.question";
 import { TimeLimitSeconds } from "../value-objects/kahoot.slide.time-limit-seconds";
 import { Points } from "../value-objects/kahoot.slide.points";
 import { SlideType } from "../value-objects/kahoot.slide.type.abstract";
-import { Entity } from "src/core/domain/entity";
-import { SlideId } from "../value-objects/kahoot.slide.id";
-import { ImageId } from "../value-objects/image.id";
+import { Entity } from "src/core/domain/abstractions/entity";
+import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
+import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { Option } from "../value-objects/kahoot.slide.option";
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
-import { Submission } from "../helpers/parameter.object.submission";
-import { Result } from "../helpers/parameter.object.result";
+import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
+import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 
 interface SlideProps {
     position: number;
@@ -126,4 +126,12 @@ export class Slide extends Entity<SlideProps, SlideId> {
         }
     }
     
+    public updateSlideType(newSlideType: SlideType): void {
+        this.properties.slideType = newSlideType; 
+        this.validateInvariants();
+    }
+    public updateImage(newImageId: Optional<ImageId>): void {
+        this.properties.slideImage = newImageId;
+        this.validateInvariants();
+    }
 }

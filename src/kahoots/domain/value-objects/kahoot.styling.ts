@@ -1,6 +1,6 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Optional } from "src/core/types/optional";
-import { ImageId } from './image.id';
+import { ImageId } from '../../../core/domain/shared-value-objects/id-objects/image.id';
 
 interface KahootStylingProps {
     readonly imageId: Optional<ImageId>;

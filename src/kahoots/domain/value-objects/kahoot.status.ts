@@ -1,4 +1,4 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 
 export enum KahootStatusEnum {
     DRAFT = "DRAFT",

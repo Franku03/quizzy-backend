@@ -1,8 +1,8 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Slide } from "../entities/kahoot.slide";
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
-import { Result } from "../helpers/parameter.object.result";
-import { Submission } from "../helpers/parameter.object.submission";
+import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
+import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Option } from "../value-objects/kahoot.slide.option";
 
 export enum QuizTypeEnum {

@@ -1,42 +1,36 @@
 import { Optional } from "src/core/types/optional";
 import { EvaluationStrategy } from "./i-evalutaion.strategy";
-import { Result } from "./parameter.object.result";
-import { Submission } from "./parameter.object.submission";
+import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
+import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Option } from "../value-objects/kahoot.slide.option";
-
-class Score {
-    readonly value: number;
-    public constructor(value: number) {
-        this.value = value;
-    }       
-}
+import { Score } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.score";
 
 export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
 
     public evaluateAnswer(submission: Submission, options: Option[]): Result {
         
         // 1. Determinar si la Respuesta es Correcta (Debe ser el primer paso)
-        const isCorrect = this.determineCorrectness(submission.answerIndex, options);
+        const isCorrect = this.determineCorrectness(submission.getAnswerIndex(), options);
         
         // Si la respuesta no es correcta, la puntuación es 0, y no se ejecuta la fórmula compleja.
         if (!isCorrect) {
             // Devuelve 0 puntos (Score VO) y el estado incorrecto.
-            return new Result(submission,new Optional<Score>(new Score(0)), false); 
+            return new Result(submission,new Optional<Score>(Score.create(0)), false); 
         }
 
         // 2. Desempaquetar VOs para el Cálculo (Si la respuesta es correcta)
         
         // El AR debe garantizar que estos VOs están presentes para el cálculo.
-        const responseTime = submission.timeElapsed.toSeconds();
-        const questionTimer = submission.timeLimit.getValue().value; // Límite en segundos
-        const pointsPossible = submission.questionPoints.getValue().value; // Puntos base
+        const responseTime = submission.getTimeElapsed().toSeconds();
+        const questionTimer = submission.getTimeLimit().getValue().value; // Límite en segundos
+        const pointsPossible = submission.getQuestionPoints().getValue().value; // Puntos base
         
         // 3. Aplicación de la Fórmula de Puntuación
         
         // Evitar la división por cero (aunque debería prevenirse por invariantes).
         if (questionTimer <= 0) {
             const finalScore = pointsPossible > 0 ? pointsPossible : 0;
-            return new Result(submission, new Optional(new Score(finalScore)), isCorrect); 
+            return new Result(submission, new Optional(Score.create(finalScore)), isCorrect); 
         }
         
         //https://support.kahoot.com/hc/en-us/articles/115002303908-How-points-work
@@ -51,7 +45,7 @@ export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
         const finalScore = Math.round(finalScoreFactor * pointsPossible);
 
         // 4. Devolver el Resultado
-        return new Result(submission,new Optional(new Score(finalScore)), isCorrect);
+        return new Result(submission,new Optional(Score.create(finalScore)), isCorrect);
     }
     
 

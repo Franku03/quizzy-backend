@@ -1,4 +1,4 @@
-import { ValueObject } from "src/core/domain/value.object";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Optional } from "src/core/types/optional";
 import { MAX_QUESTION_LENGTH } from "../constants/kahoot.slide.rules";
 

@@ -2,17 +2,17 @@ import { Optional } from "src/core/types/optional";
 import { Slide } from "../entities/kahoot.slide";
 import { KahootDetails } from "../value-objects/kahoot.details";
 import { PlayNumber } from "../value-objects/kahoot.play-number";
-import { SlideId } from "../value-objects/kahoot.slide.id";
+import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { KahootStatus, KahootStatusEnum } from "../value-objects/kahoot.status";
 import { VisibilityStatus, VisibilityStatusEnum } from '../value-objects/kahoot.visibility-status';
-import { KahootId } from "../value-objects/kahoot.id";
-import { AggregateRoot } from "src/core/domain/aggregate.root";
+import { KahootId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.id";
+import { AggregateRoot } from "src/core/domain/abstractions/aggregate.root";
 import { Question } from "../value-objects/kahoot.slide.question";
 import { Option } from "../value-objects/kahoot.slide.option";
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
-import { Submission } from "../helpers/parameter.object.submission";
-import { Result } from "../helpers/parameter.object.result";
-import { ImageId } from "../value-objects/image.id";
+import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
+import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
+import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { TimeLimitSeconds } from "../value-objects/kahoot.slide.time-limit-seconds";
 import { Points } from "../value-objects/kahoot.slide.points";
 import { SlideType } from "../value-objects/kahoot.slide.type.abstract";
@@ -163,7 +163,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
 
     public evaluateAnswer(submission: Submission): Result {
-        const slideId = submission.slideID
+        const slideId = submission.getSlideId();
         const slide = this.getSlideById(slideId);
         if (!slide) {
             throw new Error(`No se puede evaluar: Slide ID ${slideId.value} no encontrado.`);

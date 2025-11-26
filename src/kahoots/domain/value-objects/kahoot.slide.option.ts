@@ -1,5 +1,5 @@
-import { ValueObject } from "src/core/domain/value.object";
-import { ImageId } from "./image.id";
+import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { Optional } from "src/core/types/optional";
 import { MAX_OPTION_TEXT_LENGTH } from "../constants/kahoot.slide.rules";
 
