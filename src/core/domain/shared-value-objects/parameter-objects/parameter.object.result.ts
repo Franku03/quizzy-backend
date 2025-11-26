@@ -1,7 +1,7 @@
 import { Optional } from "src/core/types/optional";
 import { Submission } from './parameter.object.submission';
 import { ValueObject } from "../../abstractions/value.object";
-import { Score } from "./parameter.object.score";
+import { Score } from "../value-objects/value.object.score";
 
 interface ResultProps {
     readonly submission: Submission; 

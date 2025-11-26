@@ -3,7 +3,7 @@ import { EvaluationStrategy } from "./i-evalutaion.strategy";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Option } from "../value-objects/kahoot.slide.option";
-import { Score } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.score";
+import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
 export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
 
