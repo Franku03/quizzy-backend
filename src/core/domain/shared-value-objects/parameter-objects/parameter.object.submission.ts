@@ -1,6 +1,6 @@
 import { Optional } from "src/core/types/optional";
-import { TimeLimitSeconds } from "../../../../kahoots/domain/value-objects/kahoot.slide.time-limit-seconds";
-import { Points } from "../../../../kahoots/domain/value-objects/kahoot.slide.points";
+import { TimeLimitSeconds } from "../value-objects/value.object..time-limit-seconds";
+import { Points } from "../value-objects/value.object.points";
 import { SlideId } from "../id-objects/kahoot.slide.id";
 import { Option } from "../../../../kahoots/domain/value-objects/kahoot.slide.option";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
@@ -12,7 +12,7 @@ interface SubmissionProps {
     readonly questionPoints: Optional<Points>;
     readonly timeLimit: Optional<TimeLimitSeconds>;
     readonly answerText: Optional<Option[]>;
-    readonly answerIndex: number[];
+    readonly answerIndex: Optional<number[]>;
     readonly timeElapsed: ResponseTime;
 }
 
@@ -24,7 +24,7 @@ export class Submission extends ValueObject<SubmissionProps> {
         questionPoints: Optional<Points>,
         timeLimit: Optional<TimeLimitSeconds>,
         answerText: Optional<Option[]>,
-        answerIndex: number[],
+        answerIndex: Optional<number[]>,
         timeElapsed: ResponseTime
     ) {
         if (!slideID || !timeElapsed) {
@@ -64,7 +64,7 @@ export class Submission extends ValueObject<SubmissionProps> {
         return this.properties.answerText;
     }
 
-    public getAnswerIndex(): number[] {
+    public getAnswerIndex(): Optional<number[]>{
         return this.properties.answerIndex;
     }
     
