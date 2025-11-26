@@ -4,7 +4,7 @@ import { Points } from "../../../../kahoots/domain/value-objects/kahoot.slide.po
 import { SlideId } from "../id-objects/kahoot.slide.id";
 import { Option } from "../../../../kahoots/domain/value-objects/kahoot.slide.option";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
-import { ResponseTime } from "./parameter.object.response-time";
+import { ResponseTime } from "../value-objects/value.object.response-time";
 
 interface SubmissionProps {
     readonly slideID: SlideId; 

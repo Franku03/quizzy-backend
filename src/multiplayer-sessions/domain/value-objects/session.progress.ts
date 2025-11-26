@@ -14,8 +14,14 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
     ){
 
         if( !Number.isInteger( totalSlides) || !Number.isInteger( slidesAnswered ))
-            throw new Error('Either the number of totalSlides or the number of slidesAnswered supplied is not an integer number');
-        
+            throw new Error('Ya se el numero de totalSlides o el numero de slidesAnswered dado no es un número entero');
+
+        if( totalSlides < 1 )
+            throw new Error('El número de slides en total es menor a 1');
+
+        if( slidesAnswered < 0 )
+            throw new Error('El número de slides respondidas es menor a 0');
+
         super({ totalSlides, slidesAnswered });
 
     }

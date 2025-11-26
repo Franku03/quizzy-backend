@@ -1,8 +1,8 @@
 import { EvaluationStrategy } from "./i-evalutaion.strategy";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
-import { Score } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.score";
 import { Optional } from "src/core/types/optional";
+import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
 //Sere honesto luego de tanta sobre ingenieria yo no se que poner aqui realmente creo q estamos obligando a una clase a existir sin un proposito real
 //todo por el slideDisplay q es un tipo muy particular de slide
