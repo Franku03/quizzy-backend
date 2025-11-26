@@ -11,8 +11,15 @@ export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
 
         const answerIndexOptional = submission.getAnswerIndex();
         
-        // 1. Determinar si la Respuesta es Correcta (Debe ser el primer paso)
-        const isCorrect = this.determineCorrectness(submission.getAnswerIndex(), options);
+        // 1. Determinar si hay una respuesta (answerIndex) presente.
+        // Si no hay respuesta seleccionada, la respuesta es incorrecta y el puntaje es 0.
+        if (!answerIndexOptional.hasValue()) {
+            // Aquí usamos 0 y false, ya que es la única opción cuando no hay respuesta.
+            return new Result(submission, new Optional<Score>(Score.create(0)), false);
+        }
+        
+        const answerIndex = answerIndexOptional.getValue();
+        const isCorrect = this.determineCorrectness(answerIndex, options);
         
         // Si la respuesta no es correcta, la puntuación es 0, y no se ejecuta la fórmula compleja.
         if (!isCorrect) {
