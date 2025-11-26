@@ -7,7 +7,7 @@ interface ResponseTimeProps {
 export class ResponseTime extends ValueObject<ResponseTimeProps> {
     
     public constructor(valueInSeconds: number) {
-        if (valueInSeconds < 0 || !Number.isFinite(valueInSeconds)) {
+        if (valueInSeconds < 0) {
             throw new Error("El tiempo debe ser un número finito no negativo.");
         }
         super({ valueInSeconds });
@@ -32,7 +32,5 @@ export class ResponseTime extends ValueObject<ResponseTimeProps> {
     public toMilliseconds(): number {
         return this.properties.valueInSeconds * 1000;
     }
-    public equals(other: ResponseTime): boolean {
-        return super.equals(other);
-    }
+    
 }

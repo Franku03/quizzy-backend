@@ -1,5 +1,3 @@
-// NOTA: Asumimos que la clase 'ValueObject<T>' está disponible.
-
 import { ValueObject } from "../../abstractions/value.object";
 
 interface ScoreProps {
