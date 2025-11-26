@@ -1,5 +1,5 @@
 import { Optional } from "src/core/types/optional";
-import { TimeLimitSeconds } from "../value-objects/value.object..time-limit-seconds";
+import { TimeLimitSeconds } from "../value-objects/value.object.time-limit-seconds";
 import { Points } from "../value-objects/value.object.points";
 import { SlideId } from "../id-objects/kahoot.slide.id";
 import { Option } from "../../../../kahoots/domain/value-objects/kahoot.slide.option";
