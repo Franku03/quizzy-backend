@@ -1,10 +1,10 @@
 import { Optional } from "src/core/types/optional";
 import { TimeLimitSeconds } from "../../../../kahoots/domain/value-objects/kahoot.slide.time-limit-seconds";
 import { Points } from "../../../../kahoots/domain/value-objects/kahoot.slide.points";
-import { ResponseTime } from "../../../../kahoots/domain/value-objects/response.time";
 import { SlideId } from "../id-objects/kahoot.slide.id";
 import { Option } from "../../../../kahoots/domain/value-objects/kahoot.slide.option";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { ResponseTime } from "./parameter.object.response-time";
 
 interface SubmissionProps {
     readonly slideID: SlideId; 
