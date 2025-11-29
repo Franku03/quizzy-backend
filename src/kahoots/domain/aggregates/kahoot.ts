@@ -17,6 +17,7 @@ import { TimeLimitSeconds } from "../../../core/domain/shared-value-objects/valu
 import { Points } from "../../../core/domain/shared-value-objects/value-objects/value.object.points";
 import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
+import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 
 interface UserId {
     readonly value: string;
@@ -123,9 +124,35 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     //Todos los metodos aqui presentes delegan su llamada a la entidad Slide correspondiente.
 
-    public getSlideById(slideId: SlideId): Slide | null {
+    private getSlideById(slideId: SlideId): Slide | null {
 
         return this.properties.slides.get(slideId) || null;
+    }
+
+    public getSlideSnapshotById(slideId: SlideId): SlideSnapshot | null {
+        const slide = this.getSlideById(slideId)
+        if(slide) return slide.getSnapshot()
+        return null
+    }
+
+    public nextSlideSnapshot(currentIndex: number): SlideSnapshot | null {
+        const slidesMap = this.properties.slides;
+
+        if (slidesMap.size === 0) {
+            return null;
+        }
+
+        const sortedSlides = Array.from(slidesMap.values()).sort(
+            (a, b) => a.position - b.position 
+        );
+
+        const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+        const nextSlide = sortedSlides[nextIndex];
+
+        if (!nextSlide) {
+            return null;
+        }
+        return nextSlide.getSnapshot();
     }
 
     public addSlide(slide: Slide): void {

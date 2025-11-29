@@ -33,32 +33,32 @@ export class SlideType extends ValueObject<SlideTypeProps> {
         super({ type: validType });
     }
 
-    public getType(): SlideTypeEnum {
+    public get type(): SlideTypeEnum {
         return this.properties.type;
     }
 
     public canHaveDescription():void {
-        if(this.getType() !== SlideTypeEnum.SLIDE) 
-            throw new Error(`Los slides de tipo ${this.getType()} no tienen descripcion`)
+        if(this.type !== SlideTypeEnum.SLIDE) 
+            throw new Error(`Los slides de tipo ${this.type} no tienen descripcion`)
     }
     
     public canHaveOption():void {
-        if(this.getType() === SlideTypeEnum.SLIDE) 
-            throw new Error(`Los slides de tipo ${this.getType()} no tienen opciones`)
+        if(this.type === SlideTypeEnum.SLIDE) 
+            throw new Error(`Los slides de tipo ${this.type} no tienen opciones`)
     }
 
     public canHavePoints():void {
-        if(this.getType() === SlideTypeEnum.SLIDE) 
-            throw new Error(`Los slides de tipo ${this.getType()} no tienen opciones`)
+        if(this.type === SlideTypeEnum.SLIDE) 
+            throw new Error(`Los slides de tipo ${this.type} no tienen opciones`)
     }
 
     public canHaveOptionImage():void {
-        if(this.getType() === SlideTypeEnum.SLIDE || SlideTypeEnum.TRUE_FALSE || SlideTypeEnum.SHORT_ANSWER ) 
-            throw new Error(`Los slides de tipo ${this.getType()} no tienen opciones con imagenes`)
+        if(this.type === SlideTypeEnum.SLIDE || SlideTypeEnum.TRUE_FALSE || SlideTypeEnum.SHORT_ANSWER ) 
+            throw new Error(`Los slides de tipo ${this.type} no tienen opciones con imagenes`)
     }
 
     public getMaxSlideLength():number{
-        if(this.getType() === SlideTypeEnum.SHORT_ANSWER) return MAX_OPTION_CHARS_TYPEANSWER;
+        if(this.type === SlideTypeEnum.SHORT_ANSWER) return MAX_OPTION_CHARS_TYPEANSWER;
         return MAX_OPTION_TEXT_LENGTH
     }
     

@@ -12,6 +12,7 @@ import { Submission } from "../../../core/domain/shared-value-objects/parameter-
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Description } from "../value-objects/kahoot.slide.description";
 import { SlideTypeValidator } from "../helpers/slide.validador";
+import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 
 export interface SlideProps {
     position: number;
@@ -123,7 +124,7 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
     private checkStructuralOptionLimits(options: Option[]): void {
         const max = this.getMaxOptions(); 
         if (options.length > max) {
-            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType.getType()} solo permite ${max} opciones.`);
+            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType} solo permite ${max} opciones.`);
         }
     }
     //Comportamiento puro
@@ -134,8 +135,11 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         const optionalOptions = this.properties.options; 
         return optionalOptions.hasValue() ? optionalOptions.getValue() : [];
     }
-    public getPoints(): Optional<Points> {
+    public get points(): Optional<Points> {
         return this.properties.points;
+    }
+    public get position(): number {
+        return this.properties.position;
     }
 
     
@@ -148,8 +152,49 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
             return false;
         }
     }
+
+    //Comportamiento Puro
     public abstract validatePublishingInvariants(): void 
     public abstract getMaxOptions(): number;
+
+    //Esto si lo aprueba el team lo mando a domain service a futuro
     public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): void
     
+
+    public getSnapshot(): SlideSnapshot {
+
+        // Para manejar Optional<T>, usamos la lógica hasValue() ? getValue().value : null
+        
+        const options = this.getOptionsList();
+        
+        return {
+            //datos q siempre tiene el slide
+            id: this.id.value,
+            position: this.properties.position,
+            slideType: this.properties.slideType.type,
+            timeLimitSeconds: this.properties.timeLimit.value,
+
+            //datos opcionales
+            questionText: this.properties.question.hasValue()
+                ? this.properties.question.getValue().value
+                : null,
+                
+            slideImageId: this.properties.slideImage.hasValue()
+                ? this.properties.slideImage.getValue().value
+                : null,
+                
+            pointsValue: this.properties.points.hasValue()
+                ? this.properties.points.getValue().value
+                : null,
+                
+            descriptionText: this.properties.description.hasValue()
+                ? this.properties.description.getValue().description
+                : null,
+
+            options: options.length > 0
+                ? options.map(option => option.getSnapshot())
+                : null,
+        };
+    }
+
 }

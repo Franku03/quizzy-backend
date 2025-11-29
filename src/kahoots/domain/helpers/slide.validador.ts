@@ -9,7 +9,7 @@ import { TrueFalseSlide } from "../entities/kahoot.slide.true-false";
 export class SlideTypeValidator {
     public static validatePropsForNewType(newType: SlideType, props: SlideProps): void {
         
-        switch (newType.getType()) {
+        switch (newType.type) {
             case SlideTypeEnum.SLIDE:
                 DisplaySlide.checkInitialInvariants(props);
                 break;
@@ -26,7 +26,7 @@ export class SlideTypeValidator {
                 TrueFalseSlide.checkInitialInvariants(props);
                 break;
             default:
-                throw new Error(`[SlideTypeValidator] Tipo de Slide no soportado: ${newType.getType()}`);
+                throw new Error(`[SlideTypeValidator] Tipo de Slide no soportado: ${newType.type}`);
         }
     }
 }
