@@ -9,6 +9,9 @@ import { GroupMember } from '../entities/group.member';
 import { GroupAssignmentCompletion } from '../value-objects/group.assignment.completion';
 import { InvitationToken } from '../value-objects/group.invitation.token';
 import { Role } from '../value-objects/group.member.role';
+import { ITokenGenerator } from '../domain-services/i.token-generator.service.interface';
+import { Score } from 'src/core/domain/shared-value-objects/value-objects/value.object.score';
+import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 
 
 //pending: revisar
@@ -24,10 +27,6 @@ class UserId extends UuidVO {
 }
 
 interface AttemptId {
-  readonly value: string;
-}
-
-interface KahootId {
   readonly value: string;
 }
 
@@ -56,23 +55,20 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     this.properties.details = newDetails;
   }
 
-  public generateInvitation(requesterId: UserId, expiresInDays: number): InvitationToken {
-    //pending: revisar el tiempo y si hay que comprobar la regeneracion de la invitacion?
-    
+  public generateInvitation(requesterId: UserId, tokenGenerator: ITokenGenerator, expiresInDays: number): InvitationToken {
     if (!this.isAdmin(requesterId)) {
       throw new Error("Solo el admin del grupo puede generar invitaciones.");
     }
 
-    if(expiresInDays < 1) {
-      throw new Error("La invitación debe tener una duración mínima de 1 día.");
-    }
-
-
-    return InvitationToken.create(expiresInDays);
+    const token = InvitationToken.createWithTokenGenerator(tokenGenerator, expiresInDays);
+    
+    this.properties.invitationToken = new Optional(token);
+  
+    return token;
   }
 
 
-  public joinGroup(group: Group, userToJoin: UserId, token: InvitationToken, isAdminPremium: boolean): void {
+  public joinGroup(userToJoin: UserId, token: InvitationToken, isAdminPremium: boolean): void {
     if(this.isMember(userToJoin)) {
       throw new Error("El usuario ya es miembro del grupo.");
     }
@@ -145,20 +141,51 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
 
   }
 
-  public markAssignmentAsCompleted(userId: UserId, kahootId: KahootId, attemptId: AttemptId): void {
+  public markAssignmentAsCompleted(userId: UserId, kahootId: KahootId, attemptId: AttemptId, score: Score): boolean {
     if (!this.isMember(userId)) {
       throw new Error("Solo los miembros del grupo pueden marcar asignaciones como completadas.");
     }
 
+    const assignment = this.properties.assignments.find(
+      assignment => assignment.getQuizId().value === kahootId.value
+    );
 
-  //pending: implementar
-  
+    if (!assignment) {
+      throw new Error("El kahoot no está asignado a este grupo.");
+    }
+
+    const existingCompletion = this.properties.completions.find(
+      completion =>
+        completion.getUserId().value === userId.value &&
+        completion.getQuizId().value === kahootId.value
+    );
+
+    if (existingCompletion) 
+      // Ya existe una completion para este usuario y quiz, no hacer nada
+      // Los siguientes intentos pueden jugarse pero no se registran en el assignment
+      return false;
+    
+
+    const completion = GroupAssignmentCompletion.create(
+      userId,
+      kahootId,
+      attemptId,
+      score
+    );
+
+    this.properties.completions.push(completion);
 
 
+    assignment.markAsCompleted();
+
+
+    return true;
   }
 
   public isKahootAssigned(kahootId: KahootId): boolean {
-    return this.properties.assignments.some(assignment => assignment.getQuizId() === kahootId);
+    return this.properties.assignments.some(
+      assignment => assignment.getQuizId().value === kahootId.value
+    );
   }
 
   public deleteGroup(requesterId: UserId): void {
@@ -166,7 +193,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       throw new Error("Solo el admin del grupo puede eliminar el grupo.");
     }
 
-    //pending: implementar la eliminacion del grupo
+    //pending: implementar la eliminacion del grupo (mediante repositorio)
   }
 
   public isAdmin(userId: UserId): boolean {
@@ -178,7 +205,6 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
   
   protected checkInvariants(): void {
-    // TODO: Implementar validaciones de invariantes del agregado
   }
 }
 

@@ -55,5 +55,9 @@ export class GroupAssignment extends Entity<GroupAssignmentProps, GroupAssignmen
     public getQuizId(): KahootId {
         return this.properties.quizId;
     }
+
+    public markAsCompleted(): void {
+        this.properties.isAssignmentCompleted = true;
+    }
 }
 

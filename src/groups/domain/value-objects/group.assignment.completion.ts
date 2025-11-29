@@ -3,8 +3,8 @@ import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
 //pending
-//import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"; // Crear este VO
-//import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/attempt.id"; // Crear este VO
+//import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+//import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/attempt.id";
 
 
 interface UserId {

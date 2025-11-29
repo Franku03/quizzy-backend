@@ -16,8 +16,9 @@ export class GroupDetails extends ValueObject<GroupDetailsProps> {
         super({ name, description });
     }
 
-    public static create(name: string, description: string): GroupDetails {
-        return new GroupDetails(name, description);
+    public static create(name: string, description?: string): GroupDetails {
+        const desc = description || '';
+        return new GroupDetails(name, desc);
     }
 
     getName(): string {

@@ -11,6 +11,9 @@ interface GroupMemberRoleProps {
 
 export class Role extends ValueObject<GroupMemberRoleProps> {
     constructor(value: GroupMemberRole) {
+        if (value === null || value === undefined) {
+            throw new Error("El rol es requerido.");
+        }
         if (!Object.values(GroupMemberRole).includes(value)) {
             throw new Error(`El rol '${value}' no es válido.`);
         }
