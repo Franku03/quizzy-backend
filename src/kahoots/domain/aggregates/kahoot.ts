@@ -135,23 +135,48 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         return null
     }
 
-    public nextSlideSnapshot(currentIndex: number): SlideSnapshot | null {
+    public getNextSlideSnapshotByIndex(currentIndex: number = -1): SlideSnapshot | null {
         const slidesMap = this.properties.slides;
 
         if (slidesMap.size === 0) {
             return null;
         }
 
-        const sortedSlides = Array.from(slidesMap.values()).sort(
-            (a, b) => a.position - b.position 
-        );
-
+        const sortedSlides = this.getSortedSlides();
+        
         const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
         const nextSlide = sortedSlides[nextIndex];
 
         if (!nextSlide) {
             return null;
         }
+        return nextSlide.getSnapshot();
+    }
+
+    public getNextSlideSnapshotById(currentSlideId: SlideId | null): SlideSnapshot | null {
+        const slidesMap = this.properties.slides;
+
+        if (slidesMap.size === 0) {
+            return null;
+        }
+
+        const sortedSlides = this.getSortedSlides();
+
+        let currentIndex = -1;
+
+        if (currentSlideId) {
+            currentIndex = sortedSlides.findIndex(slide => slide.id.equals(currentSlideId));
+            if (currentIndex === -1) {
+                return null; 
+            }
+        }
+        
+        const nextIndex = currentIndex + 1;
+        if (nextIndex >= sortedSlides.length) {
+            return null; 
+        }
+
+        const nextSlide = sortedSlides[nextIndex];
         return nextSlide.getSnapshot();
     }
 
@@ -246,5 +271,11 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
         slide.updateSlideType(newSlideType);
         this.checkInvariants();
+    }
+
+    private getSortedSlides(): Slide[] {
+        return Array.from(this.properties.slides.values()).sort(
+            (a, b) => a.position - b.position
+        );
     }
 }
