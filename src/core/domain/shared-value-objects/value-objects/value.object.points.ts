@@ -1,6 +1,6 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 
-export enum PointsEnum {
+enum PointsEnum {
     CERO_POINTS = 0,
     FIVE_HUNDRED_POINTS = 500,
     THOUSAND_POINTS = 1000,

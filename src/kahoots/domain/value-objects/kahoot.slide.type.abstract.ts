@@ -34,10 +34,10 @@ export abstract class SlideType extends ValueObject<SlideTypeProps> {
 
     public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): SlideType 
 
-    public abstract getMaxOptions(): number;
+   
 
-    public evaluateAnswer(submission: Submission, options: Option[]): Result {
-        return this.properties.evalStrategy.evaluateAnswer(submission, options );
+    public evaluateAnswer(submission: Submission ): Result {
+        return this.properties.evalStrategy.evaluateAnswer(submission,[]);
     }
     
     public getType(): QuizTypeEnum { 
