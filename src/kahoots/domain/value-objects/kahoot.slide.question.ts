@@ -21,6 +21,6 @@ export class Question extends ValueObject<QuestionProps> {
         super({ value: optionalText });
     }
     
-    public get value(): Optional<string> {return this.properties.value;}
+    public getvalue(): Optional<string> {return this.properties.value;}
     
 }

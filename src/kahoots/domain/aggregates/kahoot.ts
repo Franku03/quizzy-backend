@@ -15,7 +15,7 @@ import { Result } from "../../../core/domain/shared-value-objects/parameter-obje
 import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { TimeLimitSeconds } from "../../../core/domain/shared-value-objects/value-objects/value.object.time-limit-seconds";
 import { Points } from "../../../core/domain/shared-value-objects/value-objects/value.object.points";
-import { SlideType } from "../value-objects/kahoot.slide.type.abstract";
+import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 
 interface UserId {
@@ -64,7 +64,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     private checkPublishingReadiness(): void {
         // Regla 1: Debe tener detalles.
-        if (this.properties.details.hasValue()) { 
+        if (!this.properties.details.hasValue()) { 
             throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
         }
         
@@ -75,7 +75,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         
         // Regla 3: Todos los slides deben ser válidos
         for (const slide of this.properties.slides.values()) {
-            slide.validateInvariants(); 
+            slide.isPublishingCompliant(); 
         }
     }
 
@@ -203,7 +203,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public updateSlideImage(slideId: SlideId, newImage: Optional<ImageId>): void {
         const slide = this.getSlideById(slideId);
         if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateImage(newImage);
+        slide.updateSlideImage(newImage);
         this.checkInvariants();
     }
 

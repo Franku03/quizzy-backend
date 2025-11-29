@@ -15,7 +15,8 @@ export class Option extends ValueObject<OptionProps> {
     public constructor(
         text: string, 
         isCorrect: boolean, 
-        optionImage: Optional<ImageId>
+        optionImage: Optional<ImageId>,
+        optionTextMaxLength: number = MAX_OPTION_TEXT_LENGTH
     ) {
         
         const cleanText = text ? text.trim() : "";
@@ -27,8 +28,8 @@ export class Option extends ValueObject<OptionProps> {
         if (!imageIsPresent && cleanText.length === 0) {
             throw new Error("Una opción debe tener contenido (texto o imagen).");
         }
-        if (cleanText.length > MAX_OPTION_TEXT_LENGTH) {
-            throw new Error(`El texto de la opción no puede superar los ${MAX_OPTION_TEXT_LENGTH} caracteres.`);
+        if (cleanText.length > optionTextMaxLength) {
+            throw new Error(`El texto de la opción no puede superar los ${optionTextMaxLength} caracteres.`);
         }
         super({ text: cleanText, isCorrect, optionImage });
     }
@@ -36,4 +37,16 @@ export class Option extends ValueObject<OptionProps> {
     public getText(): string { return this.properties.text; }
     public isCorrectAnswer(): boolean { return this.properties.isCorrect; }
     public getImage(): Optional<ImageId> { return this.properties.optionImage; }
+
+    public hasText(): boolean {
+        return this.getText().length > 0;
+    }
+
+    public hasImage(): boolean {
+        return this.properties.optionImage.hasValue();
+    }
+    
+    public isWithinLengthLimit(maxLength: number): boolean {
+        return this.getText().length <= maxLength;
+    }
 }

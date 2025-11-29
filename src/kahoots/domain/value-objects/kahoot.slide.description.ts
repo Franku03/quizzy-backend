@@ -22,4 +22,5 @@ export class Description extends ValueObject<DescriptionProps> {
     public get description(): string {
         return this.properties.description;
     }
+
 }

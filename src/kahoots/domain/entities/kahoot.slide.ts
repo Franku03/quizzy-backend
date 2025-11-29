@@ -11,6 +11,7 @@ import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Description } from "../value-objects/kahoot.slide.description";
+import { SlideTypeValidator } from "../helpers/slide.validador";
 
 export interface SlideProps {
     position: number;
@@ -30,6 +31,12 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
     //valida sus invariantes minimas
 
     public constructor(props: SlideProps, id: SlideId) {
+        Slide.checkBaseinitialInvariants(props);
+        super(props, id);
+    }
+
+
+    private static checkBaseinitialInvariants(props: SlideProps): void {
 
         if (props.position < 0) {
             throw new Error("La posición del slide no puede ser negativa.");
@@ -37,22 +44,14 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         if (!props.slideType || !props.timeLimit) {
              throw new Error("El slide debe tener SlideType y TimeLimit definidos.");
         } 
-        super(props, id);
     }
-
-
-    //Comportamiento propio de la class 
+    
+    //Comportamiento propio de la class e invariantes comunes (manejadas por sus VO (gracias a Dios))
     public changePosition(newPosition: number): void {
         if (newPosition < 0) {
             throw new Error("La nueva posición no es válida.");
         }
         this.properties.position = newPosition; 
-    }
-    public updateSlideType(newSlideType: SlideType): void {
-        this.properties.slideType = newSlideType; 
-    }
-    public updateImage(newImageId: Optional<ImageId>): void {
-        this.properties.slideImage = newImageId;
     }
     public updateQuestion(newQuestion: Optional<Question>): void {
         this.properties.question = newQuestion;
@@ -65,16 +64,6 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
     }
     public updatePoints(newPoints: Optional<Points>): void {
         this.properties.points = newPoints;
-    }
-    public addOption(newOption: Option): void {
-        const currentOptions = this.properties.options.hasValue() 
-            ? this.properties.options.getValue() 
-            : [];
-            
-        const newOptionsArray = [...currentOptions, newOption];
-        
-        this.properties.options = new Optional(newOptionsArray);
-        this.checkStructuralOptionLimits(this.getOptionsList());
     }
     public removeOptionByIndex(indexToDelete: number): void {
         const currentOptions = this.properties.options.hasValue() 
@@ -89,7 +78,32 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         
         this.properties.options = new Optional(newOptionsArray);
     }
+
+
+    //Invariantes que dependen de cada tipo de slide
+    public updateSlideType(newSlideType: SlideType): void {
+        SlideTypeValidator.validatePropsForNewType(newSlideType, this.properties)
+        this.properties.slideType = newSlideType; 
+    }
+    public addOption(newOption: Option): void {
+        this.properties.slideType.canHaveOption();
+        if(newOption.hasImage()) {
+            this.properties.slideType.canHaveOptionImage();
+        }
+        const currentOptions = this.properties.options.hasValue() 
+            ? this.properties.options.getValue() 
+            : [];
+            
+        const newOptionsArray = [...currentOptions, newOption];
+        
+        this.properties.options = new Optional(newOptionsArray);
+        this.checkStructuralOptionLimits(this.getOptionsList());
+    }
     public updateOption(indexToUpdate: number, newOption: Option): void {
+        this.properties.slideType.canHaveOption();
+        if(newOption.hasImage()) {
+            this.properties.slideType.canHaveOptionImage();
+        }
         const currentOptions = this.getOptionsList();
         
         if (indexToUpdate < 0 || indexToUpdate >= currentOptions.length) {
@@ -102,6 +116,17 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
 
         this.properties.options = new Optional(newOptionsArray);
     }
+    public changeDescription(newDesciption: Description): void{
+        this.properties.slideType.canHaveDescription()
+        this.properties.description = new Optional(newDesciption);
+    }
+    private checkStructuralOptionLimits(options: Option[]): void {
+        const max = this.getMaxOptions(); 
+        if (options.length > max) {
+            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType.getType()} solo permite ${max} opciones.`);
+        }
+    }
+    //Comportamiento puro
     public evaluateAnswer(submission: Submission): Result {
         return this.properties.evalStrategy.evaluateAnswer(submission, this.getOptionsList());
     }
@@ -113,19 +138,7 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         return this.properties.points;
     }
 
-    //Invarianza Debil (Pre ready to Publish)
-    private checkStructuralOptionLimits(options: Option[]): void {
-        const max = this.getMaxOptions(); 
-        if (options.length > max) {
-            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType.getType()} solo permite ${max} opciones.`);
-        }
-    }
-
-    public changeDescription(newDesciption: Description): void{
-        this.properties.slideType.canHaveDescription()
-        this.properties.description = new Optional(newDesciption);
-    }
-
+    
     //Utilizado por Kahoot
     public isPublishingCompliant(): boolean {
         try {
