@@ -7,7 +7,7 @@ interface SessionStateProps {
 
 export class SessionState extends ValueObject<SessionStateProps> {
 
-    public constructor(
+    private constructor(
       state: SessionStateType  
     ){
         super({ state });
@@ -69,6 +69,11 @@ export class SessionState extends ValueObject<SessionStateProps> {
         };
 
     };
+
+    // ? Para evitar que se puedan crear estados iniciales que no sean lobby desde el cliente
+    public static createAsLobby(): SessionState {
+        return new SessionState( SessionStateType.LOBBY );
+    }
 
 
     public toQuestion(): SessionState {
