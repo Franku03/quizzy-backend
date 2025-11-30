@@ -21,15 +21,9 @@ export class QuestionSnapshot extends ValueObject<QuestionSnapshotProps> {
     if (props.questionText.length > GLOBAL_MAX_QUESTION_LENGTH) {
       throw new Error(`Question text cannot exceed ${GLOBAL_MAX_QUESTION_LENGTH} characters.`);
     }
-    if (!props.basePoints) {
-      throw new Error('Base points are required.');
-    }
-    if (!props.timeLimit) {
-      throw new Error('Time limit is required.');
-    }
   }
 
-  // + create(questionText: String, basePoints: BasePoints, timeLimit: TimeLimitSeconds): questionSnapshot
+  // Factory Method (used by clients to pass direct parameters instead of props object)
   public static create(
     questionText: string, 
     basePoints: Points, 
@@ -40,5 +34,19 @@ export class QuestionSnapshot extends ValueObject<QuestionSnapshotProps> {
       basePoints: basePoints,
       timeLimit: timeLimit
     });
+  }
+
+  // Getters
+
+  get questionText(): string {
+    return this.properties.questionText;
+  }
+
+  get basePoints(): Points {
+    return this.properties.basePoints;
+  }
+
+  get timeLimit(): TimeLimitSeconds {
+    return this.properties.timeLimit;
   }
 }

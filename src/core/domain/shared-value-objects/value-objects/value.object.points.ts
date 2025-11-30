@@ -5,7 +5,6 @@ enum PointsEnum {
     FIVE_HUNDRED_POINTS = 500,
     THOUSAND_POINTS = 1000,
     TWO_THOUSAND_POINTS = 2000,
-    includes,
 }
 
 interface PointsProps {
@@ -27,4 +26,5 @@ export class Points extends ValueObject<PointsProps> {
     }
     
     public get value(): number {return this.properties.value;}
+    
 }

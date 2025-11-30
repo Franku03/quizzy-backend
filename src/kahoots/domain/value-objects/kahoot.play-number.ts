@@ -5,6 +5,8 @@ interface PlayNumberProps {
 }
 
 export class PlayNumber extends ValueObject<PlayNumberProps> {
+
+    public static readonly ZERO = new PlayNumber(0);
     
     public constructor(count: number) {
         
@@ -16,8 +18,6 @@ export class PlayNumber extends ValueObject<PlayNumberProps> {
         }
         super({ count });
     }
-    
-    public static readonly ZERO = new PlayNumber(0);
 
     public Increment(): PlayNumber {
         return new PlayNumber(this.properties.count + 1);
