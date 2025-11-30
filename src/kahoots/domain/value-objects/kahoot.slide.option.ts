@@ -53,11 +53,11 @@ export class Option extends ValueObject<OptionProps> {
 
     public getSnapshot(): OptionSnapshot {
     return {
-        optionText: this.properties.text,
+        optionText: this.properties.text ? this.properties.text : null,
         isCorrect: this.properties.isCorrect,
         optionImageId: this.properties.optionImage.hasValue() 
-            ? this.properties.optionImage.getValue().value 
-            : "",
+            ? this.properties.optionImage.getValue().value
+            : null,
     };
 }
 }
