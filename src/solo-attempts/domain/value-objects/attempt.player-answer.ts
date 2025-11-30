@@ -3,10 +3,10 @@ import { Optional } from "src/core/types/optional";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 import { ResponseTime } from "src/core/domain/shared-value-objects/value-objects/value.object.response-time";
-import { Option } from "src/core/domain/shared-value-objects/value-objects/value.object.option";
 import { QuestionSnapshot } from "src/core/domain/shared-value-objects/value-objects/value.object.question-snapshot";
 import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
-
+import { answerSelected } from "src/core/domain/shared-value-objects/value-objects/value.object.optionSelected";
+import { QuestionSnapshotFactory } from "src/core/domain/factories/question-snapshot.factory";
 
 interface PlayerAnswerProps {
     slideId: SlideId;
@@ -14,7 +14,7 @@ interface PlayerAnswerProps {
     isAnswerCorrect: boolean;
     earnedScore: Optional<Score>;
     timeElapsed: ResponseTime;
-    answerContent: Optional<Option[]>;
+    answerContent: Optional<answerSelected[]>;
     questionSnapshot: QuestionSnapshot;
 }
 
@@ -42,26 +42,11 @@ export class PlayerAnswer extends ValueObject<PlayerAnswerProps> {
     public static create(result: Result): PlayerAnswer {
         // We extract the player submission data associated with the result
         const submission = result.getSubmission();
-
-        // We validate that the submission has the necessary question details for snapshotting
-        // This check is needed because submisson has Optional fields for question data
-        // As this data is initially empty when sent from the client And then filled when evaluating 
-        // with the kahoot aggregate. Here we ensure they were properly filled.
-        if (!submission.getQuestionText().hasValue() || 
-            !submission.getQuestionPoints().hasValue() || 
-            !submission.getTimeLimit().hasValue()) {
-            throw new Error("Cannot create player answer. The player's submission data is missing question details (text, points, or time limit).");
-        }
-
-        // We create the Snapshot of the question state at the moment of answering
-        // We extract this from the submission data to ensure historical accuracy
-        // even if the Kahoot is edited later.
-        const questionSnapshot = QuestionSnapshot.create(
-            submission.getQuestionText().getValue(),
-            submission.getQuestionPoints().getValue(),
-            submission.getTimeLimit().getValue()
-        );
-
+    
+        // We create a snapshot of the question to capture its state at the time of answering.
+        // This ensures historical accuracy even if the Kahoot is modified later.
+        const questionSnapshot = QuestionSnapshotFactory.createQuestionSnapshotFromResult(result);
+        
         // Finally, we create and return the PlayerAnswer Value Object
         return new PlayerAnswer({
             slideId: submission.getSlideId(),
