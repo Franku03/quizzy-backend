@@ -1,0 +1,1 @@
+export const GLOBAL_MAX_QUESTION_LENGTH = 120;    
