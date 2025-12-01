@@ -5,8 +5,9 @@ import { Score } from "src/core/domain/shared-value-objects/value-objects/value.
 import { ResponseTime } from "src/core/domain/shared-value-objects/value-objects/value.object.response-time";
 import { QuestionSnapshot } from "src/core/domain/shared-value-objects/value-objects/value.object.question-snapshot";
 import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
-import { answerSelected } from "src/core/domain/shared-value-objects/value-objects/value.object.optionSelected";
+import { AnswerSelected } from "src/core/domain/shared-value-objects/value-objects/value.object.answer-selected";
 import { QuestionSnapshotFactory } from "src/core/domain/factories/question-snapshot.factory";
+import { mapToAnswerSelected } from "src/core/domain/helpers/map-option-to-answer-selected";
 
 interface PlayerAnswerProps {
     slideId: SlideId;
@@ -14,7 +15,7 @@ interface PlayerAnswerProps {
     isAnswerCorrect: boolean;
     earnedScore: Optional<Score>;
     timeElapsed: ResponseTime;
-    answerContent: Optional<answerSelected[]>;
+    answerContent: Optional<AnswerSelected[]>;
     questionSnapshot: QuestionSnapshot;
 }
 
@@ -46,6 +47,10 @@ export class PlayerAnswer extends ValueObject<PlayerAnswerProps> {
         // We create a snapshot of the question to capture its state at the time of answering.
         // This ensures historical accuracy even if the Kahoot is modified later.
         const questionSnapshot = QuestionSnapshotFactory.createQuestionSnapshotFromResult(result);
+
+        // TODO: Si accedemos al Option directamente quitamos esto
+        // Mapeamos las option de la submission a AnswerSelected, nuestro VO para almacenar los datos la option seleccionada por el usuario
+        const answerContent = mapToAnswerSelected( submission );
         
         // Finally, we create and return the PlayerAnswer Value Object
         return new PlayerAnswer({
@@ -54,7 +59,7 @@ export class PlayerAnswer extends ValueObject<PlayerAnswerProps> {
             isAnswerCorrect: result.isCorrect(),
             earnedScore: result.getScore(),
             timeElapsed: submission.getTimeElapsed(),
-            answerContent: submission.getAnswerText(),
+            answerContent: answerContent,
             questionSnapshot: questionSnapshot
         });
     }
@@ -88,7 +93,7 @@ export class PlayerAnswer extends ValueObject<PlayerAnswerProps> {
         return this.properties.timeElapsed;
     }
 
-    public get answerContent(): Optional<Option[]> {
+    public get answerContent(): Optional<AnswerSelected[]> {
         return this.properties.answerContent;
     }
 

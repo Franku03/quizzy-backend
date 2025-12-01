@@ -1,5 +1,6 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { QuestionSnapshotFactory } from "src/core/domain/factories/question-snapshot.factory";
+import { mapToAnswerSelected } from "src/core/domain/helpers/map-option-to-answer-selected";
 
 import { ImageId } from "src/core/domain/shared-value-objects/id-objects/image.id";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
@@ -8,8 +9,7 @@ import { QuestionSnapshot } from "src/core/domain/shared-value-objects/value-obj
 import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Submission } from '../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
-
-import { Option } from "src/kahoots/domain/value-objects/kahoot.slide.option";
+import { AnswerSelected } from "src/core/domain/shared-value-objects/value-objects/value.object.answer-selected";
 
 import { PlayerId } from './player.id';
 
@@ -20,7 +20,7 @@ interface SessionPlayerAnswerProps {
     isAnswerCorrect: boolean,
     earnedScore: Score,
     timeElapsed: ResponseTime,
-    answerContent: Option[],
+    answerContent: AnswerSelected[],
     questionSnapshot: QuestionSnapshot   
 }
 
@@ -37,15 +37,27 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
         const playerSubmission: Submission = result.getSubmission();
 
+        // Mapeamos Options a AnswerSelecteds
+        const answerContent = mapToAnswerSelected( playerSubmission );
+
+        const questionSnapshot = QuestionSnapshotFactory.createQuestionSnapshotFromResult( result )
+
         const answerProps: SessionPlayerAnswerProps = {
             playerId: playerId,
+
             slideId: playerSubmission.getSlideId(),
+
             answerIndex: playerSubmission.getAnswerIndex().hasValue() ? playerSubmission.getAnswerIndex().getValue() : [],
+
             isAnswerCorrect: result.isCorrect(),
+
             earnedScore: result.getScore().hasValue() ? result.getScore().getValue() : Score.create( 0 ),
+
             timeElapsed: playerSubmission.getTimeElapsed(),
-            answerContent: playerSubmission.getAnswerText().hasValue() ? playerSubmission.getAnswerText().getValue() : [] ,
-            questionSnapshot: QuestionSnapshotFactory.createQuestionSnapshotFromResult( result ),
+
+            answerContent: answerContent.getValue(), // No pregunto por el valor dado que siempre como minimo hay un arreglo vacio
+
+            questionSnapshot: questionSnapshot,
         }
 
         return new SessionPlayerAnswer( answerProps );
@@ -94,24 +106,20 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
     }
 
+    // Si bien esto permite devolver null, en la teoria jamas podria devolver eso, se toma esto asi para complacer al compilador de TS
     public getAnswerContent(): ( string | ImageId )[] {
 
-        if( this.properties.answerContent.length === 0 )
-            return [];
-
-        const answerContent = this.properties.answerContent.map( option => {
-            
-            if( option.getImage().hasValue() )
-                return option.getImage().getValue();
-
-            return option.getText();
-
-        });
+        const answerContent = this.properties.answerContent.map( option => option.getAnswerContent() );
 
         return answerContent;
+
     }
 
-    public getQuestionSnapshot
+    public getQuestionSnapshot(): QuestionSnapshot {
+
+        return this.properties.questionSnapshot;
+        
+    }
 
 
     // TODO: Colocar demas getters que hagan falta

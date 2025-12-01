@@ -8,10 +8,13 @@ interface SessionProgressProps {
 export class SessionProgress extends ValueObject<SessionProgressProps> {
 
 
-    constructor(
-        totalSlides: number,
-        slidesAnswered: number
-    ){
+    private constructor( props: SessionProgressProps ){
+
+        super({ ...props });
+
+    }
+
+    public static create(totalSlides: number, slidesAnswered: number ): SessionProgress {
 
         if( !Number.isInteger( totalSlides) || !Number.isInteger( slidesAnswered ))
             throw new Error('Ya se el numero de totalSlides o el numero de slidesAnswered dado no es un número entero');
@@ -22,12 +25,15 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
         if( slidesAnswered < 0 )
             throw new Error('El número de slides respondidas es menor a 0');
 
-        super({ totalSlides, slidesAnswered });
+        return new SessionProgress({ totalSlides, slidesAnswered });
 
     }
 
     public addSlideAnswered(): SessionProgress {
-        return new SessionProgress( this.properties.totalSlides, this.properties.slidesAnswered + 1 );
+        return new SessionProgress({ 
+            totalSlides: this.properties.totalSlides, 
+            slidesAnswered: this.properties.slidesAnswered + 1 
+        });
     }
 
     public getProgressPercentage(): number {
