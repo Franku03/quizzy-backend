@@ -9,16 +9,21 @@ export class AttemptProgress extends ValueObject<AttemptProgressProps> {
     
     private constructor(props: AttemptProgressProps) {
         super(props);
-         if (props.totalQuestions < 0) {
-            throw new Error("AttemptProgress validation failed: Total questions cannot be negative.");
+
+        if (!Number.isInteger(props.totalQuestions) || !Number.isInteger(props.questionsAnswered)) {
+            throw new Error("Total questions or questions answered is not an integer.");
+        }
+
+        if (props.totalQuestions < 1) {
+            throw new Error("Number of total questions must be at least 1. Can't be zero or negative.");
         }
 
         if (props.questionsAnswered < 0) {
-            throw new Error("AttemptProgress validation failed: Questions answered cannot be negative.");
+            throw new Error("Number of questions answered cannot be negative.");
         }
 
         if (props.questionsAnswered > props.totalQuestions) {
-            throw new Error("AttemptProgress validation failed: Questions answered cannot exceed total questions.");
+            throw new Error("Number of questions answered cannot exceed total questions.");
         }
     }
 

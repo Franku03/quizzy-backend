@@ -18,6 +18,7 @@ import { Points } from "../../../core/domain/shared-value-objects/value-objects/
 import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
+import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
 
 interface UserId {
     readonly value: string;
@@ -49,6 +50,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         }
         
         super({...props, slides: slidesMap, details: detailsOptional}, id);
+
+        if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
+            this.checkPublishingReadiness();
+        }
     }
 
     /* =====================================================================================
@@ -66,6 +71,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     private checkPublishingReadiness(): void {
         // Regla 1: Debe tener detalles.
         if (!this.properties.details.hasValue()) { 
+            throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
+        }
+
+        if (!this.properties.details.getValue().isValidDetails) { 
             throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
         }
         
@@ -110,6 +119,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public updateDetails(newDetails: KahootDetails): void {
         // Reemplaza la referencia Optional<T> con la nueva instancia.
         this.properties.details = new Optional(newDetails);
+        this.checkInvariants();
     }
 
     //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
@@ -277,5 +287,26 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         return Array.from(this.properties.slides.values()).sort(
             (a, b) => a.position - b.position
         );
+    }
+
+    public getSnapshot(): KahootSnapshot {
+        
+        const slidesArray = Array.from(this.properties.slides.values());
+        const slideSnapshots = slidesArray.map(slide => slide.getSnapshot()); 
+
+        return {
+            id: this.id.value,
+            authorId: this.properties.author.value,
+            createdAt: this.properties.createdAt, 
+            visibility: this.properties.visibility.value,
+            status: this.properties.status.value,
+            playCount: this.properties.playCount.count,
+            styling: this.properties.styling.getSnapshot(),
+            
+            details: this.properties.details.hasValue() 
+                ? this.properties.details.getValue().getSnapshot() 
+                : null,
+            slides: slideSnapshots.length > 0 ? slideSnapshots : null,
+        }
     }
 }

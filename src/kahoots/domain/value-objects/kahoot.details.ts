@@ -1,6 +1,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Optional } from "src/core/types/optional";
 import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../constants/kahoot.rules";
+import { KahootDetailsSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.details";
 
 
 
@@ -17,6 +18,9 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
         description: Optional<string>, 
         category: Optional<string>
     ) {
+        if(!title.hasValue() && !description.hasValue() && !category.hasValue()) {
+             throw new Error(`Debe tener titulo, descripcion o categoria.`);
+        }
         if (title.hasValue()) {
             const currentTitle = title.getValue(); 
             if (currentTitle.length > MAX_TITLE_LENGTH) {
@@ -31,7 +35,23 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
         }
         super({ title, description, category });
     }
+
+    public isValidDetails() {
+        if(!this.properties.title.hasValue() && !this.properties.description.hasValue())
+            throw new Error("Kahoot Debe tener titulo y descipcion para ser publicado")
+
+    }
+    
     public get title(): Optional<string> { return this.properties.title; }
     public get description(): Optional<string> { return this.properties.description; }
     public get category(): Optional<string> { return this.properties.category; }
+
+
+    public getSnapshot(): KahootDetailsSnapshot {
+        return {
+            title: this.properties.title.hasValue() ? this.properties.title.getValue() : null,
+            description: this.properties.description.hasValue() ? this.properties.description.getValue() : null,
+            category: this.properties.category.hasValue() ? this.properties.category.getValue() : null,
+        };
+    }
 }
