@@ -43,4 +43,11 @@ export class SlideResult extends ValueObject<SlideResultProps> {
 
     }
 
+
+    public getPlayersAnswers(): SessionPlayerAnswer[] {
+
+        return [ ...this.properties.answers.values() ];
+
+    }
+
 }

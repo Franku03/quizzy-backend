@@ -93,9 +93,9 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
 
     
-    public getEarnedScore(): Score {
+    public getEarnedScore(): number {
 
-        return this.properties.earnedScore;
+        return this.properties.earnedScore.getScore();
 
     }
 
