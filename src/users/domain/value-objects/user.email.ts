@@ -1,13 +1,18 @@
-export class UserEmail {
+import { ValueObject } from "src/core/domain/abstractions/value.object";
 
+interface UserEmailProps {
     readonly value: string;
+}
+
+export class UserEmail extends ValueObject<UserEmailProps> {
 
     constructor(value: string) {
-        this.ensureIsValidEmail(value);
-        this.value = value;
+        UserEmail.ensureIsValidEmail(value);
+        
+        super({ value }); 
     }
-
-    private ensureIsValidEmail(value: string): void {
+    
+    private static ensureIsValidEmail(value: string): void {
         const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
         
         if (!emailRegex.test(value)) {
@@ -15,11 +20,7 @@ export class UserEmail {
         }
     }
 
-    equals(other: UserEmail): boolean {
-        return this.value === other.value;
-    }
-    
-    toString(): string {
-        return this.value;
+    get value(): string {
+        return this.properties.value;
     }
 }
