@@ -5,14 +5,14 @@ import { IKahootRepository } from 'src/database/domain/repositories/kahoot/IKaho
 import { KahootEntity } from 'src/database/infrastructure/entities/postgres/kahoots/kahoots.entity';
 
 @Injectable()
-export class KahootRepositoryPostgres implements IKahootRepository {
+export class KahootRepositoryPostgres /*implements IKahootRepository*/ {
   constructor(
     @InjectRepository(KahootEntity)
     private readonly repo: Repository<KahootEntity>,
   ) {}
 
-  async saveKahoot(name: string): Promise<void> {
+  /*async saveKahoot(name: string): Promise<void> {
     const user = this.repo.create({ name });
     await this.repo.save(user);
-  }
+  }*/
 }

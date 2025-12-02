@@ -9,7 +9,7 @@ interface AttemptTimeDetailsProps {
 
 export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
 
-    private constructor(props: AttemptTimeDetailsProps) {
+    public constructor(props: AttemptTimeDetailsProps) {
         super(props);
 
         // Temporal Logic - The order of dates must make sense
@@ -32,10 +32,26 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
                 throw new Error("Date at which the attempt was completed cannot come before the date at which it was last played.");
             }
         }
+
+        // None of the dates can be in the future compared to now.
+        // (Server and client times should be in sync)
+        
+        const now = new Date();
+        if (props.startedAt > now) {
+            throw new Error("Date at which the attempt was started cannot be in the future.");
+        }
+        if (props.lastPlayedAt > now) {
+            throw new Error("Date at which the attempt was last played cannot be in the future.");
+        }
+        if (props.completedAt.hasValue() && props.completedAt.getValue() > now) {
+            throw new Error("Date at which the attempt was completed cannot be in the future.");
+        }
     }
 
-    // Factory method 
-    // Used by the service when creating a new attempt 
+
+    // Factory methods
+
+    // Used by the aggregate when creating a brand new attempt 
     // Only the startedAt date is needed (lastPlayedAt is the same as startedAt at creation)
     public static create(startedAt: Date): AttemptTimeDetails {
         return new AttemptTimeDetails({
@@ -63,6 +79,10 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
             lastPlayedAt: this.properties.lastPlayedAt,
             completedAt: new Optional<Date>(completionDate) // Wrap date in Optional
         });
+    }
+
+    public isCompleted(): boolean {
+        return this.properties.completedAt.hasValue();
     }
 
     // Getters

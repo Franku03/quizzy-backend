@@ -19,20 +19,22 @@ import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
+import { SlideIdValue } from "../types/id-types"
 
 interface UserId {
     readonly value: string;
 }
 
-interface KahootProps {
+export interface KahootProps {
     author: UserId;
-    createdAt: Date;
+    createdAt: DateISO;
     styling: KahootStyling;
     details: Optional<KahootDetails>; 
     visibility: VisibilityStatus;
     status: KahootStatus;
-    slides: Map<SlideId, Slide>; 
-    playCount: PlayNumber;
+    slides: Map<SlideIdValue, Slide>; 
+    playCount: PlayNumber; //first time es 0
 }
 
 export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
@@ -40,16 +42,15 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public constructor(props: KahootProps, id: KahootId) {
         
         // Maneja la opcionalidad de la colección y los detalles en el constructor
-        const slidesMap = props.slides || new Map<SlideId, Slide>();
-        const detailsOptional = props.details ? props.details : new Optional<KahootDetails>();
+        
 
         // 1. Invariantes Transaccionales (Mínimo necesario para existir, incluso en Draft)
         // Solo la información esencial y el autor son mandatorios.
-        if (!props.author || !props.status || !props.visibility || !props.playCount || !props.styling) {
+        if (!props.author || !props.status || !props.visibility  || !props.styling) {
             throw new Error("El Kahoot requiere autor, estado, visibilidad, styling y conteo inicial.");
         }
         
-        super({...props, slides: slidesMap, details: detailsOptional}, id);
+        super(props, id);
 
         if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
             this.checkPublishingReadiness();
@@ -122,6 +123,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.checkInvariants();
     }
 
+    hasHowManySlides(): number{
+        return this.properties.slides.size;
+    }
+
     //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
     //Ya que cada vo individual se encarga de validar sus propias reglas de negocio.
     //El check invariants son reglas muy especificas relacionadas con la publicacion del kahoot.
@@ -136,7 +141,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     private getSlideById(slideId: SlideId): Slide | null {
 
-        return this.properties.slides.get(slideId) || null;
+        return this.properties.slides.get(slideId.value) || null;
     }
 
     public getSlideSnapshotById(slideId: SlideId): SlideSnapshot | null {
@@ -191,11 +196,11 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     public addSlide(slide: Slide): void {
-        this.properties.slides.set(slide.id, slide);
+        this.properties.slides.set(slide.id.value, slide);
     }
 
     public removeSlide(slideId: SlideId): void {
-        if (!this.properties.slides.delete(slideId)) {
+        if (!this.properties.slides.delete(slideId.value)) {
             throw new Error(`No se encontró el slide con ID ${slideId.value}.`);
         }
     }
@@ -297,7 +302,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         return {
             id: this.id.value,
             authorId: this.properties.author.value,
-            createdAt: this.properties.createdAt, 
+            createdAt: this.properties.createdAt.value, 
             visibility: this.properties.visibility.value,
             status: this.properties.status.value,
             playCount: this.properties.playCount.count,

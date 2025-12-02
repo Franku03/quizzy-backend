@@ -5,7 +5,7 @@ import { SlideSnapshot } from "./snapshot.slide";
 export interface KahootSnapshot {
     id: string; 
     authorId: string;
-    createdAt: Date; 
+    createdAt: string; 
     details: KahootDetailsSnapshot | null; 
     visibility: string; 
     status: string; 

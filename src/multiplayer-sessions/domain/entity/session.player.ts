@@ -11,7 +11,7 @@ interface PlayerProps {
 
 export class Player extends Entity<PlayerProps, PlayerId> {
 
-    private constructor(
+    public constructor(
         playerId: PlayerId,
         nickname: string,
         score: Score
@@ -19,22 +19,33 @@ export class Player extends Entity<PlayerProps, PlayerId> {
         super({ nickname, score }, playerId);
     }
 
-    public create(playerId: PlayerId, nickname: string, score: Score): Player {
+    // * Vieja factory method, se reemplazo por una fabrica dedicada
 
-        const nicknameValidation = validateNicknameInvariants( nickname );
+    // public create(playerId: PlayerId, nickname: string, score: Score): Player {
 
-        if( !nicknameValidation.isValid ) {
+    //     const nicknameValidation = validateNicknameInvariants( nickname );
 
-            throw new Error( nicknameValidation.error );
+    //     if( !nicknameValidation.isValid ) {
 
-        } 
+    //         throw new Error( nicknameValidation.error );
+
+    //     } 
      
-        return new Player( playerId , nickname, score );
-    }
+    //     return new Player( playerId , nickname, score );
+    // }
 
 
     public changeNickname( newNickname: string ): void {
-        this.properties.nickname = newNickname;
+
+        const { cleanNickname, isValid, error } = validateNicknameInvariants( newNickname );
+
+        if( !isValid ) {
+
+            throw new Error( error );
+
+        } 
+
+        this.properties.nickname = cleanNickname;
     }
 
     public updateScore( updatedScore: Score): void {

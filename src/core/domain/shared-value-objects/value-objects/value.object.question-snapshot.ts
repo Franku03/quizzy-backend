@@ -11,7 +11,7 @@ interface QuestionSnapshotProps {
 
 export class QuestionSnapshot extends ValueObject<QuestionSnapshotProps> {
   
-  private constructor(props: QuestionSnapshotProps) {
+  public constructor(props: QuestionSnapshotProps) {
     super(props);
     
     // Invariant checks 

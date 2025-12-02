@@ -8,17 +8,17 @@ export class DisplaySlide extends Slide {
 
     public constructor(props: SlideProps, id: SlideId) {
         
-        DisplaySlide.checkInitialInvariants(props);
-        
         props.slideType = new SlideType(SlideTypeEnum.SLIDE);
         props.evalStrategy = new TestKnowledgeEvaluationStrategy();
         
-        super(props, id); 
+        super(props, id);
+        
+        this.checkInitialInvariants();
     }
     
-    public static checkInitialInvariants(props: SlideProps): void {
+    protected checkInitialInvariants(): void {
         
-        const pointsOptional = props.points;
+        const pointsOptional = this.properties.points;
         if (pointsOptional && pointsOptional.hasValue()) { 
             const pointValue = pointsOptional.getValue().value;
             
@@ -27,7 +27,7 @@ export class DisplaySlide extends Slide {
             }
         }
 
-        const optionsOptional = props.options;
+        const optionsOptional = this.properties.options;
         if (optionsOptional && optionsOptional.hasValue()) { 
             if (optionsOptional.getValue().length > 0) {
                 throw new Error("[Constructor] Slide (Display): no deben tener opciones.");

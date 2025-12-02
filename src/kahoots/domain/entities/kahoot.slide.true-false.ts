@@ -8,17 +8,17 @@ import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type';
 export class TrueFalseSlide extends Slide { 
     
     public constructor(props: SlideProps, id: SlideId) {
-        
-        TrueFalseSlide.checkInitialInvariants(props);
-        
+         
         props.slideType = new SlideType(SlideTypeEnum.TRUE_FALSE); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
         
         super(props, id);
+
+        this.checkInitialInvariants();
     }
     
-    public static checkInitialInvariants(props: SlideProps): void {
-        const pointsOptional = props.points; 
+    protected checkInitialInvariants(): void {
+        const pointsOptional = this.properties.points; 
         
         if (!pointsOptional || !pointsOptional.hasValue()) { 
             throw new Error("[Constructor] Slide True/False: Los puntos son obligatorios.");
@@ -30,12 +30,12 @@ export class TrueFalseSlide extends Slide {
         }
         
         // Validación de Opciones: Número fijo 
-        const optionsOptional = props.options;
+        const optionsOptional = this.properties.options;
         if (!optionsOptional || !optionsOptional.hasValue() || optionsOptional.getValue().length !== 2) {
              throw new Error("[Constructor] Slide True/False: Debe ser inicializado con exactamente dos opciones.");
         }
 
-        if (props.description && props.description.hasValue()) { 
+        if (this.properties.description && this.properties.description.hasValue()) { 
             throw new Error("[Constructor] Slide True/False: no deben tener descripción.");
         }
     }

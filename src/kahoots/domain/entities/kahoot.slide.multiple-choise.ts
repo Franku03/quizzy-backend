@@ -9,16 +9,16 @@ export class MultipleChoiceSlide extends Slide {
     
     public constructor(props: SlideProps, id: SlideId) {
         
-        MultipleChoiceSlide.checkInitialInvariants(props);
-        
         props.slideType = new SlideType(SlideTypeEnum.MULTIPLE); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy();
         
         super(props, id); 
+
+        this.checkInitialInvariants();
     }
 
-    public static checkInitialInvariants(props: SlideProps): void {
-        const pointsOptional = props.points; 
+    protected checkInitialInvariants(): void {
+        const pointsOptional = this.properties.points; 
         
         if (pointsOptional && pointsOptional.hasValue()) { 
             const pointsVO = pointsOptional.getValue();
@@ -29,11 +29,11 @@ export class MultipleChoiceSlide extends Slide {
             }
         }
 
-        if (props.description && props.description.hasValue()) { 
+        if (this.properties.description && this.properties.description.hasValue()) { 
             throw new Error("[Constructor] Slide Multiple: Las diapositivas de opción múltiple no deben tener descripción.");
         }
         
-        const optionsOptional = props.options;
+        const optionsOptional = this.properties.options;
         if (optionsOptional && optionsOptional.hasValue()) { 
             const optionsArray = optionsOptional.getValue();
             if (optionsArray.length > 6) { 
