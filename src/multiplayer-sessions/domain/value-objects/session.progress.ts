@@ -4,7 +4,7 @@ import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/ka
 interface SessionProgressProps {
     currentSlide: SlideId,
     totalSlides: number,
-    slidesAnswered: number
+    slidesAnswered: number // * Tambien nos define el indice del slide actual donde se encuentra la partida
 }
 
 export class SessionProgress extends ValueObject<SessionProgressProps> {

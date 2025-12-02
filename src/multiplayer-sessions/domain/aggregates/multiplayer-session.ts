@@ -14,8 +14,6 @@ import { Score } from "src/core/domain/shared-value-objects/value-objects/value.
 
 import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
 
-// TODO: Cambiar constructores de los VOs a publicos
-
 interface MultiplayerSessionProps {
     readonly hostId: UserId,
     readonly kahootId: KahootId,
@@ -103,7 +101,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             const totalScore = results.reduce(( resA, resB ) => resA + resB , 0);
 
             if( totalScore !== score )
-                throw new Error(`Invarianza violada: el puntaje del jugador id: ${ player.id } nickname: ${ player.getPlayerNickname() } is incoherente, el la suma del puntaje de sus respuestas no es igual a su puntaje acumulado`);
+                throw new Error(`Invarianza violada: el puntaje del jugador id: ${ player.id } nickname: ${ player.getPlayerNickname() } is incoherente, la suma del puntaje de sus respuestas no es igual a su puntaje acumulado`);
 
         }
 
@@ -276,6 +274,15 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     public getPlayers(): Player[] {
 
         return  [...this.properties.players.values()] ;
+
+    }
+
+    public getPlayerById( playerId: PlayerId ): Player {
+
+        if( !this.isPlayerAlreadyJoined( playerId )  )
+            throw new Error("El jugador no se encuentra unido a la sesión");
+
+        return  this.properties.players.get( playerId.value )!
 
     }
 
