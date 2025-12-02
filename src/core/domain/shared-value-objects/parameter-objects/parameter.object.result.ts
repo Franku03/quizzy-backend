@@ -2,6 +2,7 @@ import { Optional } from "src/core/types/optional";
 import { Submission } from './parameter.object.submission';
 import { ValueObject } from "../../abstractions/value.object";
 import { Score } from "../value-objects/value.object.score";
+import { SlideId } from "../id-objects/kahoot.slide.id";
 
 interface ResultProps {
     readonly submission: Submission; 
@@ -29,5 +30,9 @@ export class Result extends ValueObject<ResultProps> {
     
     public getSubmission(): Submission {
         return this.properties.submission; 
+    }
+
+    public getSlideId(): SlideId {
+        return this.properties.submission.getSlideId();
     }
 }
