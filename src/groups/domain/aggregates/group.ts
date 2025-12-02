@@ -6,6 +6,7 @@ import { GroupId } from '../value-objects/group.id';
 import { GroupDetails } from '../value-objects/group.details';
 import { GroupAssignment } from '../entities/group.assignment';
 import { GroupMember } from '../entities/group.member';
+import { GroupMemberId } from '../value-objects/group.member.id';
 import { GroupAssignmentCompletion } from '../value-objects/group.assignment.completion';
 import { InvitationToken } from '../value-objects/group.invitation.token';
 import { Role } from '../value-objects/group.member.role';
@@ -42,10 +43,44 @@ interface GroupProps {
 
 export class Group extends AggregateRoot<GroupProps, GroupId> {
   constructor(props: GroupProps, id: GroupId) {
-    if (!props.details || !props.adminId) {
-      throw new Error("Los detalles del grupo y el adminId son requeridos.");
+    if (!props.details || !props.adminId || !id) {
+      throw new Error("Los detalles del grupo, el adminId y el id son requeridos.");
     }
     super(props, id);
+  }
+
+  public static create(
+    groupId: string,
+    name: string,
+    adminId: string,
+    description?: string,
+  ): Group {
+    const id = new GroupId(groupId);
+    const details = GroupDetails.create(name, description);
+    const admin = new UserId(adminId);
+    const createdAt = new Date();
+
+    // Crear el admin como primer miembro del grupo
+    const adminMember = new GroupMember(
+      {
+        userId: admin,
+        role: new Role(GroupMemberRole.ADMIN),
+        joinedAt: createdAt,
+      },
+      new GroupMemberId(adminId)
+    );
+
+    const props: GroupProps = {
+      details: GroupDetails.create(name, description),
+      createdAt,
+      adminId: admin,
+      members: [adminMember],
+      assignments: [],
+      completions: [],
+      invitationToken: new Optional<InvitationToken>(),
+    };
+
+    return new Group(props, id);
   }
 
   public updateDetails(requesterId: UserId, newDetails: GroupDetails): void {
@@ -61,28 +96,28 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     }
 
     const token = InvitationToken.createWithTokenGenerator(tokenGenerator, expiresInDays);
-    
+
     this.properties.invitationToken = new Optional(token);
-  
+
     return token;
   }
 
 
   public joinGroup(userToJoin: UserId, token: InvitationToken, isAdminPremium: boolean): void {
-    if(this.isMember(userToJoin)) {
+    if (this.isMember(userToJoin)) {
       throw new Error("El usuario ya es miembro del grupo.");
     }
 
-    if((!isAdminPremium) && (this.properties.members.length >= 5)) {
+    if ((!isAdminPremium) && (this.properties.members.length >= 5)) {
       throw new Error("El grupo no puede tener más de 5 miembros si el admin no es premium.");
     }
 
-    if((this.properties.invitationToken) && !token.equals(this.properties.invitationToken.getValue())) {
+    if ((this.properties.invitationToken) && !token.equals(this.properties.invitationToken.getValue())) {
       throw new Error("La invitación no es válida.");
     }
 
     //pending: revisar
-    this.properties.members.push(new GroupMember({userId: userToJoin, role: new Role(GroupMemberRole.MEMBER), joinedAt: new Date()}, userToJoin));
+    this.properties.members.push(new GroupMember({ userId: userToJoin, role: new Role(GroupMemberRole.MEMBER), joinedAt: new Date() }, userToJoin));
 
   }
 
@@ -126,18 +161,18 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       throw new Error("Solo los miembros del grupo pueden asignar kahoots.");
     }
 
-    if(from > to) {
+    if (from > to) {
       throw new Error("La fecha de inicio debe ser anterior a la fecha de fin.");
     }
 
-    if(this.isKahootAssigned(kahootId)) {
+    if (this.isKahootAssigned(kahootId)) {
       throw new Error("El kahoot ya está asignado al grupo.");
     }
 
     this.properties.assignments.push(
-      new GroupAssignment({groupId: this.id, assignedBy: requesterId, userId: assignedUser, quizId: kahootId, availableFrom: from, availableUntil: to, isAssignmentCompleted: false}, 
+      new GroupAssignment({ groupId: this.id, assignedBy: requesterId, userId: assignedUser, quizId: kahootId, availableFrom: from, availableUntil: to, isAssignmentCompleted: false },
         this.id)
-      );
+    );
 
   }
 
@@ -160,11 +195,11 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
         completion.getQuizId().value === kahootId.value
     );
 
-    if (existingCompletion) 
+    if (existingCompletion)
       // Ya existe una completion para este usuario y quiz, no hacer nada
       // Los siguientes intentos pueden jugarse pero no se registran en el assignment
       return false;
-    
+
 
     const completion = GroupAssignmentCompletion.create(
       userId,
@@ -203,8 +238,17 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   public isMember(userId: UserId): boolean {
     return this.properties.members.some(member => member.getUserId() === userId);
   }
-  
+
   protected checkInvariants(): void {
   }
+
+  public getAdminId(): UserId {
+    return this.properties.adminId;
+  }
+
+  public getName(): string {
+    return this.properties.details.getName();
+  }
 }
+
 

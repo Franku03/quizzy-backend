@@ -8,6 +8,7 @@ import { UserEntity as UserTypeORM } from './postgres/users/users.entity';
 // Mongoose schemas
 import { KahootMongo, KahootSchema } from './mongo/kahoots/kahoots.schema';
 import { UserMongo, UserSchema } from './mongo/users/users.schema';
+import { GroupMongo, GroupSchema } from './mongo/groups/groups.schema';
 
 // Catálogo exclusivo de TypeORM (solo clases)
 export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
@@ -19,4 +20,6 @@ export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
 export const MONGOOSE_ENTITY_REGISTRY: ModelDefinition[] = [
   { name: KahootMongo.name, schema: KahootSchema },
   { name: UserMongo.name, schema: UserSchema },
+  { name: GroupMongo.name, schema: GroupSchema },
 ];
+
