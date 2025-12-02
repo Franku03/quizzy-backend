@@ -12,7 +12,7 @@ interface ScoreboardProps {
 export class Scoreboard extends ValueObject<ScoreboardProps> {
 
 
-    constructor( props: ScoreboardProps) {
+    public constructor( props: ScoreboardProps) {
 
         super({ ...props });
 

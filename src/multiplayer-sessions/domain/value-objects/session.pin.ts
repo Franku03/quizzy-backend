@@ -9,7 +9,7 @@ interface SessionPinProps {
 
 export class SessionPin extends ValueObject<SessionPinProps> {
 
-    private constructor(
+    public constructor(
         sessionPin: string
     ){
 

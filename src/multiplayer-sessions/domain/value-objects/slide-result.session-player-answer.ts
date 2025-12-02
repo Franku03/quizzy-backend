@@ -26,7 +26,7 @@ interface SessionPlayerAnswerProps {
 export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
     
 
-    private constructor( answerProps: SessionPlayerAnswerProps ){
+    public constructor( answerProps: SessionPlayerAnswerProps ){
 
         super({ ...answerProps });
 

@@ -7,7 +7,7 @@ interface SessionStateProps {
 
 export class SessionState extends ValueObject<SessionStateProps> {
 
-    private constructor(
+    public constructor(
       state: SessionStateType  
     ){
         super({ state });

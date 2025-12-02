@@ -16,7 +16,6 @@ import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
 
 // TODO: Cambiar constructores de los VOs a publicos
 
-
 interface MultiplayerSessionProps {
     readonly hostId: UserId,
     readonly kahootId: KahootId,
@@ -36,16 +35,24 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         super({...props}, id);
 
+        // Comprueba que el estado no sea Lobby dado que una partida iniciada no se le pueden chequear invarianzas, sin embargo a una partida cargada si deberia
+        // if( !props.sessionState.isLobby() ){
+
+        //     this.checkInvariants();
+
+        // }
+
     }
 
     protected checkInvariants(): void {
         
-        // * Estas invariantes son para la reconstruccion del Agregado cuando se trae de persistencia, de aplicarlas al construir la sesion por primera vez nos dara error todo
-        // ¡ Para empezar una partida se necesita minimo una persona, sin embargo con un plan gratuito solo se pueden tener 10 personas, con plan premium hasta 40 o mas
+        // ? Estas invariantes son para chequear el Agregado antes de persistirlo, de aplicarlas al construir la sesion por primera vez nos dara error todo
+        // * Para empezar una partida se necesita minimo una persona, sin embargo con un plan gratuito solo se pueden tener 10 personas, con plan premium hasta 40 o mas
+
         /*
         
-         No usuarios Duplicados - No tanto por los users, si no por los que juegan como invitados
-         No host como player
+         No usuarios Duplicados - No tanto por los users, si no por los que juegan como invitados - Esto se cubre gracias al Map<>
+         No host como player - 
          Minimo 1 usuario en la partida
          El numero de SlideResults debe ser igual al numero de slidesAnswered y de totalSlides, esto asegura que efectivamente la partida se jugo al completo
          Los Scores de cada Jugador deben equivaler a la suma de Scores de todas sus respuestas
@@ -55,9 +62,56 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
          
         */
 
-        //  const p this.getPlayers()
+        // * Invarianzas de Estado de completación de la partida y valores que deberian estar presentes
+         
+        if( !this.properties.sessionState.isEnd() )
+            throw new Error("Invarianza violada: La partida debe estar END al ser cargada, pues debió finalizar para ser guardada");
+
+        if( !!this.getCompletionDate() )
+            throw new Error("Invarianza violada: La partida no tiene fecha de culminación");
+
+        if( !!this.getStartingDate() )
+            throw new Error("Invarianza violada: La partida no tiene fecha de inicio");
+
+        if( this.hasMoreSlidesLeft() )
+            throw new Error("Invarianza violada: La partida está incompleta, quedan slides por jugar");
+
+        // * Invarianzas de Jugadores asociados a la partida y sus puntuaciones y respuestas
+        
+        if( this.properties.players.has( this.getHostId().value ) )
+            throw new Error("Invarianza violada: El Host esta resgistrado como jugador en la partida");
+
+        if( this.properties.players.size < 1 )
+            throw new Error("Invarianza violada: La partida tiene 0 jugadores asociados");
+
+        if( this.getTotalOfSlides() !== this.properties.playersAnswers.size  )
+            throw new Error("Invarianza violada: La partida tiene menos respuestas totales para cada slide que el numero de slide");
 
 
+        if( this.getTotalOfSlidesAnswered() !== this.properties.playersAnswers.size  )
+            throw new Error("Invarianza violada: El numero de respuestas registradas es incoherente con el numero de slides respondidos");
+
+ 
+        const players = this.getPlayers();
+
+        for( const player of players ){
+
+            const score = player.getScore();
+
+            const results = this.getOnePlayerAnswers( player.id ).map( results => results.getEarnedScore() );
+
+            const totalScore = results.reduce(( resA, resB ) => resA + resB , 0);
+
+            if( totalScore !== score )
+                throw new Error(`Invarianza violada: el puntaje del jugador id: ${ player.id } nickname: ${ player.getPlayerNickname() } is incoherente, el la suma del puntaje de sus respuestas no es igual a su puntaje acumulado`);
+
+        }
+
+    }
+
+    // Para llamar antes de persistir la partida
+    public validateAllInvariantsForCompletion(): void{
+        this.checkInvariants();
     }
 
     // ¿ LOGICA DE JUEGO ESTANDAR - UNIR JUGADORES, ANADIR RESULTADOS A LA SESION Y ACTUALIZAR PUNTAJES Y RANKING
@@ -127,7 +181,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         // TODO: Verificar que hayan suficientes jugadores, por ejemplo a través de checkInvariants()
 
-        if( this.getPlayers().length < 1 )
+        if( this.properties.players.size < 1 )
             throw new Error("No se puede empezar una partida con menos de un jugador conectado");
 
         // Empezamos el juego pasando a la primera pregunta
@@ -173,12 +227,30 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     // Para obtener datos de los jugadores y el ranking
 
-    public getPlayersAnswers( slideId: SlideId ): SessionPlayerAnswer[] {
+    public getPlayersAnswersForASlide( slideId: SlideId ): SessionPlayerAnswer[] {
 
         if( !this.properties.playersAnswers.has( slideId.value ) )
             throw new Error("Los resultados de la Slide solicitada no existen, o no se han registrado resultados aún para la misma");  
 
         const playerAnswers = this.properties.playersAnswers.get( slideId.value )?.getPlayersAnswers()!;
+
+        return playerAnswers;
+
+    }
+
+
+    public getOnePlayerAnswers( playerId: PlayerId ): SessionPlayerAnswer[] {
+
+        if( !this.properties.players.has( playerId.value ) )
+            throw new Error("El jugador solicitado no se encuentra en la partida");  
+
+        const slidesResults = this.getSlidesResults();
+
+        const playerAnswers = slidesResults.map( result => {
+
+           return result.searchPlayerAnswer( playerId );
+
+        })
 
         return playerAnswers;
 
@@ -240,11 +312,33 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+
+    public getTotalOfSlidesAnswered(): number {
+
+        return this.properties.progress.getNumberOfSlidesAnswered() ;
+
+    }
+
+
+    public getTotalOfSlides(): number {
+
+        return this.properties.progress.getNumberOfTotalSlides() ;
+
+    }
+
     public hasMoreSlidesLeft(): boolean {
 
         return this.properties.progress.hasMoreSlidesLeft() ;
 
     }
+
+    public getSlidesResults(): SlideResult[] {
+
+        return [...this.properties.playersAnswers.values()]
+
+    }
+
+    
 
     // ? GETTERS NORMALES
 

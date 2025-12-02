@@ -13,7 +13,7 @@ interface SlideResultProps {
 export class SlideResult extends ValueObject<SlideResultProps> {
     
 
-    private constructor( props: SlideResultProps ){
+    public constructor( props: SlideResultProps ){
         super({ ...props });
     }
 

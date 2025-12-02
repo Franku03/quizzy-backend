@@ -10,7 +10,7 @@ interface SessionProgressProps {
 export class SessionProgress extends ValueObject<SessionProgressProps> {
 
 
-    private constructor( props: SessionProgressProps ){
+    public constructor( props: SessionProgressProps ){
 
         super({ ...props });
 
@@ -59,6 +59,19 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
     public getHowManySlidesAreLeft(): number{
 
         return this.properties.totalSlides - this.properties.slidesAnswered; 
+
+    }
+
+    public getNumberOfSlidesAnswered(): number {
+
+        return this.properties.slidesAnswered;
+
+    }
+
+
+    public getNumberOfTotalSlides(): number {
+
+        return this.properties.totalSlides;
 
     }
 
