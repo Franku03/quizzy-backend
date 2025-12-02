@@ -9,25 +9,14 @@ import { UserEntity as UserTypeORM } from './postgres/users/users.entity';
 import { KahootMongo, KahootSchema } from './mongo/kahoots/kahoots.schema';
 import { UserMongo, UserSchema } from './mongo/users/users.schema';
 
-//Nombres comunes para TypeORM y Mongoose (EXTENSIBLE)
-export enum EntityName {
-  Kahoot = 'Kahoot',
-  User = 'User',
-}
+// Catálogo exclusivo de TypeORM (solo clases)
+export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
+  KahootTypeORM,
+  UserTypeORM,
+];
 
-type EntityRegistryItem = {
-  typeorm: EntityClassOrSchema | null;
-  mongoose: ModelDefinition | null;
-};
-
-//Mapeo de nombres comunes para entidades de base de datos (EXTENSIBLE)
-export const ENTITY_REGISTRY: Record<EntityName, EntityRegistryItem> = {
-  [EntityName.Kahoot]: {
-    typeorm: KahootTypeORM,
-    mongoose: { name: KahootMongo.name, schema: KahootSchema },
-  },
-  [EntityName.User]: {
-    typeorm: UserTypeORM,
-    mongoose: { name: UserMongo.name, schema: UserSchema },
-  },
-};
+// Catálogo exclusivo de Mongoose (solo definiciones de modelos)
+export const MONGOOSE_ENTITY_REGISTRY: ModelDefinition[] = [
+  { name: KahootMongo.name, schema: KahootSchema },
+  { name: UserMongo.name, schema: UserSchema },
+];
