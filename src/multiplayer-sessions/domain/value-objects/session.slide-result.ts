@@ -3,9 +3,11 @@ import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.
 import { PlayerId } from "./player.id"
 import { SessionPlayerAnswer } from "./slide-result.session-player-answer"
 
+import { PlayerIdValue } from "../types/id-value.types"
+
 interface SlideResultProps {
     slideId: SlideId,
-    answers: Map<PlayerId, SessionPlayerAnswer >
+    answers: Map<PlayerIdValue, SessionPlayerAnswer >
 }
 
 export class SlideResult extends ValueObject<SlideResultProps> {
@@ -29,10 +31,10 @@ export class SlideResult extends ValueObject<SlideResultProps> {
 
     public searchPlayerAnswer(playerId: PlayerId ): SessionPlayerAnswer {
 
-        if( !this.properties.answers.has( playerId ) )
+        if( !this.properties.answers.has( playerId.value ) )
             throw Error('El jugador solicitado no tiene una respuesta asociada a esta Slide');
 
-        return this.properties.answers.get( playerId )!
+        return this.properties.answers.get( playerId.value )!
 
     }
 

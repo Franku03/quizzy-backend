@@ -1,6 +1,5 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { QuestionSnapshotFactory } from "src/core/domain/factories/question-snapshot.factory";
-import { mapToAnswerSelected } from "src/core/domain/helpers/map-option-to-answer-selected";
 
 import { ImageId } from "src/core/domain/shared-value-objects/id-objects/image.id";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
@@ -37,8 +36,8 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
         const playerSubmission: Submission = result.getSubmission();
 
-        // Mapeamos Options a AnswerSelecteds
-        const answerContent = mapToAnswerSelected( playerSubmission );
+        // Mapeamos las option de la submission a AnswerSelected
+        const answerContent = AnswerSelected.createFromOptions( playerSubmission );
 
         const questionSnapshot = QuestionSnapshotFactory.createQuestionSnapshotFromResult( result )
 
@@ -55,7 +54,7 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
             timeElapsed: playerSubmission.getTimeElapsed(),
 
-            answerContent: answerContent.getValue(), // No pregunto por el valor dado que siempre como minimo hay un arreglo vacio
+            answerContent: answerContent, // No pregunto por el valor dado que siempre como minimo hay un arreglo vacio
 
             questionSnapshot: questionSnapshot,
         }

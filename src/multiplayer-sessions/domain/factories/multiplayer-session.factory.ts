@@ -8,6 +8,10 @@ import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.
 
 import { Scoreboard, SessionPin, SessionState, SessionProgress, PlayerId, SlideResult } from "../value-objects"
 import { Player } from "../entity/session.player";
+import { Optional } from "src/core/types/optional";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
+
+import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
 
 interface SlideInfo {
     firstSlideId: SlideId,
@@ -35,16 +39,21 @@ export class MultiplayerSessionFactory {
 
         const initialSessionProgress = SessionProgress.create( slidesInfo.firstSlideId , slidesInfo.slidesNumber, 0 );
 
-        const hollowPlayerMap = new Map<PlayerId, Player>();
+        const hollowPlayerMap = new Map<PlayerIdValue, Player>();
 
-        const hollowAnswersMap = new Map<SlideId, SlideResult>();
+        const hollowAnswersMap = new Map<SlideIdValue, SlideResult>();
+
+        const startedAt = DateISO.generate();
+
+        const hollowCompletedAt = new Optional<DateISO>(); // Creamos optional vacio, luego lo cambiaremos por uno que tenga info, la unica razon para el optional es para no trabajar directamente con null en el agregado
 
 
         return new MultiplayerSession({
             hostId: hostId,
             kahootId: kahootId,
             sessionPin: sessionPin,
-            startedAt: new Date(),
+            startedAt: startedAt,
+            completedAt: hollowCompletedAt, 
             sessionState: initialGameState,
             ranking: ranking,
             progress: initialSessionProgress,

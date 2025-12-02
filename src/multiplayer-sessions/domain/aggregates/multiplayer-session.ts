@@ -4,24 +4,30 @@ import { MultiplayerSessionId } from '../../../core/domain/shared-value-objects/
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
+import { Optional } from "src/core/types/optional";
 
 import { PlayerId, Scoreboard, ScoreboardEntry, SessionPin, SessionProgress, SessionState, SlideResult } from "../value-objects";
 import { Player } from "../entity/session.player";
 import { SessionPlayerAnswer } from '../value-objects/slide-result.session-player-answer';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
+import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
+
 // TODO: Cambiar constructores de los VOs a publicos
 
+
 interface MultiplayerSessionProps {
-    hostId: UserId,
-    kahootId: KahootId,
-    sessionPin: SessionPin,
-    startedAt: Date,
+    readonly hostId: UserId,
+    readonly kahootId: KahootId,
+    readonly sessionPin: SessionPin,
+    readonly startedAt: DateISO,
+    completedAt: Optional<DateISO>,
     sessionState: SessionState,
     ranking: Scoreboard,
     progress: SessionProgress,
-    players: Map<PlayerId, Player>,
-    playersAnswers: Map <SlideId, SlideResult>
+    players: Map<PlayerIdValue, Player>, // Definimos un type alias para el valor del PlayerId dado que de esta manera el Map trabaja con primitivos e impide trabajar con duplicados
+    playersAnswers: Map <SlideIdValue, SlideResult> // Lo mismo aqui para el slideId
 };
 
 export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, MultiplayerSessionId> {
@@ -34,20 +40,33 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     protected checkInvariants(): void {
         
-        // TODO: Revisar invarianzas
+        // * Estas invariantes son para la reconstruccion del Agregado cuando se trae de persistencia, de aplicarlas al construir la sesion por primera vez nos dara error todo
         // ¡ Para empezar una partida se necesita minimo una persona, sin embargo con un plan gratuito solo se pueden tener 10 personas, con plan premium hasta 40 o mas
         /*
         
-         No usuarios Duplicados
+         No usuarios Duplicados - No tanto por los users, si no por los que juegan como invitados
          No host como player
+         Minimo 1 usuario en la partida
+         El numero de SlideResults debe ser igual al numero de slidesAnswered y de totalSlides, esto asegura que efectivamente la partida se jugo al completo
+         Los Scores de cada Jugador deben equivaler a la suma de Scores de todas sus respuestas
+         Si esta en estado END, el progreso de la partida debe estar en 100 o no deben quedarle slides por responder
+            Tambien deberia tener una marca de completacion como completedAt
+         Si al reconstruirse tiene un estado que no sea END, algo esta mal pues ninguna partida deberia guardarse con un estado que no sea ese
          
         */
+
+        //  const p this.getPlayers()
 
 
     }
 
     // ¿ LOGICA DE JUEGO ESTANDAR - UNIR JUGADORES, ANADIR RESULTADOS A LA SESION Y ACTUALIZAR PUNTAJES Y RANKING
 
+    public isPlayerAlreadyJoined( playerId: PlayerId ): boolean {
+
+        return this.properties.players.has( playerId.value );
+
+    }
 
     public joinPlayer( player: Player ): void {
 
@@ -55,22 +74,22 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             throw new Error("El host de una partida no puede unirse como jugador a la misma")
 
         // Si un jugador que ya esta unido intenta unirse, se retorna de la funcion sin hacer nada (lo mismo que agarrar su score, borrarlo, y volverlo a unir con el score que tenia)
-        if( this.properties.players.has( player.id ) )
+        if( this.isPlayerAlreadyJoined( player.id ))
             return;
         
-        this.properties.players.set( player.id, player );
+        this.properties.players.set( player.id.value , player );
 
     }
 
     private deletePlayer( playerId: PlayerId ): boolean {
         
-        return this.properties.players.delete( playerId );
+        return this.properties.players.delete( playerId.value );
 
     }
 
     public addSlideResult(slideId: SlideId, result: SlideResult){
 
-        this.properties.playersAnswers.set( slideId, result );
+        this.properties.playersAnswers.set( slideId.value , result );
 
     }
 
@@ -81,7 +100,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         for( const result of playerResults ){
 
             // * Quizas no devuelve la referencia al objeto, espero que si
-            const player = this.properties.players.get( result.getPlayerId() );
+            const player = this.properties.players.get( result.getPlayerId().value );
 
             player?.updateScore( Score.create( player.getScore() + result.getEarnedScore() ) );
 
@@ -143,6 +162,9 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         // Terminamos el juego pasando a estado END
         this.properties.sessionState = this.properties.sessionState.toEnd();
 
+        // ¡ Marcamos la fecha de finalizacion de la partida
+        this.properties.completedAt = new Optional<DateISO>( DateISO.generate() );
+
         return this.properties.sessionState;
 
     }
@@ -153,10 +175,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     public getPlayersAnswers( slideId: SlideId ): SessionPlayerAnswer[] {
 
-        if( !this.properties.playersAnswers.has( slideId ) )
+        if( !this.properties.playersAnswers.has( slideId.value ) )
             throw new Error("Los resultados de la Slide solicitada no existen, o no se han registrado resultados aún para la misma");  
 
-        const playerAnswers = this.properties.playersAnswers.get( slideId )?.getPlayersAnswers()!;
+        const playerAnswers = this.properties.playersAnswers.get( slideId.value )?.getPlayersAnswers()!;
 
         return playerAnswers;
 
@@ -230,10 +252,19 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         return this.properties.sessionPin;
     }
 
-    public getStartingDate(): Date {
+    private getStartingDate(): DateISO {
 
-        return  this.properties.startedAt ;
+        return this.properties.startedAt ;
         
+    }
+
+    private getCompletionDate(): DateISO {
+
+        if( !this.properties.completedAt.hasValue() )
+            throw new Error("FATAL: La sesión no tiene fecha de completación, posiblemente la partida no se ha completado o no se completó")
+
+        return this.properties.completedAt.getValue();
+
     }
 
     public getHostId(): UserId {
