@@ -19,20 +19,21 @@ import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 
 interface UserId {
     readonly value: string;
 }
 
-interface KahootProps {
+export interface KahootProps {
     author: UserId;
-    createdAt: Date;
+    createdAt: DateISO;
     styling: KahootStyling;
     details: Optional<KahootDetails>; 
     visibility: VisibilityStatus;
     status: KahootStatus;
     slides: Map<SlideId, Slide>; 
-    playCount: PlayNumber;
+    playCount: PlayNumber; //first time es 0
 }
 
 export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
@@ -40,16 +41,15 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public constructor(props: KahootProps, id: KahootId) {
         
         // Maneja la opcionalidad de la colección y los detalles en el constructor
-        const slidesMap = props.slides || new Map<SlideId, Slide>();
-        const detailsOptional = props.details ? props.details : new Optional<KahootDetails>();
+        
 
         // 1. Invariantes Transaccionales (Mínimo necesario para existir, incluso en Draft)
         // Solo la información esencial y el autor son mandatorios.
-        if (!props.author || !props.status || !props.visibility || !props.playCount || !props.styling) {
+        if (!props.author || !props.status || !props.visibility  || !props.styling) {
             throw new Error("El Kahoot requiere autor, estado, visibilidad, styling y conteo inicial.");
         }
         
-        super({...props, slides: slidesMap, details: detailsOptional}, id);
+        super(props, id);
 
         if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
             this.checkPublishingReadiness();
@@ -120,6 +120,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         // Reemplaza la referencia Optional<T> con la nueva instancia.
         this.properties.details = new Optional(newDetails);
         this.checkInvariants();
+    }
+
+    hasHowManySlides(): number{
+        return this.properties.slides.size;
     }
 
     //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
@@ -309,4 +313,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             slides: slideSnapshots.length > 0 ? slideSnapshots : null,
         }
     }
+
+    public restoreFromMemento(memento: KahootSnapshot) {
+
+    }
+
 }
