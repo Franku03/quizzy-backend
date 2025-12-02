@@ -10,6 +10,8 @@ import { Player } from "../entity/session.player";
 import { SessionPlayerAnswer } from '../value-objects/slide-result.session-player-answer';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
+// TODO: Cambiar constructores de los VOs a publicos
+
 interface MultiplayerSessionProps {
     hostId: UserId,
     kahootId: KahootId,
@@ -33,8 +35,9 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     protected checkInvariants(): void {
         
         // TODO: Revisar invarianzas
-
+        // ¡ Para empezar una partida se necesita minimo una persona, sin embargo con un plan gratuito solo se pueden tener 10 personas, con plan premium hasta 40 o mas
         /*
+        
          No usuarios Duplicados
          No host como player
          
@@ -51,15 +54,15 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         if( player.id.value === this.properties.hostId.value )
             throw new Error("El host de una partida no puede unirse como jugador a la misma")
 
-        // Si un jugador que ya esta unido intenta unirse, se borrara su anterior instancia y se volvera a unir bajo una nueva
+        // Si un jugador que ya esta unido intenta unirse, se retorna de la funcion sin hacer nada (lo mismo que agarrar su score, borrarlo, y volverlo a unir con el score que tenia)
         if( this.properties.players.has( player.id ) )
-            this.deletePlayer( player.id );
+            return;
         
         this.properties.players.set( player.id, player );
 
     }
 
-    public deletePlayer( playerId: PlayerId ): boolean {
+    private deletePlayer( playerId: PlayerId ): boolean {
         
         return this.properties.players.delete( playerId );
 
@@ -92,14 +95,27 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+    public updateProgress( nextSlide: SlideId ): void {
+      
+        this.properties.progress = this.properties.progress.addSlideAnswered( nextSlide );
+
+    }
+
     // * LOGICA DE MANEJO DE ESTADOS DE LA SESSION
 
 
     public startSession(): SessionState {
+
+        // TODO: Verificar que hayan suficientes jugadores, por ejemplo a través de checkInvariants()
+
+        if( this.getPlayers().length < 1 )
+            throw new Error("No se puede empezar una partida con menos de un jugador conectado");
+
         // Empezamos el juego pasando a la primera pregunta
         this.properties.sessionState = this.properties.sessionState.toQuestion();
 
         return this.properties.sessionState;
+
     }
 
     public advanceToNextPhase(): SessionState {
@@ -132,6 +148,8 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
     // ? GETTERS CUSTOM
+
+    // Para obtener datos de los jugadores y el ranking
 
     public getPlayersAnswers( slideId: SlideId ): SessionPlayerAnswer[] {
 
@@ -186,10 +204,23 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         
     }
 
+    // Para obtener informacion relacionado al progreso de la partida
 
     public getSessionProgress(): number {
 
         return this.properties.progress.getProgressPercentage() ;
+
+    }
+
+    public getNumberOfSlidesLeft(): number {
+
+        return this.properties.progress.getHowManySlidesAreLeft() ;
+
+    }
+
+    public hasMoreSlidesLeft(): boolean {
+
+        return this.properties.progress.hasMoreSlidesLeft() ;
 
     }
 
@@ -214,8 +245,6 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
     // TODO: demas getters que luego necesite, capaz uno para sacar datos de una entrie del scoreboard I dunno
-
-
 
     
 }

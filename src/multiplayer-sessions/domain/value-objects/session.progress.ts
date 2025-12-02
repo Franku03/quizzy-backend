@@ -32,6 +32,10 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
     }
 
     public addSlideAnswered( nextSlide: SlideId ): SessionProgress {
+
+        if( !this.hasMoreSlidesLeft() )
+            return this; // Para evitar que podamos actualizar el progreso si no hay mas slides restantes
+
         return new SessionProgress({ 
             currentSlide: nextSlide,
             totalSlides: this.properties.totalSlides, 
@@ -40,13 +44,15 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
     }
 
     public getProgressPercentage(): number {
+
         return ( this.properties.slidesAnswered*100 ) / this.properties.totalSlides; 
+        
     }
 
     public hasMoreSlidesLeft(): boolean {
 
-        // Preguntamos por >= para evitar un caso raro donde el numero de slides respondidas se pase del total de slides disponibles y asi se detenga la partida
-        return this.properties.slidesAnswered >= this.properties.totalSlides; 
+        return this.properties.slidesAnswered < this.properties.totalSlides; 
+
     }
 
     // * Quizas no use este metodo pero lo dejare por los momentos
