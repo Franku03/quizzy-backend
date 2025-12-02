@@ -11,6 +11,7 @@ import { Result } from "src/core/domain/shared-value-objects/parameter-objects/p
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { DomainEvent } from "src/core/domain/abstractions/domain-event";
 import { SoloAttemptCompletedEvent } from "src/core/domain/domain-events/attempt-completed-event";
+import { SoloAttemptStartedEvent } from "src/core/domain/domain-events/attempt-started.event";
 
 // This interface acts as the definitive contract for the state of a SoloAttempt.
 // It groups together the identity, the link to the original Kahoot, the player involved,
@@ -48,6 +49,21 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
     public constructor(props: SoloAttemptProps) {
         super(props, props.id);
         this.checkInvariants();
+    }
+
+    public notifyStart(): void {
+        // We emit a domain event to signal that a new Solo Attempt has started.
+        // This event can be used by other modules to react accordingly.
+
+        // We instantiate the event directly with our Value Objects. 
+        const attemptStartedEvent = new SoloAttemptStartedEvent(
+            this.id,
+            this.properties.playerId,
+            this.properties.kahootId,
+        );
+
+        // The event is recorded in the aggregate's internal list for future publication.
+        this.record(attemptStartedEvent);
     }
 
     // We process the result of a player's submission for a specific slide.
