@@ -123,10 +123,14 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.checkInvariants();
     }
 
-    hasHowManySlides(): number{
+
+
+    public hasHowManySlides(): number{
         return this.properties.slides.size;
     }
-
+    public isDraft():boolean{
+        return this.properties.status.value === KahootStatusEnum.DRAFT
+    }
     //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
     //Ya que cada vo individual se encarga de validar sus propias reglas de negocio.
     //El check invariants son reglas muy especificas relacionadas con la publicacion del kahoot.
