@@ -53,4 +53,14 @@ export class GroupAssignmentCompletion extends ValueObject<GroupAssignmentComple
     public getQuizId(): KahootId { return this.properties.quizId; }
     public getAttemptId(): AttemptId { return this.properties.attemptId; }
     public getScore(): Score { return this.properties.score; }
+
+
+    public toPrimitives() {
+        return {
+            userId: this.properties.userId.value,
+            quizId: this.properties.quizId.value,
+            attemptId: this.properties.attemptId.value,
+            score: this.properties.score.getScore()
+        };
+    }
 }

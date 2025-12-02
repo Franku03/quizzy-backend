@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { IGroupRepository } from 'src/database/domain/repositories/groups/IGroupRepository';
 import { GroupMongo } from 'src/database/infrastructure/entities/mongo/groups/groups.schema';
 import { Group } from 'src/groups/domain/aggregates/group';
+import { GroupMapper } from 'src/groups/infrastructure/mappers/group.mapper';
 
 @Injectable()
 export class GroupRepositoryMongo implements IGroupRepository {
@@ -12,13 +13,22 @@ export class GroupRepositoryMongo implements IGroupRepository {
         private readonly groupModel: Model<GroupMongo>,
     ) { }
 
-
-    //pending: revisar, OJO
     async save(group: Group): Promise<void> {
-        await this.groupModel.create({
-            groupId: group.id.value,
-            adminId: group.getAdminId().value,
-            name: group.getName(),
-        });
+        const persistenceData = GroupMapper.toPersistence(group);
+
+        await this.groupModel.updateOne(
+            { groupId: persistenceData.groupId },
+            { $set: persistenceData },
+            { upsert: true }
+        ).exec();
+    }
+
+    async findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]> {
+        const documents = await this.groupModel.find({
+            members: { $elemMatch: { userId: userId } },
+            assignments: { $elemMatch: { quizId: kahootId } }
+        }).exec();
+
+        return documents.map(doc => GroupMapper.toDomain(doc));
     }
 }
