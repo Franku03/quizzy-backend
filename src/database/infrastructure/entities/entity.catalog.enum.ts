@@ -15,19 +15,20 @@ export enum EntityName {
   User = 'User',
 }
 
-type EntityRegistryItem = {
-  typeorm: EntityClassOrSchema | null;
-  mongoose: ModelDefinition | null;
+// Catálogo exclusivo de TypeORM
+export const TYPEORM_ENTITY_REGISTRY: Record<
+  EntityName,
+  EntityClassOrSchema | null
+> = {
+  [EntityName.Kahoot]: KahootTypeORM,
+  [EntityName.User]: UserTypeORM,
 };
 
-//Mapeo de nombres comunes para entidades de base de datos (EXTENSIBLE)
-export const ENTITY_REGISTRY: Record<EntityName, EntityRegistryItem> = {
-  [EntityName.Kahoot]: {
-    typeorm: KahootTypeORM,
-    mongoose: { name: KahootMongo.name, schema: KahootSchema },
-  },
-  [EntityName.User]: {
-    typeorm: UserTypeORM,
-    mongoose: { name: UserMongo.name, schema: UserSchema },
-  },
+// Catálogo exclusivo de Mongoose
+export const MONGOOSE_ENTITY_REGISTRY: Record<
+  EntityName,
+  ModelDefinition | null
+> = {
+  [EntityName.Kahoot]: { name: KahootMongo.name, schema: KahootSchema },
+  [EntityName.User]: { name: UserMongo.name, schema: UserSchema },
 };

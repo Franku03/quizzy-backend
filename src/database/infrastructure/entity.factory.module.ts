@@ -1,7 +1,11 @@
 import { Module, DynamicModule, Type } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ModelDefinition, MongooseModule } from '@nestjs/mongoose';
-import { EntityName, ENTITY_REGISTRY } from './entities/entity.catalog.enum';
+import {
+  EntityName,
+  TYPEORM_ENTITY_REGISTRY,
+  MONGOOSE_ENTITY_REGISTRY,
+} from './entities/entity.catalog.enum';
 import { EntityClassOrSchema } from '@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type';
 
 type ModuleImport = Type<any> | DynamicModule;
@@ -16,34 +20,38 @@ export class EntityFactoryModule {
 
     const conditionalImports: ModuleImport[] = [];
     const exports: ModuleImport[] = [];
-    const entityData = ENTITY_REGISTRY[entity];
 
     try {
       if (dbType === 'postgres') {
+        const entityData = TYPEORM_ENTITY_REGISTRY[entity];
+        if (!entityData) this.handleMissingEntityError();
+
         // Carga TypeORM forFeature
         conditionalImports.push(
-          TypeOrmModule.forFeature([entityData.typeorm as EntityClassOrSchema]),
+          TypeOrmModule.forFeature([entityData as EntityClassOrSchema]),
         );
         // Exporta TypeOrmModule para hacer visible el Repository
         exports.push(TypeOrmModule);
       } else if (dbType === 'mongo') {
+        const schemaData = MONGOOSE_ENTITY_REGISTRY[entity];
+        if (!schemaData) this.handleMissingEntityError();
+
         // Carga Mongoose forFeature
         conditionalImports.push(
-          MongooseModule.forFeature([entityData.mongoose as ModelDefinition]),
+          MongooseModule.forFeature([schemaData as ModelDefinition]),
         );
         // Exporta MongooseModule para hacer visible el Model
         exports.push(MongooseModule);
       }
     } catch (err) {
-      console.log(err);
-      console.log(`Current DB_TYPE value: ${dbType}`);
+      console.error(err);
+      console.error(`Current DB_TYPE value: ${dbType}`);
       this.handleMissingEntityError();
     }
 
     return {
       module: EntityFactoryModule,
       imports: [...conditionalImports],
-      // Exportamos solo el driver que se cargó
       exports: exports,
     };
   }
@@ -60,26 +68,22 @@ export class EntityFactoryModule {
     try {
       if (dbType === 'postgres') {
         // Tomamos todas las entidades TypeORM del catálogo
-        const allEntities = Object.values(ENTITY_REGISTRY).map(
-          (entityData) => entityData.typeorm,
-        );
+        const allEntities = Object.values(TYPEORM_ENTITY_REGISTRY);
         conditionalImports.push(
           TypeOrmModule.forFeature(allEntities as EntityClassOrSchema[]),
         );
         exports.push(TypeOrmModule);
       } else if (dbType === 'mongo') {
         // Tomamos todos los esquemas Mongoose del catálogo
-        const allSchemas = Object.values(ENTITY_REGISTRY).map(
-          (entityData) => entityData.mongoose,
-        );
+        const allSchemas = Object.values(MONGOOSE_ENTITY_REGISTRY);
         conditionalImports.push(
           MongooseModule.forFeature(allSchemas as ModelDefinition[]),
         );
         exports.push(MongooseModule);
       }
     } catch (err) {
-      console.log(err);
-      console.log(`Current DB_TYPE value: ${dbType}`);
+      console.error(err);
+      console.error(`Current DB_TYPE value: ${dbType}`);
       this.handleMissingEntityError();
     }
 
@@ -92,7 +96,7 @@ export class EntityFactoryModule {
 
   private static handleMissingEntityError() {
     throw new Error(
-      `⚠️ Se intentó cargar una entidad que no fue declarada en el catalogo de entities. Revisar ENTITY_REGISTRY`,
+      `⚠️ Se intentó cargar una entidad que no fue declarada en el catálogo de entities. Revisar TYPEORM_ENTITY_REGISTRY o MONGOOSE_ENTITY_REGISTRY`,
     );
   }
 }
