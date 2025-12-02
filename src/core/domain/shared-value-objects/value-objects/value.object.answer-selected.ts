@@ -2,11 +2,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Either } from "src/core/types/either";
 import { ImageId } from "../id-objects/image.id";
-
-// TODO: Si no usamos el VO de ImageId al final, cambiamos este type por string | null y mandamos solo el string del Id (lo que contiene el VO)
-type ImageIdRef = ImageId | null ;
-type OptionText = string | null ;
-
+import { Submission } from "../parameter-objects/parameter.object.submission";
 
 interface AnswerSelectedProps {
   isCorrect: boolean,
@@ -21,31 +17,96 @@ export class AnswerSelected extends ValueObject<AnswerSelectedProps>{
         super(props);
     }
 
-    // Factory Method (used by clients to pass direct parameters instead of props object)
-      public static create(
-        optionText: OptionText, 
-        isCorrect: boolean, 
-        optionImageId: ImageIdRef
-      ): AnswerSelected {
+    // Factory Methods for specific cases 
 
-        let answerContent: Either< ImageId, string >
+    // To create from options with Image
+    public static createFromImage(
+      optionImageId: ImageId, 
+      isCorrect: boolean
+    ): AnswerSelected {
+      return new AnswerSelected({
+        isCorrect: isCorrect,
+        answerContent: Either.makeLeft( optionImageId )
+      });
+    }
 
-        if( !optionText && optionImageId ){
-          // Izquierda: Caso donde la opcion tiene una Imagen    
-          answerContent = Either.makeLeft( optionImageId ); // le decimos a TS que confie que siempre habra una imagen y no sera null
-        } else if( optionText && !optionImageId ){
-          // Derecha: Caso donde la opcion tiene un texto
-          answerContent = Either.makeRight( optionText );
-        } else {
-          throw new Error ("No hay ni texto ni tampoco Imagen asociado a la opcion");
-        }
+    // To create from options with Image but passing string Id directly 
+    public static createFromImageIdString(
+      optionImageIdString: string, 
+      isCorrect: boolean
+    ): AnswerSelected {
+      return new AnswerSelected({
+        isCorrect: isCorrect,
+        answerContent: Either.makeLeft( new ImageId( optionImageIdString ) )
+      });
+    }
 
-        return new AnswerSelected({
-          isCorrect: isCorrect,
-          answerContent,
-        });
+    // To create from options with Text
+    public static createFromText(
+      optionText: string, 
+      isCorrect: boolean
+    ): AnswerSelected {
+      return new AnswerSelected({
+        isCorrect: isCorrect,
+        answerContent: Either.makeRight( optionText )
+      });
+    }
 
+  // Mapea un conjunto de Options de un Submission a un conjunto de AnswerSelected
+   public static createFromOptions( submission :Submission): AnswerSelected[] {
+    
+      let answerContent: AnswerSelected[];
+      let submissionOptions = submission.getAnswerText();
+
+      if( !submissionOptions.hasValue() ){
+          // Se devuelve un arreglo vacio si no hay AnswerText en el Submission
+          answerContent = [];
       } 
+      else {
+
+          // Mapeamos las Options a AnswerSelected 
+          const options = submissionOptions.getValue();
+
+          const selectedAnswers = options.map( opt => {
+              return AnswerSelected.mapFromOption(
+                  opt.hasText() ? opt.getText() : null,
+                  opt.isCorrectAnswer(),
+                  opt.hasImage() ? opt.getImage().getValue() : null
+                  //  Version para solo trabajar con el string del Id y no el VO
+                  //  opt.hasImage() ? opt.getImage().getValue().value : null
+              )
+          })
+
+          answerContent = selectedAnswers; 
+      }
+
+      return answerContent;
+    
+    }
+    
+    private static mapFromOption(
+      optionText: string | null, 
+      isCorrect: boolean, 
+      optionImageId: ImageId | null
+    ): AnswerSelected {
+
+      let answerContent: Either< ImageId, string >
+
+      if( !optionText && optionImageId ){
+        // Izquierda: Caso donde la opcion tiene una Imagen    
+        answerContent = Either.makeLeft( optionImageId ); // le decimos a TS que confie que siempre habra una imagen y no sera null
+      } else if( optionText && !optionImageId ){
+        // Derecha: Caso donde la opcion tiene un texto
+        answerContent = Either.makeRight( optionText );
+      } else {
+        throw new Error ("No hay ni texto ni tampoco Imagen asociado a la opcion");
+      }
+
+      return new AnswerSelected({
+        isCorrect: isCorrect,
+        answerContent,
+      });
+    }
 
     public get isCorrect(): boolean {
         return this.properties.isCorrect;
@@ -59,16 +120,16 @@ export class AnswerSelected extends ValueObject<AnswerSelectedProps>{
       return this.properties.answerContent.isLeft();
     }
 
-    // * Si no queremos usar ya el VO de imageId esta funcion solo debe devolver string | null
-    // Devuelve ImageId | string | null para que el compilador de TS no reclame, porque los tipos definidos arriba tambien admiten null y en teoria la funcion podria devolver eso
-    public getAnswerContent(): ImageId | string {
+    // Devuelve el contenido de la respuesta, ya sea el texto o el Id de la imagen 
+    // Son mutualmente excluyentes, por lo que solo uno de los dos valores sera retornado
+    public getAnswerContent(): string {
 
-      // Devuelve el imageId
+      // Devuelve el valor del imageId
       if( this.hasImage() ){
-        return this.properties.answerContent.getLeft();
+        return this.properties.answerContent.getLeft().value;
       } 
 
-      // Devuelve el text
+      // Devuelve el texto
       return this.properties.answerContent.getRight();
 
     } 
