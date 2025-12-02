@@ -6,7 +6,7 @@ export enum SlideTypeEnum {
     MULTIPLE = "MULTIPLE",
     TRUE_FALSE = "TRUE_FALSE",
     SHORT_ANSWER = "SHORT_ANSWER",
-    POLL = "POLL",
+    //POLL = "POLL",
     SLIDE = "SLIDE" 
 }
 
