@@ -3,7 +3,6 @@ import { CreateGroupDto } from "../dtos/create-group.dto"; // O commands/create-
 import { Group } from "../../domain/aggregates/group";
 import { IGroupRepository } from "src/database/domain/repositories/groups/IGroupRepository";
 import { IUserRepository } from "src/database/domain/repositories/users/IUserRepository";
-import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { v4 as uuidv4 } from 'uuid';
 
 
@@ -23,8 +22,6 @@ export class CreateGroup implements ICommandService<CreateGroupDto> {
             throw new Error("El adminId es requerido para crear un grupo.");
         }
 
-
-        console.log("command", command);
 
         //const admin = await this.userRepository.findById(new UserId(command.adminId));
 
