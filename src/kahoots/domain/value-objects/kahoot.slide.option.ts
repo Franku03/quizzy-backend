@@ -2,6 +2,7 @@ import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { Optional } from "src/core/types/optional";
 import { MAX_OPTION_TEXT_LENGTH } from "../constants/kahoot.slide.rules";
+import { OptionSnapshot } from "src/core/domain/snapshots/snapshot.option"; 
 
 
 interface OptionProps {
@@ -15,7 +16,8 @@ export class Option extends ValueObject<OptionProps> {
     public constructor(
         text: string, 
         isCorrect: boolean, 
-        optionImage: Optional<ImageId>
+        optionImage: Optional<ImageId>,
+        optionTextMaxLength: number = MAX_OPTION_TEXT_LENGTH
     ) {
         
         const cleanText = text ? text.trim() : "";
@@ -27,8 +29,8 @@ export class Option extends ValueObject<OptionProps> {
         if (!imageIsPresent && cleanText.length === 0) {
             throw new Error("Una opción debe tener contenido (texto o imagen).");
         }
-        if (cleanText.length > MAX_OPTION_TEXT_LENGTH) {
-            throw new Error(`El texto de la opción no puede superar los ${MAX_OPTION_TEXT_LENGTH} caracteres.`);
+        if (cleanText.length > optionTextMaxLength) {
+            throw new Error(`El texto de la opción no puede superar los ${optionTextMaxLength} caracteres.`);
         }
         super({ text: cleanText, isCorrect, optionImage });
     }
@@ -36,4 +38,26 @@ export class Option extends ValueObject<OptionProps> {
     public getText(): string { return this.properties.text; }
     public isCorrectAnswer(): boolean { return this.properties.isCorrect; }
     public getImage(): Optional<ImageId> { return this.properties.optionImage; }
+
+    public hasText(): boolean {
+        return this.getText().length > 0;
+    }
+
+    public hasImage(): boolean {
+        return this.properties.optionImage.hasValue();
+    }
+    
+    public isWithinLengthLimit(maxLength: number): boolean {
+        return this.getText().length <= maxLength;
+    }
+
+    public getSnapshot(): OptionSnapshot {
+    return {
+        optionText: this.properties.text ? this.properties.text : null,
+        isCorrect: this.properties.isCorrect,
+        optionImageId: this.properties.optionImage.hasValue() 
+            ? this.properties.optionImage.getValue().value
+            : null,
+    };
+}
 }

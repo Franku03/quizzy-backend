@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseDriverModule } from './database/infrastructure/database.driver.module';
 import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-sessions.module';
 import { SoloAttemptsModule } from './solo-attempts/infrastructure/solo-attempts.module';
+import { GroupsModule } from './groups/groups.module';
 
 @Module({
   imports: [
@@ -16,8 +17,9 @@ import { SoloAttemptsModule } from './solo-attempts/infrastructure/solo-attempts
     UsersModule,
     MultiplayerSessionsModule,
     SoloAttemptsModule,
+    GroupsModule,
   ],
 })
 export class AppModule {
-  constructor() {}
+  constructor() { }
 }

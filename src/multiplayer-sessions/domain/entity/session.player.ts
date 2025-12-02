@@ -1,6 +1,7 @@
 import { Entity } from "src/core/domain/abstractions/entity";
 import { PlayerId } from "../value-objects";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
+import { validateNicknameInvariants } from "../helpers/validate-nickname-invariants";
 
 
 interface PlayerProps {
@@ -10,17 +11,25 @@ interface PlayerProps {
 
 export class Player extends Entity<PlayerProps, PlayerId> {
 
-    constructor(
+    private constructor(
         playerId: PlayerId,
         nickname: string,
         score: Score
-    ){
-
-
-        if( nickname.trim().length === 0 )
-            throw new Error("El nickname del usuario no puede estar vacío");        
-
+    ){    
         super({ nickname, score }, playerId);
+    }
+
+    public create(playerId: PlayerId, nickname: string, score: Score): Player {
+
+        const nicknameValidation = validateNicknameInvariants( nickname );
+
+        if( !nicknameValidation.isValid ) {
+
+            throw new Error( nicknameValidation.error );
+
+        } 
+     
+        return new Player( playerId , nickname, score );
     }
 
 

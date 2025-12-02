@@ -15,8 +15,10 @@ import { Result } from "../../../core/domain/shared-value-objects/parameter-obje
 import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { TimeLimitSeconds } from "../../../core/domain/shared-value-objects/value-objects/value.object.time-limit-seconds";
 import { Points } from "../../../core/domain/shared-value-objects/value-objects/value.object.points";
-import { SlideType } from "../value-objects/kahoot.slide.type.abstract";
+import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
+import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
+import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
 
 interface UserId {
     readonly value: string;
@@ -48,6 +50,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         }
         
         super({...props, slides: slidesMap, details: detailsOptional}, id);
+
+        if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
+            this.checkPublishingReadiness();
+        }
     }
 
     /* =====================================================================================
@@ -64,7 +70,11 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     private checkPublishingReadiness(): void {
         // Regla 1: Debe tener detalles.
-        if (this.properties.details.hasValue()) { 
+        if (!this.properties.details.hasValue()) { 
+            throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
+        }
+
+        if (!this.properties.details.getValue().isValidDetails) { 
             throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
         }
         
@@ -75,7 +85,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         
         // Regla 3: Todos los slides deben ser válidos
         for (const slide of this.properties.slides.values()) {
-            slide.validateInvariants(); 
+            slide.isPublishingCompliant(); 
         }
     }
 
@@ -109,6 +119,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public updateDetails(newDetails: KahootDetails): void {
         // Reemplaza la referencia Optional<T> con la nueva instancia.
         this.properties.details = new Optional(newDetails);
+        this.checkInvariants();
     }
 
     //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
@@ -123,9 +134,60 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     //Todos los metodos aqui presentes delegan su llamada a la entidad Slide correspondiente.
 
-    public getSlideById(slideId: SlideId): Slide | null {
+    private getSlideById(slideId: SlideId): Slide | null {
 
         return this.properties.slides.get(slideId) || null;
+    }
+
+    public getSlideSnapshotById(slideId: SlideId): SlideSnapshot | null {
+        const slide = this.getSlideById(slideId)
+        if(slide) return slide.getSnapshot()
+        return null
+    }
+
+    public getNextSlideSnapshotByIndex(currentIndex: number = -1): SlideSnapshot | null {
+        const slidesMap = this.properties.slides;
+
+        if (slidesMap.size === 0) {
+            return null;
+        }
+
+        const sortedSlides = this.getSortedSlides();
+        
+        const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+        const nextSlide = sortedSlides[nextIndex];
+
+        if (!nextSlide) {
+            return null;
+        }
+        return nextSlide.getSnapshot();
+    }
+
+    public getNextSlideSnapshotById(currentSlideId: SlideId | null): SlideSnapshot | null {
+        const slidesMap = this.properties.slides;
+
+        if (slidesMap.size === 0) {
+            return null;
+        }
+
+        const sortedSlides = this.getSortedSlides();
+
+        let currentIndex = -1;
+
+        if (currentSlideId) {
+            currentIndex = sortedSlides.findIndex(slide => slide.id.equals(currentSlideId));
+            if (currentIndex === -1) {
+                return null; 
+            }
+        }
+        
+        const nextIndex = currentIndex + 1;
+        if (nextIndex >= sortedSlides.length) {
+            return null; 
+        }
+
+        const nextSlide = sortedSlides[nextIndex];
+        return nextSlide.getSnapshot();
     }
 
     public addSlide(slide: Slide): void {
@@ -203,7 +265,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public updateSlideImage(slideId: SlideId, newImage: Optional<ImageId>): void {
         const slide = this.getSlideById(slideId);
         if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateImage(newImage);
+        slide.updateSlideImage(newImage);
         this.checkInvariants();
     }
 
@@ -219,5 +281,32 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
         slide.updateSlideType(newSlideType);
         this.checkInvariants();
+    }
+
+    private getSortedSlides(): Slide[] {
+        return Array.from(this.properties.slides.values()).sort(
+            (a, b) => a.position - b.position
+        );
+    }
+
+    public getSnapshot(): KahootSnapshot {
+        
+        const slidesArray = Array.from(this.properties.slides.values());
+        const slideSnapshots = slidesArray.map(slide => slide.getSnapshot()); 
+
+        return {
+            id: this.id.value,
+            authorId: this.properties.author.value,
+            createdAt: this.properties.createdAt, 
+            visibility: this.properties.visibility.value,
+            status: this.properties.status.value,
+            playCount: this.properties.playCount.count,
+            styling: this.properties.styling.getSnapshot(),
+            
+            details: this.properties.details.hasValue() 
+                ? this.properties.details.getValue().getSnapshot() 
+                : null,
+            slides: slideSnapshots.length > 0 ? slideSnapshots : null,
+        }
     }
 }
