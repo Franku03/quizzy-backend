@@ -78,7 +78,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
         // We cannot register answers for a completed attempt.
         if (!this.isInProgress()) {
-            throw new Error("Cannot register answers for a completed or non-active attempt.");
+            throw new Error("Cannot register answers for a completed attempt.");
         }
 
         // Duplicate answers are prevented by ensuring the user hasn't already submitted 
