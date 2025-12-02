@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SoloAttemptsController } from './nest-js/solo-attempts.controller';
+import { SoloAttemptsController } from './infrastructure/nest-js/solo-attempts.controller';
 
 @Module({
   controllers: [SoloAttemptsController]
