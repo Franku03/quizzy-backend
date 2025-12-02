@@ -11,7 +11,6 @@ import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Description } from "../value-objects/kahoot.slide.description";
-import { SlideTypeValidator } from "../helpers/slide.validador";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 
 export interface SlideProps {
@@ -83,8 +82,8 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
 
     //Invariantes que dependen de cada tipo de slide
     public updateSlideType(newSlideType: SlideType): void {
-        SlideTypeValidator.validatePropsForNewType(newSlideType, this.properties)
         this.properties.slideType = newSlideType; 
+        this.checkInitialInvariants();
     }
     public addOption(newOption: Option): void {
         this.properties.slideType.canHaveOption();
@@ -154,7 +153,8 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
     }
 
     //Comportamiento Puro
-    public abstract validatePublishingInvariants(): void 
+    protected abstract checkInitialInvariants():void
+    protected abstract validatePublishingInvariants(): void 
     public abstract getMaxOptions(): number;
 
     //Esto si lo aprueba el team lo mando a domain service a futuro

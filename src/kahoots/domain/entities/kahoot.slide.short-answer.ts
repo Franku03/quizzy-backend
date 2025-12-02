@@ -9,16 +9,16 @@ export class ShortAnswerSlide extends Slide {
     
     public constructor(props: SlideProps, id: SlideId) {
         
-        ShortAnswerSlide.checkInitialInvariants(props);
-        
         props.slideType = new SlideType(SlideTypeEnum.SHORT_ANSWER); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
         
         super(props, id);
+
+        this.checkInitialInvariants();
     }
     
-    public static checkInitialInvariants(props: SlideProps): void {
-        const pointsOptional = props.points; 
+    protected checkInitialInvariants(): void {
+        const pointsOptional = this.properties.points; 
         
         // Validación de Puntos (PRESENCIA Y VALOR VÁLIDO)
         if (!pointsOptional || !pointsOptional.hasValue()) { 
@@ -31,12 +31,12 @@ export class ShortAnswerSlide extends Slide {
         }
         
         // Validación de Descripción
-        if (props.description && props.description.hasValue()) { 
+        if (this.properties.description && this.properties.description.hasValue()) { 
             throw new Error("[Constructor] Slide ShortAnswer: Slide de respuesta corta no deben tener descripción.");
         }
         
         // Validación de Opciones
-        const optionsOptional = props.options;
+        const optionsOptional = this.properties.options;
         const maxOption = 4
         if (optionsOptional && optionsOptional.hasValue()) { 
             const optionsArray = optionsOptional.getValue();
