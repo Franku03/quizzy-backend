@@ -20,6 +20,7 @@ import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
+import { SlideIdValue } from "../types/id-types"
 
 interface UserId {
     readonly value: string;
@@ -32,7 +33,7 @@ export interface KahootProps {
     details: Optional<KahootDetails>; 
     visibility: VisibilityStatus;
     status: KahootStatus;
-    slides: Map<SlideId, Slide>; 
+    slides: Map<SlideIdValue, Slide>; 
     playCount: PlayNumber; //first time es 0
 }
 
@@ -140,7 +141,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     private getSlideById(slideId: SlideId): Slide | null {
 
-        return this.properties.slides.get(slideId) || null;
+        return this.properties.slides.get(slideId.value) || null;
     }
 
     public getSlideSnapshotById(slideId: SlideId): SlideSnapshot | null {
@@ -195,11 +196,11 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     public addSlide(slide: Slide): void {
-        this.properties.slides.set(slide.id, slide);
+        this.properties.slides.set(slide.id.value, slide);
     }
 
     public removeSlide(slideId: SlideId): void {
-        if (!this.properties.slides.delete(slideId)) {
+        if (!this.properties.slides.delete(slideId.value)) {
             throw new Error(`No se encontró el slide con ID ${slideId.value}.`);
         }
     }
@@ -301,7 +302,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         return {
             id: this.id.value,
             authorId: this.properties.author.value,
-            createdAt: this.properties.createdAt, 
+            createdAt: this.properties.createdAt.value, 
             visibility: this.properties.visibility.value,
             status: this.properties.status.value,
             playCount: this.properties.playCount.count,
@@ -313,9 +314,4 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             slides: slideSnapshots.length > 0 ? slideSnapshots : null,
         }
     }
-
-    public restoreFromMemento(memento: KahootSnapshot) {
-
-    }
-
 }
