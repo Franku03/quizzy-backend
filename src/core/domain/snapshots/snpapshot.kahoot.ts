@@ -6,10 +6,10 @@ export interface KahootSnapshot {
     id: string; 
     authorId: string;
     createdAt: string; 
-    details: KahootDetailsSnapshot | null; 
+    details?: KahootDetailsSnapshot; 
     visibility: string; 
     status: string; 
     playCount: number;
     styling: KahootStylingSnapshot; 
-    slides: SlideSnapshot[] | null; 
+    slides?: SlideSnapshot[]; 
 }
