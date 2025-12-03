@@ -1,5 +1,5 @@
 export interface OptionSnapshot {
-    optionText: string | null;
+    optionText?: string;
     isCorrect: boolean;
-    optionImageId: string | null; 
+    optionImageId?: string; 
 }

@@ -30,12 +30,41 @@ import { DisplaySlide } from "../entities/kahoot.slide.display-slide";
 
 
 // ====================================================================
-// Interfaces de Entrada y Snapshot (Declaraciones)
+// Interfaces de Entrada (Alineadas al Dominio)
 // ====================================================================
 
-export interface OptionInput { text: string | null; mediaId: string | null; isCorrect?: boolean; }
-export interface SlideInput { id: string; position: number; text: string | null; mediaId: string | null; type: string; timeLimit: number; points: number | null; answers?: OptionInput[] | null; }
-export interface KahootInput { id: string; authorId: string; createdAt: string | null; visibility: string; status: string; playCount: number; themeId: string; title: string | null; description: string | null; coverImageId: string | null; category: string | null; questions?: SlideInput[] | null; }
+export interface OptionInput { 
+    text: string; 
+    optionImage?: string; 
+    isCorrect: boolean; 
+}
+
+export interface SlideInput { 
+    id: string; 
+    position: number; 
+    slideType: string; 
+    timeLimit: number; 
+    question?: string; 
+    slideImageId?: string; 
+    points?: number; 
+    description?: string; 
+    options?: OptionInput[]; 
+}
+
+export interface KahootInput { 
+    id: string; 
+    authorId: string; 
+    createdAt?: string; 
+    visibility: string; 
+    status: string; 
+    playCount: number;
+    themeId: string; 
+    imageId?: string;
+    title?: string; 
+    description?: string; 
+    category?: string; 
+    slides?: SlideInput[]; 
+}
 
 // ====================================================================
 // Clase KahootFactory
@@ -43,7 +72,7 @@ export interface KahootInput { id: string; authorId: string; createdAt: string |
 
 export class KahootFactory{
 
-    // --- MAPEO DE CONSTRUCTORES ---
+    // --- MAPEO DE CONSTRUCTORES (Mantener) ---
     private static readonly SlideConstructorsMap: { [key in SlideTypeEnum]: new (props: SlideProps, id: SlideId) => Slide } = {
         [SlideTypeEnum.SINGLE]: SingleChoiceSlide,
         [SlideTypeEnum.MULTIPLE]: MultipleChoiceSlide,
@@ -61,13 +90,13 @@ export class KahootFactory{
         return SlideConstructor;
     }
 
-    // --- HELPERS DE TIPADO Y COLECCIONES (DRY) ---
-    private static buildOptionalVO<T>(value: T | null): Optional<T> {
-        const optionalContent: T | undefined = (value !== null) ? value : undefined;
-        return new Optional(optionalContent);
+    // --- HELPERS DE TIPADO (Ajustar a undefined) ---
+    // Cambiamos 'T | null' por 'T | undefined' para alinearnos con el Mapper
+    private static buildOptionalVO<T>(value: T | undefined): Optional<T> {
+        return new Optional(value);
     }
     
-    private static assembleCreatedAt(dateInput: string | null): DateISO {
+    private static assembleCreatedAt(dateInput?: string): DateISO {
         if (dateInput) {
             return DateISO.createFrom(dateInput);
         }
@@ -75,7 +104,7 @@ export class KahootFactory{
     }
     
     private static assembleSlidesMap<T extends SlideInput | SlideSnapshot>(
-        slidesArray: T[] | null | undefined,
+        slidesArray: T[] | undefined,
         builderFunction: (input: T, position: number) => Slide
     ): Map<SlideIdValue, Slide> {
         const slidesMap = new Map<SlideIdValue, Slide>();
@@ -90,13 +119,13 @@ export class KahootFactory{
     }
 
     private static assembleKahootDetails(
-        title: string | null,
-        description: string | null,
-        category: string | null
+        title: string | undefined,
+        description: string | undefined,
+        category: string | undefined
     ): Optional<KahootDetails> {
         
         if (!title && !description && !category) {
-            return this.buildOptionalVO<KahootDetails>(null);
+            return this.buildOptionalVO<KahootDetails>(undefined);
         }
 
         const detailsVO = new KahootDetails(
@@ -108,11 +137,11 @@ export class KahootFactory{
         return this.buildOptionalVO(detailsVO);
     }
 
-    private static assembleKahootStyling(themeIdValue: string, coverImageId: string | null): KahootStyling {
+    private static assembleKahootStyling(themeIdValue: string, coverImageId: string | undefined): KahootStyling {
         const themeId = new ThemeId(themeIdValue);
         
         const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
-            coverImageId ? new ImageId(coverImageId) : null
+            coverImageId ? new ImageId(coverImageId) : undefined
         );
         
         return new KahootStyling(imageIdOptional, themeId );
@@ -123,10 +152,10 @@ export class KahootFactory{
     private static assembleSlideProps(
         position: number, 
         timeLimit: number, 
-        points: number | null, 
-        questionText: string | null, 
-        slideMediaId: string | null, 
-        descriptionText: string | null, 
+        points: number | undefined, 
+        questionText: string | undefined, 
+        slideMediaId: string | undefined, 
+        descriptionText: string | undefined, 
         options: Option[]
     ): Omit<SlideProps, 'slideType' | 'evalStrategy'> {
         
@@ -135,11 +164,12 @@ export class KahootFactory{
         const slideProps: Omit<SlideProps, 'slideType' | 'evalStrategy'> = {
             position: position, 
             timeLimit: timeLimitVO,
-            points: this.buildOptionalVO((points) ? new Points(points) : null),
-            question: this.buildOptionalVO((questionText) ? new Question(questionText) : null),
-            slideImage: this.buildOptionalVO((slideMediaId) ? new ImageId(slideMediaId) : null),
-            description: this.buildOptionalVO((descriptionText) ? new Description(descriptionText) : null),
-            options: this.buildOptionalVO(options),
+            // Mapeo condicional de VOs basado en undefined
+            points: this.buildOptionalVO(points ? new Points(points) : undefined),
+            question: this.buildOptionalVO(questionText ? new Question(questionText) : undefined),
+            slideImage: this.buildOptionalVO(slideMediaId ? new ImageId(slideMediaId) : undefined),
+            description: this.buildOptionalVO(descriptionText ? new Description(descriptionText) : undefined),
+            options: this.buildOptionalVO(options.length > 0 ? options : undefined),
         };
 
         return slideProps;
@@ -150,36 +180,33 @@ export class KahootFactory{
     // ====================================================================
 
     private static buildOption(optionInput: OptionInput): Option {
-        const optionText = optionInput.text ?? "";
-        const isCorrect = optionInput.isCorrect ?? false;
+        // OptionInput ya viene con optionText garantizado y optionImageId como string | undefined
         
-        const imageIdOrNull: ImageId | null = optionInput.mediaId
-            ? new ImageId(optionInput.mediaId)
-            : null;
-        
-        const optionImage: Optional<ImageId> = this.buildOptionalVO(imageIdOrNull); 
+        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
+            optionInput.optionImage ? new ImageId(optionInput.optionImage) : undefined
+        ); 
 
-        return new Option(optionText, isCorrect, optionImage);
+        return new Option(optionInput.text, optionInput.isCorrect, imageIdOptional);
     }
     
-    private static buildSlide(slideInput: SlideInput, position: number): Slide {
+    private static buildSlide(slideInput: SlideInput): Slide {
         const slideId = new SlideId(slideInput.id); 
         
-        const optionsArray = slideInput.answers
-            ? slideInput.answers.map(this.buildOption)
+        const optionsArray = slideInput.options
+            ? slideInput.options.map(this.buildOption)
             : [];
             
         const slideProps = this.assembleSlideProps(
-            position, 
+            slideInput.position, 
             slideInput.timeLimit, 
             slideInput.points, 
-            slideInput.text, 
-            slideInput.mediaId, 
-            "xd", 
+            slideInput.question, 
+            slideInput.slideImageId, 
+            slideInput.description, 
             optionsArray
         );
         
-        const SlideConstructor = this.resolveSlideConstructor(slideInput.type as SlideTypeEnum);
+        const SlideConstructor = this.resolveSlideConstructor(slideInput.slideType as SlideTypeEnum);
         
         return new SlideConstructor(slideProps as SlideProps, slideId);
     }
@@ -192,9 +219,9 @@ export class KahootFactory{
         const visibility = new VisibilityStatus(kahootInput.visibility as VisibilityStatusEnum);
         const status = new KahootStatus(kahootInput.status as KahootStatusEnum) ;
 
-        const stylingVO = this.assembleKahootStyling(kahootInput.themeId, kahootInput.coverImageId);
+        const stylingVO = this.assembleKahootStyling(kahootInput.themeId, kahootInput.imageId);
         
-        const slidesMap = this.assembleSlidesMap(kahootInput.questions, this.buildSlide);
+        const slidesMap = this.assembleSlidesMap(kahootInput.slides, this.buildSlide);
         
         const detailsVO = this.assembleKahootDetails(
             kahootInput.title, 
@@ -222,15 +249,12 @@ export class KahootFactory{
 
     private static reconstructOptionFromSnapshot(snapshot: OptionSnapshot): Option {
         
-        const imageIdOrNull: ImageId | null = snapshot.optionImageId
-            ? new ImageId(snapshot.optionImageId)
-            : null;
-            
-        const optionImage: Optional<ImageId> = this.buildOptionalVO(imageIdOrNull); 
-
+        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
+            snapshot.optionImageId ? new ImageId(snapshot.optionImageId) : undefined
+        ); 
         const optionText = snapshot.optionText ?? "";
 
-        return new Option(optionText, snapshot.isCorrect, optionImage);
+        return new Option(optionText, snapshot.isCorrect, imageIdOptional);
     }
 
     private static reconstructSlideFromSnapshot(snapshot: SlideSnapshot, position: number): Slide {
@@ -273,7 +297,7 @@ export class KahootFactory{
                 snapshot.details.title,
                 snapshot.details.description,
                 snapshot.details.category
-            ).getValue() : null
+            ).getValue() : undefined
         );
         
         const slidesMap = this.assembleSlidesMap(snapshot.slides, this.reconstructSlideFromSnapshot);

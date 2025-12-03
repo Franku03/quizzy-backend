@@ -177,23 +177,23 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
             //datos opcionales
             questionText: this.properties.question.hasValue()
                 ? this.properties.question.getValue().value
-                : null,
+                : undefined,
                 
             slideImageId: this.properties.slideImage.hasValue()
                 ? this.properties.slideImage.getValue().value
-                : null,
+                : undefined,
                 
             pointsValue: this.properties.points.hasValue()
                 ? this.properties.points.getValue().value
-                : null,
+                : undefined,
                 
             descriptionText: this.properties.description.hasValue()
                 ? this.properties.description.getValue().description
-                : null,
+                : undefined,
 
             options: options.length > 0
                 ? options.map(option => option.getSnapshot())
-                : null,
+                : undefined,
         };
     }
 
