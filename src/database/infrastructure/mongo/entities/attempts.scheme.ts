@@ -2,35 +2,7 @@
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-
-// ---------------------------------------------------------
-// 1. Enums & Constants
-// ---------------------------------------------------------
-
-export enum AttemptStatus {
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-}
-
-export enum Points {
-  CERO_POINTS = 0,
-  FIVE_HUNDRED_POINTS = 500,
-  THOUSAND_POINTS = 1000,
-  TWO_THOUSAND_POINTS = 2000,
-}
-
-export enum TimeLimitSecondsEnum {
-  FIVE_SECONDS = 5,
-  TEN_SECONDS = 10,
-  TWENTY_SECONDS = 20,
-  THIRTY_SECONDS = 30,
-  FOURTY_FIVE_SECONDS = 45,
-  SIXTY_SECONDS = 60,
-  NINETY_SECONDS = 90,
-  HUNDRED_TWENTY_SECONDS = 120,
-  HUNDRED_EIGHTY_SECONDS = 180,
-  TWO_HUNDRED_FOURTY_SECONDS = 240,
-}
+import { AttemptStatusEnum } from 'src/solo-attempts/domain/value-objects/attempt.status.enum';
 
 // ---------------------------------------------------------
 // 2. Sub-Schemas (Snapshots)
@@ -54,12 +26,10 @@ const QuestionSnapshotSchema = {
   basePoints: { 
     type: Number, 
     required: true,
-    enum: Object.values(Points).filter(v => typeof v === 'number')
   },
   timeLimit: { 
     type: Number, 
     required: true,
-    enum: Object.values(TimeLimitSecondsEnum).filter(v => typeof v === 'number')
   }
 };
 
@@ -111,12 +81,11 @@ export class AttemptMongo extends Document {
   @Prop({ 
     required: true, 
     type: String, 
-    enum: AttemptStatus,
-    default: AttemptStatus.IN_PROGRESS 
+    enum: AttemptStatusEnum,
+    default: AttemptStatusEnum.IN_PROGRESS 
   })
-  public status: AttemptStatus;
+  public status: AttemptStatusEnum;
 
-  // Flattened Score (Better for querying)
   @Prop({ required: true, default: 0 })
   public totalScore: number; 
 
