@@ -1,3 +1,6 @@
+// kahoot.factory.ts (Corregido)
+
+// [Mantener todos los imports existentes]
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { Slide, SlideProps } from "../entities/kahoot.slide";
 import { KahootStatus, KahootStatusEnum } from "../value-objects/kahoot.status";
@@ -34,36 +37,36 @@ import { DisplaySlide } from "../entities/kahoot.slide.display-slide";
 // ====================================================================
 
 export interface OptionInput { 
-    text: string; 
-    optionImage?: string; 
-    isCorrect: boolean; 
+    text: string; 
+    optionImage?: string; 
+    isCorrect: boolean; 
 }
 
 export interface SlideInput { 
-    id: string; 
-    position: number; 
-    slideType: string; 
-    timeLimit: number; 
-    question?: string; 
-    slideImageId?: string; 
-    points?: number; 
-    description?: string; 
-    options?: OptionInput[]; 
+    id: string; 
+    position: number; 
+    slideType: string; 
+    timeLimit: number; 
+    question?: string; 
+    slideImage?: string; 
+    points?: number; 
+    description?: string; 
+    options?: OptionInput[]; 
 }
 
 export interface KahootInput { 
-    id: string; 
-    authorId: string; 
-    createdAt?: string; 
-    visibility: string; 
-    status: string; 
-    playCount: number;
-    themeId: string; 
-    imageId?: string;
-    title?: string; 
-    description?: string; 
-    category?: string; 
-    slides?: SlideInput[]; 
+    id: string; 
+    authorId: string; 
+    createdAt?: string; 
+    visibility: string; 
+    status: string; 
+    playCount: number;
+    themeId: string; 
+    imageId?: string;
+    title?: string; 
+    description?: string; 
+    category?: string; 
+    slides?: SlideInput[]; 
 }
 
 // ====================================================================
@@ -72,247 +75,259 @@ export interface KahootInput {
 
 export class KahootFactory{
 
-    // --- MAPEO DE CONSTRUCTORES (Mantener) ---
-    private static readonly SlideConstructorsMap: { [key in SlideTypeEnum]: new (props: SlideProps, id: SlideId) => Slide } = {
-        [SlideTypeEnum.SINGLE]: SingleChoiceSlide,
-        [SlideTypeEnum.MULTIPLE]: MultipleChoiceSlide,
-        [SlideTypeEnum.TRUE_FALSE]: TrueFalseSlide,
-        [SlideTypeEnum.SHORT_ANSWER]: ShortAnswerSlide,
-        [SlideTypeEnum.SLIDE]: DisplaySlide,
-    };
+    // --- MAPEO DE CONSTRUCTORES (Mantener) ---
+    private static readonly SlideConstructorsMap: { [key in SlideTypeEnum]: new (props: SlideProps, id: SlideId) => Slide } = {
+        [SlideTypeEnum.SINGLE]: SingleChoiceSlide,
+        [SlideTypeEnum.MULTIPLE]: MultipleChoiceSlide,
+        [SlideTypeEnum.TRUE_FALSE]: TrueFalseSlide,
+        [SlideTypeEnum.SHORT_ANSWER]: ShortAnswerSlide,
+        [SlideTypeEnum.SLIDE]: DisplaySlide,
+    };
 
-    private static resolveSlideConstructor(type: SlideTypeEnum): new (props: SlideProps, id: SlideId) => Slide {
-        const SlideConstructor = this.SlideConstructorsMap[type];
-        
-        if (!SlideConstructor) {
-            throw new Error(`Tipo de slide desconocido: ${type}`);
-        }
-        return SlideConstructor;
-    }
+    private static resolveSlideConstructor(type: SlideTypeEnum): new (props: SlideProps, id: SlideId) => Slide {
+        const SlideConstructor = this.SlideConstructorsMap[type];
+        
+        if (!SlideConstructor) {
+            throw new Error(`Tipo de slide desconocido: ${type}`);
+        }
+        return SlideConstructor;
+    }
 
-    // --- HELPERS DE TIPADO (Ajustar a undefined) ---
-    // Cambiamos 'T | null' por 'T | undefined' para alinearnos con el Mapper
-    private static buildOptionalVO<T>(value: T | undefined): Optional<T> {
-        return new Optional(value);
-    }
-    
-    private static assembleCreatedAt(dateInput?: string): DateISO {
-        if (dateInput) {
-            return DateISO.createFrom(dateInput);
-        }
-        return DateISO.generate();
-    }
-    
-    private static assembleSlidesMap<T extends SlideInput | SlideSnapshot>(
-        slidesArray: T[] | undefined,
-        builderFunction: (input: T, position: number) => Slide
-    ): Map<SlideIdValue, Slide> {
-        const slidesMap = new Map<SlideIdValue, Slide>();
-        
-        if (slidesArray) {
-            slidesArray.forEach((input, index) => {
-                const slide = builderFunction(input, index);
-                slidesMap.set(slide.id.value, slide);
-            });
-        }
-        return slidesMap;
-    }
+    // --- HELPERS DE TIPADO (Ajustar a undefined) ---
+    // Cambiamos 'T | null' por 'T | undefined' para alinearnos con el Mapper
+    private static buildOptionalVO<T>(value: T | undefined): Optional<T> {
+        return new Optional(value);
+    }
+    
+    private static assembleCreatedAt(dateInput?: string): DateISO {
+        if (dateInput) {
+            return DateISO.createFrom(dateInput);
+        }
+        return DateISO.generate();
+    }
+    
+    private static assembleSlidesMap<T extends SlideInput | SlideSnapshot>(
+        slidesArray: T[] | undefined,
+        builderFunction: (input: T, position: number) => Slide
+    ): Map<SlideIdValue, Slide> {
+        const slidesMap = new Map<SlideIdValue, Slide>();
+        
+        if (slidesArray) {
+            // CORRECCIÓN: Usar .call(KahootFactory, input, index) para forzar el 'this'
+            // O mejor, si builderFunction es estática (como buildSlide/reconstructSlideFromSnapshot),
+            // es más limpio usar una función de flecha para que builderFunction sepa que 'this' es KahootFactory
+            slidesArray.forEach((input, index) => {
+                // Al usar .call, nos aseguramos que 'this' dentro de builderFunction sea KahootFactory
+                const slide = builderFunction.call(KahootFactory, input, index);
+                slidesMap.set(slide.id.value, slide);
+            });
+        }
+        return slidesMap;
+    }
 
-    private static assembleKahootDetails(
-        title: string | undefined,
-        description: string | undefined,
-        category: string | undefined
-    ): Optional<KahootDetails> {
-        
-        if (!title && !description && !category) {
-            return this.buildOptionalVO<KahootDetails>(undefined);
-        }
+    private static assembleKahootDetails(
+        title: string | undefined,
+        description: string | undefined,
+        category: string | undefined
+    ): Optional<KahootDetails> {
+        
+        if (!title && !description && !category) {
+            return this.buildOptionalVO<KahootDetails>(undefined);
+        }
 
-        const detailsVO = new KahootDetails(
-            this.buildOptionalVO(title), 
-            this.buildOptionalVO(description), 
-            this.buildOptionalVO(category)
-        );
-        
-        return this.buildOptionalVO(detailsVO);
-    }
+        const detailsVO = new KahootDetails(
+            this.buildOptionalVO(title), 
+            this.buildOptionalVO(description), 
+            this.buildOptionalVO(category)
+        );
+        
+        return this.buildOptionalVO(detailsVO);
+    }
 
-    private static assembleKahootStyling(themeIdValue: string, coverImageId: string | undefined): KahootStyling {
-        const themeId = new ThemeId(themeIdValue);
-        
-        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
-            coverImageId ? new ImageId(coverImageId) : undefined
-        );
-        
-        return new KahootStyling(imageIdOptional, themeId );
-    }
+    private static assembleKahootStyling(themeIdValue: string, coverImageId: string | undefined): KahootStyling {
+        const themeId = new ThemeId(themeIdValue);
+        
+        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
+            coverImageId ? new ImageId(coverImageId) : undefined
+        );
+        
+        return new KahootStyling(imageIdOptional, themeId );
+    }
 
-    // --- ENSAMBLAJE DE SLIDE PROPS (DRY) ---
+    // --- ENSAMBLAJE DE SLIDE PROPS (DRY) ---
 
-    private static assembleSlideProps(
-        position: number, 
-        timeLimit: number, 
-        points: number | undefined, 
-        questionText: string | undefined, 
-        slideMediaId: string | undefined, 
-        descriptionText: string | undefined, 
-        options: Option[]
-    ): Omit<SlideProps, 'slideType' | 'evalStrategy'> {
-        
-        const timeLimitVO = new TimeLimitSeconds(timeLimit);
-        
-        const slideProps: Omit<SlideProps, 'slideType' | 'evalStrategy'> = {
-            position: position, 
-            timeLimit: timeLimitVO,
-            // Mapeo condicional de VOs basado en undefined
-            points: this.buildOptionalVO(points ? new Points(points) : undefined),
-            question: this.buildOptionalVO(questionText ? new Question(questionText) : undefined),
-            slideImage: this.buildOptionalVO(slideMediaId ? new ImageId(slideMediaId) : undefined),
-            description: this.buildOptionalVO(descriptionText ? new Description(descriptionText) : undefined),
-            options: this.buildOptionalVO(options.length > 0 ? options : undefined),
-        };
+    private static assembleSlideProps(
+        position: number, 
+        timeLimit: number, 
+        points: number | undefined, 
+        questionText: string | undefined, 
+        slideMediaId: string | undefined, 
+        descriptionText: string | undefined, 
+        options: Option[]
+    ): Omit<SlideProps, 'slideType' | 'evalStrategy'> {
+        
+        const timeLimitVO = new TimeLimitSeconds(timeLimit);
+        
+        const slideProps: Omit<SlideProps, 'slideType' | 'evalStrategy'> = {
+            position: position, 
+            timeLimit: timeLimitVO,
+            // Mapeo condicional de VOs basado en undefined
+            points: this.buildOptionalVO(points ? new Points(points) : undefined),
+            question: this.buildOptionalVO(questionText ? new Question(questionText) : undefined),
+            slideImage: this.buildOptionalVO(slideMediaId ? new ImageId(slideMediaId) : undefined),
+            description: this.buildOptionalVO(descriptionText ? new Description(descriptionText) : undefined),
+            options: this.buildOptionalVO(options.length > 0 ? options : undefined),
+        };
 
-        return slideProps;
-    }
+        return slideProps;
+    }
 
-    // ====================================================================
-    // --- PARTE DE CREACIÓN (BUILD) ---
-    // ====================================================================
+    // ====================================================================
+    // --- PARTE DE CREACIÓN (BUILD) ---
+    // ====================================================================
 
-    private static buildOption(optionInput: OptionInput): Option {
-        // OptionInput ya viene con optionText garantizado y optionImageId como string | undefined
-        
-        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
-            optionInput.optionImage ? new ImageId(optionInput.optionImage) : undefined
-        ); 
+    private static buildOption(optionInput: OptionInput): Option {
+        // OptionInput ya viene con optionText garantizado y optionImageId como string | undefined
+        
+        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
+            optionInput.optionImage ? new ImageId(optionInput.optionImage) : undefined
+        ); 
 
-        return new Option(optionInput.text, optionInput.isCorrect, imageIdOptional);
-    }
-    
-    private static buildSlide(slideInput: SlideInput): Slide {
-        const slideId = new SlideId(slideInput.id); 
-        
-        const optionsArray = slideInput.options
-            ? slideInput.options.map(this.buildOption)
-            : [];
-            
-        const slideProps = this.assembleSlideProps(
-            slideInput.position, 
-            slideInput.timeLimit, 
-            slideInput.points, 
-            slideInput.question, 
-            slideInput.slideImageId, 
-            slideInput.description, 
-            optionsArray
-        );
-        
-        const SlideConstructor = this.resolveSlideConstructor(slideInput.slideType as SlideTypeEnum);
-        
-        return new SlideConstructor(slideProps as SlideProps, slideId);
-    }
-    
-    public static createFromRawInput(kahootInput: KahootInput): Kahoot {
-        
-        const kahootId = new KahootId(kahootInput.id);
-        const authorId = new UserId(kahootInput.authorId);
-        const createdAt = this.assembleCreatedAt(kahootInput.createdAt);
-        const visibility = new VisibilityStatus(kahootInput.visibility as VisibilityStatusEnum);
-        const status = new KahootStatus(kahootInput.status as KahootStatusEnum) ;
+        return new Option(optionInput.text, optionInput.isCorrect, imageIdOptional);
+    }
+    
+    private static buildSlide(slideInput: SlideInput): Slide {
+        const slideId = new SlideId(slideInput.id); 
+        
+        // La línea 196 (del código original) era: 
+        // ? slideInput.options.map(opt => this.buildOption(opt))
+        // La corrección se realiza aquí, usando una función de flecha para mantener el 'this' correcto
+        const optionsArray = slideInput.options
+            ? slideInput.options.map(opt => KahootFactory.buildOption(opt)) // USAR KahootFactory.buildOption o (opt => this.buildOption(opt)) si `this` está garantizado, pero para un método estático como `buildSlide` es más seguro usar el nombre de la clase. Usando una función de flecha es la solución más simple para asegurar el contexto `this`.
+            : [];
+        
+        const slideProps = this.assembleSlideProps(
+            slideInput.position, 
+            slideInput.timeLimit, 
+            slideInput.points, 
+            slideInput.question, 
+            slideInput.slideImage, 
+            slideInput.description, 
+            optionsArray
+        );
+        
+        const SlideConstructor = this.resolveSlideConstructor(slideInput.slideType as SlideTypeEnum);
+        
+        return new SlideConstructor(slideProps as SlideProps, slideId);
+    }
+    
+    public static createFromRawInput(kahootInput: KahootInput): Kahoot {
+        
+        const kahootId = new KahootId(kahootInput.id);
+        const authorId = new UserId(kahootInput.authorId);
+        const createdAt = this.assembleCreatedAt(kahootInput.createdAt);
+        const visibility = new VisibilityStatus(kahootInput.visibility as VisibilityStatusEnum);
+        const status = new KahootStatus(kahootInput.status as KahootStatusEnum) ;
 
-        const stylingVO = this.assembleKahootStyling(kahootInput.themeId, kahootInput.imageId);
-        
-        const slidesMap = this.assembleSlidesMap(kahootInput.slides, this.buildSlide);
-        
-        const detailsVO = this.assembleKahootDetails(
-            kahootInput.title, 
-            kahootInput.description, 
-            kahootInput.category
-        );
-        
-        const props: KahootProps = {
-            author: authorId,
-            createdAt: createdAt,
-            styling: stylingVO, 
-            details: detailsVO,
-            visibility: visibility,
-            status: status,
-            playCount: new PlayNumber(kahootInput.playCount),
-            slides: slidesMap,
-        };
-        
-        return new Kahoot(props, kahootId);
-    }
+        const stylingVO = this.assembleKahootStyling(kahootInput.themeId, kahootInput.imageId);
+        
+        // CORRECCIÓN: Pasar una función de flecha al llamar a assembleSlidesMap
+        // Esto garantiza que this.buildSlide mantenga el contexto 'this' de KahootFactory.
+        // **Otra solución (elegida para assembleSlidesMap) es usar .call/bind dentro de assembleSlidesMap**
+        // Usaremos la solución de .call/bind en assembleSlidesMap ya que es más limpia.
+        const slidesMap = this.assembleSlidesMap(kahootInput.slides, this.buildSlide);
+        
+        const detailsVO = this.assembleKahootDetails(
+            kahootInput.title, 
+            kahootInput.description, 
+            kahootInput.category
+        );
+        
+        const props: KahootProps = {
+            author: authorId,
+            createdAt: createdAt,
+            styling: stylingVO, 
+            details: detailsVO,
+            visibility: visibility,
+            status: status,
+            playCount: new PlayNumber(kahootInput.playCount),
+            slides: slidesMap,
+        };
+        
+        return new Kahoot(props, kahootId);
+    }
 
-    // ====================================================================
-    // --- PARTE DE RECONSTRUCCIÓN (SNAPSHOT) ---
-    // ====================================================================
+    // ====================================================================
+    // --- PARTE DE RECONSTRUCCIÓN (SNAPSHOT) ---
+    // ====================================================================
 
-    private static reconstructOptionFromSnapshot(snapshot: OptionSnapshot): Option {
-        
-        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
-            snapshot.optionImageId ? new ImageId(snapshot.optionImageId) : undefined
-        ); 
-        const optionText = snapshot.optionText ?? "";
+    private static reconstructOptionFromSnapshot(snapshot: OptionSnapshot): Option {
+        
+        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
+            snapshot.optionImageId ? new ImageId(snapshot.optionImageId) : undefined
+        ); 
+        const optionText = snapshot.optionText ?? "";
 
-        return new Option(optionText, snapshot.isCorrect, imageIdOptional);
-    }
+        return new Option(optionText, snapshot.isCorrect, imageIdOptional);
+    }
 
-    private static reconstructSlideFromSnapshot(snapshot: SlideSnapshot, position: number): Slide {
-        
-        const slideId = new SlideId(snapshot.id);
-        
-        const optionsArray: Option[] = snapshot.options
-            ? snapshot.options.map(this.reconstructOptionFromSnapshot)
-            : [];
-            
-        const slideProps = this.assembleSlideProps(
-            position, 
-            snapshot.timeLimitSeconds, 
-            snapshot.pointsValue, 
-            snapshot.questionText, 
-            snapshot.slideImageId, 
-            snapshot.descriptionText, 
-            optionsArray
-        );
-        
-        const SlideConstructor = this.resolveSlideConstructor(snapshot.slideType);
-        
-        return new SlideConstructor(slideProps as SlideProps, slideId);
-    }
-    
-    public static reconstructFromSnapshot(snapshot: KahootSnapshot): Kahoot {
-        
-        const kahootId = new KahootId(snapshot.id);
-        const authorId = new UserId(snapshot.authorId);
-        const visibility = new VisibilityStatus(snapshot.visibility as VisibilityStatusEnum);
-        const status = new KahootStatus(snapshot.status as KahootStatusEnum);
-        const playCount = new PlayNumber(snapshot.playCount);
-        
-        const createdAt = this.assembleCreatedAt(snapshot.createdAt);
+    private static reconstructSlideFromSnapshot(snapshot: SlideSnapshot, position: number): Slide {
+        
+        const slideId = new SlideId(snapshot.id);
+        
+        // Aquí también se usa una función de flecha para mantener el contexto `this`
+        const optionsArray: Option[] = snapshot.options
+            ? snapshot.options.map(opt => KahootFactory.reconstructOptionFromSnapshot(opt))
+            : [];
+            
+        const slideProps = this.assembleSlideProps(
+            position, 
+            snapshot.timeLimitSeconds, 
+            snapshot.pointsValue, 
+            snapshot.questionText, 
+            snapshot.slideImageId, 
+            snapshot.descriptionText, 
+            optionsArray
+        );
+        
+        const SlideConstructor = this.resolveSlideConstructor(snapshot.slideType);
+        
+        return new SlideConstructor(slideProps as SlideProps, slideId);
+    }
+    
+    public static reconstructFromSnapshot(snapshot: KahootSnapshot): Kahoot {
+        
+        const kahootId = new KahootId(snapshot.id);
+        const authorId = new UserId(snapshot.authorId);
+        const visibility = new VisibilityStatus(snapshot.visibility as VisibilityStatusEnum);
+        const status = new KahootStatus(snapshot.status as KahootStatusEnum);
+        const playCount = new PlayNumber(snapshot.playCount);
+        
+        const createdAt = this.assembleCreatedAt(snapshot.createdAt);
 
-        const stylingVO = this.assembleKahootStyling(snapshot.styling.themeId, snapshot.styling.imageId);
+        const stylingVO = this.assembleKahootStyling(snapshot.styling.themeId, snapshot.styling.imageId);
 
-        const detailsVO = this.buildOptionalVO(
-            snapshot.details ? this.assembleKahootDetails(
-                snapshot.details.title,
-                snapshot.details.description,
-                snapshot.details.category
-            ).getValue() : undefined
-        );
-        
-        const slidesMap = this.assembleSlidesMap(snapshot.slides, this.reconstructSlideFromSnapshot);
-        
-        const props: KahootProps = {
-            author: authorId,
-            createdAt: createdAt, 
-            styling: stylingVO, 
-            details: detailsVO,
-            visibility: visibility,
-            status: status,
-            playCount: playCount,
-            slides: slidesMap,
-        };
-        
-        return new Kahoot(props, kahootId);
-    }
+        const detailsVO = this.buildOptionalVO(
+            snapshot.details ? this.assembleKahootDetails(
+                snapshot.details.title,
+                snapshot.details.description,
+                snapshot.details.category
+            ).getValue() : undefined
+        );
+        
+        const slidesMap = this.assembleSlidesMap(snapshot.slides, this.reconstructSlideFromSnapshot);
+        
+        const props: KahootProps = {
+            author: authorId,
+            createdAt: createdAt, 
+            styling: stylingVO, 
+            details: detailsVO,
+            visibility: visibility,
+            status: status,
+            playCount: playCount,
+            slides: slidesMap,
+        };
+        
+        return new Kahoot(props, kahootId);
+    }
 }
