@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { CreateSessionDto } from './dtos/create-session.dto';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session.command';
@@ -17,9 +17,16 @@ export class MultiplayerSessionsController {
     @Body() createSessionDto: CreateSessionDto,
     // TODO: @GetUser('id') userId: string,
   ) {
-      await this.commandBus.execute( new CreateSessionCommand( createSessionDto.kahootId, createSessionDto.userId ) );
+    await this.commandBus.execute( new CreateSessionCommand( createSessionDto.kahootId, createSessionDto.userId ) );
   }
 
+  @Get('qr-token/:qrToken')
+  async getSessionPin(
+    @Param('qrToken') qrToken: string,
+    // TODO: @GetUser('id') userId: string,
+  ) {
+      return { hola: qrToken }
+  }
 
 
 }

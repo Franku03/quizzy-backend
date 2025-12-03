@@ -16,6 +16,7 @@ import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
 import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
 import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
 import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
+import { CreateSessionResponse } from "../response-dtos/create-session.response.dto";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -35,7 +36,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         private readonly sessionPinGenerator: IGeneratePinService
     ){}
 
-    async execute(command: CreateSessionCommand): Promise<void> {
+    async execute(command: CreateSessionCommand): Promise<CreateSessionResponse> {
 
         // Cargamos el agregado kahoot desde el repositorio
         const tempKahootId = new KahootId( command.kahootId );
@@ -76,6 +77,8 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             kahoot,
             lastActivity: 0 // Luego se actualizara al guardarse
         });
+
+        return { sessionPin: pin, sessionId: sessionId.value }
 
     }
 
