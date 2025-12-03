@@ -36,18 +36,19 @@ export class SoloAttemptRepositoryMongo implements SoloAttemptRepository {
 
   // Finds an existing attempt by its unique business identifier.
   // It is vital to reconstruct the full state before any modification.
-  public async findById(attemptId: AttemptId): Promise<SoloAttempt | null> {
+  public async findById(attemptId: AttemptId): Promise<Optional<SoloAttempt>> {
     // Query the MongoDB collection for the attempt document.
     // A document that matches the ID is returned, or null if not found.
     const document = await this.attemptModel.findOne({ id: attemptId.value }).exec();
 
     // If no document is found, return null to indicate absence.
     if (!document) {
-      return null;
+      return new Optional<SoloAttempt>();
     }
 
     // Convert the flat database document into a rich domain aggregate.
-    return this.mapToDomain(document);
+    const aggregate = this.mapToDomain(document);
+    return new Optional<SoloAttempt>(aggregate);
   }
 
   // Checks if the player already has an open session for this specific kahoot.
@@ -55,7 +56,7 @@ export class SoloAttemptRepositoryMongo implements SoloAttemptRepository {
   public async findActiveForUserIdAndKahootId(
     userId: UserId,
     kahootId: KahootId,
-  ): Promise<SoloAttempt | null> {
+  ): Promise<Optional<SoloAttempt>> {
     const document = await this.attemptModel
     // FindOne returns the first document that matches the criteria.
     // In this case, we look for an attempt by the player for the kahoot that is still in progress.
@@ -67,10 +68,11 @@ export class SoloAttemptRepositoryMongo implements SoloAttemptRepository {
       .exec();
 
     if (!document) {
-      return null;
+      return new Optional<SoloAttempt>();
     }
 
-    return this.mapToDomain(document);
+    const aggregate = this.mapToDomain(document);
+    return new Optional<SoloAttempt>(aggregate);
   }
 
   // Retrieves all attempts that have not been completed by the player.

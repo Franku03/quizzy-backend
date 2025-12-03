@@ -12,7 +12,7 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
     public constructor(props: AttemptTimeDetailsProps) {
         super(props);
 
-        // Temporal Logic - The order of dates must make sense
+        // Format Validation
 
         // Validate ISO 8601 format for all dates
         this.validateISO8601(props.startedAt, "StartedAt");
@@ -20,6 +20,8 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
         if (props.completedAt.hasValue()) {
             this.validateISO8601(props.completedAt.getValue(), "CompletedAt");
         }
+
+        // Temporal Logic - The order of dates must make sense
 
         // Last Played Date cannot be before Started Date
         if (props.lastPlayedAt < props.startedAt) {

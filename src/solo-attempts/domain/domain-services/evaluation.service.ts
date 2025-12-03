@@ -33,11 +33,6 @@ export class SoloAttemptEvaluationService {
       throw new Error("The slide being answered is not the next one in the attempt's progress.");
     }
 
-    // If the kahoot is in draft mode you can't continue playing 
-    if (kahoot.isDraft()){
-      throw new Error("Cannot evaluate answers for an attempt on a Kahoot that is in draft mode.");
-    }
-
     // The other invariant checks are aggregate-only and will be done internally.
 
     // We delegate the calculation of correctness and points to the Kahoot aggregate.
