@@ -2,22 +2,20 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Inject, Put, Param, Delet
 import { CommandBus } from '@nestjs/cqrs';
 import { CreateKahootDTO, UpdateKahootDTO } from './dtos/kahoot-input.dto'; 
 import type { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.mapper'; 
+import { KahootNestMapperAdapter } from '../adapters/kahoot.mapper';
 
-const KAHOOT_MAPPER_TOKEN = 'IKahootMapper'; 
-
-
-@Controller('kahoot')
+@Controller('kahoots')
 export class KahootController {
     constructor(
         private readonly commandBus: CommandBus,
-        @Inject(KAHOOT_MAPPER_TOKEN) 
+        @Inject(KahootNestMapperAdapter) 
         private readonly kahootMapper: IKahootMapper<CreateKahootDTO, UpdateKahootDTO>, 
     ) {}
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async createKahoot(@Body() input: CreateKahootDTO) {
         const command = this.kahootMapper.toCreateCommand(input); 
-        
+        console.log(input)
         await this.commandBus.execute(command);
 
         return {

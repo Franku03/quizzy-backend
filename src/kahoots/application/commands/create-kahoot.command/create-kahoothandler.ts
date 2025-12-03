@@ -4,9 +4,10 @@ import { CreateKahootCommand } from './create-kahootcommand';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { Inject } from '@nestjs/common';
 
-import { KahootFactory, KahootInput } from '../../../domain/factories/kahoot.factory'; 
+import { KahootFactory, KahootInput, SlideInput } from '../../../domain/factories/kahoot.factory'; 
 import { Kahoot } from '../../../domain/aggregates/kahoot'; 
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 
 
 @CommandHandler(CreateKahootCommand)
@@ -15,47 +16,47 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
     constructor(
         @Inject(RepositoryName.Kahoot)
         private readonly kahootRepository: IKahootRepository,
-        private readonly idGenerator: IdGenerator<string>,
+        
     ) {}
 
-    async execute(command: CreateKahootCommand): Promise<void> {
+     async execute(command: CreateKahootCommand): Promise<void> {
         
-        // 1. Generar ID Único
-        const generatedId = await this.idGenerator.generateId();
-        
-        // 2. Construir el objeto de entrada tipado (KahootInput)
-        // El Command ya es un objeto de propiedades inmutables, lo desestructuramos.
-        const { 
-            authorId, createdAt, visibility, status, playCount, themeId, 
-            coverImageId, title, description, category, slides 
-        } = command;
+        let idGenerator: IdGenerator<string> = new UuidGenerator();
 
-        /*const rawInput: KahootInput = {
-            id: generatedId,
-            authorId: authorId,
-            
-            // Asumimos que la Factoría maneja la transformación de Date a string si es necesario, 
-            // o ajustamos la Factoría para aceptar un objeto Date.
-            // Si la Factoría espera string, usamos .toISOString():
-            createdAt: (createdAt as Date).toISOString(), 
-            
-            visibility: visibility,
-            status: status,
-            playCount: playCount,
-            
-            themeId: themeId,
-            coverImageId: coverImageId,
-            title: title,
-            description: description,
-            category: category,
-            slides: slides,
+        // Generar la marca de tiempo de creación en formato ISO 8601 string
+        const creationDateString = new Date().toISOString().split('T')[0]; 
+
+        // 1. Generar ID Único para el Agregado Raíz (Kahoot)
+        const generatedKahootId = await idGenerator.generateId();
+        
+        // 2. Mapear y Generar IDs para cada Slide
+        const slidesInput: SlideInput[] | undefined = await Promise.all(
+            command.slides?.map(async (slideCommand) => {
+                const slideId = await idGenerator.generateId();
+                // Opcional: Si necesitas generar IDs también para las opciones (answers) aquí lo harías
+                return {
+                    ...slideCommand, 
+                    id: slideId, 
+                };
+            }) || []
+        );
+
+        // 3. Construir el objeto de entrada rawInput
+        // Usamos destructuring para tomar todos los campos del comando
+        const { slides, ...rest } = command; 
+
+        const rawInput: KahootInput = {
+            id: generatedKahootId, // ID del Kahoot
+            ...rest, 
+            slides: slidesInput, // Array de Slides ahora con IDs
+            // 4. INCLUIR EL CAMPO GENERADO POR EL SERVIDOR AQUÍ:
+            createdAt: creationDateString,
+            playCount: 0,
         };
         
-        // 3. Aplicar la lógica de Dominio: Crear el Agregado usando la Factoría
-        // Ahora, el argumento rawInput coincide con el tipo KahootInput.
+        //5. Aplicar la lógica de Dominio: Crear el Agregado
         const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
-
-        // 4. Persistencia
-        await this.kahootRepository.saveKahoot(kahoot);*/
+        // 6. Persistencia
+        await this.kahootRepository.saveKahoot(kahoot);
     }
 }

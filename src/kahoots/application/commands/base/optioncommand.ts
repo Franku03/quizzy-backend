@@ -1,10 +1,10 @@
 interface OptionCommandProps {
     // text: Mapeado de text. Aunque puede ser "", el Command lo requiere.
     text: string;
-    // isCorrect: Obligatorio y siempre debe ser un booleano.
-    isCorrect: boolean;
     // optionImage: Opcional, ya purgado a undefined.
     optionImage?: string;
+    // isCorrect: Obligatorio y siempre debe ser un booleano.
+    isCorrect: boolean;
 }
 
 export class KahootOptionCommand {

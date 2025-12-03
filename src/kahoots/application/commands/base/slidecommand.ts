@@ -2,13 +2,13 @@ import { KahootOptionCommand } from "./optioncommand";
 
 // Interfaz que define la estructura del objeto de propiedades
 interface SlideCommandProps {
+    id?: string;
     // Propiedades que el Command requiere
-    type: string;
-    timeLimit: number;
     position: number;
+    slideType: string;
+    timeLimit: number;
     
     // Propiedades opcionales
-    id?: string;
     question?: string;
     slideImage?: string;
     points?: number;
@@ -17,11 +17,12 @@ interface SlideCommandProps {
 }
 
 export class KahootSlideCommand {
-    public readonly type!: string;
-    public readonly timeLimit!: number;
-    public readonly position!: number;
-    
     public readonly id?: string;
+
+    public readonly position!: number;
+    public readonly slideType!: string;
+    public readonly timeLimit!: number;
+
     public readonly question?: string;
     public readonly slideImage?: string;
     public readonly points?: number;

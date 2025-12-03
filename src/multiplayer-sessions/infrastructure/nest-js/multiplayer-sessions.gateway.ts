@@ -18,15 +18,13 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     private logger = new Logger('WebSocketGateway');
 
     constructor(
-      // ! Quitar el servicio, esta para realizar impresiones en consola
-      private readonly messagesWsService: MultiplayerSessionsService,
+      // ? Quitar el servicio, esta para realizar impresiones en consola
+      private readonly loggingWsService: MultiplayerSessionsService,
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT || 3003}`);
     }
 
     async handleConnection( client: Socket ) {
-
-      // console.log( client.handshake );
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
 
@@ -40,9 +38,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
           // ! Validar que este usuario es realmente el dueño de la sesión 'pin'
 
-          this.messagesWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
+          this.loggingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
 
-          this.messagesWsService.registerClient( client ); // Registramos Host en nuestro servicio de Loggeo
+          this.loggingWsService.registerClient( client ); // Registramos Host en nuestro servicio de Loggeo
 
           // Unir este socket a la Room del PIN
           client.join( pin );
@@ -54,7 +52,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           
       } else if( role === SessionRoles.PLAYER ){
 
-        this.messagesWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
+        this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
 
         client.join( pin );
 
@@ -69,7 +67,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       }
 
       console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
-      console.log({ conectados: this.messagesWsService.getConnectedClients() });
+
+      this.loggingWsService.logConnectedClients();
+
 
     }
 
@@ -80,7 +80,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       client.disconnect();
 
       console.log('Cliente Desconectado', client.id );
-      this.messagesWsService.removeClient( roomPin ,client.id );
+      this.loggingWsService.removeClient( roomPin ,client.id );
       
     }
 

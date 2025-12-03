@@ -6,6 +6,8 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateKahootHandler } from './application/commands/create-kahoot.command/create-kahoothandler';
+import { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.mapper'; 
+import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/kahoot.mapper'; 
 
 @Module({
   controllers: [KahootController],
@@ -15,7 +17,8 @@ import { CreateKahootHandler } from './application/commands/create-kahoot.comman
     CqrsModule,
   ],
   providers: [
-    CreateKahootHandler
+    CreateKahootHandler,
+    KahootNestMapperAdapter,
   ],
 })
 export class KahootsModule {}
