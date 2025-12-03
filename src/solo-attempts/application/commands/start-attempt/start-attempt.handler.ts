@@ -30,7 +30,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const kahootId = new KahootId(command.kahootId);
     const playerId = new UserId(command.userId);
 
-    // We Fetch the Kahoot Aggregate to ensure it exists and validates its status
+    // We Fetch the Kahoot Aggregate to ensure it exists 
     const kahootOptional = await this.kahootRepository.findKahootById(kahootId);
     if (!kahootOptional.hasValue()) {
       throw new NotFoundException('Kahoot not found');
@@ -38,9 +38,20 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const kahoot = kahootOptional.getValue();
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
-    // If it is in Draft mode, we block the attempt creation.
     if (kahoot.isDraft()){
       throw new BadRequestException('Cannot start a game that is in Draft mode');
+    }
+
+    // Before creating a new attempt, we check if there's already an active
+    // attempt for this user and Kahoot. This prevents duplicate active attempts.
+    const existingAttempt = await this.attemptRepository.findActiveForUserIdAndKahootId(
+      playerId,
+      kahootId
+    );
+
+    if (existingAttempt.hasValue()) {
+      // If an active attempt exists, it is rewritten (deleted) to allow a fresh start.
+      await this.attemptRepository.delete(existingAttempt.getValue().attemptId);
     }
 
     // We need the total number of slides to initialize the progress tracker correctly.
@@ -64,7 +75,9 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     // We extract any Domain Events generated during creation/start (AttemptStarted)
     // and publish them to the Event Bus so other contexts can react (like Analytics).
     const events = attempt.pullDomainEvents();
-    await this.eventBus.publish(events);
+    if (events.length > 0) {
+      await this.eventBus.publish(events);
+    }
 
     // We retrieve the snapshot of the first slide to send it back to the client immediately.
     // Passing -1 or no argument instructs the method to fetch the first index (0).
