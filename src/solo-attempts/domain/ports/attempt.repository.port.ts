@@ -3,7 +3,7 @@ import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singl
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { KahootId} from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 
-interface SoloAttemptRepository {
+export interface SoloAttemptRepository {
   // We use Promises for async DB access
   // Return nullable to handle 404s gracefully
 
@@ -14,11 +14,13 @@ interface SoloAttemptRepository {
   // If a user tries to start a new attempt, we first check if there's an existing 
   // in-progress attempt for that user/kahoot combo. Only one active attempt per user/kahoot is allowed.
   // So, if found, the existing attempt will be deleted before starting a new one (by the app layer)
-  findByUserAndKahoot(userId: UserId, kahootId: KahootId): Promise<SoloAttempt | null>;
+  findActiveForUserIdAndKahootId(userId: UserId, kahootId: KahootId): Promise<SoloAttempt | null>;
 
   // List all active (in-progress) attempts for a user. 
-  // When a kahoot is modified/drafted, all active attempts for that kahoot are deleted. (app layer)
   findAllActiveForUserId(userId: UserId): Promise<SoloAttempt[]>;
+
+  // List all active (in-progress) attempts for a kahoot.
+  findAllActiveForKahootId(kahootId: KahootId): Promise<SoloAttempt[]>;
 
   // Persistence
   // Saves or updates the aggregate in the DB
@@ -30,4 +32,8 @@ interface SoloAttemptRepository {
   // So, if a user abandons an attempt and starts over, we delete the old one.
   // Also used for cleanup of active attempts when a kahoot is modified.
   delete(attemptId: AttemptId): Promise<void>; 
+
+  // Deletes all active (in-progress) attempts for a kahoot.
+  // Used when a kahoot is modified to ensure no one continues an attempt on an outdated version.
+  deleteAllActiveForKahootId(kahootId: KahootId): Promise<number>;
 }

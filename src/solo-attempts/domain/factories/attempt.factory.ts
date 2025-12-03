@@ -44,7 +44,7 @@ export class SoloAttemptFactory {
             id: attemptId,
             kahootId: kahootId,
             playerId: playerId,
-            status: AttemptStatus.IN_PROGRESS,
+            status: AttemptStatus.createInProgress(),
             totalScore: initialScore,
             progress: initialProgress,
             timeDetails: initialTimeDetails,
