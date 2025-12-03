@@ -1,6 +1,6 @@
 import { ICommand } from "@nestjs/cqrs";
 
-export class GetPinWithQrToken implements ICommand {
+export class GetPinWithQrTokenCommand implements ICommand {
 
     constructor(
         public readonly qrToken: string

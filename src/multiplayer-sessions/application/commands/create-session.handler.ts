@@ -17,6 +17,9 @@ import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructur
 import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
 import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
 import { CreateSessionResponse } from "../response-dtos/create-session.response.dto";
+import { Either } from '../../../core/types/either';
+
+import { CREATE_SESSION_ERRORS } from "./create-session.errors";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -36,49 +39,64 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         private readonly sessionPinGenerator: IGeneratePinService
     ){}
 
-    async execute(command: CreateSessionCommand): Promise<CreateSessionResponse> {
+    async execute(command: CreateSessionCommand): Promise<Either<Error,CreateSessionResponse>> {
 
-        // Cargamos el agregado kahoot desde el repositorio
-        const tempKahootId = new KahootId( command.kahootId );
 
-        const kahootOpt = await this.kahootRepository.findKahootById( tempKahootId );
+        try {
+            // Cargamos el agregado kahoot desde el repositorio
+            const tempKahootId = new KahootId( command.kahootId );
 
-        if( !kahootOpt.hasValue() )
-            throw new Error("El Kahoot solicitado no existe");
+            const kahootOpt = await this.kahootRepository.findKahootById( tempKahootId );
 
-        const kahoot = kahootOpt.getValue()
+            if( !kahootOpt.hasValue() )
+                return Either.makeLeft( new Error(CREATE_SESSION_ERRORS.KAHOOT_NOT_FOUND) );
 
-        const slideId = new SlideId( kahoot.getNextSlideSnapshotByIndex()?.id! )
+            const kahoot = kahootOpt.getValue()
 
-        const kahootInfo = {
-            kahootId: kahoot.id,
-            firstSlideId: slideId,
-            slidesNumber: kahoot.hasHowManySlides(), // ! Algo me dice que hay un problema con el numero de slidesTotales y el progreso
+
+            // Creamos el idUser del host y verificamos que el kahoot le corresponda
+            const hostId = new UserId( command.hostId );
+
+            if( !(hostId.value === kahoot.authorId) )
+                return Either.makeLeft( new Error(CREATE_SESSION_ERRORS.USER_UNAUTHORIZED) );
+
+            // Obtenemos la informacion del kahoot necesaria para construir el player session
+            const slideId = new SlideId( kahoot.getNextSlideSnapshotByIndex()?.id! )
+
+            const kahootInfo = {
+                kahootId: kahoot.id,
+                firstSlideId: slideId,
+                slidesNumber: kahoot.hasHowManySlides(), // ! Algo me dice que hay un problema con el numero de slidesTotales y el progreso
+            }
+
+            // Creamos el id de la sesion y reconstruimos el VO del id del user host
+            const sessionIdString = await this.IdGenerator.generateId();
+            const sessionId = new MultiplayerSessionId( sessionIdString );
+
+            // Generamos el Pin de la sesion
+                
+            const pin = await this.sessionPinGenerator.generateUniquePin();
+
+            const session = MultiplayerSessionFactory.createMultiplayerSession(
+                kahootInfo,
+                hostId,
+                sessionId,
+                pin
+            )
+
+            const qrToken = await this.sessionRepository.save({
+                session,
+                kahoot,
+                lastActivity: 0 // Luego se actualizara al guardarse
+            });
+
+            return Either.makeRight({ sessionPin: pin, sessionId: sessionId.value, qrToken: qrToken }); 
+
+        } catch (error) {
+
+            return Either.makeLeft( error );
+
         }
-
-        // Creamos el id de la sesion y reconstruimos el VO del id del user host
-        const sessionIdString = await this.IdGenerator.generateId();
-        const sessionId = new MultiplayerSessionId( sessionIdString );
-
-        const hostId = new UserId( command.hostId );
-
-        // Generamos el Pin de la sesion
-        const pin = await this.sessionPinGenerator.generateUniquePin();
-
-        const session = MultiplayerSessionFactory.createMultiplayerSession(
-            kahootInfo,
-            hostId,
-            sessionId,
-            pin
-        )
-
-        await this.sessionRepository.save({
-            session,
-            kahoot,
-            lastActivity: 0 // Luego se actualizara al guardarse
-        });
-
-        return { sessionPin: pin, sessionId: sessionId.value }
 
     }
 

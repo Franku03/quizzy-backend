@@ -3,6 +3,12 @@ import { MultiplayerSessionsController, MultiplayerSessionsGateway, MultiplayerS
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { CqrsModule } from '@nestjs/cqrs';
+import { CreateSessionHandler, GetPinWithQrTokenHandler } from './application/commands';
+import { InMemorySessionRepository } from './infrastructure/repositories/in-memory.session.repository';
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
+import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
+
 
 @Module({
   imports: [
@@ -13,6 +19,14 @@ import { CqrsModule } from '@nestjs/cqrs';
   providers: [
     MultiplayerSessionsGateway, 
     MultiplayerSessionsService,
+    // Injectables
+    InMemorySessionRepository,
+    CryptoGeneratePinService,
+    FileSystemPinRepository,
+    UuidGenerator,
+    //Commands
+    CreateSessionHandler,
+    GetPinWithQrTokenHandler,
   ],
   controllers: [MultiplayerSessionsController],
 })

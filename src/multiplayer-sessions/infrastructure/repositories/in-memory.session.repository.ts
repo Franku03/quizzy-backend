@@ -26,10 +26,10 @@ export class InMemorySessionRepository {
     private readonly activeSessions = new Map<sessionPin, SessionWrapper>();
 
 
-    // * Nuevo Mapa: QR Token -> PIN
+    // * Mapa: QR Token -> PIN
     // Guardamos solo el PIN porque con el PIN ya podemos buscar en activeSessions
     // Mapa principal: Token -> Datos + Timestamp
-    private readonly qrTokens = new Map<string, QrTokenData>();
+    private readonly qrTokens = new Map<qrToken, QrTokenData>();
 
 
     // Configuración: Los tokens QR expiran rápido (ej. 10 minutos)
@@ -37,10 +37,10 @@ export class InMemorySessionRepository {
     private readonly QR_TTL = 10 * 60 * 1000;
 
     constructor() {
-        // Limpiador automático cada 10 minutos
+        // Limpiador de sesiones no usadas automático cada 10 minutos
         setInterval(() => this.cleanupUnusedSessions(), 10 * 60 * 1000);
 
-        // Corremos el limpiador cada 5 minutos
+        // limpiador de códigos qr cada 5 minutos
         setInterval(() => this.cleanupExpiredTokens(), 5 * 60 * 1000);
     }
 
@@ -75,7 +75,7 @@ export class InMemorySessionRepository {
     }
 
     // Cada vez que toques la sesión, actualiza lastActivity
-    async save(sessionWraper: SessionWrapper): Promise<void> {
+    async save(sessionWraper: SessionWrapper): Promise<qrToken> {
 
         // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al sessionWrapper
         const { session, kahoot } = sessionWraper;
@@ -87,7 +87,7 @@ export class InMemorySessionRepository {
         });
 
         // Generas un token aleatorio (puedes usar crypto.randomUUID())
-        const token = uuidv4();
+        const token: qrToken = uuidv4();
         
         // Lo guardas mapeado al PIN
         // Guardamos cuándo se creó
@@ -103,6 +103,8 @@ export class InMemorySessionRepository {
         // session.setQrToken(token);
 
         console.log( this.activeSessions.values() );
+
+        return token;
     }
 
     async findByPin(pin: string): Promise<SessionWrapper| null> {

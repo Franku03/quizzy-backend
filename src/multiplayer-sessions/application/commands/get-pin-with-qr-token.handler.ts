@@ -1,34 +1,44 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { CreateSessionCommand } from "./create-session.command";
 
 import { Inject } from "@nestjs/common";
 import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
+import { QR_TOKEN_ERRORS } from "./get-pin-with-qr-token.errors";
 import { GetPinWithQrTokenResponse } from "../response-dtos/get-pin-with-qr-token.response.dto";
-import { GetPinWithQrToken } from "./get-pin-with-qr-token.command copy";
+import { GetPinWithQrTokenCommand } from "./get-pin-with-qr-token.command";
+
+import { Either } from '../../../core/types/either';
 
 
-@CommandHandler( GetPinWithQrToken )
-export class CreateSessionHandler implements ICommandHandler<GetPinWithQrToken> {
+@CommandHandler( GetPinWithQrTokenCommand )
+export class GetPinWithQrTokenHandler implements ICommandHandler<GetPinWithQrTokenCommand> {
 
     constructor(
         @Inject( InMemorySessionRepository )
         private readonly sessionRepository: InMemorySessionRepository,
     ){}
 
-    async execute(command: GetPinWithQrToken): Promise<GetPinWithQrTokenResponse> {
+    async execute(command: GetPinWithQrTokenCommand): Promise<Either<Error,GetPinWithQrTokenResponse>> {
 
 
-        const searchedSession = await this.sessionRepository.findSessionByQrToken( command.qrToken );
+        try {
+            
+            const searchedSession = await this.sessionRepository.findSessionByQrToken( command.qrToken );
+    
+            if( !searchedSession )
+               return Either.makeLeft( new Error(QR_TOKEN_ERRORS.QR_NOT_FOUND) );
+    
+            const pin = searchedSession.session.getSessionPin().getPin();
+            const sessionId = searchedSession.session.id.value;
+    
+    
+            return Either.makeRight({ sessionPin: pin, sessionId: sessionId })
 
-        if( !searchedSession )
-            throw new Error("El token obtenido a traves del codigo QR no corresponde a ninguna Sessión");
+        } catch (error) {
+            
+            return Either.makeLeft( error );
+        }
 
-        const pin = searchedSession.session.getSessionPin().getPin();
-        const sessionId = searchedSession.session.id.value;
-
-
-        return { sessionPin: pin, sessionId: sessionId }
 
     }
 
