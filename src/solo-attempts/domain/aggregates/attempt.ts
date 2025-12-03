@@ -11,6 +11,7 @@ import { Result } from "src/core/domain/shared-value-objects/parameter-objects/p
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { DomainEvent } from "src/core/domain/abstractions/domain-event";
 import { SoloAttemptCompletedEvent } from "src/core/domain/domain-events/attempt-completed-event";
+import { SoloAttemptStartedEvent } from "src/core/domain/domain-events/attempt-started.event";
 
 // This interface acts as the definitive contract for the state of a SoloAttempt.
 // It groups together the identity, the link to the original Kahoot, the player involved,
@@ -50,6 +51,21 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
         this.checkInvariants();
     }
 
+    public notifyStart(): void {
+        // We emit a domain event to signal that a new Solo Attempt has started.
+        // This event can be used by other modules to react accordingly.
+
+        // We instantiate the event directly with our Value Objects. 
+        const attemptStartedEvent = new SoloAttemptStartedEvent(
+            this.id,
+            this.properties.playerId,
+            this.properties.kahootId,
+        );
+
+        // The event is recorded in the aggregate's internal list for future publication.
+        this.record(attemptStartedEvent);
+    }
+
     // We process the result of a player's submission for a specific slide.
     // This method is the heart of the gameplay loop, it records the player's answer,
     // updates their total score if the answer was correct, advances the game progress
@@ -57,25 +73,31 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
     // It also enforces business rules such as preventing answers on completed attempts
     // and avoiding duplicate answers for the same question.
     public registerAnswer(result: Result): void {
+
+        // Invariant Checks:
+
+        // We cannot register answers for a completed attempt.
         if (!this.isInProgress()) {
             throw new Error("Cannot register answers for a completed or non-active attempt.");
         }
+
+        // Duplicate answers are prevented by ensuring the user hasn't already submitted 
+        // an answer for this specific slide.
+        if (this.isSlideAnswered(result.getSlideId())) {
+            throw new Error("Answer for this slide has already been registered.");
+        }
+
+        // State Updates:
 
         // The position of the new answer is determined by the current progress.
         // Since progress counts how many questions have been answered, 
         // the next position is simply that count plus one.
         // Example: (0 answered -> this is answer #1), (5 answered -> this is answer #6).
         const currentPosition = this.properties.progress.questionsAnswered + 1;
-
+        
         // We map the transient Result parameter object into a persistent PlayerAnswer Value Object.
         // This encapsulates all the details of the player's submission.
         const newAnswer = PlayerAnswer.create(result, currentPosition);
-
-        // Duplicate answers are prevented by ensuring the user hasn't already submitted 
-        // an answer for this specific slide.
-        if (this.isSlideAnswered(newAnswer.slideId)) {
-            throw new Error("Answer for this slide has already been registered.");
-        }
 
         // The answer is recorded in the history.
         this.properties.answers.push(newAnswer);
@@ -93,19 +115,19 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
         // The activity timestamp is updated to mark this interaction as the latest activity.
         this.properties.timeDetails = this.properties.timeDetails.continueAt(new Date());
-    }
 
-    // We signal that the user has resumed their session after a pause.
-    // This method updates the 'lastPlayedAt' timestamp to the current moment.
-    public continueAttempt(): void {
-        // We cannot continue a game that has already finished.
-        if (this.isCompleted()) {
-            throw new Error("Cannot continue a completed attempt.");
+        // After registering the answer, we check if the game has reached its end.
+        // If the number of answered questions equals the total number of questions answered,
+        // we must transition the attempt state to COMPLETED and execute the completion logic. 
+        const answeredQuestions = this.properties.progress.questionsAnswered;
+        const totalQuestions = this.properties.progress.totalQuestions;
+        if (answeredQuestions >= totalQuestions) {
+            // The game is over. We finalize the attempt.
+            // The completiong logic is delegated to the dedicated method.
+            // It includes: updating timestamps, changing status, and emitting events.
+            this.completeAttempt();
         }
 
-        // We delegate the responsibility of handling the specific date update to the Value Object,
-        // The 'continueAt' method returns a new instance of TimeDetails with the updated timestamp.
-        this.properties.timeDetails = this.properties.timeDetails.continueAt(new Date());
     }
 
     // We finalize the single player session.
