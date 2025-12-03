@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-// --- I. SUB-ESQUEMAS (Clases de Mongoose) ---
+// --- I. SUB-ESQUEMAS (Clases de Mongoose, fuente única de verdad) ---
 
 // 1. Esquema para las Opciones de la Pregunta
 @Schema()
@@ -62,7 +62,7 @@ options: OptionSnapshot[] | null;
 
 @Schema({
 collection: 'kahoots',
-timestamps: true, // Añade createdAt y updatedAt
+timestamps: true, // Esto añade createdAt y updatedAt automáticamente en Mongoose
 })
 export class KahootMongo extends Document {
 // El ID principal de la aplicación
@@ -96,15 +96,18 @@ public styling: KahootStylingSnapshot;
 // Lista de preguntas/diapositivas
 @Prop({ type: [SlideSnapshot], default: null })
 public slides: SlideSnapshot[] | null;
+
+
+public createdAt: string; 
+public updatedAt: string;
 }
 
 export const KahootSchema = SchemaFactory.createForClass(KahootMongo);
 
 // --- III. TIPO DE ENTRADA (DTO de Persistencia) ---
 
-// Tipo DTO que representa el POJO (Plain JavaScript Object) devuelto por Mongoose .lean()
-// Aplica DRY eliminando las propiedades internas de Mongoose.
 export type KahootMongoInput = Omit<KahootMongo, keyof Document | '_id' | '__v'> & {
     id: string; 
     createdAt: string;
+    updatedAt: string;
 };

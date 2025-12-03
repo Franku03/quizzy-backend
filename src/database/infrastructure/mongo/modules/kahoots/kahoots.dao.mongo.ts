@@ -68,6 +68,8 @@ export class KahootDaoMongo implements IKahootDao {
         
         const kahootData = documentResult as unknown as KahootMongoInput;
 
+        console.log(kahootData)
+
         const readModel = this.kahootReadMapper.mapToReadModel(kahootData);
         
         return new Optional<KahootReadModel>(readModel);
