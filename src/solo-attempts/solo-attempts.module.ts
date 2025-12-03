@@ -10,18 +10,20 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { StartSoloAttemptHandler } from './application/commands/start-attempt/start-attempt.handler';
 import { CreateUserHandler } from 'src/users/application/commands/create-user/create-user.handler';
 import { SubmitAnswerHandler } from './application/commands/submit-answer/submit-answer.handler';
+import { GetAttemptSummaryHandler } from './application/queries/get-summary/get-summary.handler';
 
 @Module({
   controllers: [SoloAttemptsController],
   imports: [
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt), // carga de repositorio (para commands de CQRS)
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
-    ///DaoFactoryModule.forFeature(DaoName.Attempt), // Carga de un DAO (para queries de CQRS)
+    DaoFactoryModule.forFeature(DaoName.SoloAttempt), // Carga de un DAO (para queries de CQRS)
     CqrsModule,
   ],
   providers: [
     StartSoloAttemptHandler, //commandHandler
-    SubmitAnswerHandler
+    SubmitAnswerHandler,
+    GetAttemptSummaryHandler,
   ],
 })
 export class SoloAttemptsModule {}

@@ -1,17 +1,19 @@
-import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, UseGuards } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
+import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, Get, UseGuards } from '@nestjs/common';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { StartSoloAttemptCommand } from 'src/solo-attempts/application/commands/start-attempt/start-attempt.command';
 import { Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import { SubmissionMapper } from 'src/solo-attempts/application/mappers/submission.mapper';
+import { SubmissionMapper } from 'src/solo-attempts/application/commands/mappers/submission.mapper';
 import { SubmitAnswerCommand } from 'src/solo-attempts/application/commands/submit-answer/submit-answer.command';
 // import { JwtAuthGuard } from 'src/auth/infrastructure/guards/jwt-auth.guard';
 import { SUBMIT_ANSWER_ERROR_CODES } from 'src/solo-attempts/application/commands/submit-answer/submit-answer.errors';
 import { START_ATTEMPT_ERROR_CODES } from 'src/solo-attempts/application/commands/start-attempt/start-attempt.errors';
+import { GET_SUMMARY_ERROR_CODES } from 'src/solo-attempts/application/queries/get-summary/get-summary.errors';
+import { GetAttemptSummaryQuery } from 'src/solo-attempts/application/queries/get-summary/get-summary.query';
+import { AttemptSummaryReadModel } from 'src/solo-attempts/application/queries/read-models/summary.attempt.read.model';
 
 @Controller('attempts')
 export class SoloAttemptsController {
-  constructor(private readonly commandBus: CommandBus) {}
-
+  constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
   // This endpoint starts a new Single Player Session.
   // It corresponds to the POST /attempts specification in the API docs.
   // @UseGuards(JwtAuthGuard) 
@@ -122,4 +124,42 @@ export class SoloAttemptsController {
       throw error;
     }
     }
+
+    // This endpoint retrieves the summary of a completed solo attempt
+    // It corresponds to GET /attempts/:attemptId/summary in the API docs
+    // The summary includes final score, total correct answers, and accuracy percentage
+    // @UseGuards(JwtAuthGuard)
+    @Get(':attemptId/summary')
+    async getAttemptSummary(@Param('attemptId') attemptId: string) {
+      try {
+        // Execute the query to get the attempt summary
+        // The query handler will return a summary if a completed attempt is found for that attempt ID
+        const summary: AttemptSummaryReadModel = await this.queryBus.execute(
+          new GetAttemptSummaryQuery(attemptId),
+        );
+        return summary;
+      } 
+      catch (error) {
+        const errorMessage = (error as Error).message;
+
+        // Map error codes to appropriate HTTP exceptions
+        if (
+          errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
+        ) {
+          throw new NotFoundException('Attempt not found or does not belong to user');
+        }
+
+        if (
+          errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
+        ) {
+          throw new BadRequestException('Attempt has not been completed yet');
+        }
+
+        // For any other errors, throw a generic error
+        throw error;
+      }
+
+    }
+
+
 }   

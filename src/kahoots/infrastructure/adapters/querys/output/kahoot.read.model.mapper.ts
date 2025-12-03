@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model'; 
 import { SlideReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.response.read.model';
 import { OptionReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.option.response.read.model';
