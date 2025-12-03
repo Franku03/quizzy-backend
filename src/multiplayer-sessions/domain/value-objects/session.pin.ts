@@ -1,6 +1,4 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
-import { IVerifyAvailablePinService } from "../domain-services/verify-available-pin.service.interface";
-import { IGeneratePinService } from "../domain-services";
 
 interface SessionPinProps {
     sessionPin: string
@@ -18,28 +16,34 @@ export class SessionPin extends ValueObject<SessionPinProps> {
     }
 
     
-    public static create( verificationService: IVerifyAvailablePinService, generationService: IGeneratePinService  ){
+    public static create( pin: string ){
         
-        let pin: string = this.generatePin( generationService );
-
-        // Para asegurarnos de que devolvemos un Pin valido y disponible siempre
-
-        while( true ){
-
-
-            if( !SessionPin.isPinValid( pin ) )
-                throw new Error('El pin debe ser exactamente de 6 dígitos');
- 
-
-            if( this.isPinAvailable( pin, verificationService ) )
-                break;
-
-            pin = this.generatePin( generationService );
+        if( !SessionPin.isPinValid( pin ) )
+            throw new Error('El pin debe tener de 6 a 10 dígitos');
                 
-        };
 
         return new SessionPin( pin );
 
+    }
+
+
+    // Para uso general
+    
+    public static isPinValid( pin: string ): boolean {
+
+        // Regex pattern para un PIN de 6 dígitos
+        // ^: Empieza la cadena
+        // \d{6,10}: Exactamente de 6 a 10 dígitos (0 a 9)
+        // $: Termina la cadena
+        const pinRegex = /^\d{6,10}$/;
+
+        // Devuelve true si el pin coincide con la expresion
+        return pinRegex.test( pin );
+
+    }
+
+    public getPin(): string {
+        return this.properties.sessionPin;
     }
 
 
@@ -48,17 +52,17 @@ export class SessionPin extends ValueObject<SessionPinProps> {
 
 
 
-    private static isPinAvailable( pin: string, verificationService: IVerifyAvailablePinService ): boolean {
+    // private static isPinAvailable( pin: string, verificationService: IVerifyAvailablePinService ): boolean {
 
-        return verificationService.verifyPin( pin );
+    //     return verificationService.verifyPin( pin );
 
-    }
+    // }
 
-    private static generatePin( generationService: IGeneratePinService ): string {
+    // private static generatePin( generationService: IGeneratePinService ): string {
 
-        return generationService.generatePin();
+    //     return generationService.generateUniquePin();
 
-    }
+    // }
 
 
 
@@ -85,26 +89,6 @@ export class SessionPin extends ValueObject<SessionPinProps> {
     //     return verificationService.verifyPin( pin );
 
     // }
-
-
-    // Para uso general
-    
-    public static isPinValid( pin: string ): boolean {
-
-        // Regex pattern para un PIN de 6 dígitos
-        // ^: Empieza la cadena
-        // \d{6}: Exactamente 6 dígitos (0 a 9)
-        // $: Termina la cadena
-        const pinRegex = /^\d{6}$/;
-
-        // Devuelve true si el pin coincide con la expresion
-        return pinRegex.test( pin );
-
-    }
-
-    public getPin(): string {
-        return this.properties.sessionPin;
-    }
 
 
 }
