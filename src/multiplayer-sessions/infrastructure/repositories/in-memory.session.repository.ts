@@ -1,8 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
+import { v4 as uuidv4 } from 'uuid';
 
 type sessionPin = string
+
+type qrToken = string;
 
 interface SessionWrapper { 
     session: MultiplayerSession, 
@@ -10,15 +13,35 @@ interface SessionWrapper {
     lastActivity: number,
 }
 
+interface QrTokenData {
+    pin: string;
+    createdAt: number; // Timestamp en milisegundos
+}
+
+
 @Injectable()
 export class InMemorySessionRepository {
-    // Base de datos en memoria para llevar los agregados asoaciados a cada partida.
+    // * Base de datos en memoria para llevar los agregados asoaciados a cada partida.
     // Al ser un Singleton, este Map vive mientras el servidor este corriendo.
     private readonly activeSessions = new Map<sessionPin, SessionWrapper>();
+
+
+    // * Nuevo Mapa: QR Token -> PIN
+    // Guardamos solo el PIN porque con el PIN ya podemos buscar en activeSessions
+    // Mapa principal: Token -> Datos + Timestamp
+    private readonly qrTokens = new Map<string, QrTokenData>();
+
+
+    // Configuración: Los tokens QR expiran rápido (ej. 10 minutos)
+    // Esto es bueno por seguridad, el QR no debería ser eterno.
+    private readonly QR_TTL = 10 * 60 * 1000;
 
     constructor() {
         // Limpiador automático cada 10 minutos
         setInterval(() => this.cleanupUnusedSessions(), 10 * 60 * 1000);
+
+        // Corremos el limpiador cada 5 minutos
+        setInterval(() => this.cleanupExpiredTokens(), 5 * 60 * 1000);
     }
 
     private cleanupUnusedSessions() {
@@ -37,6 +60,20 @@ export class InMemorySessionRepository {
         }
     }
 
+    private cleanupExpiredTokens() {
+
+        const now = Date.now();
+        
+        for (const [token, data] of this.qrTokens.entries()) {
+
+            if (now - data.createdAt > this.QR_TTL) {
+                this.qrTokens.delete(token);
+            }
+
+        }
+
+    }
+
     // Cada vez que toques la sesión, actualiza lastActivity
     async save(sessionWraper: SessionWrapper): Promise<void> {
 
@@ -49,6 +86,22 @@ export class InMemorySessionRepository {
              lastActivity: Date.now()
         });
 
+        // Generas un token aleatorio (puedes usar crypto.randomUUID())
+        const token = uuidv4();
+        
+        // Lo guardas mapeado al PIN
+        // Guardamos cuándo se creó
+        this.qrTokens.set( 
+            token, 
+            { 
+                pin: session.getSessionPin().getPin(), 
+                createdAt: Date.now() 
+            }
+        );
+        
+        // (Opcional) Guardas el token dentro de la sesión por si necesitas borrarlo
+        // session.setQrToken(token);
+
         console.log( this.activeSessions.values() );
     }
 
@@ -60,5 +113,21 @@ export class InMemorySessionRepository {
         this.activeSessions.delete( pin );
         // Al hacer delete, se rompe la referencia fuerte.
         // Si nadie más usa esa Session, el GC la eliminará en la próxima pasada.
+    }
+
+    async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
+
+        const data = this.qrTokens.get(token);
+        
+        if ( !data ) 
+            return null;
+
+        // Si existe pero ya expiró (y el setInterval no ha pasado aún), lo borramos ahora
+        if (Date.now() - data.createdAt > this.QR_TTL) {
+            this.qrTokens.delete(token);
+            return null;
+        }
+
+        return this.findByPin( data.pin );
     }
 }  
