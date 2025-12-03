@@ -314,8 +314,8 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             
             details: this.properties.details.hasValue() 
                 ? this.properties.details.getValue().getSnapshot() 
-                : null,
-            slides: slideSnapshots.length > 0 ? slideSnapshots : null,
+                : undefined,
+            slides: slideSnapshots.length > 0 ? slideSnapshots : undefined,
         }
     }
 }
