@@ -10,15 +10,20 @@ import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
 import { SoloAttemptCompletedEvent } from 'src/core/domain/domain-events/attempt-completed-event';
 import { CqrsModule } from '@nestjs/cqrs';
+import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
 
 @Module({
     controllers: [GroupsController],
     imports: [
         CqrsModule,
-        RepositoryFactoryModule.forFeature(RepositoryName.Group)
+        RepositoryFactoryModule.forFeature(RepositoryName.Group),
+        DaoFactoryModule.forFeature(DaoName.Group)
     ],
     providers: [
         CreateGroupHandler,
+        GetGroupsByUserHandler,
         {
             provide: MarkAssignmentCompletedUseCase,
             useFactory: (repo: IGroupRepository) => new MarkAssignmentCompletedUseCase(repo),

@@ -1,4 +1,3 @@
-import { ICommandService } from "src/core/application/service/application-service.interface";
 import { Group } from "../../../domain/aggregates/group";
 import type { IGroupRepository } from "src/database/domain/repositories/groups/IGroupRepository";
 import { v4 as uuidv4 } from 'uuid';
