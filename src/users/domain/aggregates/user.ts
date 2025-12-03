@@ -62,7 +62,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
             return;
         }
 
-        this.ensureUsernameChangeIsAllowed();
+        this.checkInvariants();
 
         this.properties.username = newUsername;
         this.properties.lastUsernameUpdate = new Date();
@@ -114,22 +114,19 @@ export class User extends AggregateRoot<UserProps, UserId> {
     public async resetPassword(newPassword: PlainPassword, hasher: IPasswordHasher): Promise<void> {
         this.properties.passwordHash = await newPassword.hash(hasher);
     }
-
-    private ensureUsernameChangeIsAllowed(): void {
+    
+    protected checkInvariants(): void {
         const lastUpdate = this.properties.lastUsernameUpdate;
-
+    
         if (!lastUpdate) return;
-
+    
         const now = new Date();
         const nextAllowedDate = new Date(lastUpdate);
         nextAllowedDate.setFullYear(nextAllowedDate.getFullYear() + 1);
-
+    
         if (now < nextAllowedDate) {
             throw new Error(`Solo puedes cambiar tu nombre de usuario una vez al año.`);
         }
-    }
-
-    protected checkInvariants(): void {
     }
 
     get email(): UserEmail {
