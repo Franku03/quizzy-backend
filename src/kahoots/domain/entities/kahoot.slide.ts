@@ -143,14 +143,19 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
 
     
     //Utilizado por Kahoot
-    public isPublishingCompliant(): boolean {
+    /*public isPublishingCompliant(): boolean {
         try {
             this.validatePublishingInvariants(); 
             return true; 
         } catch (e) {
             return false;
         }
+    }*/
+
+    public isPublishingCompliant(): void {
+        this.validatePublishingInvariants();
     }
+
 
     //Comportamiento Puro
     protected abstract checkInitialInvariants():void
