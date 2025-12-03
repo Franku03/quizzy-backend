@@ -8,24 +8,26 @@ export interface FrontendOption {
   mediaID: string | null;
 }
 
-export interface FrontendSlide {
+export interface OutputSlide {
   slideId: string;
   questionType: string;
   questionText: string | null;
   timeLimitSeconds: number;
+  mediaId: string | null;
   options: FrontendOption[];
 }
 
-// Este mapper transforma un SlideSnapshot del dominio a la estructura
-// esperada por el frontend, removiendo información sensible como isCorrect
+// Este mapper transforma un SlideSnapshot del dominio a la estructura de salida
+// esperada por el cliente, removiendo información sensible como isCorrect
 // y agregando los índices basados en 1.
 export class SlideSnapshotMapper {
-  static toFrontendSlide(snapshot: SlideSnapshot): FrontendSlide {
+  static toOutputSlide(snapshot: SlideSnapshot): OutputSlide {
     return {
       slideId: snapshot.id,
       questionType: snapshot.slideType,
       questionText: snapshot.questionText || null,
       timeLimitSeconds: snapshot.timeLimitSeconds,
+      mediaId: snapshot.slideImageId || null,
       options: snapshot.options?.map((option, index) => ({
         index: index.toString(), // Convertir a string y basado en 1
         text: option.optionText || null,
