@@ -13,7 +13,6 @@ import { KahootResponseMapper } from './infrastructure/adapters/commands/output/
 import { UpdateKahootHandler } from './application/commands/update-kahootcommand/update-kahoothandler';
 import { DeleteKahootHandler } from './application/commands/delete-kahoot.command/delete-kahoothandler';
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
-import { KahootDaoMongo } from 'src/database/infrastructure/mongo/modules/kahoots/kahoots.dao.mongo';
 
 @Module({
   controllers: [KahootController],
@@ -24,7 +23,6 @@ import { KahootDaoMongo } from 'src/database/infrastructure/mongo/modules/kahoot
     CqrsModule,
   ],
   providers: [
-    KahootDaoMongo,
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
