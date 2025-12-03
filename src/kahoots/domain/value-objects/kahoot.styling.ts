@@ -26,7 +26,7 @@ export class KahootStyling extends ValueObject<KahootStylingProps> {
 
     public getSnapshot(): KahootStylingSnapshot {
     return {
-        imageId: this.properties.imageId.hasValue() ? this.properties.imageId.getValue().value : null,
+        imageId: this.properties.imageId.hasValue() ? this.properties.imageId.getValue().value : undefined,
         themeId: this.properties.themeId.value,
     };
 }
