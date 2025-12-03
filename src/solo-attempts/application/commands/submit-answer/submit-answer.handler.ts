@@ -15,11 +15,11 @@ import { ResponseTime } from 'src/core/domain/shared-value-objects/value-objects
 import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { SoloAttemptEvaluationService } from 'src/solo-attempts/domain/domain-services/evaluation.service';
-import { OutputSlide, SlideSnapshotMapper } from '../../mappers/slide.mapper';
+import { OutputSlide, SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { SUBMIT_ANSWER_ERROR_CODES } from './submit-answer.errors';
 
 // Application Layer Mapper
-import { SubmissionMapper } from '../../mappers/submission.mapper';
+import { SubmissionMapper } from '../mappers/submission.mapper';
 
 @CommandHandler(SubmitAnswerCommand)
 export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand> {
