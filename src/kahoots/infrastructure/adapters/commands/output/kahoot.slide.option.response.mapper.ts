@@ -1,6 +1,6 @@
 // Application/Kahoot/Mappers/OptionResponseMapper.ts
 
-import { OptionResponseDTO } from "../../../application/response-dto/kahoot.slide.option.response.dto";
+import { OptionResponseDTO } from "src/kahoots/application/commands/response-dto/kahoot.slide.option.response.dto";
 import { Option } from "src/kahoots/domain/value-objects/kahoot.slide.option";
 
 export class OptionResponseMapper {

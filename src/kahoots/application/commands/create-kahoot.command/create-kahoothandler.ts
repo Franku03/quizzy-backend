@@ -9,7 +9,7 @@ import type { IdGenerator } from 'src/core/application/idgenerator/id.generator'
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 import { MapperName } from '../../catalogs/catalog.mapper.enum';
 import type { IKahootResponseMapper } from '../../ports/i-kahoot.response.mapper';
-import { KahootResponseDTO } from '../../response-dto/kahoot.response.dto';
+import { KahootResponseDTO } from '../response-dto/kahoot.response.dto';
 
 
 @CommandHandler(CreateKahootCommand)

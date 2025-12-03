@@ -1,7 +1,7 @@
 // Application/Kahoot/Mappers/SlideResponseMapper.ts
 
 import { Slide } from "src/kahoots/domain/entities/kahoot.slide";
-import { SlideResponseDTO } from "../../../application/response-dto/kahoot.slide.response.dto";
+import { SlideResponseDTO } from "src/kahoots/application/commands/response-dto/kahoot.slide.response.dto";
 import { OptionResponseMapper } from "./kahoot.slide.option.response.mapper";
 
 export class SlideResponseMapper {
