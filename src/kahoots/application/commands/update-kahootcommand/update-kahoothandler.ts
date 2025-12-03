@@ -13,7 +13,7 @@ import { KahootStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.status
 import { SlideIdValue } from 'src/kahoots/domain/types/id-types';
 import { Slide } from 'src/kahoots/domain/entities/kahoot.slide';
 import type { IKahootResponseMapper } from '../../ports/i-kahoot.response.mapper'; 
-import { KahootResponseDTO } from '../../response-dto/kahoot.response.dto'; 
+import { KahootResponseDTO } from '../response-dto/kahoot.response.dto'; 
 import { MapperName } from '../../catalogs/catalog.mapper.enum'; 
 import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
 

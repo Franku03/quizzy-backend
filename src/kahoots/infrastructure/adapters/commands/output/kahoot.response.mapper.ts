@@ -1,8 +1,8 @@
 // Application/Kahoot/Mappers/KahootResponseMapper.ts
 
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
-import { KahootResponseDTO } from "../../../application/response-dto/kahoot.response.dto";
-import { IKahootResponseMapper } from "../../../application/ports/i-kahoot.response.mapper";
+import { KahootResponseDTO } from "src/kahoots/application/commands/response-dto/kahoot.response.dto";
+import { IKahootResponseMapper } from "../../../../application/ports/i-kahoot.response.mapper";
 import { SlideResponseMapper } from "./kahoot.slide.response.mapper";
 
 export class KahootResponseMapper implements IKahootResponseMapper {

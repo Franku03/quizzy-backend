@@ -6,26 +6,32 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateKahootHandler } from './application/commands/create-kahoot.command/create-kahoothandler';
-import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/input/kahoot.request.mapper'; 
+import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/commands/input/kahoot.request.mapper'; 
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 import { MapperName } from './application/catalogs/catalog.mapper.enum';
-import { KahootResponseMapper } from './infrastructure/adapters/output/kahoot.response.mapper';
+import { KahootResponseMapper } from './infrastructure/adapters/commands/output/kahoot.response.mapper';
 import { UpdateKahootHandler } from './application/commands/update-kahootcommand/update-kahoothandler';
 import { DeleteKahootHandler } from './application/commands/delete-kahoot.command/delete-kahoothandler';
+import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
+import { KahootReadMapper } from './infrastructure/adapters/querys/output/kahoot.read.model.mapper';
+import { KahootDaoMongo } from 'src/database/infrastructure/mongo/modules/kahoots/kahoots.dao.mongo';
 
 @Module({
   controllers: [KahootController],
   imports: [
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
-    DaoFactoryModule.forFeature(DaoName.User),
+    DaoFactoryModule.forFeature(DaoName.Kahoot),
     CqrsModule,
   ],
   providers: [
+    KahootDaoMongo,
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
+    KahootReadMapper,
     KahootNestMapperAdapter,
+    GetKahootByIdHandler,
     UuidGenerator,
     {
         provide: MapperName.KahootResponse, 

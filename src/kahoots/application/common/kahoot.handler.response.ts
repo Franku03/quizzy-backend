@@ -1,6 +1,6 @@
-import { SlideResponseDTO } from "./kahoot.slide.response.dto";
+import { SlideHandlerResponse} from "./kahoot.slide.handler.response";
 
-export class KahootResponseDTO {
+export class KahootHandlerResponse {
     id: string;
     title: string | null;
     description: string | null;
@@ -12,5 +12,5 @@ export class KahootResponseDTO {
     playCount: number;
     category: string | null;
     status: string;
-    questions: SlideResponseDTO[] | null;
+    questions: SlideHandlerResponse[] | null;
 }

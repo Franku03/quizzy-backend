@@ -1,6 +1,6 @@
-import { OptionResponseDTO } from "./kahoot.slide.option.response.dto";
+import { OptionHandlerResponse} from "./kahoot.slide.option.handler.response";
 
-export class SlideResponseDTO {
+export class SlideHandlerResponse {
     id: string;
     text: string | null;
     mediaId: string | null;  
@@ -8,5 +8,5 @@ export class SlideResponseDTO {
     timeLimit: number;
     points: number | null;
     position: number;
-    answers: OptionResponseDTO[] | null;
+    answers: OptionHandlerResponse[] | null;
 }

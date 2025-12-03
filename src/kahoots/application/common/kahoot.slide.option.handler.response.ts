@@ -1,4 +1,4 @@
-export class OptionResponseDTO {
+export class OptionHandlerResponse {
     id: string; 
     text: string | null;
     mediaId: string | null; 
