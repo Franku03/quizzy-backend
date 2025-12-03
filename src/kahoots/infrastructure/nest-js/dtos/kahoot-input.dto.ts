@@ -127,10 +127,6 @@ export class CreateKahootDTO extends KahootBaseFieldsDTO {
     @IsString()
     status: string;   
 
-    // createdAt: ISO 8601 Date String (Obligatorio)
-    @IsDateString()
-    createdAt: string;
-
     // playCount: Integer (Obligatorio)
     @IsOptional()
     @IsInt()
