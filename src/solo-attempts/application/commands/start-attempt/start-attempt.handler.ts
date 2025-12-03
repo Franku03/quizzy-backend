@@ -1,5 +1,5 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { StartSoloAttemptCommand } from './start-attempt.command';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
@@ -13,6 +13,12 @@ import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attem
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
 import { SlideSnapshotMapper } from '../../mappers/slide.mapper';
+
+const ERROR_CODES = {
+  KAHOOT_NOT_FOUND: 'KAHOOT_NOT_FOUND',
+  DRAFT_KAHOOT: 'DRAFT_KAHOOT',
+  NO_SLIDES: 'NO_SLIDES',
+} as const;
 
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
@@ -33,13 +39,13 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     // We Fetch the Kahoot Aggregate to ensure it exists 
     const kahootOptional = await this.kahootRepository.findKahootById(kahootId);
     if (!kahootOptional.hasValue()) {
-      throw new NotFoundException('Kahoot not found');
+      throw new Error(ERROR_CODES.KAHOOT_NOT_FOUND);
     }
     const kahoot = kahootOptional.getValue();
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
     if (kahoot.isDraft()){
-      throw new BadRequestException('Cannot start a game that is in Draft mode');
+      throw new Error(ERROR_CODES.DRAFT_KAHOOT);
     }
 
     // Before creating a new attempt, we check if there's already an active
@@ -84,7 +90,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const firstSlideSnapshot = kahoot.getNextSlideSnapshotByIndex();
 
     if (!firstSlideSnapshot) {
-      throw new NotFoundException('Kahoot has no slides to start the attempt');
+      throw new Error(ERROR_CODES.NO_SLIDES);
     }
     
     // We construct the output object matching the API response requirement.
