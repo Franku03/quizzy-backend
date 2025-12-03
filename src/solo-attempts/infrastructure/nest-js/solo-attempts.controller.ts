@@ -17,6 +17,7 @@ import { GetAttemptStatusQuery } from 'src/solo-attempts/application/queries/get
 @Controller('attempts')
 export class SoloAttemptsController {
   constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
+  
   // This endpoint starts a new Single Player Session.
   // It corresponds to the POST /attempts specification in the API docs.
   // @UseGuards(JwtAuthGuard) 
