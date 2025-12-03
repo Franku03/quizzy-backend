@@ -264,7 +264,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
   public isAdmin(userId: UserId): boolean {
-    return this.properties.adminId === userId;
+    return this.properties.adminId.equals(userId);
   }
 
   public isMember(userId: UserId): boolean {
@@ -282,17 +282,21 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     return this.properties.details.getName();
   }
 
-public toPrimitives(): GroupPrimitives {
+  public getDescription(): string {
+    return this.properties.details.getDescription();
+  }
+
+  public toPrimitives(): GroupPrimitives {
     return {
       id: this.id.value,
       name: this.properties.details.getName(),
       description: this.properties.details.getDescription ? this.properties.details.getDescription() : undefined,
       adminId: this.properties.adminId.value,
       createdAt: this.properties.createdAt,
-      
-      
+
+
       members: this.properties.members.map(member => member.toPrimitives()),
-      
+
       assignments: this.properties.assignments.map(assignment => assignment.toPrimitives()),
 
 

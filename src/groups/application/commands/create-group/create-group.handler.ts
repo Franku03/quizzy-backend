@@ -5,7 +5,9 @@ import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { CreateGroupCommand } from "./create-group.command";
 import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { BadRequestException } from "@nestjs/common";
+import { Either } from "src/core/types/either";
+import { CreateGroupResponse } from "../response-dtos/create-group.response.dto";
+import { GROUP_ERRORS } from "../group.errors";
 
 @CommandHandler(CreateGroupCommand)
 export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
@@ -15,28 +17,34 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
         private readonly groupRepository: IGroupRepository,
     ) { }
 
-    async execute(command: CreateGroupCommand): Promise<string> {
-        if (!command.adminId) {
-            throw new Error("El adminId es requerido para crear un grupo.");
-        }
-        //const admin = await this.userRepository.findById(new UserId(command.adminId));
+    async execute(command: CreateGroupCommand): Promise<Either<Error, CreateGroupResponse>> {
 
+        if (!command.adminId)
+            return Either.makeLeft(new Error(GROUP_ERRORS.ADMIN_REQUIRED));
+
+        // pending: descomentar cuando se tenga el repositorio de usuarios
+        //const admin = await this.userRepository.findById(new UserId(command.adminId));
         const admin = true
 
         if (!admin) {
-            throw new Error(`El usuario con ID ${command.adminId} no existe.`);
+            return Either.makeLeft(new Error(GROUP_ERRORS.USER_NOT_FOUND));
         }
 
         const groupId = uuidv4();
 
         try {
-            const group = Group.create(groupId, command.name, command.adminId);
+            const group = Group.create(groupId, command.name, command.adminId, command.description);
             await this.groupRepository.save(group);
+
+            return Either.makeRight({
+                id: groupId,
+                name: group.getName(),
+                description: group.getDescription(),
+                createdAt: new Date(),
+            });
+
         } catch (error) {
-            throw new BadRequestException(error.message);
+            return Either.makeLeft(new Error(GROUP_ERRORS.INVALID_DETAILS));
         }
-
-
-        return groupId;
     }
 }

@@ -25,7 +25,7 @@ export class GroupMapper {
     const members = (raw.members || []).map((m: any) => {
       return new GroupMember(
         {
-          userId: new UserId(m.userId),
+          userId: new UserId(m.id || m.userId),
           role: new Role(m.role),
           joinedAt: new Date(m.joinedAt),
         },

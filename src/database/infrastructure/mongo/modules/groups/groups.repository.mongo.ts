@@ -5,7 +5,7 @@ import { IGroupRepository } from 'src/database/domain/repositories/groups/IGroup
 import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.schema';
 import { Group } from 'src/groups/domain/aggregates/group';
 import { GroupMapper } from 'src/groups/infrastructure/mappers/group.mapper';
-
+import { Optional } from 'src/core/types/optional';
 @Injectable()
 export class GroupRepositoryMongo implements IGroupRepository {
     constructor(
@@ -15,12 +15,22 @@ export class GroupRepositoryMongo implements IGroupRepository {
 
     async save(group: Group): Promise<void> {
         const persistenceData = GroupMapper.toPersistence(group);
-
         await this.groupModel.updateOne(
             { groupId: persistenceData.groupId },
             { $set: persistenceData },
             { upsert: true }
         ).exec();
+    }
+
+    async findById(groupId: string): Promise<Optional<Group>> {
+        const document = await this.groupModel.findOne({ groupId }).exec();
+
+        if (!document) {
+            return new Optional<Group>();
+        }
+
+        const group = GroupMapper.toDomain(document);
+        return new Optional<Group>(group);
     }
 
     async findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]> {

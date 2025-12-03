@@ -13,7 +13,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
-
+import { ModifyGroupInformationHandler } from './application/commands/modify-group-information/modify-group-information.handler';
 @Module({
     controllers: [GroupsController],
     imports: [
@@ -24,6 +24,7 @@ import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user
     providers: [
         CreateGroupHandler,
         GetGroupsByUserHandler,
+        ModifyGroupInformationHandler,
         {
             provide: MarkAssignmentCompletedUseCase,
             useFactory: (repo: IGroupRepository) => new MarkAssignmentCompletedUseCase(repo),
