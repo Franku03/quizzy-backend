@@ -21,6 +21,7 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { SlideIdValue } from "../types/id-types"
+import { KahootFactory } from "../factories/kahoot.factory";
 
 interface UserId {
     readonly value: string;
@@ -52,7 +53,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         
         super(props, id);
 
-        if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
+        if (this.properties.status.value === KahootStatusEnum.PUBLISH) {
             this.checkPublishingReadiness();
         }
     }
@@ -64,7 +65,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     //Se encarga de verificar que el Kahoot cumple con los requisitos necesarios antes de permitir ciertos cambios de estado, como la publicación o el cambio de visibilidad.
     protected checkInvariants(): void {
-        if (this.properties.status.value === KahootStatusEnum.PUBLISHED) {
+        if (this.properties.status.value === KahootStatusEnum.PUBLISH) {
             this.checkPublishingReadiness();
         }
     }
@@ -92,8 +93,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     //Se encarga de manejar la publicación del Kahoot, asegurándose de que cumple con los requisitos necesarios antes de cambiar su estado a publicado.
     public publish(): void {
-        this.checkPublishingReadiness(); 
-        this.properties.status = new KahootStatus(KahootStatusEnum.PUBLISHED); 
+        this.properties.status = new KahootStatus(KahootStatusEnum.PUBLISH); 
     }
     
     public draft(): void {
@@ -110,6 +110,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PRIVATE);
     }
 
+    public isPrivate(): boolean {
+        return this.properties.visibility.value === VisibilityStatusEnum.PRIVATE
+    }
 
     //Se encarga de cambair el estilo del Kahoot.
     public updateStyling(newStyling: KahootStyling): void {
@@ -122,8 +125,11 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.properties.details = new Optional(newDetails);
         this.checkInvariants();
     }
-
-
+    public replaceSlides(slides: Map<SlideIdValue, Slide>): void {
+        this.properties.slides = slides;
+        this.checkPublishingReadiness(); 
+            
+    }
 
     public hasHowManySlides(): number{
         return this.properties.slides.size;
@@ -239,6 +245,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         if (!slide) {
             throw new Error(`No se puede evaluar: Slide ID ${slideId.value} no encontrado.`);
         }
+        if(this.isDraft()){
+            throw new Error(`No se puede evaluar: Kahoot ID ${this.id} en draft.`);
+        }
         return slide.evaluateAnswer(submission);
     }
 
@@ -292,6 +301,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.checkInvariants();
     }
 
+    public replaceSlide(newSlides: Slide[]): void {
+
+    }
+
     private getSortedSlides(): Slide[] {
         return Array.from(this.properties.slides.values()).sort(
             (a, b) => a.position - b.position
@@ -318,4 +331,14 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             slides: slideSnapshots.length > 0 ? slideSnapshots : undefined,
         }
     }
+
+    public get idString(): string { return this.id.value; }
+    public get authorId(): string { return this.properties.author.value; } 
+    public get createdAt(): DateISO { return this.properties.createdAt; } 
+    public get styling(): KahootStyling { return this.properties.styling; } 
+    public get visibility(): VisibilityStatus { return this.properties.visibility; } 
+    public get status(): KahootStatus { return this.properties.status; }
+    public get slides(): Map<SlideIdValue, Slide> { return this.properties.slides; } 
+    public get playCount(): PlayNumber { return this.properties.playCount; } 
+    public get details(): Optional<KahootDetails> { return this.properties.details; }
 }

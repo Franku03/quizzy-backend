@@ -6,8 +6,6 @@ interface CreateCommandProps {
     themeId: string;
     visibility: string;
     status: string;
-    playCount: number;
-
     title?: string;
     description?: string;
     coverImageId?: string;
@@ -22,7 +20,6 @@ export class CreateKahootCommand extends BaseKahootCommand {
     public declare readonly themeId: string;
     public declare readonly visibility: string;
     public declare readonly status: string;
-    public declare readonly playCount: number;
 
     constructor(props: CreateCommandProps) {
         super(props); 

@@ -5,7 +5,7 @@ interface BaseCommandProps {
     title?: string;
     description?: string;
     coverImageId?: string;
-    themeId?: string;
+    themeId: string;
     category?: string;
     visibility?: string;
     status?: string;
@@ -16,7 +16,7 @@ export class BaseKahootCommand {
     public readonly title?: string;
     public readonly description?: string;
     public readonly coverImageId?: string;
-    public readonly themeId?: string;
+    public readonly themeId: string;
     public readonly category?: string;
     public readonly visibility?: string;
     public readonly status?: string;

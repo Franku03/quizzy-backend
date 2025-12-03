@@ -1,8 +1,10 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Inject, Put, Param, Delete, Get } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { CreateKahootDTO, UpdateKahootDTO } from './dtos/kahoot-input.dto'; 
-import type { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.mapper'; 
-import { KahootNestMapperAdapter } from '../adapters/kahoot.mapper';
+import { CreateKahootDTO, UpdateKahootDTO } from './dtos'; 
+import type { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper'; 
+import { KahootNestMapperAdapter } from '../adapters/input/kahoot.request.mapper';
+import { KahootResponseDTO } from 'src/kahoots/application/response-dto/kahoot.response.dto';
+import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot.command/delete-kahootcommand';
 
 @Controller('kahoots')
 export class KahootController {
@@ -15,12 +17,10 @@ export class KahootController {
     @HttpCode(HttpStatus.CREATED)
     async createKahoot(@Body() input: CreateKahootDTO) {
         const command = this.kahootMapper.toCreateCommand(input); 
-        console.log(input)
         await this.commandBus.execute(command);
 
-        return {
-            message: 'Kahoot creado exitosamente'
-        };
+        const updatedKahootDTO: KahootResponseDTO = await this.commandBus.execute(command);
+        return updatedKahootDTO;
     }
     
     @Put(':id') 
@@ -32,9 +32,8 @@ export class KahootController {
         const command = this.kahootMapper.toUpdateCommand(input, kahootId);
         await this.commandBus.execute(command);
 
-        return {
-            message: `Kahoot con ID ${kahootId} reemplazado exitosamente`
-        };
+        const updatedKahootDTO: KahootResponseDTO = await this.commandBus.execute(command);
+        return updatedKahootDTO;
     }
 
     @Get(':id')
@@ -50,10 +49,11 @@ export class KahootController {
     }
 
     @Delete(':id')
-    @HttpCode(HttpStatus.NO_CONTENT) // Código 204: Éxito sin contenido de respuesta
-    async deleteKahoot(@Param('id') kahootId: string) {
-        // Creamos el Command
-        //const command = new DeleteKahootCommand(kahootId);
-        //await this.commandBus.execute(command);
+    @HttpCode(HttpStatus.NO_CONTENT) 
+    async deleteKahoot(@Param('id') kahootId: string): Promise<void> {
+        console.log("xd")
+        const command = new DeleteKahootCommand({id: kahootId, userId: "placeholder"});
+        await this.commandBus.execute(command);
+    
     }
 }

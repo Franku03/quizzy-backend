@@ -35,12 +35,12 @@ export class Option extends ValueObject<OptionProps> {
         super({ text: cleanText, isCorrect, optionImage });
     }
     
-    public getText(): string { return this.properties.text; }
-    public isCorrectAnswer(): boolean { return this.properties.isCorrect; }
-    public getImage(): Optional<ImageId> { return this.properties.optionImage; }
+    public get text(): string { return this.properties.text; }
+    public get isCorrect(): boolean { return this.properties.isCorrect; }
+    public get optionImage(): Optional<ImageId> { return this.properties.optionImage; }
 
     public hasText(): boolean {
-        return this.getText().length > 0;
+        return this.text.length > 0;
     }
 
     public hasImage(): boolean {
@@ -48,7 +48,7 @@ export class Option extends ValueObject<OptionProps> {
     }
     
     public isWithinLengthLimit(maxLength: number): boolean {
-        return this.getText().length <= maxLength;
+        return this.text.length <= maxLength;
     }
 
     public getSnapshot(): OptionSnapshot {

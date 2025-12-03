@@ -9,7 +9,7 @@ interface UpdateCommandProps {
     title?: string;
     description?: string;
     coverImageId?: string;
-    themeId?: string;
+    themeId: string;
     category?: string;
     visibility?: string;
     status?: string;

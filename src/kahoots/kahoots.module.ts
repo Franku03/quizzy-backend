@@ -6,19 +6,31 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateKahootHandler } from './application/commands/create-kahoot.command/create-kahoothandler';
-import { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.mapper'; 
-import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/kahoot.mapper'; 
+import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/input/kahoot.request.mapper'; 
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { MapperName } from './application/catalogs/catalog.mapper.enum';
+import { KahootResponseMapper } from './infrastructure/adapters/output/kahoot.response.mapper';
+import { UpdateKahootHandler } from './application/commands/update-kahootcommand/update-kahoothandler';
+import { DeleteKahootHandler } from './application/commands/delete-kahoot.command/delete-kahoothandler';
 
 @Module({
   controllers: [KahootController],
   imports: [
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
+    RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.User),
     CqrsModule,
   ],
   providers: [
     CreateKahootHandler,
+    UpdateKahootHandler,
+    DeleteKahootHandler,
     KahootNestMapperAdapter,
+    UuidGenerator,
+    {
+        provide: MapperName.KahootResponse, 
+        useClass: KahootResponseMapper, 
+    },
   ],
 })
 export class KahootsModule {}
