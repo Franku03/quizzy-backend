@@ -17,12 +17,10 @@ export class SoloAttemptEvaluationService {
   public evaluate(kahoot: Kahoot, attempt: SoloAttempt, submission: Submission): Result {
 
     // Cross-Aggregate Invariant Checks:
-    console.log("hey")
     // We make sure the kahoot and attempt correspond.
     if (!attempt.kahootId.equals(kahoot.id)) {
       throw new Error("The attempt does not correspond to the provided Kahoot.");
     }
-    console.log("hey2")
 
     // We check that the slide being answered is the next one in the attempt's progress.
     const slide_id_of_new_answer = submission.getSlideId();
