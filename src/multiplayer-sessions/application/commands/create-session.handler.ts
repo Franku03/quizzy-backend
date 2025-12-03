@@ -3,7 +3,7 @@ import { CreateSessionCommand } from "./create-session.command";
 
 import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/InMemorySessionRepository";
+import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
