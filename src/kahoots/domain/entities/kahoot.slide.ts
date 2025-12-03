@@ -127,9 +127,42 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         }
     }
     //Comportamiento puro
+    
     public evaluateAnswer(submission: Submission): Result {
-        return this.properties.evalStrategy.evaluateAnswer(submission, this.getOptionsList());
+    // Get the selected options based on answerIndex
+    let selectedOptions: Optional<Option[]>;
+    
+    if (submission.getAnswerIndex().hasValue()) {
+        const answerIndices = submission.getAnswerIndex().getValue();
+        const allOptions = this.getOptionsList();
+        const selected = answerIndices
+            .filter(index => index >= 0 && index < allOptions.length)
+            .map(index => allOptions[index]);
+        
+        selectedOptions = new Optional(selected);
+    } else {
+        selectedOptions = new Optional<Option[]>();
     }
+    
+    // Create a new submission with slide data and selected options
+    const newSubmission = new Submission(
+        // Slide data
+        this.id, // SlideId
+        this.properties.question.hasValue()
+            ? new Optional(this.properties.question.getValue().value)
+            : new Optional<string>(),
+        this.properties.points, // Optional<Points>
+        new Optional(this.properties.timeLimit), // Optional<TimeLimitSeconds>
+        selectedOptions, // Only pass selected options, not all options
+        
+        // Preserved from original submission
+        submission.getAnswerIndex(), // Optional<number[]>
+        submission.getTimeElapsed() // ResponseTime
+    );
+    
+    return this.properties.evalStrategy.evaluateAnswer(newSubmission, this.getOptionsList());
+}
+
     public getOptionsList(): Option[] {
         const optionalOptions = this.properties.options; 
         return optionalOptions.hasValue() ? optionalOptions.getValue() : [];
@@ -143,14 +176,19 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
 
     
     //Utilizado por Kahoot
-    public isPublishingCompliant(): boolean {
+    /*public isPublishingCompliant(): boolean {
         try {
             this.validatePublishingInvariants(); 
             return true; 
         } catch (e) {
             return false;
         }
+    }*/
+
+    public isPublishingCompliant(): void {
+        this.validatePublishingInvariants();
     }
+
 
     //Comportamiento Puro
     protected abstract checkInitialInvariants():void
@@ -177,24 +215,32 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
             //datos opcionales
             questionText: this.properties.question.hasValue()
                 ? this.properties.question.getValue().value
-                : null,
+                : undefined,
                 
             slideImageId: this.properties.slideImage.hasValue()
                 ? this.properties.slideImage.getValue().value
-                : null,
+                : undefined,
                 
             pointsValue: this.properties.points.hasValue()
                 ? this.properties.points.getValue().value
-                : null,
+                : undefined,
                 
             descriptionText: this.properties.description.hasValue()
                 ? this.properties.description.getValue().description
-                : null,
+                : undefined,
 
             options: options.length > 0
                 ? options.map(option => option.getSnapshot())
-                : null,
+                : undefined,
         };
     }
+
+    public get idString(): string { return this.id.value; }
+    public get slideType(): SlideType { return this.properties.slideType; }
+    public get timeLimit(): TimeLimitSeconds { return this.properties.timeLimit; }
+    public get question(): Optional<Question> { return this.properties.question; }
+    public get slideImage(): Optional<ImageId> { return this.properties.slideImage; }
+    public get options(): Optional<Option[]> { return this.properties.options; }
+    public get description(): Optional<Description> { return this.properties.description; }
 
 }

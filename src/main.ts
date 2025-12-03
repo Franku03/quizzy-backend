@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -9,6 +9,14 @@ async function bootstrap() {
   // TODO: Agregar global pipes para cuando empieze a ser necesario
 
   // TODO: Habilitar CORS
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true, 
+      whitelist: true, 
+      forbidNonWhitelisted: true, 
+    }),
+  );
 
   const logger = new Logger('Bootstrap');
 

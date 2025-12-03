@@ -1,8 +1,42 @@
 import { Module } from '@nestjs/common';
-import { KahootsController } from './infrastructure/nest-js/kahoots.controller';
+import { KahootController } from './infrastructure/nest-js/kahoots.controller';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
+import { CqrsModule } from '@nestjs/cqrs';
+import { CreateKahootHandler } from './application/commands/create-kahoot.command/create-kahoothandler';
+import {  KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/commands/input/kahoot.request.mapper'; 
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { MapperName } from './application/catalogs/catalog.mapper.enum';
+import { KahootResponseMapper } from './infrastructure/adapters/commands/output/kahoot.response.mapper';
+import { UpdateKahootHandler } from './application/commands/update-kahootcommand/update-kahoothandler';
+import { DeleteKahootHandler } from './application/commands/delete-kahoot.command/delete-kahoothandler';
+import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
+import { KahootReadMapper } from './infrastructure/adapters/querys/output/kahoot.read.model.mapper';
+import { KahootDaoMongo } from 'src/database/infrastructure/mongo/modules/kahoots/kahoots.dao.mongo';
 
 @Module({
-  controllers: [KahootsController],
-  providers: [],
+  controllers: [KahootController],
+  imports: [
+    RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
+    RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
+    DaoFactoryModule.forFeature(DaoName.Kahoot),
+    CqrsModule,
+  ],
+  providers: [
+    KahootDaoMongo,
+    CreateKahootHandler,
+    UpdateKahootHandler,
+    DeleteKahootHandler,
+    KahootReadMapper,
+    KahootNestMapperAdapter,
+    GetKahootByIdHandler,
+    UuidGenerator,
+    {
+        provide: MapperName.KahootResponse, 
+        useClass: KahootResponseMapper, 
+    },
+  ],
 })
 export class KahootsModule {}

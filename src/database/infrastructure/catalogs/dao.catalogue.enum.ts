@@ -1,6 +1,7 @@
 import { Type } from '@nestjs/common';
 import { UserDaoPostgres } from '../postgres/modules/users/users.dao.postgres';
 import { UserDaoMongo } from '../mongo/modules/users/user.dao.mongo';
+import { KahootDaoMongo } from '../mongo/modules/kahoots/kahoots.dao.mongo';
 import { GroupDaoMongo } from '../mongo/modules/groups/groups.dao.mongo';
 
 export type DaoRegistryItem = {
@@ -11,7 +12,7 @@ export type DaoRegistryItem = {
 export enum DaoName {
   User = 'UserDao',
   Group = 'GroupDao',
-  // Kahoot = 'KahootDao', ejemplo para kahoot
+  Kahoot = 'KahootDao',
 }
 
 export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
@@ -19,11 +20,10 @@ export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
     typeorm: UserDaoPostgres,
     mongoose: UserDaoMongo,
   },
-  /*
   [DaoName.Kahoot]: {
-    typeorm: null,
-    mongoose: null,
-  },*/
+    typeorm: KahootDaoMongo,
+    mongoose: KahootDaoMongo,
+  },
   [DaoName.Group]: {
     typeorm: null,
     mongoose: GroupDaoMongo,

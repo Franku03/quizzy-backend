@@ -49,13 +49,8 @@ export class MultiplayerScoringEvaluationService {
 
         }
 
+        // Actualizamos resultados de slide Actual
         const currentSlideIdSnapshot = new SlideId( slideId );
-
-        const slideSnapshot = kahoot.getNextSlideSnapshotByIndex( session.getTotalOfSlidesAnswered() );
-
-        // Esto no deberia ocurrir pues este servicio solo debe ser llamado mientras hayan slides disponibles
-        if( !slideSnapshot )
-            throw new Error("FATAL Algo salió mal durante el calculo de puntajes: no hay mas Slides disponibles");
 
         const slideResult = SlideResult.create( currentSlideIdSnapshot, playersResults )
 
@@ -65,9 +60,20 @@ export class MultiplayerScoringEvaluationService {
 
         session.updateRanking();
 
-        const nextSlideIdSnapshot = new SlideId( slideSnapshot.id );
+        // Obtenemos la siguiente slide
+        const slideSnapshot = kahoot.getNextSlideSnapshotByIndex( session.getTotalOfSlidesAnswered() );
 
-        session.updateProgress( nextSlideIdSnapshot );        
+        // Si hay siguiente Slide actualizamos el progress, si no lo dejamos tal cual pues deberia estar ya al 100%
+        if( slideSnapshot ){
+
+            const nextSlideIdSnapshot = new SlideId( slideSnapshot.id );
+
+            session.updateProgress( nextSlideIdSnapshot ); 
+
+        }
+            
+
+     
 
     }
 

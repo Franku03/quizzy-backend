@@ -69,9 +69,9 @@ export class AnswerSelected extends ValueObject<AnswerSelectedProps>{
 
           const selectedAnswers = options.map( opt => {
               return AnswerSelected.mapFromOption(
-                  opt.hasText() ? opt.getText() : null,
-                  opt.isCorrectAnswer(),
-                  opt.hasImage() ? opt.getImage().getValue() : null
+                  opt.hasText() ? opt.text : null,
+                  opt.isCorrect,
+                  opt.hasImage() ? opt.optionImage.getValue() : null
                   //  Version para solo trabajar con el string del Id y no el VO
                   //  opt.hasImage() ? opt.getImage().getValue().value : null
               )

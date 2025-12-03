@@ -2,7 +2,7 @@ import { ValueObject } from "src/core/domain/abstractions/value.object";
 
 export enum KahootStatusEnum {
     DRAFT = "DRAFT",
-    PUBLISHED = "PUBLISHED"
+    PUBLISH = "PUBLISH"
 }
 
 interface KahootStatusProps {
