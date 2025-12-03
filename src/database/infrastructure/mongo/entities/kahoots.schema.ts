@@ -104,4 +104,7 @@ export const KahootSchema = SchemaFactory.createForClass(KahootMongo);
 
 // Tipo DTO que representa el POJO (Plain JavaScript Object) devuelto por Mongoose .lean()
 // Aplica DRY eliminando las propiedades internas de Mongoose.
-export type KahootMongoInput = Omit<KahootMongo, keyof Document | '_id' | '__v'>;
+export type KahootMongoInput = Omit<KahootMongo, keyof Document | '_id' | '__v'> & {
+    id: string; 
+    createdAt: string;
+};
