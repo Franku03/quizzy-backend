@@ -1,43 +1,22 @@
 import { Injectable } from '@nestjs/common';
 
-// Modelos de Lectura (Read Models)
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model'; 
 import { SlideReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.response.read.model';
 import { OptionReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.option.response.read.model';
 import { IKahootReadResponseMapper } from 'src/kahoots/application/ports/i-kahoot.read.mapper';
 
-// --- TIPOS DE PERSISTENCIA (Mantenemos estos tipos aquí para encapsular el conocimiento de la persistencia) ---
 
-type OptionPersistenceType = {
-    optionText: string | null;
-    isCorrect: boolean;
-    optionImageId: string | null;
-};
+import { 
+    OptionSnapshot, 
+    SlideSnapshot, 
+    KahootDetailsSnapshot, 
+    KahootStylingSnapshot 
+} from 'src/database/infrastructure/mongo/entities/kahoots.schema'; // RUTA ASUMIDA
 
-type SlidePersistenceType = {
-    id: string;
-    position: number;
-    slideType: string;
-    timeLimitSeconds: number;
-    questionText: string | null;
-    slideImageId: string | null;
-    pointsValue: number | null;
-    descriptionText: string | null;
-    options: OptionPersistenceType[] | null;
-};
-
-type KahootDetailsSnapshotType = {
-    title: string | null;
-    description: string | null;
-    category: string | null;
-};
-
-type KahootStylingSnapshotType = {
-    themeId: string;
-    imageId: string | null;
-};
-
-// El tipo de entrada que el DAO le pasará al Mapper (el POJO obtenido de Mongoose .lean())
+/**
+ * El tipo de entrada que el DAO le pasará al Mapper ().
+ * Este tipo refleja la estructura de KahootMongo pero sin las propiedades internas de Mongoose.
+ */
 export type KahootMongoInput = {
     id: string;
     authorId: string;
@@ -45,30 +24,40 @@ export type KahootMongoInput = {
     visibility: string;
     status: string;
     playCount: number;
-    details: KahootDetailsSnapshotType | null; 
-    styling: KahootStylingSnapshotType; 
-    slides: SlidePersistenceType[] | null; 
+    details: KahootDetailsSnapshot | null; // Usa la CLASE importada
+    styling: KahootStylingSnapshot;     // Usa la CLASE importada
+    slides: SlideSnapshot[] | null;     // Usa la CLASE importada
 };
 // ----------------------------------------------------------------------------------------------------------
 
 @Injectable()
 export class KahootReadMapper implements IKahootReadResponseMapper {
 
-    private mapOptionsToReadModel(optionsSnapshot: OptionPersistenceType[] | null): OptionReadModel[] | null {
+    /**
+     * Mapea las opciones (OptionSnapshot) al Modelo de Lectura (OptionReadModel).
+     * @param optionsSnapshot Array de la estructura de persistencia de Opciones (Clase OptionSnapshot).
+     */
+    private mapOptionsToReadModel(optionsSnapshot: OptionSnapshot[] | null): OptionReadModel[] | null {
         if (!optionsSnapshot) return null;
         
         return optionsSnapshot.map((opt, index) => ({ 
-            id: index.toString(), // Mapeo de índice a ID (o lo que corresponda)
+            // El mapeo permanece igual, solo el tipo de entrada cambió a OptionSnapshot
+            id: index.toString(), 
             text: opt.optionText ?? null,
             mediaId: opt.optionImageId ?? null,
             isCorrect: opt.isCorrect,
         } as OptionReadModel));
     }
 
-    private mapSlidesToReadModel(slidesSnapshot: SlidePersistenceType[] | null): SlideReadModel[] | null {
+    /**
+     * Mapea las diapositivas (SlideSnapshot) al Modelo de Lectura (SlideReadModel).
+     * @param slidesSnapshot Array de la estructura de persistencia de Slides (Clase SlideSnapshot).
+     */
+    private mapSlidesToReadModel(slidesSnapshot: SlideSnapshot[] | null): SlideReadModel[] | null {
         if (!slidesSnapshot) return null;
 
         return slidesSnapshot.map(slide => ({
+            // El mapeo permanece igual, solo el tipo de entrada cambió a SlideSnapshot
             id: slide.id, 
             text: slide.questionText ?? null,
             mediaId: slide.slideImageId ?? null, 
@@ -80,6 +69,9 @@ export class KahootReadMapper implements IKahootReadResponseMapper {
         } as SlideReadModel));
     }
 
+    /**
+     * Método principal para transformar el POJO de la DB (KahootMongoInput) al DTO final (KahootReadModel).
+     */
     public mapToReadModel(kahootData: KahootMongoInput): KahootReadModel {
         const details = kahootData.details;
         const styling = kahootData.styling;
