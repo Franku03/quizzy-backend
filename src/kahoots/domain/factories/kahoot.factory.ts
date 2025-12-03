@@ -125,7 +125,7 @@ export class KahootFactory{
         return slidesMap;
     }
 
-    private static assembleKahootDetails(
+    public static assembleKahootDetails(
         title: string | undefined,
         description: string | undefined,
         category: string | undefined
@@ -144,7 +144,7 @@ export class KahootFactory{
         return this.buildOptionalVO(detailsVO);
     }
 
-    private static assembleKahootStyling(themeIdValue: string, coverImageId: string | undefined): KahootStyling {
+    public static assembleKahootStyling(themeIdValue: string, coverImageId: string | undefined): KahootStyling {
         const themeId = new ThemeId(themeIdValue);
         
         const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
@@ -196,7 +196,7 @@ export class KahootFactory{
         return new Option(optionInput.text, optionInput.isCorrect, imageIdOptional);
     }
     
-    private static buildSlide(slideInput: SlideInput): Slide {
+    public static buildSlide(slideInput: SlideInput): Slide {
         const slideId = new SlideId(slideInput.id); 
         
         // La línea 196 (del código original) era: 

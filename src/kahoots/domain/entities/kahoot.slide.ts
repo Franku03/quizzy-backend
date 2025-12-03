@@ -202,4 +202,12 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         };
     }
 
+    public get idString(): string { return this.id.value; }
+    public get slideType(): SlideType { return this.properties.slideType; }
+    public get timeLimit(): TimeLimitSeconds { return this.properties.timeLimit; }
+    public get question(): Optional<Question> { return this.properties.question; }
+    public get slideImage(): Optional<ImageId> { return this.properties.slideImage; }
+    public get options(): Optional<Option[]> { return this.properties.options; }
+    public get description(): Optional<Description> { return this.properties.description; }
+
 }

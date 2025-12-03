@@ -51,7 +51,7 @@ export class MultipleChoiceSlide extends Slide {
 
     public validatePublishingInvariants(): void {
         const optionsArray = this.getOptionsList()
-        const correctOptionsCount = optionsArray.filter(o => o.isCorrectAnswer()).length;
+        const correctOptionsCount = optionsArray.filter(o => o.isCorrect).length;
         
         if(!this.properties.question.hasValue()){
             throw new Error("Slide Multiple: Debe tener titulo");

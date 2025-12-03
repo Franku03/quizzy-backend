@@ -65,7 +65,7 @@ export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
         // 1. Identificar el conjunto EXACTO de índices correctos
         const correctIndices = quizOptions
             .map((option, index) => ({ option, index }))
-            .filter(item => item.option.isCorrectAnswer())
+            .filter(item => item.option.isCorrect)
             .map(item => item.index);
         
         // 2. Si no hay respuestas correctas definidas, la sumbmission es incorrecta (no debe llegar a este punto).

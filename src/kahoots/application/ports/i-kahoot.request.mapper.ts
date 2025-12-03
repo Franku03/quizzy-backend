@@ -1,5 +1,5 @@
 import { CreateKahootCommand } from "../commands";
-import { UpdateKahootCommand } from "../commands/update-kahootcommand.ts/update-kahootcommand";
+import { UpdateKahootCommand } from "../commands/update-kahootcommand/update-kahootcommand";
 
 export interface IKahootMapper<TCreate, TUpdate> {
     toCreateCommand(input: TCreate): CreateKahootCommand;
