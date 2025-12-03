@@ -188,7 +188,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
 
-  public assignKahoot(requesterId: UserId, assignedUser: UserId, kahootId: KahootId, from: Date, to: Date): void {
+  public assignKahoot(requesterId: UserId, kahootId: KahootId, from: Date, to: Date): void {
     if (!this.isMember(requesterId)) {
       throw new Error("Solo los miembros del grupo pueden asignar kahoots.");
     }
