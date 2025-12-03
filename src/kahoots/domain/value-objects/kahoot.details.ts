@@ -49,9 +49,9 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
 
     public getSnapshot(): KahootDetailsSnapshot {
         return {
-            title: this.properties.title.getValue(),
-            description: this.properties.description.getValue(),
-            category: this.properties.category.getValue(),
+            title: this.properties.title.hasValue() ? this.properties.title.getValue() : undefined,
+            description: this.properties.description.hasValue() ? this.properties.description.getValue() : undefined,
+            category: this.properties.description.hasValue() ? this.properties.description.getValue() : undefined,
         };
     }
 }

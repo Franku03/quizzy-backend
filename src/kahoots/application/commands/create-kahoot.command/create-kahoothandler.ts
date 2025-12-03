@@ -50,15 +50,13 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
             ...rest, 
             slides: slidesInput, // Array de Slides ahora con IDs
             // 4. INCLUIR EL CAMPO GENERADO POR EL SERVIDOR AQUÍ:
-            createdAt: creationDateString, 
+            createdAt: creationDateString,
+            playCount: 0,
         };
         
-        console.log(rawInput)
-
         //5. Aplicar la lógica de Dominio: Crear el Agregado
         const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
-
         // 6. Persistencia
-        //await this.kahootRepository.saveKahoot(kahoot);*/
+        await this.kahootRepository.saveKahoot(kahoot);
     }
 }
