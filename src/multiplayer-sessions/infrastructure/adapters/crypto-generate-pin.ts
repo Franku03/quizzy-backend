@@ -1,11 +1,12 @@
 import * as crypto from 'crypto';
-import { Inject } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
 import { FileSystemPinRepository } from './file-system.pin.repository';
 
 const MAX_ATTEMPTS = 5; // Máximo de intentos para generar un PIN único
 
+@Injectable()
 export class CryptoGeneratePinService implements IGeneratePinService {
 
     constructor(
