@@ -1,5 +1,5 @@
 import { Group } from '../../domain/aggregates/group';
-import { GroupMongo } from 'src/database/infrastructure/entities/mongo/groups/groups.schema';
+import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.schema';
 import { GroupId } from '../../domain/value-objects/group.id';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { GroupMemberId } from '../../domain/value-objects/group.member.id';
@@ -43,13 +43,13 @@ export class GroupMapper {
           availableUntil: new Date(a.availableUntil),
           isAssignmentCompleted: a.isAssignmentCompleted ?? false,
         },
-         a.id 
+        a.id
       );
     });
 
     const completions = (raw.completions || []).map((c: any) => {
       const attemptId = new AttemptId(c.attemptId);
-      
+
       return GroupAssignmentCompletion.create(
         new UserId(c.userId),
         new KahootId(c.quizId),
@@ -59,11 +59,11 @@ export class GroupMapper {
     });
 
     let invitationToken = new Optional<InvitationToken>();
-    
+
     if (raw.invitationToken && raw.invitationToken.value) {
 
       const token = InvitationToken.create(
-        raw.invitationToken.value, 
+        raw.invitationToken.value,
         new Date(raw.invitationToken.expiresAt)
       );
 
@@ -93,7 +93,7 @@ export class GroupMapper {
       name: primitives.name,
       description: primitives.description,
       createdAt: primitives.createdAt,
-      
+
       members: primitives.members.map(m => ({
         id: m.id,
         role: m.role,
@@ -116,11 +116,11 @@ export class GroupMapper {
         score: c.score
       })),
 
-      invitationToken: primitives.invitationToken 
+      invitationToken: primitives.invitationToken
         ? {
-            value: primitives.invitationToken.value,
-            expiresAt: primitives.invitationToken.expiresAt
-          }
+          value: primitives.invitationToken.value,
+          expiresAt: primitives.invitationToken.expiresAt
+        }
         : null
     };
   }
