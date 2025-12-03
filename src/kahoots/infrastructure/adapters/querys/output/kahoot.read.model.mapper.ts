@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model'; 
 import { SlideReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.response.read.model';
 import { OptionReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.option.response.read.model';
+import { IKahootReadResponseMapper } from 'src/kahoots/application/ports/i-kahoot.read.mapper';
 
 // --- TIPOS DE PERSISTENCIA (Mantenemos estos tipos aquí para encapsular el conocimiento de la persistencia) ---
 
@@ -51,7 +52,7 @@ export type KahootMongoInput = {
 // ----------------------------------------------------------------------------------------------------------
 
 @Injectable()
-export class KahootReadMapper {
+export class KahootReadMapper implements IKahootReadResponseMapper {
 
     private mapOptionsToReadModel(optionsSnapshot: OptionPersistenceType[] | null): OptionReadModel[] | null {
         if (!optionsSnapshot) return null;
@@ -79,11 +80,6 @@ export class KahootReadMapper {
         } as SlideReadModel));
     }
 
-    /**
-     * Mapea un objeto de persistencia Kahoot de Mongo (POJO) a KahootReadModel.
-     * @param kahootData El objeto de persistencia (KahootMongoInput).
-     * @returns Una instancia de KahootReadModel.
-     */
     public mapToReadModel(kahootData: KahootMongoInput): KahootReadModel {
         const details = kahootData.details;
         const styling = kahootData.styling;
