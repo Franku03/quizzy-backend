@@ -3,7 +3,6 @@ import { MultiplayerSession } from "../aggregates/multiplayer-session";
 import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id"
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
-import { IGeneratePinService, IVerifyAvailablePinService } from "../domain-services"
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 
 import { Scoreboard, SessionPin, SessionState, SessionProgress, PlayerId, SlideResult } from "../value-objects"
@@ -13,7 +12,8 @@ import { DateISO } from "src/core/domain/shared-value-objects/value-objects/valu
 
 import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
 
-interface SlideInfo {
+interface KahootInfo {
+    kahootId: KahootId,
     firstSlideId: SlideId,
     slidesNumber: number
 }
@@ -22,22 +22,22 @@ export class MultiplayerSessionFactory {
 
 
     public static createMultiplayerSession( 
-        kahootId: KahootId,
-        slidesInfo: SlideInfo, 
+        kahootInfo: KahootInfo,
         hostId: UserId,
         sessionId: MultiplayerSessionId,
-        pinGenerationService: IGeneratePinService,
-        pinVerificationService: IVerifyAvailablePinService,
+        pin: string,
+        // pinGenerationService: IGeneratePinService,
+        // pinVerificationService: IVerifyAvailablePinService,
     ): MultiplayerSession {
 
 
-        const sessionPin = SessionPin.create( pinVerificationService, pinGenerationService );
+        const sessionPin = SessionPin.create( pin );
 
         const initialGameState = SessionState.createAsLobby();
 
         const ranking = Scoreboard.create();
 
-        const initialSessionProgress = SessionProgress.create( slidesInfo.firstSlideId , slidesInfo.slidesNumber, 0 );
+        const initialSessionProgress = SessionProgress.create( kahootInfo.firstSlideId , kahootInfo.slidesNumber, 0 );
 
         const hollowPlayerMap = new Map<PlayerIdValue, Player>();
 
@@ -50,7 +50,7 @@ export class MultiplayerSessionFactory {
 
         return new MultiplayerSession({
             hostId: hostId,
-            kahootId: kahootId,
+            kahootId: kahootInfo.kahootId,
             sessionPin: sessionPin,
             startedAt: startedAt,
             completedAt: hollowCompletedAt, 

@@ -58,8 +58,28 @@ export class MultiplayerSessionsService {
         delete room[ clientId ];
     }
 
-    getConnectedClients(): ([ string, ConnectedClients])[] {
-        return [ ...this.availableRooms ]; 
+    private getConnectedClients() {
+
+        const listOfRooms = [ ...this.availableRooms ]
+                                .map( tuple => ({
+                                    roomPin: tuple[0],
+                                    conectadosAEstaSala: {
+                                        ...tuple[1]
+                                    }
+                                }))
+
+        return listOfRooms; 
+    }
+
+    logConnectedClients(): void {
+
+        const connectedClients = this.getConnectedClients();
+
+        connectedClients.forEach( room => {
+            console.log( room );
+        });
+    
+
     }
 
     // getUserFullNameBySocketId( socketId: string ){
