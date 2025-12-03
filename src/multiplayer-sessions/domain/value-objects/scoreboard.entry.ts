@@ -13,7 +13,7 @@ interface ScoreboardEntryProps {
 export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
 
 
-    private constructor( props: ScoreboardEntryProps){
+    public constructor( props: ScoreboardEntryProps){
 
         super({...props})
 

@@ -12,14 +12,20 @@ interface ScoreboardProps {
 export class Scoreboard extends ValueObject<ScoreboardProps> {
 
 
-    constructor( props: ScoreboardProps) {
+    public constructor( props: ScoreboardProps) {
 
         super({ ...props });
 
     }
 
-    // Metodo create
-    public static updateScoreboard( players: Player[] ): Scoreboard {
+    // Para crear el objeto vacio al inicio de la partida
+    public static create(): Scoreboard {
+
+        return new Scoreboard({ entries: [] });
+
+    }
+
+    public updateScoreboard( players: Player[] ): Scoreboard {
         
         const entries = players
                             .sort((p1,p2) => p1.getScore() - p2.getScore() )

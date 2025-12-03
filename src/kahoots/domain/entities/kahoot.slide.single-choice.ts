@@ -8,17 +8,17 @@ import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type';
 export class SingleChoiceSlide extends Slide { 
     
     public constructor(props: SlideProps, id: SlideId) {
-        
-        SingleChoiceSlide.checkInitialInvariants(props);
-        
+
         props.slideType = new SlideType(SlideTypeEnum.SINGLE); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
         
         super(props, id);
+
+        this.checkInitialInvariants();
     }
     
-    public static checkInitialInvariants(props: SlideProps): void {
-        const pointsOptional = props.points; 
+    protected checkInitialInvariants(): void {
+        const pointsOptional = this.properties.points; 
         
         // Validación de Puntos: Obligatorio y dentro del rango SLIDE_POINTS_STD
         if (!pointsOptional || !pointsOptional.hasValue()) { 
@@ -31,12 +31,12 @@ export class SingleChoiceSlide extends Slide {
         }
         
         // Validación de Descripción: No debe tener descripción
-        if (props.description && props.description.hasValue()) { 
+        if (this.properties.description && this.properties.description.hasValue()) { 
             throw new Error("[Constructor] Slide Single Choice: Las diapositivas de opción única no deben tener descripción.");
         }
 
         // Límite superior (6)
-        const optionsOptional = props.options;
+        const optionsOptional = this.properties.options;
         if (optionsOptional && optionsOptional.hasValue()) { 
             const optionsArray = optionsOptional.getValue();
             if (optionsArray.length > 6) { 

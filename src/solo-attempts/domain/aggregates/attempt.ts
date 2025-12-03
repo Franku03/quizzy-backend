@@ -1,277 +1,385 @@
-// import { AggregateRoot } from "src/core/domain/abstractions/aggregate.root";
-// import { Optional } from "src/core/types/optional";
-// import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
-// import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
-// import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
-// import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
-// import { AttemptStatus } from "../value-objects/attempt.status";
-// import { AttemptProgress } from "../value-objects/attempt.progress";
-// import { AttemptTimeDetails } from "../value-objects/attempt.time-details";
-// import { PlayerAnswer } from "../value-objects/attempt.player-answer";
-// import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
-// import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
+import { AggregateRoot } from "src/core/domain/abstractions/aggregate.root";
+import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
+import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
+import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
+import { AttemptStatus } from "../value-objects/attempt.status";
+import { AttemptProgress } from "../value-objects/attempt.progress";
+import { AttemptTimeDetails } from "../value-objects/attempt.time-details";
+import { PlayerAnswer } from "../value-objects/attempt.player-answer";
+import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
+import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
+import { DomainEvent } from "src/core/domain/abstractions/domain-event";
+import { SoloAttemptCompletedEvent } from "src/core/domain/domain-events/attempt-completed-event";
+import { SoloAttemptStartedEvent } from "src/core/domain/domain-events/attempt-started.event";
 
-// // Interface defining the properties state of the SoloAttempt Aggregate
-// export interface SoloAttemptProps {
-//     readonly kahootId: KahootId;
-//     readonly playerId: UserId;
-//     totalScore: Optional<Score>;
-//     status: AttemptStatus;
-//     progress: AttemptProgress;
-//     timeDetails: AttemptTimeDetails;
-//     answers: PlayerAnswer[];
-// }
+// This interface acts as the definitive contract for the state of a SoloAttempt.
+// It groups together the identity, the link to the original Kahoot, the player involved,
+// and the mutable state regarding their performance and progress.
+export interface SoloAttemptProps {
+    readonly id: AttemptId;
+    readonly kahootId: KahootId;
+    readonly playerId: UserId;
+    // The current state of the game (IN_PROGRESS or COMPLETED).
+    status: AttemptStatus;
+    // The accumulated score based on correctness and speed. 
+    totalScore: Score;
+    // Tracks how many questions have been answered relative to the total.
+    progress: AttemptProgress;
+    // Encapsulates temporal aspects of an attempt: startTime/lastInteraction/completionTime.
+    timeDetails: AttemptTimeDetails;
+    // A collection of all answers submitted by the player so far.
+    answers: PlayerAnswer[];
+}
 
-// export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
+// The SoloAttempt Aggregate Root serves as the consistency boundary 
+// for a single player's game session.
+// It is responsible for orchestrating the flow of the game, validating state transitions,
+// and ensuring that scoring rules are applied consistently before saving changes.
+export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
-//     // Private constructor to enforce usage of Factory or specific creation methods if needed.
-//     // However, for pure DDD, the Factory often calls this constructor.
-//     private constructor(props: SoloAttemptProps, id: AttemptId) {
-//         super(props, id);
-//         this.checkInvariants();
-//     }
+    // Internal list to buffer domain events that occur during the lifecycle of the aggregate.
+    // These events are not persisted directly in the entity's table but are intended
+    // to be dispatched by the repository transaction after the state is successfully saved.
+    private domainEvents: DomainEvent[] = [];
 
-//     /**
-//      * Factory method to reconstitute the Aggregate from the repository.
-//      * Use this when fetching an existing attempt from the database.
-//      */
-//     public static fromPrimitives(props: SoloAttemptProps, id: AttemptId): SoloAttempt {
-//         return new SoloAttempt(props, id);
-//     }
+    // We initialize the aggregate by passing the properties and the specific AttemptId
+    // up to the base AggregateRoot. This ensures the base class can manage the identity
+    // and the immutable properties correctly.
+    public constructor(props: SoloAttemptProps) {
+        super(props, props.id);
+        this.checkInvariants();
+    }
 
-//     /**
-//      * Creates a brand new SoloAttempt.
-//      * Usually called by the SoloAttemptFactory.
-//      */
-//     public static create(
-//         id: AttemptId,
-//         kahootId: KahootId,
-//         playerId: UserId,
-//         totalQuestions: number
-//     ): SoloAttempt {
-//         const props: SoloAttemptProps = {
-//             kahootId: kahootId,
-//             playerId: playerId,
-//             totalScore: new Optional<Score>(), // Starts empty/undefined
-//             status: AttemptStatus.IN_PROGRESS,
-//             progress: AttemptProgress.create(totalQuestions, 0),
-//             timeDetails: AttemptTimeDetails.create(new Date()),
-//             answers: []
-//         };
+    public notifyStart(): void {
+        // We emit a domain event to signal that a new Solo Attempt has started.
+        // This event can be used by other modules to react accordingly.
+
+        // We instantiate the event directly with our Value Objects. 
+        const attemptStartedEvent = new SoloAttemptStartedEvent(
+            this.id,
+            this.properties.playerId,
+            this.properties.kahootId,
+        );
+
+        // The event is recorded in the aggregate's internal list for future publication.
+        this.record(attemptStartedEvent);
+    }
+
+    // We process the result of a player's submission for a specific slide.
+    // This method is the heart of the gameplay loop, it records the player's answer,
+    // updates their total score if the answer was correct, advances the game progress
+    // counter, and refreshes the audit timestamps.
+    // It also enforces business rules such as preventing answers on completed attempts
+    // and avoiding duplicate answers for the same question.
+    public registerAnswer(result: Result): void {
+
+        // Invariant Checks:
+
+        // We cannot register answers for a completed attempt.
+        if (!this.isInProgress()) {
+            throw new Error("Cannot register answers for a completed or non-active attempt.");
+        }
+
+        // Duplicate answers are prevented by ensuring the user hasn't already submitted 
+        // an answer for this specific slide.
+        if (this.isSlideAnswered(result.getSlideId())) {
+            throw new Error("Answer for this slide has already been registered.");
+        }
+
+        // State Updates:
+
+        // The position of the new answer is determined by the current progress.
+        // Since progress counts how many questions have been answered, 
+        // the next position is simply that count plus one.
+        // Example: (0 answered -> this is answer #1), (5 answered -> this is answer #6).
+        const currentPosition = this.properties.progress.questionsAnswered + 1;
         
-//         const attempt = new SoloAttempt(props, id);
-//         // Event: SoloAttemptCreated could be added here
-//         return attempt;
-//     }
+        // We map the transient Result parameter object into a persistent PlayerAnswer Value Object.
+        // This encapsulates all the details of the player's submission.
+        const newAnswer = PlayerAnswer.create(result, currentPosition);
 
-//     // =========================================================================
-//     // BUSINESS LOGIC METHODS
-//     // =========================================================================
+        // The answer is recorded in the history.
+        this.properties.answers.push(newAnswer);
 
-//     /**
-//      * Registers a player's answer to a slide, updates the score, progress, and time details.
-//      * * Ubiquitous Language:
-//      * When a player submits an answer, the attempt must "register" it. This involves:
-//      * 1. Validating the attempt is still in progress.
-//      * 2. Checking if this slide was already answered to prevent duplicates.
-//      * 3. Creating a PlayerAnswer record.
-//      * 4. Accumulating points if the answer was correct.
-//      * 5. Moving the progress forward.
-//      * 6. Automatically completing the attempt if this was the last question.
-//      * * @param result The result evaluated by the Domain Service containing submission and score data.
-//      */
-//     public registerAnswer(result: Result): void {
+        // If the player earned points, they are added to the aggregate total.
+        // The addition logic is delegated to the Score Value Object to ensure immutability rules.
+        if (newAnswer.earnedScore.getScore() > 0) {
+            this.properties.totalScore = this.properties.totalScore.addScore(
+                newAnswer.earnedScore
+            );
+        }
+
+        // The counter of answered questions is incremented.
+        this.properties.progress = this.properties.progress.addAnswer();
+
+        // The activity timestamp is updated to mark this interaction as the latest activity.
+        this.properties.timeDetails = this.properties.timeDetails.continueAt(new Date());
+
+        // After registering the answer, we check if the game has reached its end.
+        // If the number of answered questions equals the total number of questions answered,
+        // we must transition the attempt state to COMPLETED and execute the completion logic. 
+        const answeredQuestions = this.properties.progress.questionsAnswered;
+        const totalQuestions = this.properties.progress.totalQuestions;
+        if (answeredQuestions >= totalQuestions) {
+            // The game is over. We finalize the attempt.
+            // The completiong logic is delegated to the dedicated method.
+            // It includes: updating timestamps, changing status, and emitting events.
+            this.completeAttempt();
+        }
+
+    }
+
+    // We finalize the single player session.
+    // This method transitions the state to COMPLETED
+    // seals the audit logs with the final timestamp,
+    // and produces a Domain Event to notify external modules (like the Group module 
+    // about the game results. 
+    // Group Module need this event to register/process kahoot assignements 
+    // (which are completed via soloAttempts).  
+    public completeAttempt(): void {
+        if (this.isCompleted()) {
+            throw new Error("Attempt is already completed.");
+        }
+
+        const completionDate = new Date();
+
+        // Update Status
+        // We mark the attempt as finished so no further answers can be processed.
+        this.properties.status = AttemptStatus.COMPLETED;
+
+        // Update Time Logic 
+        // We finalize the time tracking by setting the completion date in the value object.
+        this.properties.timeDetails = this.properties.timeDetails.complete(completionDate);
+
+        // Prepare Statistics for the Event
+        // We calculate the necessary metrics that the event subscribers need.
+        const totalQuestions = this.properties.progress.totalQuestions;
+        const correctAnswersCount = this.getNumberOfCorrectAnswers();
+        const accuracy = this.getAccuracyPercentage();
+
+        // Create the Domain Event
+        // We instantiate the event directly with our Value Objects. 
+        const completionEvent = new SoloAttemptCompletedEvent(
+            this.id,
+            this.properties.playerId,
+            this.properties.kahootId,
+            this.properties.totalScore,
+            accuracy,
+            correctAnswersCount,
+            totalQuestions
+        );
+
+        // Record the Event
+        // We add the event to the aggregate's internal list for future publication.
+        // The publication will be done by the repository after persisting changes.
+        this.record(completionEvent);
+    }
+
+    // We check if the attempt is still active. 
+    // This state implies the player has not yet answered all questions.
+    // They should be allowed to continue playing.
+    public isInProgress(): boolean {
+        return this.properties.status === AttemptStatus.IN_PROGRESS;
+    }
+
+    // Indicates if the attempt has been completed.
+    // Once an attempt is completed, no further answers can be accepted, and the
+    // system is ready to display the final summary and statistics.
+    public isCompleted(): boolean {
+        return this.properties.status === AttemptStatus.COMPLETED;
+    }
+
+    // We calculate the total count of questions the player has successfully answered.
+    // It serves as a fundamental metric for the final game summary and accuracy calculations.
+    public getNumberOfCorrectAnswers(): number {
+        return this.properties.answers.filter((answer) => answer.isCorrect()).length;
+    }
+
+    // Calculates the player's performance accuracy as a percentage (0-100).
+    // This value is required for the final summary screen. 
+    public getAccuracyPercentage(): number {
+        const totalQuestions = this.properties.progress.totalQuestions;
+
+        // Even though it should never happen 
+        // we handle the edge case where there are no questions for extra safety.
+        if (totalQuestions === 0) {
+            return 0;
+        }
+
+        // Calculate the number of correct answers using the dedicated method
+        const correctAnswersCount = this.getNumberOfCorrectAnswers();
+
+        return (correctAnswersCount / totalQuestions) * 100;
+    }
+
+    // We determine if a specific slide has already been processed by the player.
+    // This check is essential to enforce the rule that each question in a Single Player
+    // session can only be answered once. 
+    public isSlideAnswered(slideId: SlideId): boolean {
+        // We use the 'some' method to efficiently check for the existence of the slide ID
+        return this.properties.answers.some((answer) => 
+            answer.slideId.equals(slideId)
+        );
+    }
+
+    // Retrieves the SlideId of the current question the player is on.
+    // This is essential for resuming games and displaying the correct question.
+    public getCurrentSlideId(): SlideId {
+        // We verify if there are any answers recorded. If the attempt is brand new 
+        // and no answers exist, we cannot return a "current" slide ID from history.
+        if (this.properties.answers.length === 0) {
+            throw new Error("Cannot retrieve current slide ID: No answers recorded yet.");
+        }
+
+        // We iterate through the existing answers to find the one with the highest position.
+        // This answer corresponds to the most recently answered question.
+        const latestAnswer = this.properties.answers.reduce((latest, current) => 
+            (current.SlidePosition > latest.SlidePosition) ? current : latest
+        );
+
+        return latestAnswer.slideId;
+    }
+
+    // Retrieves the PlayerAnswer associated with a specific SlideId.
+    public getPlayerAnswerBySlideId(slideId: SlideId): PlayerAnswer {
+        // find method returns the first element that satisfies the condition
+        const answer = this.properties.answers.find((a) => a.slideId.equals(slideId));
+        if (!answer) {
+            throw new Error(`Answer for slide with ID ${slideId.value} not found.`);
+        }
+
+        return answer;
+    }
+
+    // Retrieves the most recent PlayerAnswer submitted by the player.
+    public getLastPlayerAnswer(): PlayerAnswer {
+        if (this.properties.answers.length === 0) {
+            throw new Error("Cannot retrieve last answer: No answers recorded yet.");
+        }
         
-//         // Step 1: Guard clause - Cannot answer if attempt is not in progress
-//         if (this.properties.status !== AttemptStatus.IN_PROGRESS) {
-//             throw new Error("Cannot register answer. The attempt is not in progress.");
-//         }
+        // We traverse the list to find the answer with the highest position value.
+        return this.properties.answers.reduce((latest, current) => 
+            (current.SlidePosition > latest.SlidePosition) ? current : latest
+        );
+    }
 
-//         const slideId = result.getSubmission().getSlideId();
+    // We validate the internal consistency of the aggregate boundaries.
+    // This method ensures that the separate pieces of state (Progress, Score, Status, Answers)
+    // are mathematically and logically synchronized. It guards against corrupt data
+    // entering the system via the constructor or persistence layer.
+    protected checkInvariants(): void {
+        // Progress-Answers Synchronization:
+        // The counter in the Progress Value Object must exactly match the number of answer entities stored.
+        // If these differ, it implies data corruption where an answer was lost or the counter drifted.
+        if (this.properties.progress.questionsAnswered !== this.properties.answers.length) {
+            throw new Error(
+                `Invariant Violation: Progress count (${this.properties.progress.questionsAnswered}) does not match answers count (${this.properties.answers.length}).`
+            );
+        }
 
-//         // Step 2: Guard clause - Prevent duplicate answers for the same slide
-//         if (this.IsSlideAnswered(slideId)) {
-//             throw new Error(`Slide ${slideId.value} has already been answered.`);
-//         }
+        // Score-Answers Synchronization:
+        // The aggregated 'totalScore' property acts as a cache. It must equal the sum of
+        // the individual scores from all recorded answers.
+        // We recalculate the sum from the history to verify the cached value is correct.
+        const calculatedTotalScore = this.properties.answers.reduce(
+            (sum, answer) => sum + answer.earnedScore.getScore(),
+            0
+        );
 
-//         // Step 3: Create the PlayerAnswer entity from the Result
-//         // Assuming PlayerAnswer.create transforms the Result parameter object into the Entity/VO
-//         const newAnswer = PlayerAnswer.create(result);
-//         this.properties.answers.push(newAnswer);
+        if (this.properties.totalScore.getScore() !== calculatedTotalScore) {
+            throw new Error(
+                `Invariant Violation: Stored total score (${this.properties.totalScore.getScore()}) does not match calculated sum of answer scores (${calculatedTotalScore}).`
+            );
+        }
 
-//         // Step 4: Update Score if applicable
-//         // We use the Optional monad to handle potential score updates safely
-//         if (result.score.hasValue()) {
-//             const currentTotal = this.properties.totalScore.hasValue() 
-//                 ? this.properties.totalScore.getValue() 
-//                 : Score.create(0); // Assuming Score.create(0) initializes a zero score
+        // Completion State Consistency:
+        // If the attempt is marked as COMPLETED, strict rules apply:
+        // 1. All questions must have been answered.
+        // 2. The audit trail must contain a completion timestamp.
+        if (this.properties.status === AttemptStatus.COMPLETED) {
             
-//             // Add the new score to the total
-//             const newTotal = currentTotal.addScore(result.score.getValue());
-//             this.properties.totalScore = new Optional<Score>(newTotal);
-//         }
+            if (this.properties.progress.questionsAnswered !== this.properties.progress.totalQuestions) {
+                throw new Error("Invariant Violation: Attempt is COMPLETED but not all questions are answered.");
+            }
 
-//         // Step 5: Update Progress
-//         // Increment the count of answered questions
-//         this.properties.progress = this.properties.progress.addAnswer();
+            // We check the TimeDetails Value Object to ensure the 'completedAt' field is present.
+            // (Assuming TimeDetails exposes a method to check this, based on the Optional<Date> definition).
+            if (!this.properties.timeDetails.completedAt.hasValue()) {
+                throw new Error("Invariant Violation: Attempt is COMPLETED but lacks a completion timestamp.");
+            }
+        }
 
-//         // Step 6: Update Time Details (Last played at)
-//         this.continueAttempt();
+        // Active State Consistency:
+        // Conversely, if the attempt is IN_PROGRESS, it must NOT have a completion timestamp.
+        if (this.properties.status === AttemptStatus.IN_PROGRESS) {
+            if (this.properties.timeDetails.completedAt.hasValue()) {
+                throw new Error("Invariant Violation: Attempt is IN_PROGRESS but has a completion timestamp.");
+            }
+        }
 
-//         // Step 7: Check for completion
-//         // If all questions have been answered, we close the attempt
-//         if (this.properties.progress.getQuestionsAnswered() >= this.properties.progress.getTotalQuestions()) {
-//             this.completeAttempt();
-//         }
+        // Additional invariants can be added here as the domain evolves.
+    }
 
-//         // Domain Event: SoloAttemptAnswersSubmitted
-//         // this.addDomainEvent(new SoloAttemptAnswersSubmitted(this.id, result));
-//     }
+    // We register a new domain event to be published later.
+    // This method is protected because only the aggregate itself should know when
+    // a significant business rule has been satisfied and an event needs to be emitted.
+    protected record(event: DomainEvent): void {
+        this.domainEvents.push(event);
+    }
 
-//     /**
-//      * Marks the attempt as finalized.
-//      * * Ubiquitous Language:
-//      * An attempt is "completed" when the user finishes all questions.
-//      * This seals the attempt state, records the completion time, and potentially triggers
-//      * the generation of the final summary.
-//      */
-//     public completeAttempt(): void {
-//         if (this.properties.status === AttemptStatus.COMPLETED) {
-//             return; // Idempotency: If already completed, do nothing.
-//         }
+    // We retrieve and clear the list of pending domain events.
+    // This method is called by the Repository
+    // immediately after persisting the aggregate state, ensuring that events are only
+    // published if the data change was successful.
+    public pullDomainEvents(): DomainEvent[] {
+        // We create a shallow copy of the current events to return
+        const events = this.domainEvents.slice();
+        // We clear the internal list to avoid re-publishing the same events
+        this.domainEvents = [];
+        return events;
+    }
 
-//         this.properties.status = AttemptStatus.COMPLETED;
-//         this.properties.timeDetails = this.properties.timeDetails.complete(new Date());
+    // getters
 
-//         // Domain Event: SoloAttemptCompleted
-//         /* this.addDomainEvent(new SoloAttemptCompleted(
-//             this.id,
-//             this.properties.playerId,
-//             this.properties.kahootId,
-//             this.properties.totalScore,
-//             this.getAccuracyPercentage(),
-//             this.getCorrectAnswerCount(),
-//             this.properties.progress.getTotalQuestions()
-//         )); 
-//         */
-//     }
+    // Provides the status ( determines if the game is in progress or completed )
+    public get status(): AttemptStatus {
+        return this.properties.status;
+    }
 
-//     /**
-//      * Updates the 'lastPlayedAt' timestamp to now.
-//      * * Ubiquitous Language:
-//      * Used when a player resumes a session or submits an answer, indicating
-//      * the attempt is still "active" and being worked on.
-//      */
-//     public continueAttempt(): void {
-//         this.properties.timeDetails = this.properties.timeDetails.continueAt(new Date());
-//     }
-
-//     /**
-//      * Checks if the attempt is currently active.
-//      */
-//     public isInProgress(): boolean {
-//         return this.properties.status === AttemptStatus.IN_PROGRESS;
-//     }
-
-//     /**
-//      * Checks if the attempt has finished.
-//      */
-//     public isCompleted(): boolean {
-//         return this.properties.status === AttemptStatus.COMPLETED;
-//     }
-
-//     /**
-//      * Calculates the percentage of correct answers against total answers submitted.
-//      * Useful for the final summary.
-//      * * @returns number (0-100)
-//      */
-//     public getAccuracyPercentage(): number {
-//         const totalAnswered = this.properties.answers.length;
-//         if (totalAnswered === 0) return 0;
-
-//         const correctCount = this.properties.answers.filter(a => a.isCorrect()).length;
-//         return (correctCount / totalAnswered) * 100;
-//     }
-
-//     /**
-//      * Helper to get the absolute number of correct answers.
-//      */
-//     public getCorrectAnswerCount(): number {
-//         return this.properties.answers.filter(a => a.isCorrect()).length;
-//     }
-
-//     /**
-//      * Checks if a specific slide has already been answered by the player.
-//      * * Ubiquitous Language:
-//      * Essential for validation to ensure a player doesn't score the same question twice.
-//      */
-//     public IsSlideAnswered(slideId: SlideId): boolean {
-//         return this.properties.answers.some(answer => answer.getSlideId().equals(slideId));
-//     }
-
-//     /**
-//      * Retrieves all answers submitted by the player so far.
-//      */
-//     public getPlayerAnswers(): PlayerAnswer[] {
-//         return [...this.properties.answers]; // Return a copy to preserve encapsulation
-//     }
-
-//     /**
-//      * Retrieves a specific answer for a given slide ID.
-//      * Useful for reviewing specific question results.
-//      */
-//     public getAnswerBySlideId(slideId: SlideId): Optional<PlayerAnswer> {
-//         const answer = this.properties.answers.find(a => a.getSlideId().equals(slideId));
-//         return new Optional<PlayerAnswer>(answer);
-//     }
-
-//     // =========================================================================
-//     // INVARIANTS & GETTERS
-//     // =========================================================================
-
-//     /**
-//      * Validates the consistency of the Aggregate's state.
-//      * Must be called after construction or reconstitution.
-//      */
-//     protected checkInvariants(): void {
-//         if (!this.properties.kahootId) {
-//             throw new Error("SoloAttempt invariant violated: KahootId cannot be null.");
-//         }
-//         if (!this.properties.playerId) {
-//             throw new Error("SoloAttempt invariant violated: PlayerId cannot be null.");
-//         }
-//         // Validate embedded VOs
-//         // this.properties.timeDetails.validateInvariants(); 
-        
-//         // Logic invariant: Cannot have more answers than total questions
-//         if (this.properties.progress.getQuestionsAnswered() > this.properties.progress.getTotalQuestions()) {
-//              throw new Error("SoloAttempt invariant violated: Answered count exceeds total questions.");
-//         }
-//     }
-
-//     // Getters 
+    // Provides the total score accumulated by the player so far
+    public get totalScore(): Score {
+        return this.properties.totalScore;
+    }
     
-//     public get kahootId(): KahootId {
-//         return this.properties.kahootId;
-//     }
+    // Provides a shallow copy of the answers array to prevent external modification
+    public get answers(): PlayerAnswer[] {
+        return [...this.properties.answers];
+    }
 
-//     public get playerId(): UserId {
-//         return this.properties.playerId;
-//     }
+    // Provides the progress object that tracks how many questions have been answered
+    public get progress(): AttemptProgress {
+        return this.properties.progress;
+    }
 
-//     public get totalScore(): Optional<Score> {
-//         return this.properties.totalScore;
-//     }
+    // Provides the time details object that encapsulates temporal aspects of the attempt
+    public get timeDetails(): AttemptTimeDetails {
+        return this.properties.timeDetails;
+    }
 
-//     public get status(): AttemptStatus {
-//         return this.properties.status;
-//     }
+    // Provides the KahootId associated with this attempt
+    public get kahootId(): KahootId {
+        return this.properties.kahootId;
+    }
 
-//     public get progress(): AttemptProgress {
-//         return this.properties.progress;
-//     }
+    // Provides the UserId of the player undertaking this attempt
+    public get playerId(): UserId {
+        return this.properties.playerId;
+    }
 
-//     public get timeDetails(): AttemptTimeDetails {
-//         return this.properties.timeDetails;
-//     }
-// }
+    // Provides the AttemptId of this solo attempt    
+    public get attemptId(): AttemptId {
+        return this.properties.id;
+    }
+
+}

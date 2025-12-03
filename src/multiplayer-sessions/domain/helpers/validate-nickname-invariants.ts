@@ -2,6 +2,7 @@ import { MAX_NICKNAME_TEXT_LENGTH, MIN_NICKNAME_TEXT_LENGTH } from "../constants
 
 interface validation {
     isValid: boolean,
+    cleanNickname: string 
     error: string | undefined,
 }
 
@@ -18,6 +19,6 @@ export const validateNicknameInvariants = (nickname: string): validation  => {
         if( cleanNickname.length < MIN_NICKNAME_TEXT_LENGTH )
             throw new Error(`La longitud del nickname debe ser superior a los ${ MAX_NICKNAME_TEXT_LENGTH } caracteres.`);  
 
-        return { isValid: true, error: undefined };
+        return { isValid: true, cleanNickname, error: undefined };
 
 }
