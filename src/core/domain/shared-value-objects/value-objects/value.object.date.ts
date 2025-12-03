@@ -7,16 +7,27 @@ interface DateISOProps {
 }
 
 export class DateISO extends ValueObject<DateISOProps> {
-  private constructor(iso_8601_date: string) {
-    if (!iso_8601_date || iso_8601_date.trim().length === 0) {
-      throw new Error('La fecha no puede ser nula o vacía.');
+  private constructor(iso_8601_date: any) {
+    // Verificar si no es una cadena de texto (incluye null y undefined)
+    if (typeof iso_8601_date !== 'string') {
+        throw new Error('La fecha debe ser proporcionada como una cadena de texto.');
     }
-    if (!ISO_8601_DATE_REGEX.test(iso_8601_date)) {
-      throw new Error(
-        `[Date Error]: la fecha '${iso_8601_date}' no es un formato ISO 8601 válido.`,
-      );
+
+    // El código original modificado para usar la variable segura
+    const dateString = iso_8601_date as string; // Ahora podemos tratarla como string
+
+    if (!dateString || dateString.trim().length === 0) {
+        throw new Error('La fecha no puede ser nula o vacía.');
     }
-    super({ value: iso_8601_date });
+    
+    // Si llega aquí, es una cadena no vacía.
+    if (!ISO_8601_DATE_REGEX.test(dateString)) {
+        throw new Error(
+            `[Date Error]: la fecha '${dateString}' no es un formato ISO 8601 válido.`,
+        );
+    }
+    
+    super({ value: dateString });
   }
 
   //si necesitas generar una fecha con un string

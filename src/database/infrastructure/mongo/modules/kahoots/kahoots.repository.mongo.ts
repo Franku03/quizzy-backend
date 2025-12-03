@@ -40,30 +40,34 @@ export class KahootRepositoryMongo implements IKahootRepository {
     }
   }
   public async findKahootById(id: KahootId): Promise<Optional<Kahoot>> {
-    const document = await this.kahootModel.findOne({ id: id.value }).exec();
+        const document = await this.kahootModel.findOne({ id: id.value }).exec();
 
-    if (!document) {
-      return new Optional<Kahoot>();
+        if (!document) {
+            return new Optional<Kahoot>();
+        }
+
+        const snapshot = document.toObject() as KahootSnapshot;
+
+        // Conversión explícita de Date (de Mongoose) a string ISO (para el Dominio)
+        snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];;
+        
+        const kahoot = KahootFactory.reconstructFromSnapshot(snapshot);
+
+        return new Optional(kahoot);
     }
 
-    // El objeto plano que devuelve Mongoose no tiene la tipografía
-    // explícita de KahootDetailsSnapshot, lo que causa el error.
-    // Usamos 'as KahootSnapshot' para indicarle a TypeScript que confíe en el mapeo.
-    const kahoot = KahootFactory.reconstructFromSnapshot(
-      document.toObject() as KahootSnapshot, // 💡 LA CORRECCIÓN
-    );
+    public async findAllKahoots(): Promise<Kahoot[]> {
+        const documents = await this.kahootModel.find().exec();
 
-    return new Optional(kahoot);
-  }
-  public async findAllKahoots(): Promise<Kahoot[]> {
-    const documents = await this.kahootModel.find().exec();
+        return documents.map((doc) => {
+            const snapshot = doc.toObject() as KahootSnapshot;
 
-    // 💡 CORRECCIÓN: Aplicamos la afirmación de tipo a cada documento
-    // para asegurar que la Fábrica reciba la estructura de KahootSnapshot.
-    return documents.map((doc) =>
-      KahootFactory.reconstructFromSnapshot(doc.toObject() as KahootSnapshot),
-    );
-  }
+            // Conversión explícita de Date (de Mongoose) a string ISO (para el Dominio)
+            snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];
+
+            return KahootFactory.reconstructFromSnapshot(snapshot);
+        });
+    }
   public async deleteKahoot(id: KahootId): Promise<void> {
     await this.kahootModel.deleteOne({ id: id.value }).exec();
   }
