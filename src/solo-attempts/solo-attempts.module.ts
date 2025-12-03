@@ -11,6 +11,7 @@ import { StartSoloAttemptHandler } from './application/commands/start-attempt/st
 import { CreateUserHandler } from 'src/users/application/commands/create-user/create-user.handler';
 import { SubmitAnswerHandler } from './application/commands/submit-answer/submit-answer.handler';
 import { GetAttemptSummaryHandler } from './application/queries/get-summary/get-summary.handler';
+import { GetAttemptStatusHandler } from './application/queries/get-attempt/get-attempt.handler';
 
 @Module({
   controllers: [SoloAttemptsController],
@@ -24,6 +25,7 @@ import { GetAttemptSummaryHandler } from './application/queries/get-summary/get-
     StartSoloAttemptHandler, //commandHandler
     SubmitAnswerHandler,
     GetAttemptSummaryHandler,
+    GetAttemptStatusHandler,
   ],
 })
 export class SoloAttemptsModule {}

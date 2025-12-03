@@ -10,6 +10,9 @@ import { START_ATTEMPT_ERROR_CODES } from 'src/solo-attempts/application/command
 import { GET_SUMMARY_ERROR_CODES } from 'src/solo-attempts/application/queries/get-summary/get-summary.errors';
 import { GetAttemptSummaryQuery } from 'src/solo-attempts/application/queries/get-summary/get-summary.query';
 import { AttemptSummaryReadModel } from 'src/solo-attempts/application/queries/read-models/summary.attempt.read.model';
+import { GET_ATTEMPT_ERROR_CODES } from 'src/solo-attempts/application/queries/get-attempt/get-attempt.errors';
+import { AttemptResumeReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
+import { GetAttemptStatusQuery } from 'src/solo-attempts/application/queries/get-attempt/get-attempt.query';
 
 @Controller('attempts')
 export class SoloAttemptsController {
@@ -52,6 +55,41 @@ export class SoloAttemptsController {
       }
 
       throw error; // throw unhandled error
+    }
+  }
+
+
+  // This endpoint retrieves the current state of a singleplayer attempt
+  // It allows the user to resume a paused game by returning the next slide
+  // to answer if the attempt is still in progress
+  // @UseGuards(JwtAuthGuard)
+  @Get(':attemptId')
+  @HttpCode(HttpStatus.OK)
+  async getResumeContext(@Param('attemptId') attemptId: string, @Req() req: any) {
+    try {
+      // We extract the authenticated user's ID from the request object
+      // const userId = req.user?.id;
+      
+      // We execute the query to get the resume context
+      // The query handler returns an Optional containing the AttemptResumeReadModel
+      const attemptStatus: AttemptResumeReadModel =
+        await this.queryBus.execute(
+          new GetAttemptStatusQuery(attemptId), 
+        );
+      return attemptStatus;
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+
+      // Map error codes to HTTP exceptions
+      if (errorMessage.includes(GET_ATTEMPT_ERROR_CODES.ATTEMPT_NOT_FOUND)) {
+        throw new NotFoundException('The specified attempt does not exist');
+      }
+
+      if (errorMessage.includes(GET_ATTEMPT_ERROR_CODES.ATTEMPT_NOT_OWNED)) {
+        throw new NotFoundException('Attempt not found or does not belong to the user');
+      }
+
+      throw error;
     }
   }
 
@@ -147,12 +185,6 @@ export class SoloAttemptsController {
           errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
         ) {
           throw new NotFoundException('Attempt not found or does not belong to user');
-        }
-
-        if (
-          errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
-        ) {
-          throw new BadRequestException('Attempt has not been completed yet');
         }
 
         // For any other errors, throw a generic error

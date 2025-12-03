@@ -33,6 +33,9 @@ export class GetAttemptSummaryHandler
       throw new Error(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
     }
 
+    // When user module is integrated, we will check if the userId from the attempt
+    // matches the currently authenticated user. For now, we skip this step.
+
     return summaryOptional.getValue();
   }
 }
