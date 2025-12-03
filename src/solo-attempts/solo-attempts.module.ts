@@ -9,6 +9,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 // Handlers
 import { StartSoloAttemptHandler } from './application/commands/start-attempt/start-attempt.handler';
 import { CreateUserHandler } from 'src/users/application/commands/create-user/create-user.handler';
+import { SubmitAnswerHandler } from './application/commands/submit-answer/submit-answer.handler';
 
 @Module({
   controllers: [SoloAttemptsController],
@@ -20,6 +21,7 @@ import { CreateUserHandler } from 'src/users/application/commands/create-user/cr
   ],
   providers: [
     StartSoloAttemptHandler, //commandHandler
+    SubmitAnswerHandler
   ],
 })
 export class SoloAttemptsModule {}

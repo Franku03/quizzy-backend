@@ -13,12 +13,7 @@ import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attem
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
 import { SlideSnapshotMapper } from '../../mappers/slide.mapper';
-
-const ERROR_CODES = {
-  KAHOOT_NOT_FOUND: 'KAHOOT_NOT_FOUND',
-  DRAFT_KAHOOT: 'DRAFT_KAHOOT',
-  NO_SLIDES: 'NO_SLIDES',
-} as const;
+import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
 
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
@@ -39,13 +34,13 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     // We Fetch the Kahoot Aggregate to ensure it exists 
     const kahootOptional = await this.kahootRepository.findKahootById(kahootId);
     if (!kahootOptional.hasValue()) {
-      throw new Error(ERROR_CODES.KAHOOT_NOT_FOUND);
+      throw new Error(START_ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
     }
     const kahoot = kahootOptional.getValue();
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
     if (kahoot.isDraft()){
-      throw new Error(ERROR_CODES.DRAFT_KAHOOT);
+      throw new Error(START_ATTEMPT_ERROR_CODES.DRAFT_KAHOOT);
     }
 
     // Before creating a new attempt, we check if there's already an active
@@ -90,15 +85,15 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const firstSlideSnapshot = kahoot.getNextSlideSnapshotByIndex();
 
     if (!firstSlideSnapshot) {
-      throw new Error(ERROR_CODES.NO_SLIDES);
+      throw new Error(START_ATTEMPT_ERROR_CODES.NO_SLIDES);
     }
     
-    // We construct the output object matching the API response requirement.
-    const frontendSlide = SlideSnapshotMapper.toFrontendSlide(firstSlideSnapshot);
+    // We construct the output object matching the output response requirement.
+    const outputSlide = SlideSnapshotMapper.toOutputSlide(firstSlideSnapshot);
 
     return {
       attemptId: attempt.attemptId.value,
-      firstSlide: frontendSlide
+      firstSlide: outputSlide
     };
   }
 }

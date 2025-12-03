@@ -1,6 +1,7 @@
 import { SoloAttempt } from "../aggregates/attempt";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { Submission } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
+import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 
 // Service responsible for evaluating a player's answer submission
 // within a solo Kahoot attempt.
@@ -13,14 +14,15 @@ export class SoloAttemptEvaluationService {
   // We inject the aggregates required for evaluation. This ensures the service 
   // We also receive the submission parameter object encapsulating the player's answers.
   // These are injected by the application layer. Which loads the aggregates from the repositories.
-  public evaluate(kahoot: Kahoot, attempt: SoloAttempt, submission: Submission): void {
+  public evaluate(kahoot: Kahoot, attempt: SoloAttempt, submission: Submission): Result {
 
     // Cross-Aggregate Invariant Checks:
-    
+    console.log("hey")
     // We make sure the kahoot and attempt correspond.
     if (!attempt.kahootId.equals(kahoot.id)) {
       throw new Error("The attempt does not correspond to the provided Kahoot.");
     }
+    console.log("hey2")
 
     // We check that the slide being answered is the next one in the attempt's progress.
     const slide_id_of_new_answer = submission.getSlideId();
@@ -50,5 +52,7 @@ export class SoloAttemptEvaluationService {
     // (Which also calls other aggregate methods when needed obviously).
     attempt.registerAnswer(result);
 
+    // Finally, we return the Result object back to the application layer.
+    return result;
   }
 }
