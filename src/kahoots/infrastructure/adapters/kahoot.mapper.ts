@@ -16,14 +16,27 @@ export class KahootNestMapperAdapter implements IKahootMapper<CreateKahootDTO, U
 
     private mapSlides = (slidesInput: SlideInputDTO[] | undefined): KahootSlideCommand[] | undefined => {
         return slidesInput?.map((slide, index) => {
-            const options = this.mapOptions(slide.answers);
-            const { answers, ...baseSlideProps } = slide;
+        
+            const { 
+                answers, 
+                type: slideType, 
+                timeLimit, 
+                text: question, 
+                mediaId: slideImage, 
+                points: pointsValue, 
+                ...restOfProps 
+            } = slide;
 
             return new KahootSlideCommand({
-                ...baseSlideProps, 
+                ...restOfProps, 
+                slideType,
+                timeLimit, 
+                question,
+                slideImage,
+                points: pointsValue,
+                description: "", 
                 position: index, 
-                options: options,
-                description: "",
+                options: this.mapOptions(answers),
             });
         });
     }
@@ -41,12 +54,11 @@ export class KahootNestMapperAdapter implements IKahootMapper<CreateKahootDTO, U
     public toCreateCommand(input: CreateKahootDTO): CreateKahootCommand {
         
         const baseProps = this.mapBaseFields(input);
-        const { createdAt, questions, ...rest } = input;
+        const {questions, ...rest } = input;
 
         return new CreateKahootCommand({
             ...rest, 
-            ...baseProps, 
-            createdAt: new Date(createdAt), 
+            ...baseProps,
         });
     }
     
@@ -56,13 +68,13 @@ export class KahootNestMapperAdapter implements IKahootMapper<CreateKahootDTO, U
         const { createdAt, questions, ...rest } = input;
         
         const updatesOnly = {
-            ...rest,       
-            ...baseProps,  
+            ...rest,
+            ...baseProps,
             createdAt: createdAt ? new Date(createdAt) : undefined,
         };
 
         const filteredUpdates = Object.fromEntries(
-            Object.entries(updatesOnly).filter(([, value]) => value !== undefined)
+            Object.entries(updatesOnly).filter(([unused, value]) => value !== undefined)
         );
 
         return new UpdateKahootCommand({

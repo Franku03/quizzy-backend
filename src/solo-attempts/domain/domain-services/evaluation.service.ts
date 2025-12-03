@@ -1,8 +1,6 @@
 import { SoloAttempt } from "../aggregates/attempt";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { Submission } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
-import { AttemptStatus } from "../value-objects/attempt.status";
-import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 
 // Service responsible for evaluating a player's answer submission
 // within a solo Kahoot attempt.
