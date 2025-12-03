@@ -26,18 +26,21 @@ export class InMemorySessionRepository {
         const MAX_INACTIVITY = 1 * 60 * 60 * 1000; // 1 horas, por ejemplo
 
         for (const [pin, wrapper] of this.activeSessions.entries()) {
+
             if (now - wrapper.lastActivity > MAX_INACTIVITY) {
                 console.log(`Eliminando sesión inutilizada: ${pin}`);
                 this.activeSessions.delete(pin);
                 // Aquí el GC entra en acción y libera la memoria
                 // Recordar llamar aqui al servicio de borrado del pin del txt
             }
+
         }
     }
 
     // Cada vez que toques la sesión, actualiza lastActivity
     async save(sessionWraper: SessionWrapper): Promise<void> {
 
+        // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al sessionWrapper
         const { session, kahoot } = sessionWraper;
 
         this.activeSessions.set( session.getSessionPin().getPin() , {
@@ -45,6 +48,8 @@ export class InMemorySessionRepository {
              kahoot,
              lastActivity: Date.now()
         });
+
+        console.log( this.activeSessions.values() );
     }
 
     async findByPin(pin: string): Promise<SessionWrapper| null> {
