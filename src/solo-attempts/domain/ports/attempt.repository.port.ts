@@ -2,19 +2,20 @@ import { SoloAttempt } from "../aggregates/attempt";
 import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { KahootId} from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
+import { Optional } from "src/core/types/optional";
 
 export interface SoloAttemptRepository {
   // We use Promises for async DB access
   // Return nullable to handle 404s gracefully
 
   // Basic lookups by ID. Used in most business logic to load the aggregate for operations
-  findById(attemptId: AttemptId): Promise<SoloAttempt | null>;
+  findById(attemptId: AttemptId): Promise<Optional<SoloAttempt>>;
   
   // Specific lookup to support "Resume vs Start New" logic efficiently.
   // If a user tries to start a new attempt, we first check if there's an existing 
   // in-progress attempt for that user/kahoot combo. Only one active attempt per user/kahoot is allowed.
   // So, if found, the existing attempt will be deleted before starting a new one (by the app layer)
-  findActiveForUserIdAndKahootId(userId: UserId, kahootId: KahootId): Promise<SoloAttempt | null>;
+  findActiveForUserIdAndKahootId(userId: UserId, kahootId: KahootId): Promise<Optional<SoloAttempt>>;
 
   // List all active (in-progress) attempts for a user. 
   findAllActiveForUserId(userId: UserId): Promise<SoloAttempt[]>;
