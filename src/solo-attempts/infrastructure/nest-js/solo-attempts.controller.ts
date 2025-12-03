@@ -22,7 +22,6 @@ export class SoloAttemptsController {
          // We extract the authenticated user's ID from the request object.
         //const userId = req.user?.id; 
         const userId = crypto.randomUUID(); // Temporary user ID for testing without authentication
-
         // We execute the command and return the result directly.
         // The handler returns { attemptId, firstSlide } which matches the API response.
         return await this.commandBus.execute(

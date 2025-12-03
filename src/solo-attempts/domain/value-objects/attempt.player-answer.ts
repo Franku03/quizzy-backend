@@ -66,6 +66,8 @@ export class PlayerAnswer extends ValueObject<PlayerAnswerProps> {
         // If player selected an answer,
         // the answerIndex array must not be empty.
         if (props.answerContent.length > 0 && props.answerIndex.length === 0) {
+            console.log(this.answerContent)
+            console.log(this.answerIndex)
             throw new Error("If an answer is provided, the answer index array must not be empty.");
         }
 
