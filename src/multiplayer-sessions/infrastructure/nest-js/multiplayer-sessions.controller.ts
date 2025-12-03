@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, InternalServerErrorException, NotFoundException, Param, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, InternalServerErrorException, Logger, NotFoundException, Param, Post, UnauthorizedException } from '@nestjs/common';
 import { CreateSessionDto } from './dtos/create-session.dto';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
@@ -85,7 +85,11 @@ export class MultiplayerSessionsController {
         throw error;
       }
 
-      throw new InternalServerErrorException( message ); // throw unhandled error
+      // ! Error en consola para debugeo, quitar en produccion
+      const logger = new Logger('Multiplayer-Session-Controller');
+      logger.error( error );
+
+      throw new InternalServerErrorException( error ); // throw unhandled error
   }
 
 }
