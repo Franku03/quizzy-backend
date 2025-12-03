@@ -127,9 +127,42 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         }
     }
     //Comportamiento puro
+    
     public evaluateAnswer(submission: Submission): Result {
-        return this.properties.evalStrategy.evaluateAnswer(submission, this.getOptionsList());
+    // Get the selected options based on answerIndex
+    let selectedOptions: Optional<Option[]>;
+    
+    if (submission.getAnswerIndex().hasValue()) {
+        const answerIndices = submission.getAnswerIndex().getValue();
+        const allOptions = this.getOptionsList();
+        const selected = answerIndices
+            .filter(index => index >= 0 && index < allOptions.length)
+            .map(index => allOptions[index]);
+        
+        selectedOptions = new Optional(selected);
+    } else {
+        selectedOptions = new Optional<Option[]>();
     }
+    
+    // Create a new submission with slide data and selected options
+    const newSubmission = new Submission(
+        // Slide data
+        this.id, // SlideId
+        this.properties.question.hasValue()
+            ? new Optional(this.properties.question.getValue().value)
+            : new Optional<string>(),
+        this.properties.points, // Optional<Points>
+        new Optional(this.properties.timeLimit), // Optional<TimeLimitSeconds>
+        selectedOptions, // Only pass selected options, not all options
+        
+        // Preserved from original submission
+        submission.getAnswerIndex(), // Optional<number[]>
+        submission.getTimeElapsed() // ResponseTime
+    );
+    
+    return this.properties.evalStrategy.evaluateAnswer(newSubmission, this.getOptionsList());
+}
+
     public getOptionsList(): Option[] {
         const optionalOptions = this.properties.options; 
         return optionalOptions.hasValue() ? optionalOptions.getValue() : [];

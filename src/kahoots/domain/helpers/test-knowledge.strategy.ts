@@ -31,6 +31,12 @@ export class TestKnowledgeEvaluationStrategy implements EvaluationStrategy {
         
         // El AR debe garantizar que estos VOs están presentes para el cálculo.
         const responseTime = submission.getTimeElapsed().toSeconds();
+        if (!submission.getTimeLimit().hasValue()){
+            throw new Error('Time limit is required for score calculation');
+        }
+        if (!submission.getQuestionPoints().hasValue()){
+            throw new Error('Question points are required for score calculation');
+        }
         const questionTimer = submission.getTimeLimit().getValue().value; // Límite en segundos
         const pointsPossible = submission.getQuestionPoints().getValue().value; // Puntos base
         
