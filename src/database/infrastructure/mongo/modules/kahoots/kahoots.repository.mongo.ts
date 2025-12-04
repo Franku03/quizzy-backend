@@ -18,7 +18,7 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
   public async saveKahoot(kahoot: Kahoot): Promise<void> {
     const persistenceData = kahoot.getSnapshot();
-
+    console.log("hola")
     try {
       // 2. Persistencia: Usa findOneAndUpdate
       await this.kahootModel

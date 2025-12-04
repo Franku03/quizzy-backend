@@ -61,7 +61,12 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
         const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
         // 6. Persistencia
         await this.kahootRepository.saveKahoot(kahoot);
-
+        console.log(`
+        -----------------------------------------------------
+        🙌 CREATE SUCCESS [Kahoot ID: ${kahoot.id.value}]
+        -----------------------------------------------------
+        El nuevo Kahoot ha sido creado.
+        `);
         return this.kahootResponseMapper.toResponseDTO(kahoot);
 
     }
