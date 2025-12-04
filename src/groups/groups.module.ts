@@ -1,21 +1,61 @@
-import { Module } from '@nestjs/common';
+import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import { GroupsController } from './infrastructure/nest-js/groups.controller';
-import { RepositoryFactoryModule } from 'src/database/infrastructure/repository.factory.module';
-import { RepositoryName } from 'src/database/infrastructure/repositories/repository.catalog.enum';
+import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { IGroupRepository } from 'src/database/domain/repositories/groups/IGroupRepository';
-import { CreateGroup } from './application/use-cases/create-group.use-case';
-import { IUserRepository } from 'src/database/domain/repositories/users/IUserRepository';
-
+import { CreateGroupHandler } from './application/commands/create-group/create-group.handler';
+import { SoloAttemptCompletedListener } from './application/event-listeners/solo-attempt.listener';
+import { MarkAssignmentCompletedUseCase } from './application/use-cases/mark-assignment-completed.use-case';
+import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
+import type { EventBus } from 'src/core/domain/ports/event-bus.port';
+import { SoloAttemptCompletedEvent } from 'src/core/domain/domain-events/attempt-completed-event';
+import { CqrsModule } from '@nestjs/cqrs';
+import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
 
 @Module({
     controllers: [GroupsController],
-    imports: [RepositoryFactoryModule.forFeature(RepositoryName.Group), RepositoryFactoryModule.forFeature(RepositoryName.User)],
+    imports: [
+        CqrsModule,
+        RepositoryFactoryModule.forFeature(RepositoryName.Group),
+        DaoFactoryModule.forFeature(DaoName.Group)
+    ],
     providers: [
+        CreateGroupHandler,
+        GetGroupsByUserHandler,
         {
-            provide: 'CreateGroup',
-            useFactory: (groupRepository: IGroupRepository, userRepository: IUserRepository) => new CreateGroup(groupRepository, userRepository),
-            inject: [RepositoryName.Group, RepositoryName.User],
+            provide: MarkAssignmentCompletedUseCase,
+            useFactory: (repo: IGroupRepository) => new MarkAssignmentCompletedUseCase(repo),
+            inject: [RepositoryName.Group]
         },
+        {
+            provide: SoloAttemptCompletedListener,
+            useFactory: (useCase: MarkAssignmentCompletedUseCase) => {
+                return new SoloAttemptCompletedListener(useCase);
+            },
+            inject: [MarkAssignmentCompletedUseCase]
+        }
     ],
 })
-export class GroupsModule { }
+export class GroupsModule implements OnModuleInit {
+
+
+    constructor(
+        @Inject(EVENT_BUS_TOKEN) private readonly eventBus: EventBus,
+        private readonly soloAttemptCompletedListener: SoloAttemptCompletedListener
+    ) { }
+
+    onModuleInit() {
+        this.eventBus.subscribe(
+            SoloAttemptCompletedEvent.name,
+            async (event: SoloAttemptCompletedEvent) => {
+                if (event instanceof SoloAttemptCompletedEvent) {
+                    await this.soloAttemptCompletedListener.on(event);
+                }
+            }
+        );
+        //console.log('GroupsModule: Suscrito a SoloAttemptCompletedEvent');
+    }
+
+}

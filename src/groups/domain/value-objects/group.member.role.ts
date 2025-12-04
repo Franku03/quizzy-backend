@@ -19,4 +19,8 @@ export class Role extends ValueObject<GroupMemberRoleProps> {
         }
         super({ value });
     }
+
+    public get value(): GroupMemberRole {
+        return this.properties.value;
+    }
 }

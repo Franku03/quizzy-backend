@@ -31,6 +31,38 @@ interface AttemptId {
   readonly value: string;
 }
 
+interface AttemptId {
+  readonly value: string;
+}
+
+
+
+export interface GroupPrimitives {
+  id: string;
+  name: string;
+  description?: string;
+  adminId: string;
+  createdAt: Date;
+  members: Array<{ id: string; role: string; joinedAt: Date }>;
+  assignments: Array<{
+    id: string;
+    quizId: string;
+    assignedBy: string;
+    availableFrom: Date;
+    availableUntil: Date;
+    isAssignmentCompleted: boolean;
+  }>;
+  completions: Array<{
+    userId: string;
+    quizId: string;
+    attemptId: string;
+    score: number;
+  }>;
+  invitationToken: { value: string; expiresAt: Date } | null;
+}
+
+
+
 interface GroupProps {
   details: GroupDetails;
   createdAt: Date;
@@ -63,9 +95,9 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     // Crear el admin como primer miembro del grupo
     const adminMember = new GroupMember(
       {
-        userId: admin,
         role: new Role(GroupMemberRole.ADMIN),
         joinedAt: createdAt,
+        userId: admin,
       },
       new GroupMemberId(adminId)
     );
@@ -156,7 +188,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
 
-  public assignKahoot(requesterId: UserId, assignedUser: UserId, kahootId: KahootId, from: Date, to: Date): void {
+  public assignKahoot(requesterId: UserId, kahootId: KahootId, from: Date, to: Date): void {
     if (!this.isMember(requesterId)) {
       throw new Error("Solo los miembros del grupo pueden asignar kahoots.");
     }
@@ -170,7 +202,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     }
 
     this.properties.assignments.push(
-      new GroupAssignment({ groupId: this.id, assignedBy: requesterId, userId: assignedUser, quizId: kahootId, availableFrom: from, availableUntil: to, isAssignmentCompleted: false },
+      new GroupAssignment({ groupId: this.id, assignedBy: requesterId, quizId: kahootId, availableFrom: from, availableUntil: to, isAssignmentCompleted: false },
         this.id)
     );
 
@@ -248,6 +280,30 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
 
   public getName(): string {
     return this.properties.details.getName();
+  }
+
+public toPrimitives(): GroupPrimitives {
+    return {
+      id: this.id.value,
+      name: this.properties.details.getName(),
+      description: this.properties.details.getDescription ? this.properties.details.getDescription() : undefined,
+      adminId: this.properties.adminId.value,
+      createdAt: this.properties.createdAt,
+      
+      
+      members: this.properties.members.map(member => member.toPrimitives()),
+      
+      assignments: this.properties.assignments.map(assignment => assignment.toPrimitives()),
+
+
+      completions: this.properties.completions.map(completion => completion.toPrimitives()),
+
+
+      invitationToken: this.properties.invitationToken.hasValue() ? {
+        value: this.properties.invitationToken.getValue().getValue(),
+        expiresAt: this.properties.invitationToken.getValue().getExpiresAt()
+      } : null
+    };
   }
 }
 

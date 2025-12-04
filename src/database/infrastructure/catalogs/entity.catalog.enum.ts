@@ -1,19 +1,14 @@
 import { ModelDefinition } from '@nestjs/mongoose';
 import { EntityClassOrSchema } from '@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type';
+import { GroupMongo, GroupSchema } from '../mongo/entities/groups.schema';
 
 // TypeORM entities
 import { KahootEntity as KahootTypeORM } from '../postgres/entities/kahoots.entity';
 import { UserEntity as UserTypeORM } from '../postgres/entities/users.entity';
 
 // Mongoose schemas
-<<<<<<< HEAD:src/database/infrastructure/entities/entity.catalog.enum.ts
-import { KahootMongo, KahootSchema } from './mongo/kahoots/kahoots.schema';
-import { UserMongo, UserSchema } from './mongo/users/users.schema';
-import { GroupMongo, GroupSchema } from './mongo/groups/groups.schema';
-=======
 import { KahootMongo, KahootSchema } from '../mongo/entities/kahoots.schema';
 import { UserMongo, UserSchema } from '../mongo/entities/users.schema';
->>>>>>> origin/develop:src/database/infrastructure/catalogs/entity.catalog.enum.ts
 
 // Catálogo exclusivo de TypeORM (solo clases)
 export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [

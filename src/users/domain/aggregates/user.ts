@@ -8,8 +8,10 @@ import { UserPreferences } from "../value-objects/user.user-preferences";
 import { UserType } from "../value-objects/user.type";
 import { UserSubscriptionStatus } from "../value-objects/user.user-subscription-status";
 import { PlainPassword } from "../value-objects/user.plain-password";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { IPasswordHasher } from "../domain-services/i.password-hasher.interface";
-import { IUuidGenerationService } from "src/users/domain/domain-services/i.uuid-generator.interface";
+// import { UserCreatedEvent } from "../domain-events/user-created.event"; // TODO
+// import { UserPasswordChangedEvent } from "../domain-events/user-password-changed.event"; // TODO
 
 interface UserProps {
     email: UserEmail;
@@ -19,17 +21,17 @@ interface UserProps {
     userPreferences: UserPreferences;
     type: UserType;
     subscriptionStatus: UserSubscriptionStatus;
-    lastUsernameUpdate?: Date; 
+    lastUsernameUpdate?: DateISO; 
 }
 
 export class User extends AggregateRoot<UserProps, UserId> {
 
-    private constructor(props: UserProps, id: UserId) {
+    public constructor(props: UserProps, id: UserId) {
         super(props, id);
     }
 
     public static create(
-        uuidService: IUuidGenerationService,
+        id: UserId,
         email: UserEmail,
         username: UserName,
         userProfileDetails: UserProfileDetails,
@@ -38,9 +40,6 @@ export class User extends AggregateRoot<UserProps, UserId> {
         subscriptionStatus: UserSubscriptionStatus,
         userPreferences?: UserPreferences,
     ): User {
-        const uuidString = uuidService.generateIUserId();
-        const userId = new UserId(uuidString);
-
         const finalPreferences = userPreferences || UserPreferences.create("LIGHT");
 
         const props: UserProps = {
@@ -54,7 +53,11 @@ export class User extends AggregateRoot<UserProps, UserId> {
             lastUsernameUpdate: undefined, 
         };
 
-        return new User(props, userId);
+        const user = new User(props, id);
+
+        // user.record(new UserCreatedEvent(id, email, username)); // TODO
+        
+        return user;
     }
 
     public changeUserName(newUsername: UserName): void {
@@ -65,7 +68,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
         this.checkInvariants();
 
         this.properties.username = newUsername;
-        this.properties.lastUsernameUpdate = new Date();
+        this.properties.lastUsernameUpdate = DateISO.generate();
     }
 
     public changeEmail(newEmail: UserEmail): void {
@@ -105,6 +108,8 @@ export class User extends AggregateRoot<UserProps, UserId> {
         }
 
         this.properties.passwordHash = await newPassword.hash(hasher);
+
+        // this.record(new UserPasswordChangedEvent(this.id, this.properties.email)); // TODO
     }
 
     public async verifyPassword(inputPassword: PlainPassword, hasher: IPasswordHasher): Promise<boolean> {
@@ -116,17 +121,26 @@ export class User extends AggregateRoot<UserProps, UserId> {
     }
     
     protected checkInvariants(): void {
-        const lastUpdate = this.properties.lastUsernameUpdate;
+        const lastUpdateVO = this.properties.lastUsernameUpdate;
     
-        if (!lastUpdate) return;
-    
-        const now = new Date();
-        const nextAllowedDate = new Date(lastUpdate);
+        if (!lastUpdateVO) return;
+
+        const lastUpdateDate = new Date(lastUpdateVO.value);
+        const nextAllowedDate = new Date(lastUpdateDate);
         nextAllowedDate.setFullYear(nextAllowedDate.getFullYear() + 1);
-    
-        if (now < nextAllowedDate) {
-            throw new Error(`Solo puedes cambiar tu nombre de usuario una vez al año.`);
+        
+        const nextAllowedIsoString = nextAllowedDate.toISOString().split('T')[0];
+        const nextAllowedDateVO = DateISO.createFrom(nextAllowedIsoString);
+
+        const todayVO = DateISO.generate();
+
+        if (nextAllowedDateVO.isGreaterThan(todayVO)) {
+            throw new Error(`Solo puedes cambiar tu nombre de usuario una vez al año. Podrás hacerlo nuevamente el: ${nextAllowedDateVO.value}`);
         }
+    }
+
+    public isUserPremium(): boolean {
+        return this.properties.subscriptionStatus.isPremium();
     }
 
     get email(): UserEmail {
@@ -157,7 +171,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
         return this.properties.subscriptionStatus;
     }
 
-    public isUserPremium(): boolean {
-        return this.properties.subscriptionStatus.isPremium();
+    get lastUsernameUpdate(): DateISO | undefined {
+        return this.properties.lastUsernameUpdate;
     }
 }

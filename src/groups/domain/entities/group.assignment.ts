@@ -12,7 +12,6 @@ interface KahootId {
 
 interface GroupAssignmentProps {
     groupId: GroupId;
-    userId: UserId;
     quizId: KahootId;
     assignedBy: UserId;
     availableFrom: Date;
@@ -58,6 +57,17 @@ export class GroupAssignment extends Entity<GroupAssignmentProps, GroupAssignmen
 
     public markAsCompleted(): void {
         this.properties.isAssignmentCompleted = true;
+    }
+
+    public toPrimitives() {
+        return {
+            id: this.id.value,
+            quizId: this.properties.quizId.value,
+            assignedBy: this.properties.assignedBy.value,
+            availableFrom: this.properties.availableFrom,
+            availableUntil: this.properties.availableUntil,
+            isAssignmentCompleted: this.properties.isAssignmentCompleted
+        };
     }
 }
 

@@ -11,7 +11,7 @@ export const GetUserId = createParamDecorator(
         }
 
 
-        console.log(`User ID: ${request.user.id}`);
+        //console.log(`User ID: ${request.user.id}`);
         return request.user.id;
     }
 );
