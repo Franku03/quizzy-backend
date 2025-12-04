@@ -1,6 +1,3 @@
-// kahoot.factory.ts (Corregido)
-
-// [Mantener todos los imports existentes]
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { Slide, SlideProps } from "../entities/kahoot.slide";
 import { KahootStatus, KahootStatusEnum } from "../value-objects/kahoot.status";
