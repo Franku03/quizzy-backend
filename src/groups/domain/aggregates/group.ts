@@ -13,27 +13,12 @@ import { Role } from '../value-objects/group.member.role';
 import { ITokenGenerator } from '../domain-services/i.token-generator.service.interface';
 import { Score } from 'src/core/domain/shared-value-objects/value-objects/value.object.score';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-
+import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
+import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 
 //pending: revisar
 import { GroupMemberRole } from '../value-objects/group.member.role';
 
-
-//pending: eliminar al implementar la clase UserId
-import { UuidVO } from 'src/core/domain/abstractions/vo.id';
-class UserId extends UuidVO {
-  constructor(value: string) {
-    super(value);
-  }
-}
-
-interface AttemptId {
-  readonly value: string;
-}
-
-interface AttemptId {
-  readonly value: string;
-}
 
 
 
