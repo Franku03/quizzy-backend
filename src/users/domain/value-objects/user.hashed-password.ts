@@ -1,6 +1,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { IPasswordHasher } from "../domain-services/i.password-hasher.interface";
 import { PlainPassword } from "./user.plain-password";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
 
 interface HashedPasswordProps {
     readonly value: string;
@@ -9,7 +10,7 @@ interface HashedPasswordProps {
 export class HashedPassword extends ValueObject<HashedPasswordProps> {
     
     constructor(value: string) {
-        if (!value) throw new Error("El hash no puede estar vacío");
+        if (!value) throw new InvalidArgumentError("El hash no puede estar vacío");
         super({ value });
     }
 

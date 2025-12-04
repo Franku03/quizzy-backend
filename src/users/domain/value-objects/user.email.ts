@@ -1,4 +1,5 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
 
 interface UserEmailProps {
     readonly value: string;
@@ -16,7 +17,7 @@ export class UserEmail extends ValueObject<UserEmailProps> {
         const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
         
         if (!emailRegex.test(value)) {
-            throw new Error(`El email <${value}> no es válido.`);
+            throw new InvalidArgumentError(`El email <${value}> no es válido.`);
         }
     }
 

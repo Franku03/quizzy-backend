@@ -1,6 +1,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { IPasswordHasher } from "../domain-services/i.password-hasher.interface";
 import { HashedPassword } from "./user.hashed-password";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
 
 interface PlainPasswordProps {
     readonly value: string;
@@ -20,7 +21,7 @@ export class PlainPassword extends ValueObject<PlainPasswordProps> {
     
     private static ensureIsSecure(value: string): void {
         if (value.length < 6) {
-            throw new Error("La contraseña debe tener al menos 6 caracteres.");
+            throw new InvalidArgumentError("La contraseña debe tener al menos 6 caracteres.");
         }
     }
 

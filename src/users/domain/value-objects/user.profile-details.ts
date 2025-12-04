@@ -1,4 +1,5 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
 
 interface UserProfileDetailsProps {
     readonly name: string;
@@ -18,16 +19,16 @@ export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
    
     private static ensureNameIsValid(name: string): void {
         if (!name || name.trim().length === 0) {
-            throw new Error("El nombre no puede estar vacío.");
+            throw new InvalidArgumentError("El nombre no puede estar vacío.");
         }
         if (name.length > 148) {
-            throw new Error(`El nombre es demasiado largo. Máximo 148 caracteres.`);
+            throw new InvalidArgumentError(`El nombre es demasiado largo. Máximo 148 caracteres.`);
         }
     }
     
     private static ensureDescriptionIsValid(description: string): void {
         if (description.length > 300) {
-            throw new Error(`La descripción supera el límite de 300 caracteres.`);
+            throw new InvalidArgumentError(`La descripción supera el límite de 300 caracteres.`);
         }
     }
 
@@ -37,7 +38,7 @@ export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
         try {
             new URL(url);
         } catch (error) {
-            throw new Error(`La URL del avatar <${url}> no es válida.`);
+            throw new InvalidArgumentError(`La URL del avatar <${url}> no es válida.`);
         }
     }
     

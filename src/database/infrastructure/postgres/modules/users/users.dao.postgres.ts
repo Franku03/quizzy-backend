@@ -17,6 +17,6 @@ export class UserDaoPostgres implements IUserDao {
     const user = await this.userRepo.findOne({ where: { name } });
     if (!user) return new Optional<UserReadModel>();
 
-    return new Optional<UserReadModel>(new UserReadModel(user.name));
+    return new Optional<UserReadModel>(new UserReadModel('id-fake', 'email-fake', user.name)); // momentaneo, implementacion pendiente TODO
   }
 }
