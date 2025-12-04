@@ -35,8 +35,92 @@ export abstract class ValueObject<T extends object> {
         return this.deepEqual(this.properties, vo.properties);
     }
     
-    private deepEqual(a: any, b: any): boolean {
+    private deepEqual(a: any, b: any, visited = new WeakMap<any, any>()): boolean {
+        // Referential equality & primitives
+        if (a === b) {
+            return true;
+        }
 
+        // Null/Undefined checks
+        if (a === null || a === undefined || b === null || b === undefined) {
+            return false;
+        }
+
+        // Primitive mismatch (e.g. "5" vs 5)
+        // Also handles functions or symbols if they weren't caught by strict equality
+        if (typeof a !== 'object' || typeof b !== 'object') {
+            return false;
+        }
+
+        // --- At this point, 'a' and 'b' are guaranteed to be non-null Objects ---
+
+        // Constructor Mismatch
+        // Essential for DDD: Ensures a 'UserId' doesn't equal an 'OrderId'
+        // Also ensures Array doesn't equal Object
+        if (a.constructor !== b.constructor) {
+            return false;
+        }
+
+        // Circular Reference Check
+        if (visited.has(a)) {
+            return visited.get(a) === b;
+        }
+        visited.set(a, b);
+
+        // Special Case: ValueObject
+        // Check this FIRST to avoid the ".equals" infinite recursion trap
+        if (a instanceof ValueObject) {
+            return this.deepEqual(a.getProperties(), b.getProperties(), visited);
+        }
+
+        // Special Case: Date
+        if (a instanceof Date) {
+            return a.getTime() === b.getTime();
+        }
+
+        // Special Case: RegExp
+        if (a instanceof RegExp) {
+            return a.toString() === b.toString();
+        }
+
+        // Special Case: Map
+        if (a instanceof Map) {
+            if (a.size !== b.size) return false;
+            for (const [key, val] of a) {
+                if (!b.has(key)) return false;
+                // Note: Map keys are compared strictly by reference usually, 
+                // but values need deep comparison
+                if (!this.deepEqual(val, b.get(key), visited)) return false;
+            }
+            return true;
+        }
+
+        // Special Case: Sets
+        if (a instanceof Set) {
+            if (a.size !== b.size) return false;
+            // Sets are harder to deep compare because they don't have keys. 
+            // Typically strict iteration is enough, or converting to array.
+            const arrayA = Array.from(a);
+            const arrayB = Array.from(b);
+            return this.deepEqual(arrayA, arrayB, visited);
+        }
+
+        // Generic .equals() method support
+        // (Only if it's NOT a ValueObject, handled in step 6)
+        if (typeof a.equals === 'function') {
+            return a.equals(b);
+        }
+
+        // Arrays
+        if (Array.isArray(a)) {
+            if (a.length !== b.length) return false;
+            for (let i = 0; i < a.length; i++) {
+                if (!this.deepEqual(a[i], b[i], visited)) return false;
+            }
+            return true;
+        }
+
+        // Plain Objects (or objects without specific handlers)
         const keysA = Object.keys(a);
         const keysB = Object.keys(b);
 
@@ -45,34 +129,10 @@ export abstract class ValueObject<T extends object> {
         }
 
         for (const key of keysA) {
-            
-            const propA = a[key]; 
-            const propB = b[key]; 
-            
-            if (propA === null || propB === null) {
-                if (propA !== propB) return false;
-                continue; 
+            if (!Object.prototype.hasOwnProperty.call(b, key)) {
+                return false;
             }
-            
-            // Si un objeto anidado es un VO, debe tener su propio
-            // método 'equals'. Delegamos la responsabilidad de la igualdad a ese objeto.
-            // Esto sucederia si un VO tiene como objeto otro VO (no c cuando podria ocurrir pero mejor prevenir)
-            if (propA.equals && propB.equals) {
-                if (!propA.equals(propB)) return false;
-            } 
-
-            // Verificación de Objetos Literales o Arrays (Necesitan Recursión)
-            // Si no fue manejado como un VO y tiene un constructor de objeto, 
-            // asumimos que es un objeto complejo (Object literal, Array, Map, etc.) y aplicamos la recursión.
-            else if (propA?.constructor === Object || propA?.constructor !== undefined) {
-                
-                if (!this.deepEqual(propA, propB)) {
-                    return false;
-                }
-            } 
-
-            // Si llegamos aquí, se asume que son primitivos y se comparan directamente.
-            else if (propA !== propB) {
+            if (!this.deepEqual(a[key], b[key], visited)) {
                 return false;
             }
         }

@@ -7,9 +7,9 @@ export interface SlideSnapshot {
     slideType: SlideTypeEnum; 
     timeLimitSeconds: number; 
     //Opcionales
-    questionText: string | null; 
-    slideImageId: string | null; 
-    pointsValue: number | null; 
-    descriptionText: string | null; 
-    options: OptionSnapshot[] | null; 
+    questionText?: string; 
+    slideImageId?: string; 
+    pointsValue?: number; 
+    descriptionText?: string; 
+    options?: OptionSnapshot[]; 
 }

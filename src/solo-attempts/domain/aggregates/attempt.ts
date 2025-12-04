@@ -3,7 +3,6 @@ import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singl
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
-import { AttemptStatus } from "../value-objects/attempt.status";
 import { AttemptProgress } from "../value-objects/attempt.progress";
 import { AttemptTimeDetails } from "../value-objects/attempt.time-details";
 import { PlayerAnswer } from "../value-objects/attempt.player-answer";
@@ -12,6 +11,7 @@ import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.
 import { DomainEvent } from "src/core/domain/abstractions/domain-event";
 import { SoloAttemptCompletedEvent } from "src/core/domain/domain-events/attempt-completed-event";
 import { SoloAttemptStartedEvent } from "src/core/domain/domain-events/attempt-started.event";
+import { AttemptStatus } from "../value-objects/attempt.status";
 
 // This interface acts as the definitive contract for the state of a SoloAttempt.
 // It groups together the identity, the link to the original Kahoot, the player involved,
@@ -20,8 +20,6 @@ export interface SoloAttemptProps {
     readonly id: AttemptId;
     readonly kahootId: KahootId;
     readonly playerId: UserId;
-    // The current state of the game (IN_PROGRESS or COMPLETED).
-    status: AttemptStatus;
     // The accumulated score based on correctness and speed. 
     totalScore: Score;
     // Tracks how many questions have been answered relative to the total.
@@ -30,6 +28,8 @@ export interface SoloAttemptProps {
     timeDetails: AttemptTimeDetails;
     // A collection of all answers submitted by the player so far.
     answers: PlayerAnswer[];
+    // The current state of the game (IN_PROGRESS or COMPLETED).
+    status: AttemptStatus;
 }
 
 // The SoloAttempt Aggregate Root serves as the consistency boundary 
@@ -78,7 +78,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
         // We cannot register answers for a completed attempt.
         if (!this.isInProgress()) {
-            throw new Error("Cannot register answers for a completed or non-active attempt.");
+            throw new Error("Cannot register answers for a completed attempt.");
         }
 
         // Duplicate answers are prevented by ensuring the user hasn't already submitted 
@@ -146,7 +146,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
         // Update Status
         // We mark the attempt as finished so no further answers can be processed.
-        this.properties.status = AttemptStatus.COMPLETED;
+        this.properties.status = this.properties.status.completeAttempt();
 
         // Update Time Logic 
         // We finalize the time tracking by setting the completion date in the value object.
@@ -180,14 +180,14 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
     // This state implies the player has not yet answered all questions.
     // They should be allowed to continue playing.
     public isInProgress(): boolean {
-        return this.properties.status === AttemptStatus.IN_PROGRESS;
+        return this.properties.status.isInProgress();
     }
 
     // Indicates if the attempt has been completed.
     // Once an attempt is completed, no further answers can be accepted, and the
     // system is ready to display the final summary and statistics.
     public isCompleted(): boolean {
-        return this.properties.status === AttemptStatus.COMPLETED;
+        return this.properties.status.isCompleted();
     }
 
     // We calculate the total count of questions the player has successfully answered.
@@ -297,7 +297,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
         // If the attempt is marked as COMPLETED, strict rules apply:
         // 1. All questions must have been answered.
         // 2. The audit trail must contain a completion timestamp.
-        if (this.properties.status === AttemptStatus.COMPLETED) {
+        if (this.isCompleted()) {
             
             if (this.properties.progress.questionsAnswered !== this.properties.progress.totalQuestions) {
                 throw new Error("Invariant Violation: Attempt is COMPLETED but not all questions are answered.");
@@ -312,7 +312,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
 
         // Active State Consistency:
         // Conversely, if the attempt is IN_PROGRESS, it must NOT have a completion timestamp.
-        if (this.properties.status === AttemptStatus.IN_PROGRESS) {
+        if (this.isInProgress()) {
             if (this.properties.timeDetails.completedAt.hasValue()) {
                 throw new Error("Invariant Violation: Attempt is IN_PROGRESS but has a completion timestamp.");
             }

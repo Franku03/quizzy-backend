@@ -6,7 +6,8 @@ import { DatabaseDriverModule } from './database/infrastructure/database.driver.
 import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-sessions.module';
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
-import { GroupsModule } from './groups/groups.module';
+import { GroupsModule } from './groups/groups.module'; // De HEAD
+import { MediaModule } from './media/infraestructure/media.module'; // De Incoming
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { GroupsModule } from './groups/groups.module';
     UsersModule,
     MultiplayerSessionsModule,
     SoloAttemptsModule,
-    GroupsModule,
+    GroupsModule, // Agregado
+    MediaModule,  // Agregado
   ],
 })
 export class AppModule {

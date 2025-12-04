@@ -58,7 +58,7 @@ export class ShortAnswerSlide extends Slide {
                 throw new Error(`[Constructor] Slide ShortAnswer: Cada respuesta debe ser solo texto y no tener imagen.`);
             }
 
-            const incorrectOptionsCount = optionsArray.filter(o => !o.isCorrectAnswer()).length;
+            const incorrectOptionsCount = optionsArray.filter(o => !o.isCorrect).length;
             if (incorrectOptionsCount > 0) {
                 throw new Error("[Constructor] Slide ShortAnswer: Todas las opciones deben estar marcadas como correctas.");
             }
