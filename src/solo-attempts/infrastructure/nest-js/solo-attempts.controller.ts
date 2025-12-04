@@ -180,7 +180,7 @@ export class SoloAttemptsController {
         if (
           errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
         ) {
-          throw new NotFoundException('Attempt not found or does not belong to user');
+          throw new NotFoundException('There is not a completed attempt with the specified ID');
         }
 
         // For any other errors, throw a generic error
