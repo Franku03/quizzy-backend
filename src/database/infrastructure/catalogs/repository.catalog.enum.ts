@@ -6,6 +6,7 @@ import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.re
 import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
 import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
+import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
 
 export type RepositoryRegistryItem = {
   typeorm: Type<any> | null;
@@ -17,6 +18,7 @@ export enum RepositoryName {
   Kahoot = 'KahootRepository',
   Attempt = 'AttemptRepository',
   Group = 'GroupRepository',
+  FileMetadata = 'FileMetadataRepository',
 }
 
 export const REPOSITORY_REGISTRY: Record<
@@ -38,5 +40,9 @@ export const REPOSITORY_REGISTRY: Record<
   [RepositoryName.Group]: {
     typeorm: null,
     mongoose: GroupRepositoryMongo,
+  },
+  [RepositoryName.FileMetadata]: {
+    typeorm: null,
+    mongoose: FileMetadataMongoRespository,
   },
 };

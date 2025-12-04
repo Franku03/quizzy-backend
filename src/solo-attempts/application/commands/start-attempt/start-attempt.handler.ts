@@ -12,7 +12,7 @@ import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id'
 import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
-import { SlideSnapshotMapper } from '../../mappers/slide.mapper';
+import { SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
 
 @CommandHandler(StartSoloAttemptCommand)
@@ -30,7 +30,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     // We instantiate the Value Objects to ensure structural validity of IDs
     const kahootId = new KahootId(command.kahootId);
     const playerId = new UserId(command.userId);
-
+    
     // We Fetch the Kahoot Aggregate to ensure it exists 
     const kahootOptional = await this.kahootRepository.findKahootById(kahootId);
     if (!kahootOptional.hasValue()) {

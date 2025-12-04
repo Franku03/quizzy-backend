@@ -4,10 +4,10 @@ import { Inject } from "@nestjs/common";
 import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
 import { QR_TOKEN_ERRORS } from "./get-pin-with-qr-token.errors";
-import { GetPinWithQrTokenResponse } from "../response-dtos/get-pin-with-qr-token.response.dto";
+import { GetPinWithQrTokenResponse } from "../../response-dtos/get-pin-with-qr-token.response.dto";
 import { GetPinWithQrTokenCommand } from "./get-pin-with-qr-token.command";
 
-import { Either } from '../../../core/types/either';
+import { Either } from '../../../../core/types/either';
 
 
 @CommandHandler( GetPinWithQrTokenCommand )

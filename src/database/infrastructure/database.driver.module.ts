@@ -42,24 +42,52 @@ export class DatabaseDriverModule {
 
       // Lógica condicional para Mongoose
     } else if (dbType === 'mongo') {
-      imports.push(
-        MongooseModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (config: ConfigService) => {
-            const user = config.get<string>('MONGO_USER');
-            const pass = config.get<string>('MONGO_PASSWORD');
-            const host = config.get<string>('MONGO_HOST');
-            const port = config.get<string>('MONGO_PORT');
-            const dbName = config.get<string>('DB_NAME');
 
-            // Construcción de la URI
-            const uri = `mongodb://${user}:${pass}@${host}:${port}/${dbName}?authSource=admin`;
+      // Para construir conexion con BD de MongoAtlas en la nube
+      if( process.env.MONGO_CNN ){
 
-            return { uri, dbName };
-          },
-        }),
-      );
+        imports.push(
+          MongooseModule.forRootAsync( {
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => {
+
+              const dbName = config.get<string>('DB_NAME');
+  
+              // Ponemos la URL directo de Atlas
+              const uri = config.get<string>('MONGO_CNN');
+  
+              return { uri, dbName };
+            },  
+
+          })
+        )
+
+      } else {
+
+        // Para construir conexion con BD de docker
+        imports.push(
+          MongooseModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => {
+              const user = config.get<string>('MONGO_USER');
+              const pass = config.get<string>('MONGO_PASSWORD');
+              const host = config.get<string>('MONGO_HOST');
+              const port = config.get<string>('MONGO_PORT');
+              const dbName = config.get<string>('DB_NAME');
+  
+              // Construcción de la URI
+              const uri = `mongodb://${user}:${pass}@${host}:${port}/${dbName}?authSource=admin`;
+  
+              return { uri, dbName };
+            },
+          }),
+        );
+        
+      }
+
+
       // Exportamos el módulo base para que otros módulos puedan usar Mongoose (e.g., inyectar Modelos)
       exports.push(MongooseModule);
       console.log('✅ Base de datos configurada: MongoDB (Mongoose)');

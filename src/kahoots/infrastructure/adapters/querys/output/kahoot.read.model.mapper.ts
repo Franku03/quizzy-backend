@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model'; 
 import { SlideReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.response.read.model';
 import { OptionReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.option.response.read.model';
@@ -12,6 +11,7 @@ import {
     KahootDetailsSnapshot, 
     KahootStylingSnapshot 
 } from 'src/database/infrastructure/mongo/entities/kahoots.schema'; // RUTA ASUMIDA
+import { MapperHelper } from '../../helpers/kahoot.mapper.helper';
 
 /**
  * El tipo de entrada que el DAO le pasará al Mapper ().
@@ -61,7 +61,7 @@ export class KahootReadMapper implements IKahootReadResponseMapper {
             id: slide.id, 
             text: slide.questionText ?? null,
             mediaId: slide.slideImageId ?? null, 
-            type: slide.slideType,
+            type: slide.slideType.toLowerCase(),
             timeLimit: slide.timeLimitSeconds,
             points: slide.pointsValue ?? null,
             position: slide.position,
@@ -86,13 +86,13 @@ export class KahootReadMapper implements IKahootReadResponseMapper {
         readModel.title = details?.title ?? null; 
         readModel.description = details?.description ?? null;
         readModel.coverImageId = styling.imageId ?? null;
-        readModel.visibility = kahootData.visibility;
+        readModel.visibility = MapperHelper.capitalizeFirstLetter(kahootData.visibility)!;
         readModel.themeId = styling.themeId;
         readModel.authorId = kahootData.authorId;
         readModel.createdAt = kahootData.createdAt;
         readModel.playCount = kahootData.playCount;
         readModel.category = details?.category ?? null;
-        readModel.status = kahootData.status;
+        readModel.status = MapperHelper.capitalizeFirstLetter(kahootData.status)!;
         readModel.questions = mappedQuestions;
 
         return readModel;

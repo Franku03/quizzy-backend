@@ -11,6 +11,7 @@ import { KahootMongo, KahootSchema } from '../mongo/entities/kahoots.schema';
 import { UserMongo, UserSchema } from '../mongo/entities/users.schema';
 import { AttemptMongo, AttemptSchema } from '../mongo/entities/attempts.scheme';
 import { GroupMongo, GroupSchema } from '../mongo/entities/groups.schema';
+import { FileMetadataMongo, FileMetadataSchema } from '../mongo/entities/media.schema';
 
 // Catálogo exclusivo de TypeORM (solo clases)
 export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
@@ -25,4 +26,5 @@ export const MONGOOSE_ENTITY_REGISTRY: ModelDefinition[] = [
   { name: UserMongo.name, schema: UserSchema },
   { name: AttemptMongo.name, schema: AttemptSchema },
   { name: GroupMongo.name, schema: GroupSchema },
+  { name: FileMetadataMongo.name, schema: FileMetadataSchema },
 ];

@@ -8,7 +8,7 @@ interface CreateCommandProps {
     status: string;
     title?: string;
     description?: string;
-    coverImageId?: string;
+    imageId?: string;
     category?: string;
     slides?: KahootSlideCommand[];
 }

@@ -26,7 +26,6 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
     ) {}
 
      async execute(command: CreateKahootCommand): Promise<KahootResponseDTO> {
-        
 
         const creationDateString = new Date().toISOString().split('T')[0]; 
 
@@ -61,7 +60,13 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
         const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
         // 6. Persistencia
         await this.kahootRepository.saveKahoot(kahoot);
-
+        console.log(`
+        -----------------------------------------------------
+        🙌 CREATE SUCCESS [Kahoot ID: ${kahoot.id.value}]
+        -----------------------------------------------------
+        El nuevo Kahoot ha sido creado.
+        `);
+        console.log(kahoot.styling.imageId)
         return this.kahootResponseMapper.toResponseDTO(kahoot);
 
     }
