@@ -25,8 +25,8 @@ export class ReportsController {
       const errorMessage = (error as Error).message;
 
       // We map domain error codes to appropriate HTTP exceptions for clear client feedback
-      if (errorMessage.startsWith(GET_DETAILED_REPORT_ERROR_CODES.INVALID_ATTEMPT)) {
-        throw new BadRequestException('Cannot generate detailed report for an invalid attempt');
+      if (errorMessage.startsWith(GET_DETAILED_REPORT_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)) {
+        throw new BadRequestException('A completed attempt with the specified ID was not found');
       }
 
       if (errorMessage.startsWith(GET_DETAILED_REPORT_ERROR_CODES.UNAUTHORIZED_ACCESS)) {

@@ -21,7 +21,7 @@ export class GetDetailedReportHandler implements IQueryHandler<GetDetailedReport
 
     // If no report is found, we throw an error indicating the attempt was not found or not completed
     if (!optionalReport.hasValue()) {
-      throw new Error(GET_DETAILED_REPORT_ERROR_CODES.INVALID_ATTEMPT);
+      throw new Error(GET_DETAILED_REPORT_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
     }
     return optionalReport.getValue();
 
