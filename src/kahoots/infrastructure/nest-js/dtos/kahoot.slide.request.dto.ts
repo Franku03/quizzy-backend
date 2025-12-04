@@ -1,6 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import { IsInt, IsOptional, IsString, IsUUID, Min } from "class-validator";
-import { cleanNullToUndefined } from "./helper.request.dto.";
+import { cleanNullToUndefined, toUpperCase } from "./helper.request.dto.";
 import { OptionInputDTO } from "./kahoot.slide.option.request.dto";
 
 export class SlideInputDTO {
@@ -11,6 +11,7 @@ export class SlideInputDTO {
 
     // type: String (Obligatorio)
     @IsString()
+    @Transform(toUpperCase)
     type: string; 
     
     // timeLimit: Integer (Obligatorio)

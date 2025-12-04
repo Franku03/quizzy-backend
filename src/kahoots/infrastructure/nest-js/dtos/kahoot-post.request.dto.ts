@@ -1,6 +1,6 @@
 import { Transform, Type } from "class-transformer";
 import { IsOptional, IsString, IsUUID } from "class-validator";
-import { cleanNullToUndefined } from "./helper.request.dto.";
+import { cleanNullToUndefined, toUpperCase } from "./helper.request.dto.";
 import { SlideInputDTO } from "./kahoot.slide.request.dto";
 
 export class CreateKahootDTO {
@@ -24,9 +24,11 @@ export class CreateKahootDTO {
     @IsUUID()
     authorId: string; 
     @IsString()
+    @Transform(toUpperCase)
     status: string; 
 
     @IsString()
+    @Transform(toUpperCase)
     visibility: string; 
 
     @IsUUID()
