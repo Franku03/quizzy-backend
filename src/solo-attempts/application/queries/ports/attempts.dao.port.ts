@@ -3,7 +3,7 @@
 import { Optional } from 'src/core/types/optional';
 import { AttemptResumeReadModel } from '../read-models/resume.attempt.read.model';
 import { AttemptSummaryReadModel } from '../read-models/summary.attempt.read.model';
-import { AttemptReportReadModel } from '../read-models/report.attempt.read.model';
+import { AttemptReportReadModel } from '../../../../reports/application/queries/read-models/solo.attempt.report.read.model';
 
 export interface ISoloAttemptQueryDao {
   // ---------------------------------------------------------------------------

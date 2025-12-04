@@ -1,7 +1,10 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 import { v4 as uuidv4 } from 'uuid';
+import { FileSystemPinRepository } from "../adapters/file-system.pin.repository";
+
+import type { IPinRepository } from "src/multiplayer-sessions/domain/ports";
 
 type sessionPin = string
 
@@ -36,7 +39,10 @@ export class InMemorySessionRepository {
     // Esto es bueno por seguridad, el QR no debería ser eterno.
     private readonly QR_TTL = 10 * 60 * 1000;
 
-    constructor() {
+    constructor(
+        @Inject( FileSystemPinRepository )
+        private readonly pinRepo: IPinRepository
+    ) {
         // Limpiador de sesiones no usadas automático cada 10 minutos
         setInterval(() => this.cleanupUnusedSessions(), 10 * 60 * 1000);
 
@@ -44,37 +50,9 @@ export class InMemorySessionRepository {
         setInterval(() => this.cleanupExpiredTokens(), 5 * 60 * 1000);
     }
 
-    private cleanupUnusedSessions() {
-        const now = Date.now();
-        const MAX_INACTIVITY = 1 * 60 * 60 * 1000; // 1 horas, por ejemplo
 
-        for (const [pin, wrapper] of this.activeSessions.entries()) {
 
-            if (now - wrapper.lastActivity > MAX_INACTIVITY) {
-                console.log(`Eliminando sesión inutilizada: ${pin}`);
-                this.activeSessions.delete(pin);
-                // Aquí el GC entra en acción y libera la memoria
-                // Recordar llamar aqui al servicio de borrado del pin del txt
-            }
-
-        }
-    }
-
-    private cleanupExpiredTokens() {
-
-        const now = Date.now();
-        
-        for (const [token, data] of this.qrTokens.entries()) {
-
-            if (now - data.createdAt > this.QR_TTL) {
-                this.qrTokens.delete(token);
-            }
-
-        }
-
-    }
-
-    // Cada vez que toques la sesión, actualiza lastActivity
+    // Cada vez que se toque la sesión, actualiza lastActivity
     async save(sessionWraper: SessionWrapper): Promise<qrToken> {
 
         // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al sessionWrapper
@@ -110,12 +88,6 @@ export class InMemorySessionRepository {
     async findByPin(pin: string): Promise<SessionWrapper| null> {
         return this.activeSessions.get( pin ) || null;
     }
-    
-    async delete(pin: string): Promise<void> {
-        this.activeSessions.delete( pin );
-        // Al hacer delete, se rompe la referencia fuerte.
-        // Si nadie más usa esa Session, el GC la eliminará en la próxima pasada.
-    }
 
     async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
 
@@ -131,5 +103,59 @@ export class InMemorySessionRepository {
         }
 
         return this.findByPin( data.pin );
+    }
+
+    
+    async delete(pin: string): Promise<void> {
+        this.activeSessions.delete( pin );
+        // Al hacer delete, se rompe la referencia fuerte.
+        // Si nadie más usa esa Session, el GC la eliminará en la próxima pasada.
+
+        // Eliminamos el pin del txt para liberarlo
+        this.pinRepo.releasePin( pin );
+    }
+
+    // TODO: Implementar metodo para chequear existencia de la partida y si el usuario es propietario
+    async IsUserSessionHost( pin: string, userId: string ): Promise<boolean> {
+
+        const session = this.activeSessions.get( pin );
+
+        if( !session )
+            return false
+
+        return true
+
+    }
+
+
+    // ! Funciones de limpieza de memoria
+    private cleanupUnusedSessions() {
+        const now = Date.now();
+        const MAX_INACTIVITY = 1 * 60 * 60 * 1000; // 1 horas, por ejemplo
+
+        for (const [pin, wrapper] of this.activeSessions.entries()) {
+
+            if (now - wrapper.lastActivity > MAX_INACTIVITY) {
+                console.log(`Eliminando sesión inutilizada: ${pin}`);
+                this.activeSessions.delete(pin);
+                // Aquí el GC entra en acción y libera la memoria
+                // Recordar llamar aqui al servicio de borrado del pin del txt
+            }
+
+        }
+    }
+
+    private cleanupExpiredTokens() {
+
+        const now = Date.now();
+        
+        for (const [token, data] of this.qrTokens.entries()) {
+
+            if (now - data.createdAt > this.QR_TTL) {
+                this.qrTokens.delete(token);
+            }
+
+        }
+
     }
 }  

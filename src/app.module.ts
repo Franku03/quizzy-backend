@@ -8,6 +8,7 @@ import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD
 import { MediaModule } from './media/infraestructure/media.module'; // De Incoming
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -17,11 +18,13 @@ import { MediaModule } from './media/infraestructure/media.module'; // De Incomi
     DatabaseDriverModule.forRoot(),
     CoreModule,
     KahootsModule,
+    ReportsModule,
     UsersModule,
     MultiplayerSessionsModule,
     SoloAttemptsModule,
     GroupsModule, // Agregado
     MediaModule,  // Agregado
+    MediaModule,
   ],
 })
 export class AppModule {

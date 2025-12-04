@@ -11,7 +11,7 @@ import { AttemptSummaryReadModel } from 'src/solo-attempts/application/queries/r
 import { 
   AttemptReportReadModel, 
   QuestionResultReadModel 
-} from 'src/solo-attempts/application/queries/read-models/report.attempt.read.model';
+} from 'src/reports/application/queries/read-models/solo.attempt.report.read.model';
 import { NextSlideReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
 
 @Injectable()
@@ -127,6 +127,11 @@ export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
     const attempt = await this.attemptModel.findOne({ id: attemptId }).exec();
 
     if (!attempt) return new Optional<AttemptReportReadModel>();
+
+    if (attempt.status !== AttemptStatusEnum.COMPLETED) {
+      // The attempt is not yet completed, so we cannot provide a summary.
+      return new Optional<AttemptReportReadModel>();
+    }
 
     // FIX: Updated projection to target the nested 'details.title' field.
     // The previous '{ title: 1 }' would fail because title is no longer at root.

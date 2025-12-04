@@ -38,6 +38,8 @@ Debes configurar las variables de conexión a la base de datos que hayas elegido
 
 2. Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
 
+**‼️Importante‼️** 3. Si tienes un cluster de BD en mongo atlas, puedes colocar la URL a la misma en la variable de entorno ``MONGO_CNN`` para conectarte a esta envés de la BD local.
+
 ### 3. ▶️ Ejecutar el Proyecto
 
 Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios (conocido como watch mode).

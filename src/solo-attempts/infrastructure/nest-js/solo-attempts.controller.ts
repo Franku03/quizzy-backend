@@ -50,11 +50,6 @@ export class SoloAttemptsController {
         throw new BadRequestException('The Kahoot has no slides to play');
       }
 
-      // Si es un BadRequestException de Nest (de validación de entrada), re-lanzarlo
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
       throw error; // throw unhandled error
     }
   }
@@ -185,7 +180,7 @@ export class SoloAttemptsController {
         if (
           errorMessage.startsWith(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND)
         ) {
-          throw new NotFoundException('Attempt not found or does not belong to user');
+          throw new NotFoundException('There is not a completed attempt with the specified ID');
         }
 
         // For any other errors, throw a generic error

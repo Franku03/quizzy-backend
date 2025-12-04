@@ -13,7 +13,7 @@ export type DaoRegistryItem = {
 export enum DaoName {
   User = 'UserDao',
   Group = 'GroupDao',
-  Kahoot = 'KahootDao',
+  Kahoot = 'KahootDao', 
   SoloAttempt = 'SoloAttemptDao',
 }
 
