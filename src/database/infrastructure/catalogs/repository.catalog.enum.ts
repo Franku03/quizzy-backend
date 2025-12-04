@@ -3,6 +3,9 @@ import { UserRepositoryMongo } from '../mongo/modules/users/users.repository.mon
 import { Type } from '@nestjs/common';
 import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.repository.mongo';
 import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.repository.postgres';
+import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
+import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
+import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
 
 export type RepositoryRegistryItem = {
   typeorm: Type<any> | null;
@@ -12,6 +15,8 @@ export type RepositoryRegistryItem = {
 export enum RepositoryName {
   User = 'UserRepository',
   Kahoot = 'KahootRepository',
+  Attempt = 'AttemptRepository',
+  FileMetadata = 'FileMetadataRepository',
 }
 
 export const REPOSITORY_REGISTRY: Record<
@@ -25,5 +30,13 @@ export const REPOSITORY_REGISTRY: Record<
   [RepositoryName.Kahoot]: {
     typeorm: KahootRepositoryPostgres,
     mongoose: KahootRepositoryMongo,
+  },
+  [RepositoryName.Attempt]: {
+    typeorm: SoloAttemptRepositoryPostgres,
+    mongoose: SoloAttemptRepositoryMongo,
+  },
+  [RepositoryName.FileMetadata]: {
+    typeorm: SoloAttemptRepositoryPostgres,
+    mongoose: FileMetadataMongoRespository,
   },
 };

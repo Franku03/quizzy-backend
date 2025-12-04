@@ -12,6 +12,15 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
     public constructor(props: AttemptTimeDetailsProps) {
         super(props);
 
+        // Format Validation
+
+        // Validate ISO 8601 format for all dates
+        this.validateISO8601(props.startedAt, "StartedAt");
+        this.validateISO8601(props.lastPlayedAt, "LastPlayedAt");
+        if (props.completedAt.hasValue()) {
+            this.validateISO8601(props.completedAt.getValue(), "CompletedAt");
+        }
+
         // Temporal Logic - The order of dates must make sense
 
         // Last Played Date cannot be before Started Date
@@ -45,6 +54,42 @@ export class AttemptTimeDetails extends ValueObject<AttemptTimeDetailsProps> {
         }
         if (props.completedAt.hasValue() && props.completedAt.getValue() > now) {
             throw new Error("Date at which the attempt was completed cannot be in the future.");
+        }
+    }
+
+    // Validate ISO 8601 format for all dates
+    public validateISO8601(date: Date, fieldName: string): void {
+        // Convert date to ISO string and back to ensure it's valid
+        const isoString = date.toISOString();
+        const parsedDate = new Date(isoString);
+        
+        // Check if the date is valid and if it matches ISO format
+        if (isNaN(date.getTime())) {
+            throw new Error(`${fieldName} must be a valid date.`);
+        }
+        
+        // Additional ISO 8601 format validation
+        if (!this.isValidISO8601(date)) {
+            throw new Error(`${fieldName} must be in ISO 8601 format.`);
+        }
+    };
+
+    private isValidISO8601(date: Date): boolean {
+        try {
+            // Convert to ISO string and parse back
+            const isoString = date.toISOString();
+            
+            // Validate ISO 8601 format using regex
+            const isoRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+            
+            // Also check if the parsed date is valid
+            const parsedDate = new Date(isoString);
+            
+            return isoRegex.test(isoString) && 
+                   !isNaN(parsedDate.getTime()) &&
+                   parsedDate.getTime() === date.getTime();
+        } catch {
+            return false;
         }
     }
 

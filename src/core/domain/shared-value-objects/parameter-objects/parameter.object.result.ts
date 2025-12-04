@@ -23,6 +23,13 @@ export class Result extends ValueObject<ResultProps> {
     public getScore(): Optional<Score> {
         return this.properties.score;
     }
+
+    public getScoreValue(): number {
+        if (this.properties.score.hasValue()) {
+            return this.properties.score.getValue().getScore();
+        }
+        return 0;
+    }
     
     public isCorrect(): boolean {
         return this.properties.isAnswerCorrect;
