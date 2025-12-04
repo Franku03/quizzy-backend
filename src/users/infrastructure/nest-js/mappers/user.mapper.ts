@@ -11,7 +11,6 @@ import { UserSubscriptionStatus } from '../../domain/value-objects/user.user-sub
 import { SubscriptionState } from '../../domain/value-objects/user.subscription-state';
 import { SubscriptionPlan } from '../../domain/value-objects/user.subscription-plan';
 import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
-import { UserFavorites } from 'src/users/domain/value-objects/user.favorite-kahoots';
 
 export class UserMapper {
 
@@ -19,24 +18,26 @@ export class UserMapper {
     const id = new UserId(raw.userId);
     const email = new UserEmail(raw.email);
     const username = new UserName(raw.username);
-    const passwordHash = new HashedPassword(raw.passwordHash); 
-    const type = raw.type as UserType;
-    const favorites = UserFavorites.fromPrimitives(raw.favoriteKahoots || []);
+    
+    const passwordHash = new HashedPassword(raw.passwordHash);
+    
+    const type = raw.type as UserType; 
 
     const profile = new UserProfileDetails(
       raw.profile.name,
       raw.profile.description,
       raw.profile.avatarUrl
     );
-    
+
     const subscriptionExpiresIso = new Date(raw.subscription.expiresAt).toISOString().split('T')[0];
+    
     const subscription = new UserSubscriptionStatus(
       raw.subscription.state as SubscriptionState,
       raw.subscription.plan as SubscriptionPlan,
       DateISO.createFrom(subscriptionExpiresIso)
     );
 
-    const preferences = UserPreferences.create(raw.preferences.theme);
+    const preferences = UserPreferences.create(raw.preferences.theme); 
 
     let lastUsernameUpdate: DateISO | undefined = undefined;
     if (raw.lastUsernameUpdate) {
@@ -54,7 +55,6 @@ export class UserMapper {
         subscriptionStatus: subscription,
         userPreferences: preferences,
         lastUsernameUpdate,
-        favorites: favorites,
       },
       id
     );
@@ -87,8 +87,6 @@ export class UserMapper {
       preferences: {
         theme: user.userPreferences.themePreference,
       },
-
-      favoriteKahoots: user.favorites.toPrimitives(),
     } as UserMongo;
   }
 }

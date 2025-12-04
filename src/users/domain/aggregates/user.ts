@@ -10,6 +10,9 @@ import { UserSubscriptionStatus } from "../value-objects/user.user-subscription-
 import { PlainPassword } from "../value-objects/user.plain-password";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { IPasswordHasher } from "../domain-services/i.password-hasher.interface";
+import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
+import { UserFavorites } from "../value-objects/user.favorite-kahoots";
+// import { UserFavoritedKahootEvent } from "../domain-events/user-favorited-kahoot.event"; // TODO
 // import { UserCreatedEvent } from "../domain-events/user-created.event"; // TODO
 // import { UserPasswordChangedEvent } from "../domain-events/user-password-changed.event"; // TODO
 
@@ -22,6 +25,7 @@ interface UserProps {
     type: UserType;
     subscriptionStatus: UserSubscriptionStatus;
     lastUsernameUpdate?: DateISO; 
+    favorites: UserFavorites;
 }
 
 export class User extends AggregateRoot<UserProps, UserId> {
@@ -51,6 +55,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
             userPreferences: finalPreferences,
             subscriptionStatus,
             lastUsernameUpdate: undefined, 
+            favorites: UserFavorites.createEmpty(),
         };
 
         const user = new User(props, id);
@@ -58,6 +63,15 @@ export class User extends AggregateRoot<UserProps, UserId> {
         // user.record(new UserCreatedEvent(id, email, username)); // TODO
         
         return user;
+    }
+
+    public addFavorite(kahootId: KahootId): void {
+        this.properties.favorites.add(kahootId);
+        // user.record(new UserFavoritedKahootEvent(this.id, kahootId)); // TODO
+    }
+
+    public removeFavorite(kahootId: KahootId): void {
+        this.properties.favorites.remove(kahootId);
     }
 
     public changeUserName(newUsername: UserName): void {
@@ -173,5 +187,9 @@ export class User extends AggregateRoot<UserProps, UserId> {
 
     get lastUsernameUpdate(): DateISO | undefined {
         return this.properties.lastUsernameUpdate;
+    }
+
+    get favorites(): UserFavorites {
+        return this.properties.favorites;
     }
 }

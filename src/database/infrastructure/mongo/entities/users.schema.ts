@@ -6,6 +6,7 @@ import { SubscriptionState } from 'src/users/domain/value-objects/user.subscript
 import { SubscriptionPlan } from 'src/users/domain/value-objects/user.subscription-plan';
 import { UIThemeEnum } from 'src/users/domain/value-objects/user.user-preferences';
 
+
 @Schema({ _id: false })
 class UserProfileSchema {
     @Prop({ type: String, required: true })
@@ -36,55 +37,25 @@ class PreferencesSchema {
     theme: string;
 }
 
-
-@Schema({
-    collection: 'users',
-    timestamps: false,
-    strict: false
-})
+@Schema({ collection: 'users', timestamps: true })
 export class UserMongo extends Document {
 
-    @Prop({
-        type: String,
-        unique: true,
-        index: true,
-        required: true,
-    })
+    @Prop({ type: String, unique: true, index: true, required: true })
     public userId: string; 
 
-    @Prop({
-        type: String,
-        unique: true,
-        index: true,
-        required: true,
-    })
+    @Prop({ type: String, unique: true, index: true, required: true })
     public email: string;
 
-    @Prop({
-        type: String,
-        unique: true,
-        required: true,
-    })
+    @Prop({ type: String, unique: true, required: true })
     public username: string;
 
-    @Prop({
-        type: String,
-        required: true,
-    })
+    @Prop({ type: String, required: true })
     public passwordHash: string;
 
-    @Prop({
-        type: String,
-        enum: UserType,
-        default: UserType.STUDENT,
-        required: true,
-    })
+    @Prop({ type: String, enum: UserType, default: UserType.STUDENT, required: true })
     public type: string;
 
-    @Prop({
-        type: Date,
-        required: false,
-    })
+    @Prop({ type: Date, required: false })
     public lastUsernameUpdate?: Date;
 
     @Prop({ type: UserProfileSchema, required: true })
@@ -95,6 +66,9 @@ export class UserMongo extends Document {
 
     @Prop({ type: PreferencesSchema, required: true })
     public preferences: PreferencesSchema;
+
+    @Prop({ type: [String], default: [] })
+    public favoriteKahoots: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserMongo);

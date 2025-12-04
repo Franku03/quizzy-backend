@@ -5,15 +5,15 @@ import { UserName } from "../value-objects/user.user-name";
 
 export interface IUserRepository {
 
-    saveUser(name: string): Promise<void>;
+    save(user: User): Promise<void>; 
 
-    // findUserById(id: UserId): Promise<User | null>;
+    findUserById(id: UserId): Promise<User | null>;
 
-    // findUserByEmail(email: UserEmail): Promise<User | null>;
+    findUserByEmail(email: UserEmail): Promise<User | null>;
 
-    // existsUserByEmail(email: UserEmail): Promise<boolean>;
+    existsUserByEmail(email: UserEmail): Promise<boolean>;
 
-    // existsUserByUsername(username: UserName): Promise<boolean>;
+    existsUserByUsername(username: UserName): Promise<boolean>;
 
-    // deleteUser(id: UserId): Promise<void>;
+    deleteUser(id: UserId): Promise<void>;
 }

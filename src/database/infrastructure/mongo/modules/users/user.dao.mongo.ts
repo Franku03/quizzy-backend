@@ -8,15 +8,28 @@ import { UserReadModel } from 'src/users/application/queries/read-model/user.rea
 
 @Injectable()
 export class UserDaoMongo implements IUserDao {
+  
   constructor(
     @InjectModel(UserMongo.name)
     private readonly userModel: Model<UserMongo>,
   ) {}
 
   async getUserByName(name: string): Promise<Optional<UserReadModel>> {
-    const user = await this.userModel.findOne({ name }).exec();
-    if (!user) return new Optional<UserReadModel>();
+    const user = await this.userModel
+      .findOne({ username: name })
+      .lean()
+      .exec();
 
-    return new Optional<UserReadModel>(new UserReadModel(user.name));
+    if (!user) {
+      return new Optional<UserReadModel>();
+    }
+
+    return new Optional<UserReadModel>(
+      new UserReadModel(
+        user.userId,
+        user.email,
+        user.username,
+      ),
+    );
   }
 }
