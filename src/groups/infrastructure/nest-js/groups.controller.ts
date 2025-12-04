@@ -19,6 +19,11 @@ import { GenerateInvitationDto } from 'src/groups/application/commands/request-d
 import { GenerateInvitationCommand } from 'src/groups/application/commands/generate-invitation/generate-invitation.command';
 import { InvitationResponse } from 'src/groups/application/commands/request-dtos/generate-invitation.response.dto';
 
+import { JoinGroupDto } from 'src/groups/application/commands/request-dtos/join-group.request.dto';
+import { JoinGroupCommand } from 'src/groups/application/commands/join-group/join-group.command';
+import { JoinGroupResponse } from 'src/groups/application/commands/response-dtos/join-group.response.dto';
+
+
 @Controller('groups')
 export class GroupsController {
     constructor(
@@ -73,6 +78,15 @@ export class GroupsController {
         return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
     }
 
+    // Unirse a un grupo
+    @Post('/join')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async joinGroup(@GetUserId() userId: string, @Body() dto: JoinGroupDto) {
+        const res: Either<Error, JoinGroupResponse> = await this.commandBus.execute(new JoinGroupCommand(userId, dto.invitationToken));
+        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    }
+
 
     private handleError(error: Error): never {
         const message = error.message
@@ -88,6 +102,12 @@ export class GroupsController {
         if (message.startsWith(GROUP_ERRORS.NOT_MEMBER)) {
             throw new ForbiddenException(message);
         }
-        throw new InternalServerErrorException(error);
+        if (message.startsWith(GROUP_ERRORS.INVALID_INVITATION_TOKEN)) {
+            throw new BadRequestException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.ALREADY_MEMBER)) {
+            throw new BadRequestException(message);
+        }
+        throw new InternalServerErrorException(error.message);
     }
 }

@@ -16,11 +16,13 @@ import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user
 import { ModifyGroupInformationHandler } from './application/commands/modify-group-information/modify-group-information.handler';
 import { GenerateInvitationHandler } from './application/commands/generate-invitation/generate-invitation.handler';
 import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generator';
+import { JoinGroupHandler } from './application/commands/join-group/join-group.handler';
 @Module({
     controllers: [GroupsController],
     imports: [
         CqrsModule,
         RepositoryFactoryModule.forFeature(RepositoryName.Group),
+        RepositoryFactoryModule.forFeature(RepositoryName.User),
         DaoFactoryModule.forFeature(DaoName.Group)
     ],
     providers: [
@@ -28,7 +30,7 @@ import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generat
         GetGroupsByUserHandler,
         ModifyGroupInformationHandler,
         GenerateInvitationHandler,
-
+        JoinGroupHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,

@@ -5,4 +5,5 @@ export interface IGroupRepository {
     save(group: Group): Promise<void>;
     findById(groupId: string): Promise<Optional<Group>>;
     findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]>;
+    findByInvitationToken(token: string): Promise<Optional<Group>>;
 }

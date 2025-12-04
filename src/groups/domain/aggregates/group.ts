@@ -259,6 +259,10 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   protected checkInvariants(): void {
   }
 
+  public getId(): GroupId {
+    return this.id;
+  }
+
   public getAdminId(): UserId {
     return this.properties.adminId;
   }

@@ -41,4 +41,15 @@ export class GroupRepositoryMongo implements IGroupRepository {
 
         return documents.map(doc => GroupMapper.toDomain(doc));
     }
+
+    async findByInvitationToken(token: string): Promise<Optional<Group>> {
+        const document = await this.groupModel.findOne({
+            'invitationToken.value': token
+        }).exec();
+
+        if (!document) {
+            return new Optional<Group>();
+        }
+        return new Optional<Group>(GroupMapper.toDomain(document));
+    }
 }
