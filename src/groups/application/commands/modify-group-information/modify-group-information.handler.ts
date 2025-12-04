@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { ModifyGroupInformationCommand } from "./modify-group-information.command";
-import type { IGroupRepository } from "src/database/domain/repositories/groups/IGroupRepository";
+import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { BadRequestException, Inject, NotFoundException } from "@nestjs/common";
 import { GroupDetails } from "src/groups/domain/value-objects/group.details";

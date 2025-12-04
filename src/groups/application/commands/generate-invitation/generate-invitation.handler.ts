@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { GenerateInvitationCommand } from './generate-invitation.command';
-import type { IGroupRepository } from 'src/database/domain/repositories/groups/IGroupRepository';
+import type { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import type { ITokenGenerator } from 'src/groups/domain/domain-services/i.token-generator.service.interface';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';

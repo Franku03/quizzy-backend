@@ -2,7 +2,7 @@ import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import { GroupsController } from './infrastructure/nest-js/groups.controller';
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { IGroupRepository } from 'src/database/domain/repositories/groups/IGroupRepository';
+import { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
 import { CreateGroupHandler } from './application/commands/create-group/create-group.handler';
 import { SoloAttemptCompletedListener } from './application/event-listeners/solo-attempt.listener';
 import { MarkAssignmentCompletedUseCase } from './application/use-cases/mark-assignment-completed.use-case';

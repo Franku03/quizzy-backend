@@ -1,5 +1,5 @@
 import { Group } from "../../../domain/aggregates/group";
-import type { IGroupRepository } from "src/database/domain/repositories/groups/IGroupRepository";
+import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { v4 as uuidv4 } from 'uuid';
 import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { CreateGroupCommand } from "./create-group.command";

@@ -1,7 +1,7 @@
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
-import { IGroupRepository } from "src/database/domain/repositories/groups/IGroupRepository";
+import { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 
 export class MarkAssignmentCompletedUseCase {

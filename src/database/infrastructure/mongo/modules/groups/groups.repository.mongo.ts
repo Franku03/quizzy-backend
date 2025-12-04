@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IGroupRepository } from 'src/database/domain/repositories/groups/IGroupRepository';
+import { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
 import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.schema';
 import { Group } from 'src/groups/domain/aggregates/group';
 import { GroupMapper } from 'src/groups/infrastructure/mappers/group.mapper';
