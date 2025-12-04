@@ -268,7 +268,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
   public isMember(userId: UserId): boolean {
-    return this.properties.members.some(member => member.getUserId() === userId);
+    return this.properties.members.some(member => member.getUserId().equals(userId));
   }
 
   protected checkInvariants(): void {

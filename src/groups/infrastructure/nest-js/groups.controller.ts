@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -15,6 +15,9 @@ import { UpdateGroupDto } from 'src/groups/application/commands/request-dtos/mod
 
 import { Either } from 'src/core/types/either';
 import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
+import { GenerateInvitationDto } from 'src/groups/application/commands/request-dtos/generate-invitation.request.dto';
+import { GenerateInvitationCommand } from 'src/groups/application/commands/generate-invitation/generate-invitation.command';
+import { InvitationResponse } from 'src/groups/application/commands/request-dtos/generate-invitation.response.dto';
 
 @Controller('groups')
 export class GroupsController {
@@ -56,6 +59,21 @@ export class GroupsController {
         return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
     }
 
+
+    // Generar invitación para un grupo
+    @Post(':groupId/invitations')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.CREATED)
+    async generateInvitation(
+        @Param('groupId') groupId: string,
+        @GetUserId() adminId: string,
+        @Body() dto: GenerateInvitationDto
+    ) {
+        const res: Either<Error, InvitationResponse> = await this.commandBus.execute(new GenerateInvitationCommand(groupId, adminId, parseInt(dto.expiresIn)));
+        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    }
+
+
     private handleError(error: Error): never {
         const message = error.message
         if (message.startsWith(GROUP_ERRORS.NOT_FOUND)) {
@@ -63,6 +81,12 @@ export class GroupsController {
         }
         if (message.startsWith(GROUP_ERRORS.INVALID_DETAILS)) {
             throw new BadRequestException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.NOT_ADMIN)) {
+            throw new ForbiddenException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.NOT_MEMBER)) {
+            throw new ForbiddenException(message);
         }
         throw new InternalServerErrorException(error);
     }

@@ -14,6 +14,8 @@ import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-acc
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
 import { ModifyGroupInformationHandler } from './application/commands/modify-group-information/modify-group-information.handler';
+import { GenerateInvitationHandler } from './application/commands/generate-invitation/generate-invitation.handler';
+import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generator';
 @Module({
     controllers: [GroupsController],
     imports: [
@@ -25,6 +27,12 @@ import { ModifyGroupInformationHandler } from './application/commands/modify-gro
         CreateGroupHandler,
         GetGroupsByUserHandler,
         ModifyGroupInformationHandler,
+        GenerateInvitationHandler,
+
+        {
+            provide: 'ITokenGenerator',
+            useClass: UuidTokenGenerator,
+        },
         {
             provide: MarkAssignmentCompletedUseCase,
             useFactory: (repo: IGroupRepository) => new MarkAssignmentCompletedUseCase(repo),
