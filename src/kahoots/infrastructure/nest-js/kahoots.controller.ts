@@ -4,7 +4,7 @@ import { CreateKahootDTO, UpdateKahootDTO } from './dtos';
 import type { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper'; 
 import { KahootNestMapperAdapter } from '../adapters/commands/input/kahoot.request.mapper';
 import { KahootResponseDTO } from 'src/kahoots/application/commands/response-dto/kahoot.response.dto';
-import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot.command/delete-kahootcommand';
+import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot/delete-kahootcommand';
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model';
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
 import { Optional } from 'src/core/types/optional';
@@ -21,11 +21,10 @@ export class KahootController {
     @HttpCode(HttpStatus.CREATED)
     async createKahoot(@Body() input: CreateKahootDTO) {
         const command = this.kahootMapper.toCreateCommand(input); 
-        await this.commandBus.execute(command);
-
-        const updatedKahootDTO: KahootResponseDTO = await this.commandBus.execute(command);
-        return updatedKahootDTO;
+        return await this.commandBus.execute(command);
     }
+    
+    // ---
     
     @Put(':id') 
     @HttpCode(HttpStatus.OK)
@@ -34,9 +33,7 @@ export class KahootController {
         @Body() input: UpdateKahootDTO,
     ) {
         const command = this.kahootMapper.toUpdateCommand(input, kahootId);
-        await this.commandBus.execute(command);
-
-        const updatedKahootDTO: KahootResponseDTO = await this.commandBus.execute(command);
+        const updatedKahootDTO: KahootResponseDTO = await this.commandBus.execute(command);  
         return updatedKahootDTO;
     }
 

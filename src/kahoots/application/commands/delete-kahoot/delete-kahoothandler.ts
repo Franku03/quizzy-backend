@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { DeleteKahootCommand } from './delete-kahootcommand';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
@@ -36,6 +36,12 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand>
             throw new UnauthorizedException('Solo el autor puede eliminar este Kahoot.');
         }*/
         await this.kahootRepository.deleteKahoot(kahootId);
+        console.log(`
+        -----------------------------------------------------
+        🗑️ DELETE SUCCESS [Kahoot ID: ${command.id}]
+        -----------------------------------------------------
+        El objeto Kahoot ha sido eliminado.
+        `);
         await this.attemptRepository.deleteAllActiveForKahootId(kahootId);
         // 4. Devolver resultado (vacío, ya que el código HTTP 204 indica éxito en la eliminación)
         return; 

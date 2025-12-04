@@ -6,7 +6,7 @@ import { KahootFactory, SlideInput } from '../../../domain/factories/kahoot.fact
 import { Kahoot } from '../../../domain/aggregates/kahoot'; 
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
-import { UpdateKahootCommand } from '../update-kahootcommand/update-kahootcommand';
+import { UpdateKahootCommand } from '../update-kahoot/update-kahootcommand';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 import { KahootStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.status';
@@ -103,7 +103,12 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand,
         // 8. Persistencia
         await this.kahootRepository.saveKahoot(kahoot);
         
-        console.log(`Kahoot con ID ${command.id} actualizado exitosamente.`);
+       console.log(`
+        -----------------------------------------------------
+        ✅ UPDATE SUCCESS [Kahoot ID: ${command.id}]
+        -----------------------------------------------------
+        El kahoot ha sido actualizado.s.
+        `);
 
         await this.attemptRepository.deleteAllActiveForKahootId(kahootId);
         // 4. Mapear la entidad actualizada a DTO y retornarla
