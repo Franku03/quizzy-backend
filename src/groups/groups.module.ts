@@ -17,6 +17,8 @@ import { ModifyGroupInformationHandler } from './application/commands/modify-gro
 import { GenerateInvitationHandler } from './application/commands/generate-invitation/generate-invitation.handler';
 import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generator';
 import { JoinGroupHandler } from './application/commands/join-group/join-group.handler';
+import { DeleteMemberHandler } from './application/commands/delete-member/detele-member.handler';
+
 @Module({
     controllers: [GroupsController],
     imports: [
@@ -31,6 +33,7 @@ import { JoinGroupHandler } from './application/commands/join-group/join-group.h
         ModifyGroupInformationHandler,
         GenerateInvitationHandler,
         JoinGroupHandler,
+        DeleteMemberHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,

@@ -7,7 +7,7 @@ import type { ITokenGenerator } from 'src/groups/domain/domain-services/i.token-
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { Either } from 'src/core/types/either';
 import { GROUP_ERRORS } from '../group.errors';
-import { InvitationResponse } from '../request-dtos/generate-invitation.response.dto';
+import { InvitationResponse } from '../response-dtos/generate-invitation.response.dto';
 
 
 @CommandHandler(GenerateInvitationCommand)

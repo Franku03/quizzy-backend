@@ -9,5 +9,6 @@ export enum GROUP_ERRORS {
     INVALID_INVITATION_TOKEN = "La invitación no es válida",
     NOT_ENOUGH_PREMIUM = "El admin no es premium",
     ADMIN_REQUIRED = "El adminId es requerido para crear un grupo",
-    USER_NOT_FOUND = "El usuario no existe"
+    USER_NOT_FOUND = "El usuario no existe",
+    CANNOT_DELETE_ADMIN = "No se puede eliminar el admin del grupo"
 }

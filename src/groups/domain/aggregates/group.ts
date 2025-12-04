@@ -152,7 +152,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       throw new Error("No se puede remover el admin del grupo.");
     }
 
-    this.properties.members = this.properties.members.filter(member => member.getUserId() !== targetUserId);
+    this.properties.members = this.properties.members.filter(member => !member.getUserId().equals(targetUserId));
   }
 
 
