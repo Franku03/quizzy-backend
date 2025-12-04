@@ -7,6 +7,7 @@ import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-se
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
 import { MediaModule } from './media/infraestructure/media.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MediaModule } from './media/infraestructure/media.module';
     DatabaseDriverModule.forRoot(),
     CoreModule,
     KahootsModule,
+    ReportsModule,
     UsersModule,
     MultiplayerSessionsModule,
     SoloAttemptsModule,

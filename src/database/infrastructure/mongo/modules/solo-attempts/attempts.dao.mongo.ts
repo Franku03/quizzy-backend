@@ -11,7 +11,7 @@ import { AttemptSummaryReadModel } from 'src/solo-attempts/application/queries/r
 import { 
   AttemptReportReadModel, 
   QuestionResultReadModel 
-} from 'src/solo-attempts/application/queries/read-models/report.attempt.read.model';
+} from 'src/reports/application/queries/read-models/solo.attempt.report.read.model';
 import { NextSlideReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
 
 @Injectable()

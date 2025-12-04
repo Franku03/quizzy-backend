@@ -50,11 +50,6 @@ export class SoloAttemptsController {
         throw new BadRequestException('The Kahoot has no slides to play');
       }
 
-      // Si es un BadRequestException de Nest (de validación de entrada), re-lanzarlo
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
       throw error; // throw unhandled error
     }
   }

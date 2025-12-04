@@ -30,7 +30,7 @@ export class SlideResponseMapper {
                 ? slide.slideImage.getValue().value 
                 : null,
                 
-            type: slide.slideType.type, 
+            type: slide.slideType.type.toLowerCase(), 
             timeLimit: slide.timeLimit.value, 
             points: slide.points.hasValue() 
                 ? slide.points.getValue().value 
