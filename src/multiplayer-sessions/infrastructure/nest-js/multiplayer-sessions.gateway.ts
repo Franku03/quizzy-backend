@@ -5,7 +5,7 @@ import { Server, Socket } from 'socket.io';
 import { MultiplayerSessionsService } from './multiplayer-sessions.logging.service';
 import { SessionRoles } from './enums/session-roles.enum';
 
-import { PlayerUserEvents, ServerErrorEvents, ServerEvents } from './enums/websocket.events.enum';
+import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from './enums/websocket.events.enum';
 import { PlayerJoinDto } from './dtos/player-join.dto';
 import { CommandBus } from '@nestjs/cqrs';
 import { JoinPlayerCommand } from 'src/multiplayer-sessions/application/commands/join-player/join-player.command';
@@ -13,6 +13,9 @@ import { Either } from 'src/core/types/either';
 
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
+import { SocketData } from './interfaces/socket-data.interface';
+import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
+import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response';
 
 
 @WebSocketGateway( 
@@ -33,8 +36,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT || 3003}`);
     }
+      // TODO: Definir interfaces de los T del socket
 
-    async handleConnection( client: Socket ) {
+    async handleConnection( client: Socket) {
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
 
@@ -69,7 +73,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
   
           client.join( pin );
   
-          client.emit( ServerEvents.PLAYER_CONNECTED_SUCCESS , { status: 'LOBBY_READY' });
+          client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'LOBBY_READY' });
             
           console.log(`Jugador conectado a la sala ${pin}`);
   
@@ -78,7 +82,15 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           client.disconnect(); // En caso de no ser ninguno de esos roles, desconecto inmediatamente
   
         }
-  
+
+        // Guardamos la data de los clientes en su propio socket
+        client.data.roomPin = pin;
+
+        client.data.role = role;
+
+        client.data.nickname = nickname;
+        // client.data.userId = userId; Cuando lo podamos obtener con el JWT
+        
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   
         this.loggingWsService.logConnectedClients();
@@ -155,7 +167,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( res.isRight() ){
 
           this.wss.to( payload.sessionPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
-          client.emit(ServerEvents.PLAYER_CONNECTED_SUCCESS);
+          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { successful: true });
 
         } else {
 
@@ -164,9 +176,41 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
     }
+
+
+    
+    @SubscribeMessage( HostUserEvents.HOST_START_GAME )
+    async handleHostStartGame( client: Socket ){
+
+      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+
+        if( !(client.data.role === SessionRoles.HOST) )
+          this.handleError( client, new WsException("El cliente no es Host"));
+
+        if( !client.rooms.has( client.data.roomPin as string ))
+          this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
+ 
+
+        const res: Either<Error, QuestionStartedResponse> = 
+          await this.commandBus.execute( new HostStartGameCommand( client.data.roomPin ) );
+
+        if( res.isRight() ){
+
+
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
+
+        } else {
+
+
+          this.handleError( client, res.getLeft() );
+
+        }
+
+
+    }
     
 
-    // Esto sirve solo para cuando es llamada dentro de un metodo que esta decorado por un @SubscribeMessage()
+    // ? Esto sirve solo para cuando es llamada dentro de un metodo que esta decorado por un @SubscribeMessage()
     private handleError( client: Socket, error: Error ): never {
   
         const message = error.message;
@@ -185,14 +229,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           throw new WsException('Sesión no encontrada: El pin no corresponde a ninguna partida activa');
         }
         
-        // if (message.startsWith(CREATE_SESSION_ERRORS.USER_UNAUTHORIZED)) {
-        //   throw new UnauthorizedException('El usuario autenticado (Host) no tiene permisos para crear una sesión con el Kahoot solcitado.');
-        // }
-        
-        // if (message.startsWith(QR_TOKEN_ERRORS.QR_NOT_FOUND)) {
-        //   throw new NotFoundException("El código QR o token no está asociado a una sesión activa.");
-        // }
-  
         // Si es un BadRequestException de Nest (de validación de entrada), re-lanzarlo
         if (error instanceof BadRequestException ) {
 
@@ -201,7 +237,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             message: message,
           })
 
-          throw error;
+          throw new WsException( message );
         }
 
 
@@ -212,11 +248,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             message: message,
           })
 
-          throw error;
+          throw new WsException( message );
         }
-  
-        // ! Error en consola para debugeo, quitar en produccion
-        this.logger.error( error );
 
         client.emit(ServerErrorEvents.FATAL_ERROR, {
             statusCode: 400,

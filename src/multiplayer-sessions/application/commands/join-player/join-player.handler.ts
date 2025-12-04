@@ -35,7 +35,7 @@ export class JoinPlayerHandler implements ICommandHandler<JoinPlayerCommand> {
 
             const { session, kahoot } = sessionWrapper
 
-            // TODO: Aqui habria que verificar si el id del jugador corresponde a algun usuario, habria que inyectar el repo de users
+            // TODO: Aqui habria que verificar si el id del jugador corresponde a algun usuario, habria que inyectar el repo de users, esto capaz seria su propio Servicio de dominio
 
             const playerId = new PlayerId( command.userId );
 

@@ -17,7 +17,9 @@ export enum PlayerUserEvents {
 export enum ServerEvents {
 
     HOST_CONNECTED_SUCCESS = "host_connected_success",
-    PLAYER_CONNECTED_SUCCESS = "player_connected_success",
+    PLAYER_CONNECTED_TO_SERVER = "player_connected_to_server",
+    PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",
+
 
     QUESTION_STARTED = "question_started",
     QUESTION_RESULTS = "question_results",
@@ -32,9 +34,6 @@ export enum ServerErrorEvents {
     FATAL_ERROR = "connexion_error",
     UNAVAILABLE_SESSION = "unnavailable_session",
 
-    QUESTION_STARTED = "question_started",
-    QUESTION_RESULTS = "question_results",
-    GAME_STATE_UPDATE = "game_state_update",
-    GAME_END = "game_end",
+    GAME_ERROR = "game_error",
 
 }

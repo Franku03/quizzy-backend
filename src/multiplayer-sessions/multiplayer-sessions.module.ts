@@ -9,6 +9,7 @@ import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/u
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
 import { JoinPlayerHandler } from './application/commands/join-player/join-player.handler';
+import { HostStartGameHandler } from './application/commands/host-start-game/host-start-game.handler';
 
 
 @Module({
@@ -29,6 +30,7 @@ import { JoinPlayerHandler } from './application/commands/join-player/join-playe
     CreateSessionHandler,
     GetPinWithQrTokenHandler,
     JoinPlayerHandler,
+    HostStartGameHandler,
   ],
   controllers: [MultiplayerSessionsController],
 })
