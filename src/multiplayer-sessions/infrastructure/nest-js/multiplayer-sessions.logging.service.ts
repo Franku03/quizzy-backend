@@ -52,8 +52,11 @@ export class MultiplayerSessionsService {
 
         const room = this.availableRooms.get( roomPin );
 
+        // IMPORTANTE: Si no encontramos sala para este cliente, 
+        // significa que nunca se registró correctamente o ya se borró.
+        // Simplemente retornamos sin hacer nada (return), NO lanzamos error.
         if(!room)
-            this.roomDoesNotExist( roomPin );
+            return;
 
         delete room[ clientId ];
     }
@@ -86,16 +89,16 @@ export class MultiplayerSessionsService {
     //     return this.connectedClients[ socketId ]
     // }
 
-    private getRoom( roomPin: string ): ConnectedClients {
+    private getRoom( roomPin: string ): ConnectedClients  {
         const room = this.availableRooms.get( roomPin );
 
         if(!room)
-            this.roomDoesNotExist( roomPin );
+            return this.roomDoesNotExist( roomPin );
 
         return room;;
     }
 
-    private  roomDoesNotExist( arg: any ): never {
-        throw new WsException(`La sala con PIN ${arg} a unirse NO Existe`);
+    private roomDoesNotExist( arg: any ): never {
+        throw new Error(`La sala con PIN ${arg} a unirse NO Existe`);
     }
 }

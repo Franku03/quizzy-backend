@@ -8,6 +8,7 @@ import { InMemorySessionRepository } from './infrastructure/repositories/in-memo
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
+import { JoinPlayerHandler } from './application/commands/join-player/join-player.handler';
 
 
 @Module({
@@ -27,6 +28,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     //Commands
     CreateSessionHandler,
     GetPinWithQrTokenHandler,
+    JoinPlayerHandler,
   ],
   controllers: [MultiplayerSessionsController],
 })

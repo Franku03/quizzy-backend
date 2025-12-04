@@ -25,3 +25,16 @@ export enum ServerEvents {
     GAME_END = "game_end",
 
 }
+
+
+export enum ServerErrorEvents {
+
+    FATAL_ERROR = "connexion_error",
+    UNAVAILABLE_SESSION = "unnavailable_session",
+
+    QUESTION_STARTED = "question_started",
+    QUESTION_RESULTS = "question_results",
+    GAME_STATE_UPDATE = "game_state_update",
+    GAME_END = "game_end",
+
+}

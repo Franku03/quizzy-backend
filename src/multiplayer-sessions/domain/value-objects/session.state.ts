@@ -104,5 +104,11 @@ export class SessionState extends ValueObject<SessionStateProps> {
 
     };
 
+    public getActualState(): SessionStateType {
+
+        return this.properties.state 
+
+    }
+
 
 }
