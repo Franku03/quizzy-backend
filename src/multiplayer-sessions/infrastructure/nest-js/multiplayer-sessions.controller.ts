@@ -2,8 +2,8 @@ import { BadRequestException, Body, Controller, Get, HttpCode, InternalServerErr
 import { CreateSessionDto } from './dtos/create-session.dto';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session.command';
-import { GetPinWithQrTokenCommand } from 'src/multiplayer-sessions/application/commands/get-pin-with-qr-token.command';
+import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session/create-session.command';
+import { GetPinWithQrTokenCommand } from 'src/multiplayer-sessions/application/commands/get-pin-with-qr-token/get-pin-with-qr-token.command';
 import { CreateSessionResponse } from 'src/multiplayer-sessions/application/response-dtos/create-session.response.dto';
 
 import { Either } from 'src/core/types/either';

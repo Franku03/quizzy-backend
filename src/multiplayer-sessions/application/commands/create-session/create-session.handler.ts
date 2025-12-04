@@ -14,10 +14,10 @@ import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/facto
 import { UuidGenerator } from "src/core/infrastructure/event-buses/idgenerator/uuid-generator";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
-import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
+import { SlideId } from '../../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
 import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
-import { CreateSessionResponse } from "../response-dtos/create-session.response.dto";
-import { Either } from '../../../core/types/either';
+import { CreateSessionResponse } from "../../response-dtos/create-session.response.dto";
+import { Either } from '../../../../core/types/either';
 
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
 
