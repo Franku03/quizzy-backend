@@ -1,21 +1,22 @@
-import { BadRequestException, InternalServerErrorException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { CommandBus } from '@nestjs/cqrs';
+import { Server } from 'socket.io';
 
 import { MultiplayerSessionsService } from './multiplayer-sessions.logging.service';
-import { SessionRoles } from './enums/session-roles.enum';
 
+import { SessionRoles } from './enums/session-roles.enum';
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from './enums/websocket.events.enum';
-import { PlayerJoinDto } from './dtos/player-join.dto';
-import { CommandBus } from '@nestjs/cqrs';
+import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
+import type { SessionSocket  } from './interfaces/socket-definitions.interface';
+
 import { JoinPlayerCommand } from 'src/multiplayer-sessions/application/commands/join-player/join-player.command';
+import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
+import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
+import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response';
+
 import { Either } from 'src/core/types/either';
 
-import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
-import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
-import { SocketData } from './interfaces/socket-data.interface';
-import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
-import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response';
 
 
 @WebSocketGateway( 
@@ -36,14 +37,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT || 3003}`);
     }
-      // TODO: Definir interfaces de los T del socket
 
-    async handleConnection( client: Socket) {
+    async handleConnection( client: SessionSocket ) {
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
 
-      const { pin , role, jwt, nickname } = client.handshake.headers
-
+      const { pin , role, jwt, nickname, } = client.handshake.headers 
       
       try {
         // ! Verificar que el pin de la partida asociada exista
@@ -57,52 +56,48 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             // ! Validar que este usuario es realmente el dueño de la sesión 'pin'
   
             this.loggingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
-  
-            this.loggingWsService.registerClient( client ); // Registramos Host en nuestro servicio de Loggeo
-  
-            // Unir este socket a la Room del PIN
-            client.join( pin );
-            
-            client.emit( ServerEvents.HOST_CONNECTED_SUCCESS , { status: 'LOBBY_READY' });
-            
-            console.log(`Host conectado a la sala ${pin}`);
-            
+              
+            client.emit( ServerEvents.HOST_CONNECTED_SUCCESS, { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+              
         } else if( role === SessionRoles.PLAYER ){
   
-          this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
-  
-          client.join( pin );
-  
-          client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'LOBBY_READY' });
+          client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
             
-          console.log(`Jugador conectado a la sala ${pin}`);
-  
         } else {
   
           client.disconnect(); // En caso de no ser ninguno de esos roles, desconecto inmediatamente
   
         }
 
-        // Guardamos la data de los clientes en su propio socket
-        client.data.roomPin = pin;
+        // ? Gestionamos la union a la sala y al logger
+        client.join( pin );
 
-        client.data.role = role;
+        this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
 
-        client.data.nickname = nickname;
-        // client.data.userId = userId; Cuando lo podamos obtener con el JWT
+        console.log(`${client.data.role} conectado a la sala ${pin}`);
+
+
+        // ? Guardamos la data de los clientes en su propio socket
+        client.data.roomPin = pin as string;
+
+        client.data.role = role as SessionRoles;
+
+        client.data.nickname = nickname as string;
+
+        client.data.userId = jwt as string; // * Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   
-        this.loggingWsService.logConnectedClients();
+        this.loggingWsService.logConnectedClients(); // Registramos en logging en memoria
         
       } catch (error) {
         
-        // 1) Loggea el error para el servidor
+        // Loggea el error para el servidor
         this.logger.error(`Fallo en la conexión del cliente ${client.id}:`, error);
 
         let errorMessage = 'Error desconocido en el servidor.';
         
-        // 2) Determinar el mensaje de error para el cliente
+        // Determinar el mensaje de error para el cliente
         if (error instanceof WsException) {
             // Si es una WsException, extrae el mensaje de error para el cliente.
             // Si WsException se envuelve con otro error, usa error.message
@@ -115,13 +110,13 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         }
 
-        // 3) Notificar al cliente (importante: usa un evento conocido)
+        // Notificar al cliente (importante: usa un evento conocido)
         client.emit( ServerErrorEvents.FATAL_ERROR, {
-            statusCode: 400, // O el código que decidas usar
-            message: errorMessage
+            statusCode: 400, // Usaremos equivalentes a los codigos HTTP
+            message: `WS Bad Request: ${errorMessage}`
         });
         
-        // 4) Terminar la conexión para el cliente defectuoso
+        // Terminar la conexión para el cliente defectuoso
         // Retrasar la desconexión para permitir el envío del evento 
         client.disconnect(true);
         this.logger.log(`Cliente ${client.id} desconectado después de error.`);
@@ -132,7 +127,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     }
 
-    handleDisconnect( client: Socket ) {
+    handleDisconnect( client: SessionSocket) {
 
       const roomPin = client.handshake.headers?.pin as string;
 
@@ -152,22 +147,22 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     }
 
     @SubscribeMessage( PlayerUserEvents.PLAYER_JOIN )
-    async handlePlayerJoin( client: Socket, payload: PlayerJoinDto ){
+    async handlePlayerJoin( client: SessionSocket ){
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
 
-        // console.log( payload );
+        console.log( client.data.roomPin );
 
-        if( !client.rooms.has( payload.sessionPin ))
+        if( !client.rooms.has( client.data.roomPin ))
           this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"))
  
 
         const res: Either<Error, GameStateUpdateResponse> = 
-          await this.commandBus.execute( new JoinPlayerCommand( payload.userId, payload.nickname, payload.sessionPin ) );
+          await this.commandBus.execute( new JoinPlayerCommand( client.data.userId, client.data.nickname, client.data.roomPin ) );
 
         if( res.isRight() ){
 
-          this.wss.to( payload.sessionPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
-          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { successful: true });
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
+          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { status: 'CONNECTED TO SESSION AS PLAYER' });
 
         } else {
 
@@ -180,7 +175,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     
     @SubscribeMessage( HostUserEvents.HOST_START_GAME )
-    async handleHostStartGame( client: Socket ){
+    async handleHostStartGame( client: SessionSocket ){
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
 
@@ -210,8 +205,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     }
     
 
-    // ? Esto sirve solo para cuando es llamada dentro de un metodo que esta decorado por un @SubscribeMessage()
-    private handleError( client: Socket, error: Error ): never {
+    // ? Este metodo solo sirve solo para cuando es llamado dentro de un metodo que esta decorado por un @SubscribeMessage()
+    private handleError( client: SessionSocket, error: Error ): never {
   
         const message = error.message;
 

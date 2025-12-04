@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Socket } from 'socket.io';
 import { SessionRoles } from './enums/session-roles.enum';
-import { WsException } from '@nestjs/websockets';
+import { SessionSocket } from './interfaces/socket-definitions.interface';
 
 interface ConnectedClients {
 
     [id: string]: {
-        socket: Socket,
+        socket: SessionSocket,
         nickname: string,
         roomPin: string
         role: SessionRoles,
@@ -18,7 +17,7 @@ export class MultiplayerSessionsService {
 
     private availableRooms: Map<string, ConnectedClients> = new Map<string, ConnectedClients>();
 
-    registerRoom( client: Socket ){
+    registerRoom( client: SessionSocket ){
 
 
         const roomPin = client.handshake.headers.pin as string;
@@ -28,7 +27,7 @@ export class MultiplayerSessionsService {
     } 
 
 
-    registerClient( client: Socket ){
+    registerClient( client: SessionSocket ){
 
         const nickname = client.handshake.headers.nickname as string;
 

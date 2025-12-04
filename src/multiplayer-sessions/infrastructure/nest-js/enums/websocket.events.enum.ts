@@ -1,3 +1,4 @@
+import { Socket } from "socket.io";
 
 export enum HostUserEvents {
 
@@ -37,3 +38,4 @@ export enum ServerErrorEvents {
     GAME_ERROR = "game_error",
 
 }
+
