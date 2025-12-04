@@ -52,4 +52,8 @@ export class GroupRepositoryMongo implements IGroupRepository {
         }
         return new Optional<Group>(GroupMapper.toDomain(document));
     }
+
+    async delete(groupId: string): Promise<void> {
+        await this.groupModel.deleteOne({ groupId }).exec();
+    }
 }

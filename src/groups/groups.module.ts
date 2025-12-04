@@ -18,6 +18,7 @@ import { GenerateInvitationHandler } from './application/commands/generate-invit
 import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generator';
 import { JoinGroupHandler } from './application/commands/join-group/join-group.handler';
 import { DeleteMemberHandler } from './application/commands/delete-member/detele-member.handler';
+import { DeleteGroupHandler } from './application/commands/delete-group/delete-group.handler';
 
 @Module({
     controllers: [GroupsController],
@@ -34,6 +35,7 @@ import { DeleteMemberHandler } from './application/commands/delete-member/detele
         GenerateInvitationHandler,
         JoinGroupHandler,
         DeleteMemberHandler,
+        DeleteGroupHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,

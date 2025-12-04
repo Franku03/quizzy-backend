@@ -23,7 +23,7 @@ import { JoinGroupDto } from 'src/groups/application/commands/request-dtos/join-
 import { JoinGroupCommand } from 'src/groups/application/commands/join-group/join-group.command';
 import { JoinGroupResponse } from 'src/groups/application/commands/response-dtos/join-group.response.dto';
 import { DeleteMemberCommand } from 'src/groups/application/commands/delete-member/delete-member.command';
-
+import { DeleteGroupCommand } from 'src/groups/application/commands/delete-group/delete-group.command';
 
 @Controller('groups')
 export class GroupsController {
@@ -92,12 +92,20 @@ export class GroupsController {
     // Eliminar un miembro de un grupo
     @Delete(':groupId/members/:targetUserId')
     @UseGuards(MockAuthGuard)
-    @HttpCode(HttpStatus.OK)
+    @HttpCode(HttpStatus.NO_CONTENT)
     async deleteMember(@Param('groupId') groupId: string, @Param('targetUserId') targetUserId: string, @GetUserId() userId: string) {
         const res: Either<Error, void> = await this.commandBus.execute(new DeleteMemberCommand(groupId, userId, targetUserId));
         return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
     }
 
+    // Eliminar un grupo
+    @Delete(':groupId')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async deleteGroup(@Param('groupId') groupId: string, @GetUserId() userId: string) {
+        const res: Either<Error, void> = await this.commandBus.execute(new DeleteGroupCommand(groupId, userId));
+        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    }
 
     private handleError(error: Error): never {
         const message = error.message

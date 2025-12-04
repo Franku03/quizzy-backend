@@ -6,4 +6,5 @@ export interface IGroupRepository {
     findById(groupId: string): Promise<Optional<Group>>;
     findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]>;
     findByInvitationToken(token: string): Promise<Optional<Group>>;
+    delete(groupId: string): Promise<void>;
 }
