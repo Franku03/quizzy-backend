@@ -10,6 +10,7 @@ import { AttemptEntity as AttemptTypeORM } from '../postgres/entities/attempt.en
 import { KahootMongo, KahootSchema } from '../mongo/entities/kahoots.schema';
 import { UserMongo, UserSchema } from '../mongo/entities/users.schema';
 import { AttemptMongo, AttemptSchema } from '../mongo/entities/attempts.scheme';
+import { FileMetadataMongo, FileMetadataSchema } from '../mongo/entities/media.schema';
 
 // Catálogo exclusivo de TypeORM (solo clases)
 export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
@@ -23,4 +24,5 @@ export const MONGOOSE_ENTITY_REGISTRY: ModelDefinition[] = [
   { name: KahootMongo.name, schema: KahootSchema },
   { name: UserMongo.name, schema: UserSchema },
   { name: AttemptMongo.name, schema: AttemptSchema },
+  { name: FileMetadataMongo.name, schema: FileMetadataSchema }
 ];

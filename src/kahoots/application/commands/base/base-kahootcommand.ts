@@ -4,7 +4,7 @@ import { KahootSlideCommand } from "./slidecommand";
 interface BaseCommandProps {
     title?: string;
     description?: string;
-    coverImageId?: string;
+    imageId?: string;
     themeId: string;
     category?: string;
     visibility?: string;
