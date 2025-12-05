@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { PaginationDto } from './dtos/pagination.dto';
@@ -23,6 +24,8 @@ import { GetCompletedKahootsQuery } from '../../application/queries/get-complete
 import { GetInProgressKahootsQuery } from '../../application/queries/get-in-progress-kahoots/get-in-progress-kahoots.query';
 import { AddKahootToFavoritesCommand } from 'src/library/application/commands/add-kahoot-to-favorites/add-kahoot-to-favorites.command';
 import { RemoveKahootFromFavoritesCommand } from '../../application/commands/remove-kahoot-from-favorites/remove-kahoot-from-favorites.command';
+import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
+import { GetUserId } from '../../../common/decorators/get-user-id-decorator';
 
 // TODO: agregar autenticacion
 @Controller('library')
@@ -34,9 +37,12 @@ export class LibraryController {
 
   // Query (CQRS) H7.1
   @HttpCode(200)
+  @UseGuards(MockAuthGuard)
   @Get('my-creations')
-  async getDraftsAndCreatedKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
+  async getDraftsAndCreatedKahoots(
+    @Query() paginationDto: PaginationDto,
+    @GetUserId() userId: string,
+  ) {
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
@@ -51,9 +57,11 @@ export class LibraryController {
 
   // Query (CQRS) H7.2
   @HttpCode(200)
+  @UseGuards(MockAuthGuard)
   @Get('favorites')
-  async getFavorites(@Query() paginationDto: PaginationDto) {
-    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
+  async getFavorites(@Query() paginationDto: PaginationDto,
+    @GetUserId() userId: string,
+  ) {
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(paginationDto, userId, GetFavoritesQuery),
@@ -64,9 +72,11 @@ export class LibraryController {
 
   // query + command (CQRS) H7.3
   @HttpCode(201)
+  @UseGuards(MockAuthGuard)
   @Post('favorites/:kahootId')
-  async addKahootTofavorites(@Param('kahootId') kahootId: string) {
-    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
+  async addKahootTofavorites(@Param('kahootId') kahootId: string,
+    @GetUserId() userId: string,
+  ) {
     const kahootExistanceOptional: Optional<Error> =
       await this.queryBus.execute(
         new CheckIfCanBeSavedToFavoritesQuery(kahootId),
@@ -80,9 +90,11 @@ export class LibraryController {
 
   // command (CQRS) H7.4
   @HttpCode(204)
+  @UseGuards(MockAuthGuard)
   @Delete('favorites/:kahootId')
-  async deleteKahootFromfavorites(@Param('kahootId') kahootId: string) {
-    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
+  async deleteKahootFromfavorites(@Param('kahootId') kahootId: string,
+    @GetUserId() userId: string,
+  ) {
     const res: Optional<Error> = await this.commandBus.execute(
       new RemoveKahootFromFavoritesCommand(userId, kahootId),
     );
@@ -92,9 +104,11 @@ export class LibraryController {
 
   // Query (CQRS) H7.5
   @HttpCode(200)
+  @UseGuards(MockAuthGuard)
   @Get('in-progress')
-  async getInProgressKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '18c2416a-3b6e-4815-9cd2-45ccc29501c3';
+  async getInProgressKahoots(@Query() paginationDto: PaginationDto,
+    @GetUserId() userId: string,
+  ) {
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
@@ -109,9 +123,11 @@ export class LibraryController {
 
   // Query (CQRS) H7.6
   @HttpCode(200)
+  @UseGuards(MockAuthGuard)
   @Get('completed')
-  async getCompletedKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '18c2416a-3b6e-4815-9cd2-45ccc29501c3';
+  async getCompletedKahoots(@Query() paginationDto: PaginationDto,
+    @GetUserId() userId: string,
+  ) {
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
