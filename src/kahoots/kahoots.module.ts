@@ -1,3 +1,4 @@
+// src/kahoots/kahoots.module.ts
 import { Module } from '@nestjs/common';
 import { KahootController } from './infrastructure/nest-js/kahoots.controller';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
@@ -15,6 +16,10 @@ import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get
 import { SlideResponseMapper } from './infrastructure/adapters/commands/output/kahoot.slide.response.mapper';
 import { OptionResponseMapper } from './infrastructure/adapters/commands/output/kahoot.slide.option.response.mapper';
 
+import { CommandQueryExecutorService } from './infrastructure/nest-js/command-query-executor.service';
+import { EitherHandlerService } from './infrastructure/nest-js/either-handler.service';
+import { ErrorMapperService } from './infrastructure/nest-js/error-mapper.service';
+
 @Module({
   controllers: [KahootController],
   imports: [
@@ -24,17 +29,25 @@ import { OptionResponseMapper } from './infrastructure/adapters/commands/output/
     CqrsModule,
   ],
   providers: [
+    ErrorMapperService,
+    EitherHandlerService,
+    CommandQueryExecutorService,
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
     KahootNestMapperAdapter,
     GetKahootByIdHandler,
     {
-        provide: MapperName.KahootResponse, 
-        useClass: KahootResponseMapper, 
+      provide: MapperName.KahootResponse, 
+      useClass: KahootResponseMapper, 
     },
     SlideResponseMapper,
     OptionResponseMapper,
+  ],
+  exports: [
+    CommandQueryExecutorService,
+    ErrorMapperService,
+    EitherHandlerService,
   ],
 })
 export class KahootsModule {}

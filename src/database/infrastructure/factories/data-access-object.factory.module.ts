@@ -2,6 +2,7 @@ import { DynamicModule, Module, Type } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityFactoryModule } from './entity.factory.module';
 import { DAO_REGISTRY, DaoName } from '../catalogs/dao.catalogue.enum';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({})
 export class DaoFactoryModule {
@@ -24,7 +25,7 @@ export class DaoFactoryModule {
 
     return {
       module: DaoFactoryModule,
-      imports: [ConfigModule, EntityFactoryModule.forRoot()], // Se carga todo el modelo para resolver las dependencias de cualqueir dao
+      imports: [ConfigModule, EntityFactoryModule.forRoot(), CqrsModule], // Se carga todo el modelo para resolver las dependencias de cualqueir dao
       providers: [
         {
           provide: daoName,
