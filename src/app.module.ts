@@ -8,6 +8,7 @@ import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
 import { MediaModule } from './media/infraestructure/media.module';
 import { ReportsModule } from './reports/reports.module';
+import { ExploreModule } from './explore/explore.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { ReportsModule } from './reports/reports.module';
     MultiplayerSessionsModule,
     SoloAttemptsModule,
     MediaModule,
+    ExploreModule,
   ],
 })
 export class AppModule {

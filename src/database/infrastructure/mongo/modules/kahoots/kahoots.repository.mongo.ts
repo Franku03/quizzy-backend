@@ -1,5 +1,5 @@
 import { Model } from 'mongoose';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { KahootMongo } from 'src/database/infrastructure/mongo/entities/kahoots.schema';
@@ -18,7 +18,6 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
   public async saveKahoot(kahoot: Kahoot): Promise<void> {
     const persistenceData = kahoot.getSnapshot();
-    console.log("hola")
     try {
       // 2. Persistencia: Usa findOneAndUpdate
       await this.kahootModel
