@@ -14,7 +14,9 @@ import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootReposito
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
 import { SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
-
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
   constructor(
@@ -24,6 +26,8 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     private readonly kahootRepository: IKahootRepository,
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
+    @Inject(UuidGenerator) private readonly uuidGenerator: IdGenerator<string>,
+  
   ) {}
 
   async execute(command: StartSoloAttemptCommand): Promise<any> {
@@ -60,7 +64,11 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
 
     // We use the Attempt Factory to create a clean, new instance of the SoloAttempt Aggregate.
     // This encapsulates the creation logic and ensures all initial invariants are met.
+    // We generate a new unique AttemptId for this game session.
+    const attemptIdString = await this.uuidGenerator.generateId();
+    const attemptId = new AttemptId(attemptIdString);
     const attempt = SoloAttemptFactory.createNewAttempt(
+      attemptId,
       playerId,
       kahootId,
       totalQuestions,

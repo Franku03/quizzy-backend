@@ -21,14 +21,11 @@ export class SoloAttemptFactory {
     // demands it upon creation to maintain its invariants (answered <= total).
     // The calling service should retrieve this count from the Kahoot Aggregate.
     public static createNewAttempt(
+        attemptId: AttemptId,
         playerId: UserId, 
         kahootId: KahootId, 
         totalQuestions: number
     ): SoloAttempt {
-        
-        // We generate a new unique identifier for this specific game session.
-        // We use the native crypto module to generate a cryptographically strong UUID v4.
-        const attemptId = new AttemptId(crypto.randomUUID());
 
         // A new game always starts with a score of zero.
         const initialScore = Score.create(0);
