@@ -1,4 +1,3 @@
-import { UserRepositoryPostgres } from '../postgres/modules/users/users.repository.postgres';
 import { UserRepositoryMongo } from '../mongo/modules/users/users.repository.mongo';
 import { Type } from '@nestjs/common';
 import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.repository.mongo';
@@ -7,7 +6,7 @@ import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attem
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
 import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
-import { MultiplayerSessionRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.mongo';
+import { MultiplayerSessionMongoRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.mongo';
 
 export type RepositoryRegistryItem = {
   typeorm: Type<any> | null;
@@ -49,6 +48,6 @@ export const REPOSITORY_REGISTRY: Record<
   },
   [RepositoryName.MultiplayerSession]: {
     typeorm: SoloAttemptRepositoryPostgres,
-    mongoose: MultiplayerSessionRepository,
+    mongoose: MultiplayerSessionMongoRepository,
   },
 };

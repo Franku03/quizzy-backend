@@ -65,10 +65,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         if( !this.properties.sessionState.isEnd() )
             throw new Error("Invarianza violada: La partida debe estar END al ser cargada, pues debió finalizar para ser guardada");
 
-        if( !!this.getCompletionDate() )
+        if( !this.getCompletionDate() )
             throw new Error("Invarianza violada: La partida no tiene fecha de culminación");
 
-        if( !!this.getStartingDate() )
+        if( !this.getStartingDate() )
             throw new Error("Invarianza violada: La partida no tiene fecha de inicio");
 
         if( this.hasMoreSlidesLeft() )
