@@ -20,9 +20,11 @@ export class MarkAssignmentCompletedUseCase {
         const groups = await this.groupRepository.findByMemberAndKahoot(data.userId, data.kahootId);
 
 
+
         for (const group of groups) {
             group.markAssignmentAsCompleted(userIdVO, kahootIdVO, attemptIdVO, scoreVO);
             await this.groupRepository.save(group);
+            console.log("[Groups] Assignment marked as completed successfully");
         }
     }
 }

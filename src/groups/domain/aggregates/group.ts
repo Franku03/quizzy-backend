@@ -202,6 +202,8 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       assignment => assignment.getQuizId().value === kahootId.value
     );
 
+
+
     if (!assignment) {
       throw new Error("El kahoot no está asignado a este grupo.");
     }
@@ -225,12 +227,12 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       score
     );
 
+
+
     this.properties.completions.push(completion);
 
 
     assignment.markAsCompleted();
-
-
     return true;
   }
 

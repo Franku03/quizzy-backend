@@ -35,7 +35,7 @@ export class GroupRepositoryMongo implements IGroupRepository {
 
     async findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]> {
         const documents = await this.groupModel.find({
-            members: { $elemMatch: { userId: userId } },
+            members: { $elemMatch: { id: userId } },
             assignments: { $elemMatch: { quizId: kahootId } }
         }).exec();
 
