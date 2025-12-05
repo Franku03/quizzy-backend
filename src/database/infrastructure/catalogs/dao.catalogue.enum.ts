@@ -17,7 +17,7 @@ export enum DaoName {
   User = 'UserDao',
   Library = 'LibraryDao',
   Group = 'GroupDao',
-  Kahoot = 'KahootDao', 
+  Kahoot = 'KahootDao',
   SoloAttempt = 'SoloAttemptDao',
   Explore = 'ExploreDao',
 }

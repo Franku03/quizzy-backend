@@ -13,27 +13,12 @@ import { Role } from '../value-objects/group.member.role';
 import { ITokenGenerator } from '../domain-services/i.token-generator.service.interface';
 import { Score } from 'src/core/domain/shared-value-objects/value-objects/value.object.score';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-
+import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
+import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 
 //pending: revisar
 import { GroupMemberRole } from '../value-objects/group.member.role';
 
-
-//pending: eliminar al implementar la clase UserId
-import { UuidVO } from 'src/core/domain/abstractions/vo.id';
-class UserId extends UuidVO {
-  constructor(value: string) {
-    super(value);
-  }
-}
-
-interface AttemptId {
-  readonly value: string;
-}
-
-interface AttemptId {
-  readonly value: string;
-}
 
 
 
@@ -167,7 +152,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       throw new Error("No se puede remover el admin del grupo.");
     }
 
-    this.properties.members = this.properties.members.filter(member => member.getUserId() !== targetUserId);
+    this.properties.members = this.properties.members.filter(member => !member.getUserId().equals(targetUserId));
   }
 
 
@@ -189,8 +174,8 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
 
 
   public assignKahoot(requesterId: UserId, kahootId: KahootId, from: Date, to: Date): void {
-    if (!this.isMember(requesterId)) {
-      throw new Error("Solo los miembros del grupo pueden asignar kahoots.");
+    if (!this.isAdmin(requesterId)) {
+      throw new Error("Solo el admin del grupo puede asignar kahoots.");
     }
 
     if (from > to) {
@@ -217,6 +202,8 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       assignment => assignment.getQuizId().value === kahootId.value
     );
 
+
+
     if (!assignment) {
       throw new Error("El kahoot no está asignado a este grupo.");
     }
@@ -240,12 +227,12 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       score
     );
 
+
+
     this.properties.completions.push(completion);
 
 
     assignment.markAsCompleted();
-
-
     return true;
   }
 
@@ -264,14 +251,18 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
   public isAdmin(userId: UserId): boolean {
-    return this.properties.adminId === userId;
+    return this.properties.adminId.equals(userId);
   }
 
   public isMember(userId: UserId): boolean {
-    return this.properties.members.some(member => member.getUserId() === userId);
+    return this.properties.members.some(member => member.getUserId().equals(userId));
   }
 
   protected checkInvariants(): void {
+  }
+
+  public getId(): GroupId {
+    return this.id;
   }
 
   public getAdminId(): UserId {
@@ -282,17 +273,21 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     return this.properties.details.getName();
   }
 
-public toPrimitives(): GroupPrimitives {
+  public getDescription(): string {
+    return this.properties.details.getDescription();
+  }
+
+  public toPrimitives(): GroupPrimitives {
     return {
       id: this.id.value,
       name: this.properties.details.getName(),
       description: this.properties.details.getDescription ? this.properties.details.getDescription() : undefined,
       adminId: this.properties.adminId.value,
       createdAt: this.properties.createdAt,
-      
-      
+
+
       members: this.properties.members.map(member => member.toPrimitives()),
-      
+
       assignments: this.properties.assignments.map(assignment => assignment.toPrimitives()),
 
 

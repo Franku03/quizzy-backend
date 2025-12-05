@@ -3,6 +3,7 @@ import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.sc
 import { GroupId } from '../../domain/value-objects/group.id';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { GroupMemberId } from '../../domain/value-objects/group.member.id';
+import { GroupAssignmentId } from '../../domain/value-objects/group.assignment.id';
 import { GroupDetails } from '../../domain/value-objects/group.details';
 import { Role } from '../../domain/value-objects/group.member.role';
 import { InvitationToken } from '../../domain/value-objects/group.invitation.token';
@@ -25,7 +26,7 @@ export class GroupMapper {
     const members = (raw.members || []).map((m: any) => {
       return new GroupMember(
         {
-          userId: new UserId(m.userId),
+          userId: new UserId(m.id || m.userId),
           role: new Role(m.role),
           joinedAt: new Date(m.joinedAt),
         },
@@ -33,19 +34,21 @@ export class GroupMapper {
       );
     });
 
-    const assignments = (raw.assignments || []).map((a: any) => {
-      return new GroupAssignment(
-        {
-          groupId: groupId,
-          assignedBy: new UserId(a.assignedBy),
-          quizId: new KahootId(a.quizId),
-          availableFrom: new Date(a.availableFrom),
-          availableUntil: new Date(a.availableUntil),
-          isAssignmentCompleted: a.isAssignmentCompleted ?? false,
-        },
-        a.id
-      );
-    });
+    const assignments = (raw.assignments || [])
+      .filter((a: any) => a.id != null && a.id !== undefined)
+      .map((a: any) => {
+        return new GroupAssignment(
+          {
+            groupId: groupId,
+            assignedBy: new UserId(a.assignedBy),
+            quizId: new KahootId(a.quizId),
+            availableFrom: new Date(a.availableFrom),
+            availableUntil: new Date(a.availableUntil),
+            isAssignmentCompleted: a.isAssignmentCompleted ?? false,
+          },
+          new GroupAssignmentId(a.id)
+        );
+      });
 
     const completions = (raw.completions || []).map((c: any) => {
       const attemptId = new AttemptId(c.attemptId);

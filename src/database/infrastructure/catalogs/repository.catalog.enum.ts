@@ -3,9 +3,9 @@ import { UserRepositoryMongo } from '../mongo/modules/users/users.repository.mon
 import { Type } from '@nestjs/common';
 import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.repository.mongo';
 import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.repository.postgres';
-import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
+import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
 
 export type RepositoryRegistryItem = {
@@ -16,8 +16,8 @@ export type RepositoryRegistryItem = {
 export enum RepositoryName {
   User = 'UserRepository',
   Kahoot = 'KahootRepository',
-  Group = 'GroupRepository',
   Attempt = 'AttemptRepository',
+  Group = 'GroupRepository',
   FileMetadata = 'FileMetadataRepository',
 }
 
