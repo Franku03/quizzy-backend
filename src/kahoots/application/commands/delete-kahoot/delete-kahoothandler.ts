@@ -48,11 +48,10 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand,
             const kahoot = kahootOptional.getValue();
 
             // 2. TODO: Verificar permisos cuando se implemente auth
-            
+
             // 3. Eliminar kahoot
             const deleteResult = await this.kahootRepository.deleteKahootEither(kahootId);
             if (deleteResult.isLeft()) {
-                // ✅ Directamente RepositoryError
                 return Either.makeLeft(deleteResult.getLeft());
             }
 
