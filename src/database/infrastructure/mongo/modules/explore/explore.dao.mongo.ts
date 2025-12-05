@@ -52,16 +52,23 @@ export class ExploreMongoDao implements IExploreDao {
 
     // Determine sort order based on query parameters
     // Defaults to newest first if no specific order is requested
-    let sort: any = { createdAt: -1 };
+    let sort: any = {};
+    
     if (query.orderBy) {
-      // Map the orderBy field to the actual database field
-      // This is done to decouple API parameters from database schema
-      // For example, 'title' maps to 'details.title' in the MongoDB document
-      // The rest of the fields map directly
       const sortField = query.orderBy === 'title' ? 'details.title' : query.orderBy;
       const sortDirection = query.order === 'asc' ? 1 : -1;
-      sort = { [sortField]: sortDirection };
+      
+      // PRIMARY SORT: What the user asked for
+      sort[sortField] = sortDirection;
+    } else {
+      // DEFAULT SORT
+      sort['createdAt'] = -1;
     }
+
+    // TIE-BREAKER 
+    // Always sort by _id as the last criteria to ensure stable pagination
+    // matching the direction of the main sort usually helps performance
+    sort['_id'] = 1;
 
     // Execute parallel queries for data and count for optimal performance
     // Using lean() for better performance since we only need plain objects
