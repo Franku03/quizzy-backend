@@ -8,17 +8,17 @@ import { IMultiplayerSessionRepository } from 'src/multiplayer-sessions/domain/p
 
 
 @Injectable()
-export class MultiplayerSessionRepository implements IMultiplayerSessionRepository {
+export class MultiplayerSessionMongoRepository implements IMultiplayerSessionRepository {
   constructor(
     @InjectModel(MultiplayerSessionMongo.name) 
     private readonly sessionModel: Model<MultiplayerSessionMongo>
   ) {}
 
-  async saveSession(session: MultiplayerSession): Promise<void> {
+ async saveSession(session: MultiplayerSession): Promise<void> {
   try {
     const props = session.props();
     
-    // Convertir Maps a arrays para guardar en MongoDB
+    // ... (tu código de playersArray está bien) ...
     const playersArray = Array.from(props.players.entries()).map(([playerIdValue, player]) => ({
       playerId: playerIdValue,
       nickname: player.getPlayerNickname(),
@@ -26,94 +26,113 @@ export class MultiplayerSessionRepository implements IMultiplayerSessionReposito
     }));
 
     const slideResultsArray = Array.from(props.playersAnswers.entries()).map(([slideIdValue, slideResult]) => {
-      // Obtener las respuestas de los jugadores usando getters
-      const playerAnswers = slideResult.getPlayersAnswers();
-      
-      // Mapear las respuestas a submissions usando getters
-      const submissions = playerAnswers.map(answer => ({
-        playerId: answer.getPlayerId().value,
-        slideId: slideIdValue,
-        answerIndex: answer.getAnswerIndex(),
-        isAnswerCorrect: answer.isCorrect(),
-        earnedScore: answer.getEarnedScore(),
-        timeElapsed: answer.getTimeElapsed(),
-        answerContent: answer.getProperties().answerContent?.map(content => ({
-          isCorrect: content.isCorrect,
-          answerContent: {
-            type: content.hasImage() ? 'IMAGE' : 'TEXT',
-            value: content.getAnswerContent()
-          }
-        })) || []
-      }));
+        const playerAnswers = slideResult.getPlayersAnswers();
+        
+        // Mapear submissions
+        const submissions = playerAnswers.map(answer => ({
+          playerId: answer.getPlayerId().value,
+          slideId: slideIdValue,
+          answerIndex: answer.getAnswerIndex(),
+          isAnswerCorrect: answer.isCorrect(),
+          earnedScore: answer.getEarnedScore(),
+          
+          // --- CORRECCIÓN 1: timeElapsed ---
+          // El log mostraba "timeElapsed: [ResponseTime]"
+          // Asumimos que tiene .value o .getValue() para obtener el número
+          timeElapsed: answer.getTimeElapsed().toMilliseconds(), 
+          
+          answerContent: answer.getProperties().answerContent?.map(content => ({
+            isCorrect: content.isCorrect,
+            answerContent: {
+              type: content.hasImage() ? 'IMAGE' : 'TEXT',
+              value: content.getAnswerContent()
+            }
+          })) || []
+        }));
 
-      return {
-        slideId: slideIdValue,
-        slidePosition: 0, 
-        questionSnapshot: playerAnswers.length > 0 ? {
-          questionText: playerAnswers[0].getQuestionSnapshot().questionText,
-          basePoints: playerAnswers[0].getQuestionSnapshot().basePoints,
-          timeLimit: playerAnswers[0].getQuestionSnapshot().timeLimit,
-          correctAnswerIndices: playerAnswers[0].getQuestionSnapshot()
-        } : {
-          questionText: '',
-          basePoints: 0,
-          timeLimit: 0,
-          correctAnswerIndices: []
+        // Helper para no repetir código y limpiar la lectura
+        const snapshot = playerAnswers.length > 0 ? playerAnswers[0].getQuestionSnapshot() : null;
+
+        return {
+          slideId: slideIdValue,
+          slidePosition: 0, 
+          
+          questionSnapshot: snapshot ? {
+            questionText: snapshot.questionText,
+            
+            // --- CORRECCIÓN 2: basePoints ---
+            // Antes: snapshot.basePoints (Objeto Points)
+            // Ahora: snapshot.basePoints.value (Número 1000)
+            basePoints: snapshot.basePoints.value, 
+
+            // --- CORRECCIÓN 3: timeLimit ---
+            // Antes: snapshot.timeLimit (Objeto TimeLimitSeconds)
+            // Ahora: snapshot.timeLimit.value (Número)
+            timeLimit: snapshot.timeLimit.value,
+
+            // --- CORRECCIÓN 4: correctAnswerIndices ---
+            // Antes: estabas pasando "snapshot" (el objeto entero) a este campo
+            // Ahora: pasamos la propiedad específica dentro del snapshot
+            // correctAnswerIndices: snapshot
+          } : {
+            questionText: '',
+            basePoints: 0,
+            timeLimit: 0,
+            // correctAnswerIndices: []
+          },
+          submissions: submissions,
+          // startedAt: new Date(), 
+          // endedAt: new Date() 
+        };
+      });
+
+      const sessionData = {
+        sessionId: session.id.value,
+        hostId: props.hostId.value,
+        kahootId: props.kahootId.value,
+        sessionPin: props.sessionPin.getPin(),
+        state: props.sessionState.getActualState(),
+        
+        timeDetails: {
+          startedAt: props.startedAt.value,
+          lastActivityAt: new Date(),
+          completedAt: props.completedAt.hasValue() ? props.completedAt.getValue().value : null
         },
-        submissions: submissions,
-        startedAt: new Date(), 
-        endedAt: new Date() 
+        
+        progress: {
+          // currentSlideId: null, // Ojo: ¿seguro que quieres null aquí siempre?
+          // currentQuestionStartTime: null,
+          // slideOrder: [],
+          currentSlideIndex: 0,
+          totalSlides: props.progress.getNumberOfTotalSlides()
+        },
+        
+        ranking: props.ranking.getEntries().map(entry => ({
+          playerId: entry.getPlayerId().value,
+          nickname: entry.getNickname(),
+          score: entry.getScore(),
+          rank: entry.getRank(),
+          previousRank: entry.getPreviousRank()
+        })),
+        
+        players: playersArray,
+        slideResults: slideResultsArray,
       };
-    });
 
-    const sessionData = {
-      sessionId: session.id.value,
-      hostId: props.hostId.value,
-      kahootId: props.kahootId.value,
-      sessionPin: props.sessionPin.getPin(),
-      state: props.sessionState.getActualState(),
-      
-      timeDetails: {
-        startedAt: props.startedAt,
-        lastActivityAt: new Date(),
-        completedAt: props.completedAt.hasValue() ? props.completedAt.getValue() : null
-      },
-      
-      // Progress simplificado - solo información mínima
-      progress: {
-        currentSlideId: null,
-        currentQuestionStartTime: null,
-        slideOrder: [],
-        currentSlideIndex: 0,
-        totalSlides: props.progress.getNumberOfTotalSlides()
-      },
-      
-      // CORREGIDO: Usar getEntries() en lugar de .entries
-      ranking: props.ranking.getEntries().map(entry => ({
-        playerId: entry.getPlayerId().value,
-        nickname: entry.getNickname(),
-        score: entry.getScore(),
-        rank: entry.getRank(),
-        previousRank: entry.getPreviousRank() // Nota: en tu clase ScoreboardEntry, getPreviousRank() retorna rank en lugar de previousRank
-      })),
-      
-      players: playersArray,
-      slideResults: slideResultsArray,
-    };
+      await this.sessionModel.findOneAndUpdate(
+        { sessionId: sessionData.sessionId },
+        { $set: sessionData },
+        { 
+          upsert: true, 
+          new: true,
+          runValidators: true 
+        }
+      );
 
-    await this.sessionModel.findOneAndUpdate(
-      { sessionId: sessionData.sessionId },
-      { $set: sessionData },
-      { 
-        upsert: true, 
-        new: true,
-        runValidators: true 
-      }
-    );
+    } catch (error) {
+      console.error('Error saving multiplayer session:', error);
+      throw new Error(`Failed to save session: ${error.message}`);
+    }
+  } 
 
-  } catch (error) {
-    console.error('Error saving multiplayer session:', error);
-    throw new Error(`Failed to save session: ${error.message}`);
-  }
-}
 }

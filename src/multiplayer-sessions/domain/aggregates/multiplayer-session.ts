@@ -65,10 +65,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         if( !this.properties.sessionState.isEnd() )
             throw new Error("Invarianza violada: La partida debe estar END al ser cargada, pues debió finalizar para ser guardada");
 
-        if( !!this.getCompletionDate() )
+        if( !this.getCompletionDate() )
             throw new Error("Invarianza violada: La partida no tiene fecha de culminación");
 
-        if( !!this.getStartingDate() )
+        if( !this.getStartingDate() )
             throw new Error("Invarianza violada: La partida no tiene fecha de inicio");
 
         if( this.hasMoreSlidesLeft() )
@@ -199,6 +199,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+    public completeProgess(): void {
+      
+        this.properties.progress = this.properties.progress.completeProgress();
+
+    }
+
     // * LOGICA DE MANEJO DE ESTADOS DE LA SESSION
 
 
@@ -219,13 +225,19 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
-    public advanceToNextPhase(): void {
+    public advanceToNextPhase(): void { // !Este metodo requiere mejoras
 
         // console.log(!this.properties.progress.hasMoreSlidesLeft());
-        
-        if( !this.properties.progress.hasMoreSlidesLeft() )
-            this.endSession();
 
+        // console.log( this.properties.progress.getProperties() );
+        
+        if( !this.properties.progress.hasMoreSlidesLeft() ){ // ! La logica de transicion de estados requiere una ligera revision
+
+            this.endSession();
+            return;
+
+        }
+        
         if( this.properties.sessionState.isQuestion() ){
 
             this.properties.sessionState = this.properties.sessionState.toResults();
@@ -236,7 +248,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             this.properties.sessionState = this.properties.sessionState.toQuestion();
 
         } else {
-            throw new Error("Desde el estado actual no se puede pasar a RESULT o QUESTION");
+            throw new Error(`Desde el estado ${this.properties.sessionState.getActualState()} no se puede pasar a RESULT o QUESTION`);
         }
 
         // return this.properties.sessionState;
@@ -245,6 +257,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     public endSession(): void {
 
         // ! Este metodo deberia emitir un evento de dominio para notificar a la capa de infraestructura
+
+        if( this.properties.sessionState.isQuestion() && !this.properties.progress.hasMoreSlidesLeft() )
+             this.properties.sessionState = this.properties.sessionState.toResults(); // Muchos efectos colaterales, pero es necesario pasar a results para luego pasar a end
+
         // Terminamos el juego pasando a estado END
         this.properties.sessionState = this.properties.sessionState.toEnd();
 

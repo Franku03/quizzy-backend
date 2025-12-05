@@ -60,7 +60,7 @@ export class SessionState extends ValueObject<SessionStateProps> {
 
                 if( this.properties.state === SessionStateType.RESULTS )
 
-                return false;
+                return true;
             };
 
             default:

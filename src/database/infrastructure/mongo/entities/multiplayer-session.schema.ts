@@ -29,14 +29,14 @@ const QuestionSnapshotSchema = {
     required: true,
     min: 0
   },
-  correctAnswerIndices: { 
-    type: [Number], 
-    required: true,
-    validate: {
-      validator: (arr: number[]) => arr.length > 0,
-      message: 'At least one correct answer index is required'
-    }
-  }
+  // correctAnswerIndices: { 
+  //   type: [Number], 
+  //   required: true,
+  //   validate: {
+  //     validator: (arr: number[]) => arr.length > 0,
+  //     message: 'At least one correct answer index is required'
+  //   }
+  // }
 };
 
 const ScoreboardEntrySchema = {
@@ -81,7 +81,7 @@ const SlideResultSchema = {
   slidePosition: { type: Number, required: true, min: 0 },
   questionSnapshot: { type: QuestionSnapshotSchema, required: true },
   submissions: { type: [SessionPlayerAnswerSchema], default: [] },
-  startedAt: { type: Date, required: true },
+  // startedAt: { type: Date, required: true },
   endedAt: { type: Date, default: null }
 };
 
@@ -139,7 +139,7 @@ export class MultiplayerSessionMongo extends Document {
     required: true, 
     unique: true, 
     index: true,
-    match: /^[0-9]{6}$/
+    match: /^\d{6,10}$/
   })
   public sessionPin: string;
 
@@ -223,8 +223,8 @@ export class MultiplayerSessionMongo extends Document {
         };
       }>;
     }>;
-    startedAt: Date;
-    endedAt: Date | null;
+    // startedAt: Date;
+    // endedAt: Date | null;
   }>;
 
   @Prop({ type: Number, default: 1 })

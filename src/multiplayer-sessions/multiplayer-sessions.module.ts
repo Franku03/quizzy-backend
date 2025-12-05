@@ -12,11 +12,13 @@ import { JoinPlayerHandler } from './application/commands/join-player/join-playe
 import { HostStartGameHandler } from './application/commands/host-start-game/host-start-game.handler';
 import { PlayerSubmitAnswerHandler } from './application/commands/player-submit-answer/player-submit-answer.handler';
 import { HostNextPhaseHandler } from './application/commands/host-next-phase/host-next-phase.handler';
+import { SaveSessionHandler } from './application/commands/save-session/save-session.handler';
 
 
 @Module({
   imports: [
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot), // carga de repositorio (para commands de CQRS)
+    RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
     // DaoFactoryModule.forFeature(DaoName.User), // Carga de un DAO (para queries de CQRS)
     CqrsModule,
   ],
@@ -35,6 +37,7 @@ import { HostNextPhaseHandler } from './application/commands/host-next-phase/hos
     HostStartGameHandler,
     PlayerSubmitAnswerHandler,
     HostNextPhaseHandler,
+    SaveSessionHandler,
   ],
   controllers: [MultiplayerSessionsController],
 })

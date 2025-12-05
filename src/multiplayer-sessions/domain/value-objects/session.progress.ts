@@ -43,6 +43,22 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
         });
     }
 
+
+    // Para cerrar por completo el progreso como completado
+    public completeProgress( ): SessionProgress {
+
+        if(this.hasMoreSlidesLeft() ){
+            return new SessionProgress({ 
+                currentSlide: this.properties.currentSlide,
+                totalSlides: this.properties.totalSlides, 
+                slidesAnswered: this.properties.slidesAnswered + 1 // * Esto es la parte importante, sumar la ultima slide respondida
+            });
+        } 
+
+        return this // Para evitar que podamos actualizar el progreso como completado si siguen quedando slides
+
+    }
+
     public getProgressPercentage(): number {
 
         return ( this.properties.slidesAnswered*100 ) / this.properties.totalSlides; 

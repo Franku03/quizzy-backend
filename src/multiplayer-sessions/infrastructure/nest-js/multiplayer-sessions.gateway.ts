@@ -21,6 +21,7 @@ import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
 import { HostNextPhaseCommand } from 'src/multiplayer-sessions/application/commands/host-next-phase/host-next-phase.command';
 import { SessionStateType } from 'src/multiplayer-sessions/domain/value-objects';
 import { QuestionResultsResponse } from 'src/multiplayer-sessions/application/response-dtos/question-results.response.dto';
+import { SaveSessionCommand } from 'src/multiplayer-sessions/application/commands/save-session/save-session.command';
 
 
 
@@ -279,6 +280,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
 
           } else {
+
+            // ! Definitivamente necesitamos eventos de dominio, este handler quedo muy feo en codigo, esta logica deberia estar fuera
+            const saveRes: Either<Error, boolean > = 
+              await this.commandBus.execute( new SaveSessionCommand( client.data.roomPin ) );
+
+            if( saveRes.isLeft() )
+              this.handleError( client, saveRes.getLeft() );
+
 
             this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res.getRight() )
           }
