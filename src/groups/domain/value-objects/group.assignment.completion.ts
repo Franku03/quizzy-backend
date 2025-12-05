@@ -2,18 +2,9 @@ import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 
-//pending
-//import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
-//import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/attempt.id";
 
-
-interface UserId {
-    readonly value: string;
-}
-
-interface AttemptId {
-    readonly value: string;
-}
+import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
 
 interface GroupAssignmentCompletionProps {
     readonly userId: UserId;
@@ -23,7 +14,7 @@ interface GroupAssignmentCompletionProps {
 }
 
 export class GroupAssignmentCompletion extends ValueObject<GroupAssignmentCompletionProps> {
-    
+
     protected constructor(props: GroupAssignmentCompletionProps) {
         if (!props.userId) {
             throw new Error("El userId es requerido.");
