@@ -3,5 +3,9 @@
 // read model o al menos una variacion del mismo, por eso tienen su carpeta
 // separada
 export class UserReadModel {
-  constructor(public readonly name: string) {}
+  constructor(
+      public readonly id: string,
+      public readonly email: string,
+      public readonly username: string
+  ) {}
 }

@@ -8,72 +8,79 @@ import { MapperHelper } from '../../helpers/kahoot.mapper.helper';
 import { QueryBus } from '@nestjs/cqrs'; 
 import { GetAssetUrlQuery } from "src/media/application/queries/get-asset-url/get-asset-url-by-id.query"
 import { Injectable } from "@nestjs/common";
+import { SlideResponseDTO } from "src/kahoots/application/commands/response-dto/kahoot.slide.response.dto";
 
 @Injectable()
 export class KahootResponseMapper implements IKahootResponseMapper {
     constructor(
-        private readonly queryBus: QueryBus, // Inyectamos QueryBus
-        private readonly slideResponseMapper: SlideResponseMapper, // Inyectamos el mapper de slides
+        private readonly queryBus: QueryBus,
+        private readonly slideResponseMapper: SlideResponseMapper, 
     ) {}
     
-    // El método toResponseDTO ahora es ASÍNCRONO
-    public async toResponseDTO(domainEntity: Kahoot): Promise<KahootResponseDTO> {
-        
-        // --- 1. Extracción de Detalles ---
-        const details = domainEntity.details.hasValue() 
-            ? domainEntity.details.getValue() 
+    public async toResponseDTO(kahoot: Kahoot): Promise<KahootResponseDTO> {
+        const details = kahoot.details.hasValue() 
+            ? kahoot.details.getValue() 
             : null;
             
-        // --- 2. Mapear Imagen de Portada (coverImageId) ---
-        const coverImageId = domainEntity.styling.imageId.hasValue() 
-            ? domainEntity.styling.imageId.getValue().value 
+        const coverImageId = kahoot.styling.imageId.hasValue() 
+            ? kahoot.styling.imageId.getValue().value 
             : null;
         
         let coverImageUrl = null;
         if (coverImageId) {
-            // EJECUTAR EL QUERY: UUID -> URL
-            coverImageUrl = await this.queryBus.execute(new GetAssetUrlQuery(coverImageId));
+            try {
+                const result = await this.queryBus.execute(new GetAssetUrlQuery(coverImageId));
+                
+                if (result.isLeft()) {
+                    const error = result.getLeft();
+                    if (error.type === 'AssetNotFound') {
+                        console.warn(`Cover asset ${coverImageId} no existe o no pertenece al CDN`);
+                    } else {
+                        console.warn(`Error obteniendo cover asset ${coverImageId}:`, error.message);
+                    }
+                    coverImageUrl = null;
+                } else {
+                    const url = result.getRight();
+                    if (!url) {
+                        console.warn(`Cover asset ${coverImageId} no existe o no está disponible`);
+                        coverImageUrl = null;
+                    } else {
+                        coverImageUrl = url;
+                    }
+                }
+            } catch (error) {
+                console.warn(`Error de conexión obteniendo cover asset ${coverImageId}:`, error);
+                coverImageUrl = null;
+            }
         }
             
-        // --- 3. Extracción y Mapeo de Slides de forma ASÍNCRONA ---
-        const slideValues = Array.from(domainEntity.slides.values());
+        const slideValues = Array.from(kahoot.slides.values());
         
-        const slidesArray = slideValues.length > 0
-            ? await Promise.all( // Usar AWAIT y Promise.all para mapear slides
+        let slidesArray: SlideResponseDTO[] | null = null;
+        if (slideValues.length > 0) {
+            slidesArray = await Promise.all(
                 slideValues
                     .sort((a, b) => a.position - b.position) 
-                    .map(slide => this.slideResponseMapper.toResponseDTO(slide)) // Usar el mapper inyectado
-              )
-            : null; 
+                    .map(slide => this.slideResponseMapper.toResponseDTO(slide))
+            );
+        }
 
-        // --- 4. Mapeo de Propiedades ---
         return {
-            // Propiedades Directas / VOs
-            id: domainEntity.id.value, 
-            authorId: domainEntity.authorId,
-            createdAt: domainEntity.createdAt.value, 
-            playCount: domainEntity.playCount.count, 
+            id: kahoot.id.value, 
+            authorId: kahoot.authorId,
+            createdAt: kahoot.createdAt.value, 
+            playCount: kahoot.playCount.count, 
             
-            // VOs que contienen Enum
-            status: MapperHelper.capitalizeFirstLetter(domainEntity.status.value)!, // Usé status.value, no visibility.value
-            visibility: MapperHelper.capitalizeFirstLetter(domainEntity.visibility.value)!, 
+            status: MapperHelper.capitalizeFirstLetter(kahoot.status.value)!,
+            visibility: MapperHelper.capitalizeFirstLetter(kahoot.visibility.value)!, 
             
-            // Mapeo de Styling (VO KahootStyling)
-            themeId: domainEntity.styling.themeName, 
-            coverImageId: coverImageUrl, // Ahora es la URL
+            themeId: kahoot.styling.themeName, 
+            coverImageId: coverImageUrl,
             
-            // Mapeo de Detalles (Optional<KahootDetails>)
-            title: details && details.title.hasValue()
-                ? details.title.getValue()
-                : null,
-            description: details && details.description.hasValue()
-                ? details.description.getValue()
-                : null,
-            category: details && details.category.hasValue()
-                ? details.category.getValue()
-                : null,
-                
-            // Array de DTOs anidados
+            title: details?.title.hasValue() ? details.title.getValue() : null,
+            description: details?.description.hasValue() ? details.description.getValue() : null,
+            category: details?.category.hasValue() ? details.category.getValue() : null,
+            
             questions: slidesArray, 
         };
     }

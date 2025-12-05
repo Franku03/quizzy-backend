@@ -17,15 +17,41 @@ export class SlideResult extends ValueObject<SlideResultProps> {
         super({ ...props });
     }
 
-    public static create (slideId: SlideId,  playerAnswers: SessionPlayerAnswer[] ): SlideResult {
+    // Viejo metodo fabrica
+    // public static create (slideId: SlideId,  playerAnswers: SessionPlayerAnswer[] ): SlideResult {
 
-        const answers = new Map();
+    //     const answers = new Map();
 
-        playerAnswers.forEach( answer => {
-            answers.set( answer.getPlayerId(), answer );
-        });
+    //     playerAnswers.forEach( answer => {
+    //         answers.set( answer.getPlayerId(), answer );
+    //     });
+
+    //     return new SlideResult({ slideId, answers });
+
+    // }
+
+
+    public static create ( slideId: SlideId ): SlideResult {
+
+        const answers: Map<PlayerIdValue, SessionPlayerAnswer> = new Map();
 
         return new SlideResult({ slideId, answers });
+
+    }
+
+
+    public addResult ( playerAnswer: SessionPlayerAnswer ): SlideResult {
+
+        const updatedAnswers: Map<PlayerIdValue, SessionPlayerAnswer> = new Map();
+
+        for( const [playerId, playerAnswer] of this.properties.answers ){
+            
+            updatedAnswers.set( playerId, playerAnswer );
+        }
+
+        updatedAnswers.set( playerAnswer.getPlayerId().value, playerAnswer );
+
+        return new SlideResult({ slideId: this.properties.slideId , answers: updatedAnswers });
 
     }
 

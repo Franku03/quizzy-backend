@@ -22,10 +22,10 @@ interface UpdateCommandProps {
 }
 
 export class UpdateKahootCommand extends BaseKahootCommand {
-    // Definimos 'id' como obligatorio en el contexto de esta clase
+    // id obligatorio en el contexto de esta clase
     public readonly id!: string; 
     
-    // Usamos 'declare' para propiedades heredadas que son opcionales en la base 
+    //'declare' para propiedades heredadas que son opcionales en la base 
     public declare readonly authorId?: string;
     public declare readonly createdAt?: Date;
     public declare readonly playCount?: number;

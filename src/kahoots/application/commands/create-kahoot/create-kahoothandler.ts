@@ -1,67 +1,78 @@
+// src/kahoots/application/commands/create-kahoot/create-kahoot.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { CreateKahootCommand } from './create-kahootcommand';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { Inject, Logger } from '@nestjs/common';
-import { KahootFactory, KahootInput, SlideInput } from '../../../domain/factories/kahoot.factory'; 
+import { Inject } from '@nestjs/common';
+import { KahootFactory, KahootInput } from '../../../domain/factories/kahoot.factory'; 
 import { Kahoot } from '../../../domain/aggregates/kahoot'; 
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 import { MapperName } from '../../catalogs/catalog.mapper.enum';
 import type { IKahootResponseMapper } from '../../ports/i-kahoot.response.mapper';
 import { KahootResponseDTO } from '../response-dto/kahoot.response.dto';
+import { Either } from 'src/core/types/either';
 
+import { 
+  InvalidKahootDataError 
+} from '../../../domain/errors/kahoot-domain.errors';
+import { CreateKahootError } from '../../errors/kahoot-aplication.errors';
 
 @CommandHandler(CreateKahootCommand)
-export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand, KahootResponseDTO> {
+export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand, Either<CreateKahootError, KahootResponseDTO>> {
     
     constructor(
         @Inject(RepositoryName.Kahoot)
         private readonly kahootRepository: IKahootRepository,
-        @Inject( UuidGenerator )
-        private readonly IdGenerator: IdGenerator<string>,
+        @Inject(UuidGenerator)
+        private readonly idGenerator: IdGenerator<string>,
         @Inject(MapperName.KahootResponse) 
         private readonly kahootResponseMapper: IKahootResponseMapper,
-        
     ) {}
 
-     async execute(command: CreateKahootCommand): Promise<KahootResponseDTO> {
+    async execute(command: CreateKahootCommand): Promise<Either<CreateKahootError, KahootResponseDTO>> {
+        try {
+            // 1. Crear agregado
+            const kahoot = await this.createKahoot(command);
+            
+            // 2. Guardar
+            const saveResult = await this.kahootRepository.saveKahootEither(kahoot);
+            if (saveResult.isLeft()) {
+                return Either.makeLeft(saveResult.getLeft()); 
+            }
+            
+            // 3. Mapear respuesta
+            const response = await this.kahootResponseMapper.toResponseDTO(kahoot);
+            return Either.makeRight(response);
+            
+        } catch (error) {
+            return Either.makeLeft({
+                type: 'InvalidKahootData',
+                message: error instanceof Error ? error.message : 'Error de datos inválidos en kahoot',
+                timestamp: new Date(),
+                originalError: error,
+            } as InvalidKahootDataError);
+        }
+    }
 
-        const logger = new Logger('Bootstrap');
-        const creationDateString = new Date().toISOString().split('T')[0]; 
-
-        // 1. Generar ID Único para el Agregado Raíz (Kahoot)
-        const generatedKahootId = await this.IdGenerator.generateId();
+    private async createKahoot(command: CreateKahootCommand): Promise<Kahoot> {
+        const creationDate = new Date().toISOString().split('T')[0];
+        const kahootId = await this.idGenerator.generateId();
         
-        // 2. Mapear y Generar IDs para cada Slide
-        const slidesInput: SlideInput[] | undefined = await Promise.all(
-            command.slides?.map(async (slideCommand) => {
-                const slideId = await this.IdGenerator.generateId();
-                return {
-                    ...slideCommand, 
-                    id: slideId, 
-                };
-            }) || []
+        const slides = await Promise.all(
+            (command.slides || []).map(async s => ({
+                ...s,
+                id: await this.idGenerator.generateId(),
+            }))
         );
-
-        // 3. Construir el objeto de entrada rawInput
-        // Usamos destructuring para tomar todos los campos del comando
-        const { slides, ...rest } = command; 
-
-        const rawInput: KahootInput = {
-            id: generatedKahootId, 
-            ...rest, 
-            slides: slidesInput, // Array de Slides ahora con IDs
-            // 4. INCLUIR EL CAMPO GENERADO POR EL BACK
-            createdAt: creationDateString,
+        
+        const input: KahootInput = {
+            id: kahootId,
+            ...command,
+            slides,
+            createdAt: creationDate,
             playCount: 0,
         };
-        
-        //5. Aplicar la lógica de Dominio: Crear el Agregado
-        const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
-        // 6. Persistencia
-        await this.kahootRepository.saveKahoot(kahoot);
-        return this.kahootResponseMapper.toResponseDTO(kahoot);
-
+        return KahootFactory.createFromRawInput(input);
     }
 }

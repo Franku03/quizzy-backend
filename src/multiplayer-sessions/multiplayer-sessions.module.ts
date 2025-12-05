@@ -10,6 +10,8 @@ import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-gener
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
 import { JoinPlayerHandler } from './application/commands/join-player/join-player.handler';
 import { HostStartGameHandler } from './application/commands/host-start-game/host-start-game.handler';
+import { PlayerSubmitAnswerHandler } from './application/commands/player-submit-answer/player-submit-answer.handler';
+import { HostNextPhaseHandler } from './application/commands/host-next-phase/host-next-phase.handler';
 
 
 @Module({
@@ -31,6 +33,8 @@ import { HostStartGameHandler } from './application/commands/host-start-game/hos
     GetPinWithQrTokenHandler,
     JoinPlayerHandler,
     HostStartGameHandler,
+    PlayerSubmitAnswerHandler,
+    HostNextPhaseHandler,
   ],
   controllers: [MultiplayerSessionsController],
 })

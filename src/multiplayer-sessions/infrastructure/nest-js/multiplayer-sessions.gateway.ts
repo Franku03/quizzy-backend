@@ -13,9 +13,14 @@ import type { SessionSocket  } from './interfaces/socket-definitions.interface';
 import { JoinPlayerCommand } from 'src/multiplayer-sessions/application/commands/join-player/join-player.command';
 import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
 import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
-import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response';
+import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response.dto';
 
 import { Either } from 'src/core/types/either';
+import { PlayerSubmitAnswerCommand } from 'src/multiplayer-sessions/application/commands/player-submit-answer/player-submit-answer.command';
+import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
+import { HostNextPhaseCommand } from 'src/multiplayer-sessions/application/commands/host-next-phase/host-next-phase.command';
+import { SessionStateType } from 'src/multiplayer-sessions/domain/value-objects';
+import { QuestionResultsResponse } from 'src/multiplayer-sessions/application/response-dtos/question-results.response.dto';
 
 
 
@@ -69,7 +74,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
   
         }
 
-        // ? Gestionamos la union a la sala y al logger
+        // ? Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
         client.join( pin );
 
         this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
@@ -146,14 +151,17 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       
     }
 
+
+    // ? Eventos del jugador
     @SubscribeMessage( PlayerUserEvents.PLAYER_JOIN )
     async handlePlayerJoin( client: SessionSocket ){
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
 
-        console.log( client.data.roomPin );
-
         if( !client.rooms.has( client.data.roomPin ))
-          this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"))
+          this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"));
+
+        if( client.data.role !== SessionRoles.PLAYER )
+          this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
  
 
         const res: Either<Error, GameStateUpdateResponse> = 
@@ -174,6 +182,45 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
     
+    @SubscribeMessage( PlayerUserEvents.PLAYER_SUBMIT_ANSWER )
+    async handlePlayerSubmitAnswer( client: SessionSocket, payload: PlayerSubmitAnswerDto ){
+
+      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+
+        if( !client.rooms.has( client.data.roomPin ))
+          this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"));
+
+        if( client.data.role !== SessionRoles.PLAYER )
+          this.handleError( client, new Error("El Host de la partida no puede enviar preguntas"));
+ 
+
+        const res: Either<Error, boolean> = 
+          await this.commandBus.execute( new PlayerSubmitAnswerCommand( 
+              payload.questionId,
+              payload.answerId,
+              payload.timeElapsedMs,
+              client.data.roomPin,
+              client.data.userId
+          ));
+
+        if( res.isRight() ){
+
+          // this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
+
+          client.emit( ServerEvents.PLAYER_ANSWER_CONFIRMATION, { status: 'ANSWER SUCCESFULLY SUBMITTED' });
+
+        } else {
+
+
+          this.handleError( client, res.getLeft() );
+
+        }
+
+
+    }
+
+    // ? Eventos del Host
+
     @SubscribeMessage( HostUserEvents.HOST_START_GAME )
     async handleHostStartGame( client: SessionSocket ){
 
@@ -191,8 +238,51 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         if( res.isRight() ){
 
-
           this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
+
+        } else {
+
+
+          this.handleError( client, res.getLeft() );
+
+        }
+
+
+    }
+
+
+    @SubscribeMessage( HostUserEvents.HOST_NEXT_PHASE )
+    async handleHostNextPhase( client: SessionSocket ){
+
+      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+
+        if( !(client.data.role === SessionRoles.HOST) )
+          this.handleError( client, new WsException("El cliente no es Host"));
+
+        if( !client.rooms.has( client.data.roomPin as string ))
+          this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
+ 
+
+        const res: Either<Error, QuestionStartedResponse | QuestionResultsResponse > = 
+          await this.commandBus.execute( new HostNextPhaseCommand( client.data.roomPin ) );
+
+        if( res.isRight() ){
+
+          const state = res.getRight().state
+
+          if( state === SessionStateType.RESULTS ){
+
+            this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res.getRight() );
+
+          } else if ( state === SessionStateType.QUESTION ) {
+            
+            this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
+
+          } else {
+
+            this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res.getRight() )
+          }
+          
 
         } else {
 
@@ -213,7 +303,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         // ! Error en consola para debugeo, quitar en produccion
         this.logger.error( error );
 
-        // Mapeo de códigos de error a excepciones HTTP
+        // Mapeo de códigos de error a WsException
         if (message.startsWith(COMMON_ERRORS.SESSION_NOT_FOUND)) {
 
           client.emit(ServerErrorEvents.UNAVAILABLE_SESSION, {

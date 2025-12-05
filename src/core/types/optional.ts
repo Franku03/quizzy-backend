@@ -22,4 +22,8 @@ export class Optional<T> {
         }
         return this.value as T;
     }
+
+    static isOptional(obj: unknown): obj is Optional<unknown> {
+        return obj instanceof Optional;
+    }
 }

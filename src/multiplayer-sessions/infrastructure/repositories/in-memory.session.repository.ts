@@ -25,6 +25,9 @@ interface QrTokenData {
 @Injectable()
 export class InMemorySessionRepository {
 
+    // ! Nueva estructura para manejar la cola de promesas (Bloqueo Asíncrono) - Se dejara para futuras iteraciones
+    // private readonly locks = new Map<sessionPin, Promise<any>>(); 
+
     // * Base de datos en memoria para llevar los agregados asoaciados a cada partida.
     // Al ser un Singleton, este Map vive mientras el servidor este corriendo.
     private readonly activeSessions = new Map<sessionPin, SessionWrapper>();
@@ -89,7 +92,6 @@ export class InMemorySessionRepository {
     async findByPin(pin: string): Promise<SessionWrapper| null> {
         return this.activeSessions.get( pin ) || null;
     }
-
 
     async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
 
@@ -160,4 +162,41 @@ export class InMemorySessionRepository {
         }
 
     }
+
+    // ! Dado que todo aqui es asincrono debemos bloquear recursos por la concurrencia, se dejara para una siquiente iteracion
+    /**
+     * Aplica un bloqueo asíncrono a una sesión (PIN) para que las operaciones
+     * críticas sobre ese agregado se ejecuten secuencialmente.
+     */
+    // private async applyLock<T>(pin: string, operation: () => Promise<T>): Promise<T> {
+        
+    //     // 1. Obtener la última promesa activa para este PIN (o una promesa resuelta si no hay bloqueo)
+    //     const currentLock = this.locks.get(pin) || Promise.resolve();
+        
+    //     // 2. Encadenar la nueva operación a la última promesa activa.
+    //     // Se asegura que la nueva operación no empieza hasta que la anterior termina.
+    //     const newLock = currentLock.then(async () => {
+    //         // Se ejecuta la lógica de negocio (operación)
+    //         const result = await operation();
+    //         return result;
+    //     }).finally(() => {
+    //         // 3. Cuando la operación actual termina, si no hay más operaciones encadenadas
+    //         // removemos el lock para liberar el PIN (solo si es la última).
+    //         // NOTA: Con .then() y .finally() esto se maneja implícitamente en la cadena, 
+    //         // pero para evitar que el Map crezca eternamente, debes limpiar al final.
+    //         // Para simplicidad, Socket.IO + Node.js garantiza la secuencialidad
+    //         // con un simple encadenamiento.
+    //         // Más robusto: usar una librería de "async-lock" si es necesario.
+            
+    //         // Para esta implementación simple, simplemente resolvemos la cadena:
+    //         return pin; // Devolvemos el pin para que la siguiente operación sepa a quién seguir
+    //     });
+
+    //     // 4. Actualizar el Map con la nueva promesa (el final de la cadena)
+    //     this.locks.set(pin, newLock);
+        
+    //     // 5. Esperar el resultado final de la operación actual
+    //     return newLock.then(result => result); // Retorna el resultado de la operación
+    // }
+    
 }  
