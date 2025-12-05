@@ -17,6 +17,20 @@ export class UserDaoPostgres implements IUserDao {
     const user = await this.userRepo.findOne({ where: { name } });
     if (!user) return new Optional<UserReadModel>();
 
-    return new Optional<UserReadModel>(new UserReadModel('id-fake', 'email-fake', user.name)); // momentaneo, implementacion pendiente TODO
+    return new Optional<UserReadModel>(
+        new UserReadModel('id-fake', 'email-fake', user.name)
+    ); 
+  }
+
+  // 👇 AGREGAMOS ESTE MÉTODO FALTANTE
+  async getUserById(id: string): Promise<Optional<UserReadModel>> {
+    // Implementación temporal para que compile (ya que estás usando Mongo)
+    const user = await this.userRepo.findOne({ where: { id } });
+    
+    if (!user) return new Optional<UserReadModel>();
+
+    return new Optional<UserReadModel>(
+        new UserReadModel(user.id, 'email-fake', 'name-fake') // Ajusta según tu Entity real
+    );
   }
 }

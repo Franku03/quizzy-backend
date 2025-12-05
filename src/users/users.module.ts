@@ -13,6 +13,9 @@ import { GetUserByNameHandler } from './application/queries/get-user-by-name/get
 
 import { UuidGeneratorService } from './infrastructure/external-services/uuid-generator.service';
 import { BcryptHasherService } from './infrastructure/external-services/bcrypt-hasher.service';
+import { GetUserByIdHandler } from './application/queries/get-user-by-id/get-user-by-id.handler';
+import { ChangeUsernameHandler } from './application/commands/change-username/change-username.handler';
+import { DeleteUserHandler } from './application/commands/delete-user/delete-user.handler';
 
 @Module({
   controllers: [UsersController],
@@ -23,7 +26,9 @@ import { BcryptHasherService } from './infrastructure/external-services/bcrypt-h
   ],
   providers: [
     CreateUserHandler,
-
+    GetUserByIdHandler,
+    ChangeUsernameHandler,
+    DeleteUserHandler,
     {
       provide: 'IUuidGenerationService',
       useClass: UuidGeneratorService,
