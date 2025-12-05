@@ -132,9 +132,7 @@ export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
       // The attempt is not yet completed, so we cannot provide a summary.
       return new Optional<AttemptReportReadModel>();
     }
-
-    // FIX: Updated projection to target the nested 'details.title' field.
-    // The previous '{ title: 1 }' would fail because title is no longer at root.
+    
     const kahoot = await this.kahootModel
       .findOne({ id: attempt.kahootId }, { 'details.title': 1 })
       .exec();
