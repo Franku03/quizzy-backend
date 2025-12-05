@@ -34,4 +34,8 @@ export class Either<TLeft, TRight> {
     static makeRight<TLeft, TRight>( value: TRight ){
         return new Either<TLeft, TRight>( value, false);
     }
+
+    static isEither(obj: unknown): obj is Either<unknown, unknown> {
+        return obj instanceof Either;
+    }
 }

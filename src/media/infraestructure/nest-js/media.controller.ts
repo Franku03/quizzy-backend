@@ -1,15 +1,11 @@
-// src/media/infrastructure/nest-js/media.controller.ts (Nota: Ruta renombrada)
-
+// src/media/infrastructure/nest-js/media.controller.ts
 import { Controller, Post, UseInterceptors, UploadedFile, HttpException, HttpStatus } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadAssetCommand } from 'src/media/application/commands/upload-asset/upload-asset.command';
+import { File } from 'multer';
 
-// 💡 SOLUCIÓN: Importar el tipo File directamente de Express
-// Esto hace que el tipo Express.Multer.File sea reconocido.
-import { File } from 'multer'; 
-
-@Controller('media') // Renombrado de 'assets' a 'media'
+@Controller('media')
 export class MediaController { 
     constructor(private readonly commandBus: CommandBus) {}
 
@@ -20,12 +16,27 @@ export class MediaController {
             throw new HttpException('No se proporcionó ningún archivo en el campo "file".', HttpStatus.BAD_REQUEST);
         }
         
-        // El tipo File ahora es reconocido y su estructura contiene buffer y mimetype.
         const command = new UploadAssetCommand(file.buffer, file.mimetype);
+        const result = await this.commandBus.execute(command);
         
-        // Ejecutar el handler y obtener el UUID (publicId)
-        const assetId: string = await this.commandBus.execute(command); 
+        // Manejar Either directamente
+        if (result.isLeft()) {
+            const error = result.getLeft();
+            
+            if (error.type === 'InvalidFile') {
+                throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+            }
+            if (error.type === 'CloudinaryError') {
+                throw new HttpException('Error subiendo a Cloudinary', HttpStatus.SERVICE_UNAVAILABLE);
+            }
+            if (error.type === 'DatabaseError') {
+                throw new HttpException('Error guardando metadatos', HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+            
+            throw new HttpException('Error interno del servidor', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         
-        return { assetId }; // Devuelve el UUID al cliente para que Kahoot lo guarde
+        const assetId = result.getRight();
+        return { assetId };
     }
 }

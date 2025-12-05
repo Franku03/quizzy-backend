@@ -6,6 +6,7 @@ import {
   TYPEORM_ENTITY_REGISTRY,
 } from '../catalogs/entity.catalog.enum';
 
+
 type ModuleImport = Type<any> | DynamicModule;
 
 @Module({})

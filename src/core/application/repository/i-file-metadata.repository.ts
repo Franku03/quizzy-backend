@@ -2,12 +2,14 @@
 
 import { FileMetadataSnapshot } from '../snapshots/i-file-metadata.snapshot';
 import { Optional } from 'src/core/types/optional'; 
+import { Either } from '../../types/either';
+import { DatabaseError } from 'src/database/infrastructure/errors';
 
 
 export interface IFileMetadataRepository {
-    save(metadata: FileMetadataSnapshot): Promise<void>;
-    findByPublicId(publicId: string): Promise<Optional<FileMetadataSnapshot>>;
-    incrementReferenceCount(publicId: string): Promise<void>;
-    decrementReferenceCount(publicId: string): Promise<void>;
-    deleteByPublicId(publicId: string): Promise<void>;
+    save(metadata: FileMetadataSnapshot): Promise<Either<DatabaseError, void>>;
+    findByPublicId(publicId: string): Promise<Either<DatabaseError, Optional<FileMetadataSnapshot>>>;
+    incrementReferenceCount(publicId: string): Promise<Either<DatabaseError, void>>;
+    decrementReferenceCount(publicId: string): Promise<Either<DatabaseError, void>>;
+    deleteByPublicId(publicId: string): Promise<Either<DatabaseError, void>>;
 }

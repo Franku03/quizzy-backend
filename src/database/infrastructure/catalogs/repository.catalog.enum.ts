@@ -7,6 +7,7 @@ import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attem
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
 import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
+import { MultiplayerSessionRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.mongo';
 
 export type RepositoryRegistryItem = {
   typeorm: Type<any> | null;
@@ -19,6 +20,7 @@ export enum RepositoryName {
   Attempt = 'AttemptRepository',
   Group = 'GroupRepository',
   FileMetadata = 'FileMetadataRepository',
+  MultiplayerSession = 'MultiplayerSessionRepository',
 }
 
 export const REPOSITORY_REGISTRY: Record<
@@ -44,5 +46,9 @@ export const REPOSITORY_REGISTRY: Record<
   [RepositoryName.FileMetadata]: {
     typeorm: SoloAttemptRepositoryPostgres,
     mongoose: FileMetadataMongoRespository,
+  },
+  [RepositoryName.MultiplayerSession]: {
+    typeorm: SoloAttemptRepositoryPostgres,
+    mongoose: MultiplayerSessionRepository,
   },
 };

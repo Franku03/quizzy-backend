@@ -2,5 +2,5 @@ import { KahootReadModel } from '../queries/read-model/kahoot.response.read.mode
 import { KahootMongoInput } from 'src/database/infrastructure/mongo/entities/kahoots.schema';
 
 export interface IKahootReadResponseMapper {
-    mapToReadModel(kahootData: KahootMongoInput): KahootReadModel;
+    mapToReadModel(kahootData: KahootMongoInput): Promise<KahootReadModel>;
 }

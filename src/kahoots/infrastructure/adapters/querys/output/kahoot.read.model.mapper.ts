@@ -1,22 +1,15 @@
+// src/kahoots/infrastructure/mappers/kahoot.read.mapper.ts
 import { Injectable } from '@nestjs/common';
 import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model'; 
 import { SlideReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.response.read.model';
 import { OptionReadModel } from 'src/kahoots/application/queries/read-model/kahoot.slide.option.response.read.model';
 import { IKahootReadResponseMapper } from 'src/kahoots/application/ports/i-kahoot.read.mapper';
-
-
-import { 
-    OptionSnapshot, 
-    SlideSnapshot, 
-    KahootDetailsSnapshot, 
-    KahootStylingSnapshot 
-} from 'src/database/infrastructure/mongo/entities/kahoots.schema'; // RUTA ASUMIDA
+import { OptionSnapshot, SlideSnapshot, KahootDetailsSnapshot, KahootStylingSnapshot } from 'src/database/infrastructure/mongo/entities/kahoots.schema';
 import { MapperHelper } from '../../helpers/kahoot.mapper.helper';
 
-/**
- * El tipo de entrada que el DAO le pasará al Mapper ().
- * Este tipo refleja la estructura de KahootMongo pero sin las propiedades internas de Mongoose.
- */
+import { QueryBus } from '@nestjs/cqrs';
+import { GetAssetUrlQuery } from 'src/media/application/queries/get-asset-url/get-asset-url-by-id.query';
+
 export type KahootMongoInput = {
     id: string;
     authorId: string;
@@ -24,70 +17,112 @@ export type KahootMongoInput = {
     visibility: string;
     status: string;
     playCount: number;
-    details: KahootDetailsSnapshot | null; // Usa la CLASE importada
-    styling: KahootStylingSnapshot;     // Usa la CLASE importada
-    slides: SlideSnapshot[] | null;     // Usa la CLASE importada
+    details: KahootDetailsSnapshot | null;
+    styling: KahootStylingSnapshot;
+    slides: SlideSnapshot[] | null;
 };
-// ----------------------------------------------------------------------------------------------------------
 
 @Injectable()
 export class KahootReadMapper implements IKahootReadResponseMapper {
+    constructor(
+        private readonly queryBus: QueryBus,
+    ) {}
 
     /**
-     * Mapea las opciones (OptionSnapshot) al Modelo de Lectura (OptionReadModel).
-     * @param optionsSnapshot Array de la estructura de persistencia de Opciones (Clase OptionSnapshot).
+     * Obtiene la URL de un asset de forma segura.
+     * Si falla, retorna null pero NO detiene el proceso.
      */
-    private mapOptionsToReadModel(optionsSnapshot: OptionSnapshot[] | null): OptionReadModel[] | null {
+    private async getAssetUrlSafe(mediaId: string | null | undefined): Promise<string | null> {
+        if (!mediaId) return null;
+        
+        try {
+            const result = await this.queryBus.execute(new GetAssetUrlQuery(mediaId));
+            
+            if (result.isRight()) {
+                return result.getRight(); 
+            }
+            
+            // Si hay error, simplemente log y retorna null
+            console.warn(`No se pudo obtener URL para mediaId ${mediaId}:`, result.getLeft());
+            return null;
+            
+        } catch (error) {
+            // Captura cualquier error inesperado y continúa
+            console.warn(`Error inesperado obteniendo URL para mediaId ${mediaId}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Mapea las opciones incluyendo URLs de imágenes de forma segura.
+     */
+    private async mapOptionsToReadModel(optionsSnapshot: OptionSnapshot[] | null): Promise<OptionReadModel[] | null> {
         if (!optionsSnapshot) return null;
         
-        return optionsSnapshot.map((opt, index) => ({ 
-            // El mapeo permanece igual, solo el tipo de entrada cambió a OptionSnapshot
-            id: index.toString(), 
-            text: opt.optionText ?? null,
-            mediaId: opt.optionImageId ?? null,
-            isCorrect: opt.isCorrect,
-        } as OptionReadModel));
+        // Mapea todas las opciones en paralelo
+        const mappedOptions = await Promise.all(
+            optionsSnapshot.map(async (opt, index) => {
+                const optionImageUrl = await this.getAssetUrlSafe(opt.optionImageId);
+                
+                return {
+                    id: index.toString(),
+                    text: opt.optionText ?? null,
+                    mediaId: optionImageUrl, // ✅ Asigna la URL directamente (no el ID)
+                    isCorrect: opt.isCorrect,
+                } as OptionReadModel;
+            })
+        );
+        
+        return mappedOptions;
     }
 
     /**
-     * Mapea las diapositivas (SlideSnapshot) al Modelo de Lectura (SlideReadModel).
-     * @param slidesSnapshot Array de la estructura de persistencia de Slides (Clase SlideSnapshot).
+     * Mapea las diapositivas incluyendo URLs de imágenes de forma segura.
      */
-    private mapSlidesToReadModel(slidesSnapshot: SlideSnapshot[] | null): SlideReadModel[] | null {
+    private async mapSlidesToReadModel(slidesSnapshot: SlideSnapshot[] | null): Promise<SlideReadModel[] | null> {
         if (!slidesSnapshot) return null;
 
-        return slidesSnapshot.map(slide => ({
-            // El mapeo permanece igual, solo el tipo de entrada cambió a SlideSnapshot
-            id: slide.id, 
-            text: slide.questionText ?? null,
-            mediaId: slide.slideImageId ?? null, 
-            type: slide.slideType.toLowerCase(),
-            timeLimit: slide.timeLimitSeconds,
-            points: slide.pointsValue ?? null,
-            position: slide.position,
-            answers: this.mapOptionsToReadModel(slide.options), 
-        } as SlideReadModel));
+        // Mapea todas las slides en paralelo
+        const mappedSlides = await Promise.all(
+            slidesSnapshot.map(async (slide) => {
+                const slideImageUrl = await this.getAssetUrlSafe(slide.slideImageId);
+                
+                // Mapea las opciones de esta slide
+                const answers = await this.mapOptionsToReadModel(slide.options);
+                
+                return {
+                    id: slide.id,
+                    text: slide.questionText ?? null,
+                    mediaId: slideImageUrl, // ✅ Asigna la URL directamente (no el ID)
+                    type: slide.slideType.toLowerCase(),
+                    timeLimit: slide.timeLimitSeconds,
+                    points: slide.pointsValue ?? null,
+                    position: slide.position,
+                    answers,
+                } as SlideReadModel;
+            })
+        );
+
+        return mappedSlides;
     }
 
     /**
-     * Método principal para transformar el POJO de la DB (KahootMongoInput) al DTO final (KahootReadModel).
+     * Método principal - ahora es async para manejar las URLs
      */
-    public mapToReadModel(kahootData: KahootMongoInput): KahootReadModel {
+    public async mapToReadModel(kahootData: KahootMongoInput): Promise<KahootReadModel> {
         const details = kahootData.details;
         const styling = kahootData.styling;
         const slidesRaw = kahootData.slides;
-        
-        const mappedQuestions = this.mapSlidesToReadModel(slidesRaw);
-
-        // Creación del Read Model
+        const coverImageUrl = await this.getAssetUrlSafe(styling?.imageId);
+        const mappedQuestions = await this.mapSlidesToReadModel(slidesRaw);
         const readModel = new KahootReadModel();
         
         readModel.id = kahootData.id;
         readModel.title = details?.title ?? null; 
         readModel.description = details?.description ?? null;
-        readModel.coverImageId = styling.imageId ?? null;
+        readModel.coverImageId = coverImageUrl;
         readModel.visibility = MapperHelper.capitalizeFirstLetter(kahootData.visibility)!;
-        readModel.themeId = styling.themeId;
+        readModel.themeId = styling?.themeId ?? null;
         readModel.authorId = kahootData.authorId;
         readModel.createdAt = kahootData.createdAt;
         readModel.playCount = kahootData.playCount;
