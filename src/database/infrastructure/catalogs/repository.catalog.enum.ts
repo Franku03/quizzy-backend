@@ -37,12 +37,12 @@ export const REPOSITORY_REGISTRY: Record<
     typeorm: SoloAttemptRepositoryPostgres,
     mongoose: SoloAttemptRepositoryMongo,
   },
+  [RepositoryName.FileMetadata]: {
+    typeorm: SoloAttemptRepositoryPostgres,
+    mongoose: FileMetadataMongoRespository,
+  },
   [RepositoryName.Group]: {
     typeorm: null,
     mongoose: GroupRepositoryMongo,
-  },
-  [RepositoryName.FileMetadata]: {
-    typeorm: null,
-    mongoose: FileMetadataMongoRespository,
   },
 };

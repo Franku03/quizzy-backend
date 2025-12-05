@@ -26,12 +26,12 @@ export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
     typeorm: KahootDaoMongo,
     mongoose: KahootDaoMongo,
   },
-  [DaoName.Group]: {
-    typeorm: null,
-    mongoose: GroupDaoMongo,
-  },
   [DaoName.SoloAttempt]: {
     typeorm: null,
     mongoose: SoloAttemptQueryDaoMongo,
+  },
+  [DaoName.Group]: {
+    typeorm: null,
+    mongoose: GroupDaoMongo,
   },
 };
