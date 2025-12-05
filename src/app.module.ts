@@ -6,6 +6,7 @@ import { DatabaseDriverModule } from './database/infrastructure/database.driver.
 import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-sessions.module';
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
+import { LibraryModule } from './library/library.module';
 import { MediaModule } from './media/infraestructure/media.module';
 import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
@@ -24,9 +25,9 @@ import { GroupsModule } from './groups/groups.module'; // De HEAD
     UsersModule,
     MultiplayerSessionsModule,
     SoloAttemptsModule,
+    LibraryModule,
     GroupsModule, // Agregado
     MediaModule,  // Agregado
-    MediaModule,
     ExploreModule,
   ],
 })
