@@ -19,6 +19,7 @@ import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generat
 import { JoinGroupHandler } from './application/commands/join-group/join-group.handler';
 import { DeleteMemberHandler } from './application/commands/delete-member/detele-member.handler';
 import { DeleteGroupHandler } from './application/commands/delete-group/delete-group.handler';
+import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot/assign-kahoot.handler';
 
 @Module({
     controllers: [GroupsController],
@@ -26,6 +27,7 @@ import { DeleteGroupHandler } from './application/commands/delete-group/delete-g
         CqrsModule,
         RepositoryFactoryModule.forFeature(RepositoryName.Group),
         RepositoryFactoryModule.forFeature(RepositoryName.User),
+        RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
         DaoFactoryModule.forFeature(DaoName.Group)
     ],
     providers: [
@@ -36,6 +38,7 @@ import { DeleteGroupHandler } from './application/commands/delete-group/delete-g
         JoinGroupHandler,
         DeleteMemberHandler,
         DeleteGroupHandler,
+        AssignKahootToGroupHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,

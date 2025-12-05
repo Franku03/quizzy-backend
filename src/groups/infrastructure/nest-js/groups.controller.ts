@@ -2,6 +2,9 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCod
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { Either } from 'src/core/types/either';
+import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
+
 import { GetGroupsByUserQuery } from 'src/groups/application/queries/get-groups-by-user/get-group-by-user.query';
 import { GroupReadModel } from 'src/groups/application/queries/read-model/group.read.model';
 
@@ -13,8 +16,6 @@ import { ModifyGroupInformationCommand } from 'src/groups/application/commands/m
 import { ModifyGroupResponse } from 'src/groups/application/commands/response-dtos/modify-group.response.dto';
 import { UpdateGroupDto } from 'src/groups/application/commands/request-dtos/modify-group.request.dto';
 
-import { Either } from 'src/core/types/either';
-import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
 import { GenerateInvitationDto } from 'src/groups/application/commands/request-dtos/generate-invitation.request.dto';
 import { GenerateInvitationCommand } from 'src/groups/application/commands/generate-invitation/generate-invitation.command';
 import { InvitationResponse } from 'src/groups/application/commands/response-dtos/generate-invitation.response.dto';
@@ -24,6 +25,10 @@ import { JoinGroupCommand } from 'src/groups/application/commands/join-group/joi
 import { JoinGroupResponse } from 'src/groups/application/commands/response-dtos/join-group.response.dto';
 import { DeleteMemberCommand } from 'src/groups/application/commands/delete-member/delete-member.command';
 import { DeleteGroupCommand } from 'src/groups/application/commands/delete-group/delete-group.command';
+
+import { AssignKahootToGroupDto } from 'src/groups/application/commands/request-dtos/assign-kahoot.request.dto';
+import { AssignKahootToGroupCommand } from 'src/groups/application/commands/assign-kahoot/assign-kahoot.command';
+import { AssignKahootToGroupResponse } from 'src/groups/application/commands/response-dtos/assign-kahoot.response.dto';
 
 @Controller('groups')
 export class GroupsController {
@@ -107,6 +112,16 @@ export class GroupsController {
         return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
     }
 
+
+    // Asignar un kahoot a un grupo
+    @Post(':groupId/quizzes')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async assignKahootToGroup(@Param('groupId') groupId: string, @GetUserId() userId: string, @Body() dto: AssignKahootToGroupDto) {
+        const res: Either<Error, AssignKahootToGroupResponse> = await this.commandBus.execute(new AssignKahootToGroupCommand(groupId, userId, dto.quizId, dto.availableFrom, dto.availableUntil));
+        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    }
+
     private handleError(error: Error): never {
         const message = error.message
         if (message.startsWith(GROUP_ERRORS.NOT_FOUND)) {
@@ -129,6 +144,15 @@ export class GroupsController {
         }
         if (message.startsWith(GROUP_ERRORS.CANNOT_DELETE_ADMIN)) {
             throw new ForbiddenException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.ONLY_ADMIN)) {
+            throw new ForbiddenException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.NOT_FOUND_KAHOOT)) {
+            throw new NotFoundException(message);
+        }
+        if (message.startsWith(GROUP_ERRORS.KAHOOT_IS_DRAFT)) {
+            throw new BadRequestException(message);
         }
         throw new InternalServerErrorException(error.message);
     }
