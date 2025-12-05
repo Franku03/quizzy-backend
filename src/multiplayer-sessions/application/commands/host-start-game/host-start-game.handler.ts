@@ -44,7 +44,7 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
             if( currentSlideIndex !== 0 )
                 return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
 
-            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( kahoot, -1 );
+            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot);
 
 
             // ? Ahora si, iniciamos la partida

@@ -36,6 +36,11 @@ export class UpdateSessionProgressAndRankingService {
             // ? Aqui creamos la nueva entrada
             session.startSlideResults( nextSlideIdSnapshot);
 
+        }else{
+            // * Si no quedan mas slides estamos al final de la partida y tenemos que marcar el progreso como completado
+
+            session.completeProgess(); 
+
         };
           
 

@@ -7,11 +7,13 @@ import { HOST_NEXT_PHASE_ERRORS } from "../commands/host-next-phase/host-next-ph
 
 export const mapEntriesToResponse = ( session: MultiplayerSession, kahoot: Kahoot): QuestionResultsResponse => {
 
-    const currentSlideIndex = session.getTotalOfSlidesAnswered();
+    // const currentSlideIndex = session.getTotalOfSlidesAnswered();
+
+    const currentSlideId = session.getCurrentSlideInSession(); 
 
     const entries = session.getPlayersRankinEntries();
     
-    const currentSlideSnapshot: SlideSnapshot | null = kahoot.getNextSlideSnapshotByIndex( currentSlideIndex - 1 );
+    const currentSlideSnapshot: SlideSnapshot | null = kahoot.getSlideSnapshotById( currentSlideId );
 
     if( !currentSlideSnapshot )
         throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND);

@@ -79,7 +79,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
                 // ? Avanzamos a question
                 session.advanceToNextPhase();
 
-                const currentSlideSnapshot = mapSnapshotsToQuestionResponse( kahoot, currentSlideIndex - 1);
+                const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
 
                 // ! Puede ocurrir que aqui llege un END
                 if( session.getSessionState().isEnd() ){

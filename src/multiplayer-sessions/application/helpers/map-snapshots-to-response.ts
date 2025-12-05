@@ -4,11 +4,14 @@ import { OptionSnapshotWithoutAnswers, SlideSnapshotWithoutAnswers } from "../re
 import { SlideSnapshot } from "src/database/infrastructure/mongo/entities/kahoots.schema";
 
 import { COMMON_ERRORS } from "../commands/common.errors";
+import { MultiplayerSession } from '../../domain/aggregates/multiplayer-session';
 
-export const mapSnapshotsToQuestionResponse = ( kahoot: Kahoot, index: number ): SlideSnapshotWithoutAnswers => {
+export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kahoot: Kahoot ): SlideSnapshotWithoutAnswers => {
     
+    const currentSlideId = session.getCurrentSlideInSession(); 
 
-    const currentSlideSnapshot: SlideSnapshot | SlideSnapshotWithoutAnswers | null = kahoot.getNextSlideSnapshotByIndex( index );
+
+    const currentSlideSnapshot: SlideSnapshot | SlideSnapshotWithoutAnswers | null = kahoot.getSlideSnapshotById( currentSlideId );
     
     if( !currentSlideSnapshot )
         throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND)
