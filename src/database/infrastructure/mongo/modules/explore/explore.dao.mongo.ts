@@ -17,6 +17,9 @@ export class ExploreMongoDao implements IExploreDao {
     private readonly kahootModel: Model<KahootMongo>,
   ) {}
 
+
+
+  
   // Generate a simple placeholder author name based on author ID
   // This is temporary until the user module is integrated
   private generateAuthorPlaceholder(authorId: string): string {
@@ -24,14 +27,17 @@ export class ExploreMongoDao implements IExploreDao {
     return `User ${authorId.substring(0, 8)}`;
   }
 
+
+
+
   async getPublicKahoots(
     query: GetPublicKahootsQueryParams
   ): Promise<PaginatedKahootListReadModel> {
     // Build the base query for published, public kahoots only
-    // Domain invariant: only published, public content is visible in explore
+    // (only published, public content is visible in explore)
     const filter: any = {
-      status: 'published',
-      visibility: 'public',
+      status: 'PUBLISH',
+      visibility: 'PUBLIC',
     };
 
     // Apply text search across title and description fields
@@ -64,6 +70,10 @@ export class ExploreMongoDao implements IExploreDao {
       const sortDirection = query.order === 'asc' ? 1 : -1;
       sort = { [sortField]: sortDirection };
     }
+    
+    console.log('MongoDB Filter:', JSON.stringify(filter));
+    console.log('MongoDB Sort:', JSON.stringify(sort));
+    console.log('Pagination - Skip:', skip, 'Limit:', limit);
 
     // Execute parallel queries for data and count for optimal performance
     // Using lean() for better performance since we only need plain objects
@@ -77,6 +87,8 @@ export class ExploreMongoDao implements IExploreDao {
         .exec(),
       this.kahootModel.countDocuments(filter).exec()
     ]);
+
+    console.log(kahoots);
 
     // Transform MongoDB documents into read models for the application layer
     // This mapping ensures clean separation between persistence and presentation
@@ -109,6 +121,11 @@ export class ExploreMongoDao implements IExploreDao {
     });
   }
 
+
+
+
+
+
   async getFeaturedKahoots(limit: number): Promise<KahootListReadModel[]> {
     // Featured kahoots use a scoring algorithm that balances recency and popularity
     // We prioritize recent kahoots with engagement, then supplement with older popular ones
@@ -121,7 +138,7 @@ export class ExploreMongoDao implements IExploreDao {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const recentFilter = {
-      status: 'published',
+      status: 'publish',
       visibility: 'public',
       createdAt: { $gte: thirtyDaysAgo },
       playCount: { $gt: 0 }, // Only include kahoots that have been played at least once
@@ -142,7 +159,7 @@ export class ExploreMongoDao implements IExploreDao {
       const remaining = featuredLimit - featuredKahoots.length;
       
       const olderFilter = {
-        status: 'published',
+        status: 'publish',
         visibility: 'public',
         _id: { $nin: featuredKahoots.map(k => k._id) }, // Avoid duplicates
       };
@@ -175,6 +192,13 @@ export class ExploreMongoDao implements IExploreDao {
       );
     });
   }
+
+
+
+
+
+
+
 
   async getAvailableCategories(): Promise<CategoryReadModel[]> {
     // Return the static list of categories available in the system
