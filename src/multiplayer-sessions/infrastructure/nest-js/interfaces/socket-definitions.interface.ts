@@ -1,11 +1,13 @@
 import { Socket } from "socket.io";
 
 import { GameStateUpdateResponse } from "src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto";
-import { QuestionStartedResponse } from "src/multiplayer-sessions/application/response-dtos/question-started.response";
+import { QuestionStartedResponse } from "src/multiplayer-sessions/application/response-dtos/question-started.response.dto";
+import { QuestionResultsResponse } from "src/multiplayer-sessions/application/response-dtos/question-results.response.dto";
 
 import { SessionRoles } from "../enums/session-roles.enum";
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from '../enums/websocket.events.enum';
 import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
+import { GameEndedResponse } from "src/multiplayer-sessions/application/response-dtos/game-ended.response.dto";
 
 
 // Eventos que el Servidor envía a los Clientes
@@ -17,6 +19,8 @@ export interface ServerToClientEvents {
   [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: { status: 'CONNECTED TO SESSION AS PLAYER' }) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 
   [ServerEvents.PLAYER_ANSWER_CONFIRMATION]:(payload: { status: 'ANSWER SUCCESFULLY SUBMITTED' }) => void; 
+  [ServerEvents.QUESTION_RESULTS]:(payload: QuestionResultsResponse ) => void; 
+  [ServerEvents.GAME_END]:(payload: GameEndedResponse ) => void; 
 
    // Errores
   [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;

@@ -130,7 +130,14 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             return;
         
         this.properties.players.set( player.id.value , player );
+        
+        this.addEntryToScoreboard( player );
+    }
 
+    // Para anadirlos al scoreboard al unirse a la partida
+    public addEntryToScoreboard( player: Player ): void {
+
+        this.properties.ranking = this.properties.ranking.addScoreboardEntry( player );
     }
 
     private deletePlayer( playerId: PlayerId ): boolean {
@@ -195,7 +202,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     // * LOGICA DE MANEJO DE ESTADOS DE LA SESSION
 
 
-    public startSession(): SessionState {
+    public startSession(): void {
 
         // TODO: Verificar que hayan suficientes jugadores, por ejemplo a través de checkInvariants()
 
@@ -208,14 +215,16 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         // Empezamos el juego pasando a la primera pregunta
         this.properties.sessionState = this.properties.sessionState.toQuestion();
 
-        return this.properties.sessionState;
+        // return this.properties.sessionState;
 
     }
 
-    public advanceToNextPhase(): SessionState {
+    public advanceToNextPhase(): void {
+
+        // console.log(!this.properties.progress.hasMoreSlidesLeft());
         
         if( !this.properties.progress.hasMoreSlidesLeft() )
-            return this.endSession();
+            this.endSession();
 
         if( this.properties.sessionState.isQuestion() ){
 
@@ -230,17 +239,19 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             throw new Error("Desde el estado actual no se puede pasar a RESULT o QUESTION");
         }
 
-        return this.properties.sessionState;
+        // return this.properties.sessionState;
     }
 
-    public endSession(): SessionState {
+    public endSession(): void {
+
+        // ! Este metodo deberia emitir un evento de dominio para notificar a la capa de infraestructura
         // Terminamos el juego pasando a estado END
         this.properties.sessionState = this.properties.sessionState.toEnd();
 
         // ¡ Marcamos la fecha de finalizacion de la partida
         this.properties.completedAt = new Optional<DateISO>( DateISO.generate() );
 
-        return this.properties.sessionState;
+        // return this.properties.sessionState;
 
     }
 
@@ -276,6 +287,14 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         return playerAnswers;
 
     }
+
+        
+    public getPlayersRankinEntries(): ScoreboardEntry[] {
+
+        return this.properties.ranking.getEntries();
+
+    }
+
 
     
     public getPlayersScores(): ([ PlayerId , number ])[] {
@@ -368,6 +387,24 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+
+    public getSlidesResultBySlideId( slideId: SlideId ): SlideResult {
+
+        if( !this.properties.playersAnswers.has( slideId.value ))
+            throw new Error("La slide solicitada no tiene resultados");
+
+        return this.properties.playersAnswers.get( slideId.value )!
+
+
+    }
+
+
+    public getCurrentSlideInSession(): SlideId {
+
+        return this.properties.progress.getCurrentSlide();
+
+    }
+
     
 
     // ? GETTERS NORMALES
@@ -376,9 +413,14 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         return this.properties.sessionPin;
     }
 
-    public getSessionState(): SessionStateType {
+    public getSessionStateType(): SessionStateType {
         return this.properties.sessionState.getActualState();
     }
+
+    public getSessionState(): SessionState {
+        return this.properties.sessionState;
+    }
+
 
     private getStartingDate(): DateISO {
 
