@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Socket } from 'socket.io';
 import { SessionRoles } from './enums/session-roles.enum';
-import { WsException } from '@nestjs/websockets';
+import { SessionSocket } from './interfaces/socket-definitions.interface';
 
 interface ConnectedClients {
 
     [id: string]: {
-        socket: Socket,
+        socket: SessionSocket,
         nickname: string,
         roomPin: string
         role: SessionRoles,
@@ -18,7 +17,7 @@ export class MultiplayerSessionsService {
 
     private availableRooms: Map<string, ConnectedClients> = new Map<string, ConnectedClients>();
 
-    registerRoom( client: Socket ){
+    registerRoom( client: SessionSocket ){
 
 
         const roomPin = client.handshake.headers.pin as string;
@@ -28,7 +27,7 @@ export class MultiplayerSessionsService {
     } 
 
 
-    registerClient( client: Socket ){
+    registerClient( client: SessionSocket ){
 
         const nickname = client.handshake.headers.nickname as string;
 
@@ -52,8 +51,11 @@ export class MultiplayerSessionsService {
 
         const room = this.availableRooms.get( roomPin );
 
+        // IMPORTANTE: Si no encontramos sala para este cliente, 
+        // significa que nunca se registró correctamente o ya se borró.
+        // Simplemente retornamos sin hacer nada (return), NO lanzamos error.
         if(!room)
-            this.roomDoesNotExist( roomPin );
+            return;
 
         delete room[ clientId ];
     }
@@ -86,16 +88,16 @@ export class MultiplayerSessionsService {
     //     return this.connectedClients[ socketId ]
     // }
 
-    private getRoom( roomPin: string ): ConnectedClients {
+    private getRoom( roomPin: string ): ConnectedClients  {
         const room = this.availableRooms.get( roomPin );
 
         if(!room)
-            this.roomDoesNotExist( roomPin );
+            return this.roomDoesNotExist( roomPin );
 
         return room;;
     }
 
-    private  roomDoesNotExist( arg: any ): never {
-        throw new WsException(`La sala con PIN ${arg} a unirse NO Existe`);
+    private roomDoesNotExist( arg: any ): never {
+        throw new Error(`La sala con PIN ${arg} a unirse NO Existe`);
     }
 }

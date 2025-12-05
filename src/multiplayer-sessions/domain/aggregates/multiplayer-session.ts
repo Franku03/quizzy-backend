@@ -7,7 +7,7 @@ import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { Optional } from "src/core/types/optional";
 
-import { PlayerId, Scoreboard, ScoreboardEntry, SessionPin, SessionProgress, SessionState, SlideResult } from "../value-objects";
+import { PlayerId, Scoreboard, ScoreboardEntry, SessionPin, SessionProgress, SessionState, SessionStateType, SlideResult } from "../value-objects";
 import { Player } from "../entity/session.player";
 import { SessionPlayerAnswer } from '../value-objects/slide-result.session-player-answer';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
@@ -351,6 +351,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     public getSessionPin(): SessionPin {
         return this.properties.sessionPin;
+    }
+
+    public getSessionState(): SessionStateType {
+        return this.properties.sessionState.getActualState();
     }
 
     private getStartingDate(): DateISO {

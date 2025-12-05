@@ -24,7 +24,6 @@ interface QrTokenData {
 
 @Injectable()
 export class InMemorySessionRepository {
-
     // * Base de datos en memoria para llevar los agregados asoaciados a cada partida.
     // Al ser un Singleton, este Map vive mientras el servidor este corriendo.
     private readonly activeSessions = new Map<sessionPin, SessionWrapper>();
@@ -89,7 +88,6 @@ export class InMemorySessionRepository {
     async findByPin(pin: string): Promise<SessionWrapper| null> {
         return this.activeSessions.get( pin ) || null;
     }
-
 
     async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
 

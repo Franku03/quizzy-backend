@@ -9,6 +9,9 @@ import { CoreModule } from './core/core.module';
 import { LibraryModule } from './library/library.module';
 import { MediaModule } from './media/infraestructure/media.module';
 import { ReportsModule } from './reports/reports.module';
+import { ExploreModule } from './explore/explore.module';
+import { GroupsModule } from './groups/groups.module'; // De HEAD
+
 
 @Module({
   imports: [
@@ -23,9 +26,11 @@ import { ReportsModule } from './reports/reports.module';
     MultiplayerSessionsModule,
     SoloAttemptsModule,
     LibraryModule,
-    MediaModule,
+    GroupsModule, // Agregado
+    MediaModule,  // Agregado
+    ExploreModule,
   ],
 })
 export class AppModule {
-  constructor() {}
+  constructor() { }
 }
