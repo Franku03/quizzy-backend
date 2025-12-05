@@ -14,8 +14,7 @@ interface CreateCommandProps {
 }
 
 export class CreateKahootCommand extends BaseKahootCommand {
-    // Usamos 'declare' para indicar que estas propiedades se definen en el padre (BaseKahootCommand)
-    // y solo estamos sobrescribiendo su tipado de opcional (?) a obligatorio (!:)
+
     public declare readonly authorId: string;
     public declare readonly themeId: string;
     public declare readonly visibility: string;
