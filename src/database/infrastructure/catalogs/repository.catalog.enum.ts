@@ -3,6 +3,7 @@ import { UserRepositoryMongo } from '../mongo/modules/users/users.repository.mon
 import { Type } from '@nestjs/common';
 import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.repository.mongo';
 import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.repository.postgres';
+import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
 import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
@@ -15,6 +16,7 @@ export type RepositoryRegistryItem = {
 export enum RepositoryName {
   User = 'UserRepository',
   Kahoot = 'KahootRepository',
+  Group = 'GroupRepository',
   Attempt = 'AttemptRepository',
   FileMetadata = 'FileMetadataRepository',
 }
@@ -24,12 +26,16 @@ export const REPOSITORY_REGISTRY: Record<
   RepositoryRegistryItem
 > = {
   [RepositoryName.User]: {
-    typeorm: UserRepositoryPostgres,
+    typeorm: null,
     mongoose: UserRepositoryMongo,
   },
   [RepositoryName.Kahoot]: {
     typeorm: KahootRepositoryPostgres,
     mongoose: KahootRepositoryMongo,
+  },
+  [RepositoryName.Group]: {
+    typeorm: null,
+    mongoose: GroupRepositoryMongo,
   },
   [RepositoryName.Attempt]: {
     typeorm: SoloAttemptRepositoryPostgres,

@@ -1,5 +1,6 @@
 import { ModelDefinition } from '@nestjs/mongoose';
 import { EntityClassOrSchema } from '@nestjs/typeorm/dist/interfaces/entity-class-or-schema.type';
+import { GroupMongo, GroupSchema } from '../mongo/entities/groups.schema'; // HEAD
 
 // TypeORM entities
 import { KahootEntity as KahootTypeORM } from '../postgres/entities/kahoots.entity';
@@ -23,6 +24,9 @@ export const TYPEORM_ENTITY_REGISTRY: EntityClassOrSchema[] = [
 export const MONGOOSE_ENTITY_REGISTRY: ModelDefinition[] = [
   { name: KahootMongo.name, schema: KahootSchema },
   { name: UserMongo.name, schema: UserSchema },
+  { name: GroupMongo.name, schema: GroupSchema },     // Agregado
+  { name: AttemptMongo.name, schema: AttemptSchema }, // Agregado
   { name: AttemptMongo.name, schema: AttemptSchema },
   { name: FileMetadataMongo.name, schema: FileMetadataSchema }
 ];
+
