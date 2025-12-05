@@ -1,4 +1,3 @@
-import { Socket } from "socket.io";
 
 export enum HostUserEvents {
 
@@ -20,6 +19,7 @@ export enum ServerEvents {
     HOST_CONNECTED_SUCCESS = "host_connected_success",
     PLAYER_CONNECTED_TO_SERVER = "player_connected_to_server",
     PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",
+    PLAYER_ANSWER_CONFIRMATION = "player_answer_confirmation",
 
 
     QUESTION_STARTED = "question_started",

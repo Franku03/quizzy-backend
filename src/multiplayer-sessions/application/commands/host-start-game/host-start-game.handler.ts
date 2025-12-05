@@ -9,6 +9,7 @@ import { QuestionStartedResponse } from "../../response-dtos/question-started.re
 
 
 import { Either } from '../../../../core/types/either';
+import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 
 
 
@@ -41,18 +42,26 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
                 return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
 
 
-
             const currentSlideIndex = session.getTotalOfSlidesAnswered();
 
             if( currentSlideIndex !== 0 )
                 return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.NO_SLIDES) );
 
 
-            // Ahora si, iniciamos la partida
-            const state = session.startSession().getActualState();
+
+            // ? Ahora si, iniciamos la partida
+
+            const state = session.startSession(); // Pasa a estado question automaticamente
+
+            if( !state.isQuestion() )
+                return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.NO_SLIDES) );
+
+            // * Creamos la tabla de resultados
+            session.startSlideResults( new SlideId( currentSlideSnapshot.id ) );
 
 
             return Either.makeRight({
+                state: state.getActualState(),
                 questionIndex: currentSlideIndex,
                 currentSlideData: currentSlideSnapshot
             });

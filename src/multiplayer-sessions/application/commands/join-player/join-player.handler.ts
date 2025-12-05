@@ -61,15 +61,15 @@ export class JoinPlayerHandler implements ICommandHandler<JoinPlayerCommand> {
 
             const kahootThemeId = kahoot.styling.themeName;
 
-            const currentSlideData = kahoot.getNextSlideSnapshotByIndex()!;
+            // ? const currentSlideData = kahoot.getNextSlideSnapshotByIndex()!; // Aqui todavia no devolvemos info del slide
 
             return Either.makeRight({
                 hostId: hostId, 
                 state: state,
                 players: players,
                 quizTitle: quizTitle, // No siempre hara falta pasar esto en un GameStateUpdate
-                quizMediaUrls: { ImageUrl: kahootImageId, ThemeUrl: kahootThemeId }, // No siempre hara falta pasar esto en un GameStateUpdte
-                currentSlideData: currentSlideData,
+                quizMediaUrls: { ImageUrl: kahootImageId, ThemeUrl: kahootThemeId } // No siempre hara falta pasar esto en un GameStateUpdte
+                // ? currentSlideData: currentSlideData,
             }); 
 
         } catch (error) {

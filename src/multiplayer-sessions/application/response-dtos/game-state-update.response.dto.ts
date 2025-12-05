@@ -22,6 +22,6 @@ export interface GameStateUpdateResponse {
     players: PlayerData[],
     quizTitle?: string, // No siempre hara falta pasar esto en un GameStateUpdate
     quizMediaUrls?: KahootStyling, // No siempre hara falta pasar esto en un GameStateUpdte
-    currentSlideData?: SlideSnapshot,
+    currentSlideData?: SlideSnapshot, // Esto solo lo devolvemos pa un jugador que se reconecta
         
 }
