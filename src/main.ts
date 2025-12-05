@@ -33,7 +33,7 @@ async function bootstrap() {
   // 5. Log más informativo
   logger.log(`=================================`);
   logger.log(`🚀 App running on port: ${port}`);
-  logger.log(`🕹️ WS Server running on port: ${ process.env.WEB_SOCKET_SERVER_PORT || 3003 }`);
+  logger.log(`🕹️ WS Server running on port: ${ port }`);
   logger.log(`📁 Global prefix: /api`);
   logger.log(`🌐 CORS enabled: true`);
   logger.log(`=================================`);

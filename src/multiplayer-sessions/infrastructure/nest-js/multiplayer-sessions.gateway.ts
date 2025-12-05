@@ -26,7 +26,6 @@ import { SaveSessionCommand } from 'src/multiplayer-sessions/application/command
 
 
 @WebSocketGateway( 
-  +process.env.WEB_SOCKET_SERVER_PORT! || 3003, 
   { namespace: 'multiplayer-sessions', cors: true }
 )
 export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatewayDisconnect {
