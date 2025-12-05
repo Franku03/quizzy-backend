@@ -55,14 +55,13 @@ export class ExploreMongoDao implements IExploreDao {
     let sort: any = { createdAt: -1 };
     if (query.orderBy) {
       // Map the orderBy field to the actual database field
+      // This is done to decouple API parameters from database schema
+      // For example, 'title' maps to 'details.title' in the MongoDB document
+      // The rest of the fields map directly
       const sortField = query.orderBy === 'title' ? 'details.title' : query.orderBy;
       const sortDirection = query.order === 'asc' ? 1 : -1;
       sort = { [sortField]: sortDirection };
     }
-    
-    console.log('MongoDB Filter:', JSON.stringify(filter));
-    console.log('MongoDB Sort:', JSON.stringify(sort));
-    console.log('Pagination - Skip:', skip, 'Limit:', limit);
 
     // Execute parallel queries for data and count for optimal performance
     // Using lean() for better performance since we only need plain objects
@@ -76,8 +75,6 @@ export class ExploreMongoDao implements IExploreDao {
         .exec(),
       this.kahootModel.countDocuments(filter).exec()
     ]);
-
-    console.log(kahoots);
 
     // Transform MongoDB documents into read models for the application layer
     // This mapping ensures clean separation between persistence and presentation
@@ -130,7 +127,6 @@ export class ExploreMongoDao implements IExploreDao {
       status: 'PUBLISH',
       visibility: 'PUBLIC',
       createdAt: { $gte: thirtyDaysAgo },
-      playCount: { $gt: 0 }, // Only include kahoots that have been played at least once
     };
 
     const recentKahoots = await this.kahootModel
