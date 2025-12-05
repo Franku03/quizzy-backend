@@ -5,10 +5,10 @@ import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/r
 import { CqrsModule } from '@nestjs/cqrs';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 
 // Handlers
 import { StartSoloAttemptHandler } from './application/commands/start-attempt/start-attempt.handler';
-import { CreateUserHandler } from 'src/users/application/commands/create-user/create-user.handler';
 import { SubmitAnswerHandler } from './application/commands/submit-answer/submit-answer.handler';
 import { GetAttemptSummaryHandler } from './application/queries/get-summary/get-summary.handler';
 import { GetAttemptStatusHandler } from './application/queries/get-attempt/get-attempt.handler';
@@ -26,6 +26,7 @@ import { GetAttemptStatusHandler } from './application/queries/get-attempt/get-a
     SubmitAnswerHandler,
     GetAttemptSummaryHandler,
     GetAttemptStatusHandler,
+    UuidGenerator,
   ],
 })
 export class SoloAttemptsModule {}
