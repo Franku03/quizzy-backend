@@ -15,6 +15,6 @@ export class getFavoritesHandler implements IQueryHandler<GetFavoritesQuery> {
   async execute(
     query: GetFavoritesQuery,
   ): Promise<Either<Error, LibraryReadModel>> {
-    return await this.libraryDao.getDraftsAndCreatedKahootsFrom(query);
+    return await this.libraryDao.GetFavorites(query);
   }
 }

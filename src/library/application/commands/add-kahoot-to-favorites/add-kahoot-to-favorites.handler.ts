@@ -16,23 +16,21 @@ export class AddKahootToFavoritesHandler
   ) {}
 
   async execute(query: AddKahootToFavoritesCommand): Promise<Optional<Error>> {
-    /*
     try {
-        // construir kahoot y user id con logica de dominio
-        const userUUID: UserId = new UserId(query.userId);
-        const kahootUUID: KahootId = new KahootId(query.kahootId);
-        // hidratamos el objeto de dominio
-        const user = this.userRepo.getUserAggregateFrom(userUUID);
-        // añadimos el kahoot
-        user.addKahootToFavorites(kahootUUID);
-        // guardamos el usuario
-        this.userRepo.saveUserAggregate(user);
-        // retornamos optional sin errores
-        return new Optional<Error>();
+      // construir kahoot y user id con logica de dominio
+      const userUUID: UserId = new UserId(query.userId);
+      const kahootUUID: KahootId = new KahootId(query.kahootId);
+      // hidratamos el objeto de dominio
+      const user = await this.userRepo.findUserById(userUUID);
+      if (!user) return new Optional<Error>(new Error('User not found'));
+      // añadimos el kahoot
+      user?.addFavorite(kahootUUID);
+      // guardamos el usuario
+      await this.userRepo.save(user);
+      // retornamos optional sin errores
+      return new Optional<Error>();
     } catch (err: any) {
       return new Optional<Error>(err);
     }
-    */
-    return Promise.resolve(new Optional<Error>());
   }
 }

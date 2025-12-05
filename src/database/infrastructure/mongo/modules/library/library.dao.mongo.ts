@@ -110,31 +110,53 @@ export class LibraryDaoMongo implements ILibraryDao {
       return Either.makeLeft<Error, LibraryReadModel>(err as Error);
     }
   }
-  //TODO USAR MODELO DE USUARIOS Y EL DE KAHOOTS
+
   async GetFavorites(
     query: GetFavoritesQuery,
   ): Promise<Either<Error, LibraryReadModel>> {
-    const mockKahoot = new KahootReadModel(
-      'mock-id',
-      'Mock Kahoot Title',
-      'This is a mock description',
-      null,
-      'public',
-      'mock-theme-id',
-      { id: 'author-id', name: 'Mock Author' },
-      new Date().toISOString(),
-      42,
-      'Matematica',
-      'draft',
-    );
-
-    const mockPagination = new PaginationInfo(1, 10, 1, 1);
-
-    const mockLibrary = new LibraryReadModel([mockKahoot], mockPagination);
-
-    return Promise.resolve(
-      Either.makeRight<Error, LibraryReadModel>(mockLibrary),
-    );
+    try {
+      const { userId, limit, page } = query;
+      // 1. Buscar usuario
+      const user = await this.userModel.findOne({ userId }).exec();
+      if (!user) {
+        return Either.makeLeft<Error, LibraryReadModel>(
+          new Error('User not found'),
+        );
+      }
+      // 2. Obtener IDs de kahoots favoritos
+      const favoriteIds = user.favoriteKahoots ?? [];
+      if (favoriteIds.length === 0) {
+        const emptyPagination = new PaginationInfo(page, limit, 0, 0);
+        const emptyLibrary = new LibraryReadModel([], emptyPagination);
+        return Either.makeRight<Error, LibraryReadModel>(emptyLibrary);
+      }
+      // 3. Paginación
+      const skip = (page - 1) * limit;
+      // 4. Consultar kahoots favoritos
+      const [kahoots, totalCount] = await Promise.all([
+        this.kahootModel
+          .find({ id: { $in: favoriteIds } })
+          .skip(skip)
+          .limit(limit)
+          .exec(),
+        this.kahootModel.countDocuments({ id: { $in: favoriteIds } }).exec(),
+      ]);
+      const totalPages = Math.ceil(totalCount / limit);
+      // 5. Mapear kahoots con función privada
+      const data: KahootReadModel[] =
+        this.mapKahootsToLibraryReadModel(kahoots);
+      // 6. Construir paginación y resultado
+      const pagination = new PaginationInfo(
+        page,
+        limit,
+        totalCount,
+        totalPages,
+      );
+      const library = new LibraryReadModel(data, pagination);
+      return Either.makeRight<Error, LibraryReadModel>(library);
+    } catch (err) {
+      return Either.makeLeft<Error, LibraryReadModel>(err as Error);
+    }
   }
 
   async checkIfCanBeAddedToFavorites(

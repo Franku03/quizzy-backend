@@ -17,6 +17,6 @@ export class getCompletedKahootsHandler
   async execute(
     query: GetCompletedKahootsQuery,
   ): Promise<Either<Error, LibraryReadModel>> {
-    return await this.libraryDao.getDraftsAndCreatedKahootsFrom(query);
+    return await this.libraryDao.getCompletedKahoots(query);
   }
 }

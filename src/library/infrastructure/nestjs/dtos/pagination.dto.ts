@@ -1,5 +1,5 @@
 // infrastructure/dto/pagination.dto.ts
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsOptional,
   IsInt,
@@ -66,6 +66,12 @@ export class PaginationDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.map((v: unknown) => String(v));
+    }
+    return [String(value)];
+  })
   categories: string[] = [];
 
   @IsOptional()

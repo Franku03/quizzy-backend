@@ -36,7 +36,7 @@ export class LibraryController {
   @HttpCode(200)
   @Get('my-creations')
   async getDraftsAndCreatedKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '123';
+    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
@@ -53,7 +53,7 @@ export class LibraryController {
   @HttpCode(200)
   @Get('favorites')
   async getFavorites(@Query() paginationDto: PaginationDto) {
-    const userId = '123';
+    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(paginationDto, userId, GetFavoritesQuery),
@@ -66,7 +66,7 @@ export class LibraryController {
   @HttpCode(201)
   @Post('favorites/:kahootId')
   async addKahootTofavorites(@Param('kahootId') kahootId: string) {
-    const userId = '123';
+    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
     const kahootExistanceOptional: Optional<Error> =
       await this.queryBus.execute(
         new CheckIfCanBeSavedToFavoritesQuery(kahootId),
@@ -82,7 +82,7 @@ export class LibraryController {
   @HttpCode(204)
   @Delete('favorites/:kahootId')
   async deleteKahootFromfavorites(@Param('kahootId') kahootId: string) {
-    const userId = '123';
+    const userId = '98ecc61e-5967-466b-8723-c23ebe939c7d';
     const res: Optional<Error> = await this.commandBus.execute(
       new RemoveKahootFromFavoritesCommand(userId, kahootId),
     );
@@ -94,7 +94,7 @@ export class LibraryController {
   @HttpCode(200)
   @Get('in-progress')
   async getInProgressKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '123';
+    const userId = '18c2416a-3b6e-4815-9cd2-45ccc29501c3';
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
@@ -111,7 +111,7 @@ export class LibraryController {
   @HttpCode(200)
   @Get('completed')
   async getCompletedKahoots(@Query() paginationDto: PaginationDto) {
-    const userId = '123';
+    const userId = '18c2416a-3b6e-4815-9cd2-45ccc29501c3';
     const response: Either<Error, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(

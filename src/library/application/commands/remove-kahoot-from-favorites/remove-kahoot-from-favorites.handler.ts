@@ -18,23 +18,21 @@ export class RemoveKahootFromFavoritesHandler
   async execute(
     query: RemoveKahootFromFavoritesCommand,
   ): Promise<Optional<Error>> {
-    /*
     try {
-        // construir kahoot y user id con logica de dominio
-        const userUUID: UserId = new UserId(query.userId);
-        const kahootUUID: KahootId = new KahootId(query.kahootId);
-        // hidratamos el objeto de dominio
-        const user = this.userRepo.getUserAggregateFrom(userUUID);
-        // removemos el kahoot
-        user.removeKahootFromFavorites(kahootUUID);
-        // guardamos el usuario
-        this.userRepo.saveUserAggregate(user);
-        // retornamos optional sin errores
-        return new Optional<Error>();
+      // construir kahoot y user id con logica de dominio
+      const userUUID: UserId = new UserId(query.userId);
+      const kahootUUID: KahootId = new KahootId(query.kahootId);
+      // hidratamos el objeto de dominio
+      const user = await this.userRepo.findUserById(userUUID);
+      if (!user) return new Optional<Error>(new Error('User not found'));
+      // removemos el kahoot
+      user?.removeFavorite(kahootUUID);
+      // guardamos el usuario
+      await this.userRepo.save(user);
+      // retornamos optional sin errores
+      return new Optional<Error>();
     } catch (err: any) {
       return new Optional<Error>(err);
     }
-    */
-    return Promise.resolve(new Optional<Error>());
   }
 }
