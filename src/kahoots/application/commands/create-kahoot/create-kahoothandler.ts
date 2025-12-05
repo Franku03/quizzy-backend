@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { CreateKahootCommand } from './create-kahootcommand';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { KahootFactory, KahootInput, SlideInput } from '../../../domain/factories/kahoot.factory'; 
 import { Kahoot } from '../../../domain/aggregates/kahoot'; 
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
@@ -27,6 +27,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
 
      async execute(command: CreateKahootCommand): Promise<KahootResponseDTO> {
 
+        const logger = new Logger('Bootstrap');
         const creationDateString = new Date().toISOString().split('T')[0]; 
 
         // 1. Generar ID Único para el Agregado Raíz (Kahoot)
@@ -60,13 +61,6 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
         const kahoot: Kahoot = KahootFactory.createFromRawInput(rawInput);
         // 6. Persistencia
         await this.kahootRepository.saveKahoot(kahoot);
-        console.log(`
-        -----------------------------------------------------
-        🙌 CREATE SUCCESS [Kahoot ID: ${kahoot.id.value}]
-        -----------------------------------------------------
-        El nuevo Kahoot ha sido creado.
-        `);
-        console.log(kahoot.styling.imageId)
         return this.kahootResponseMapper.toResponseDTO(kahoot);
 
     }

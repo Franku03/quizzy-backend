@@ -1,48 +1,56 @@
-export class UserProfileDetails {
+import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
+
+interface UserProfileDetailsProps {
     readonly name: string;
     readonly description: string;
     readonly avatarImageURL: string;
+}
+
+export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
 
     constructor(name: string, description: string, avatarImageURL: string) {
-        this.ensureNameIsValid(name);
-        this.ensureDescriptionIsValid(description);
-        this.ensureAvatarUrlIsValid(avatarImageURL);
+        UserProfileDetails.ensureNameIsValid(name);
+        UserProfileDetails.ensureDescriptionIsValid(description);
+        UserProfileDetails.ensureAvatarUrlIsValid(avatarImageURL);
 
-        this.name = name;
-        this.description = description;
-        this.avatarImageURL = avatarImageURL;
+        super({ name, description, avatarImageURL });
     }
-
-    private ensureNameIsValid(name: string): void {
+   
+    private static ensureNameIsValid(name: string): void {
         if (!name || name.trim().length === 0) {
-            throw new Error("El nombre no puede estar vacío.");
+            throw new InvalidArgumentError("El nombre no puede estar vacío.");
         }
         if (name.length > 148) {
-            throw new Error(`El nombre es demasiado largo. Máximo 148 caracteres.`);
+            throw new InvalidArgumentError(`El nombre es demasiado largo. Máximo 148 caracteres.`);
         }
     }
-
-    private ensureDescriptionIsValid(description: string): void {
+    
+    private static ensureDescriptionIsValid(description: string): void {
         if (description.length > 300) {
-            throw new Error(`La descripción supera el límite de 300 caracteres.`);
+            throw new InvalidArgumentError(`La descripción supera el límite de 300 caracteres.`);
         }
     }
 
-    private ensureAvatarUrlIsValid(url: string): void {
-        if (url === '') return; 
+    private static ensureAvatarUrlIsValid(url: string): void {
+        if (url === '') return;
 
         try {
             new URL(url);
         } catch (error) {
-            throw new Error(`La URL del avatar <${url}> no es válida.`);
+            throw new InvalidArgumentError(`La URL del avatar <${url}> no es válida.`);
         }
     }
+    
+    get name(): string {
+        return this.properties.name;
+    }
 
-    equals(other: UserProfileDetails): boolean {
-        return (
-            this.name === other.name &&
-            this.description === other.description &&
-            this.avatarImageURL === other.avatarImageURL
-        );
+    get description(): string {
+        return this.properties.description;
+    }
+
+    get avatarImageURL(): string {
+        return this.properties.avatarImageURL;
     }
 }

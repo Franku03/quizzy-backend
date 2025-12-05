@@ -26,12 +26,16 @@ export const REPOSITORY_REGISTRY: Record<
   RepositoryRegistryItem
 > = {
   [RepositoryName.User]: {
-    typeorm: UserRepositoryPostgres,
+    typeorm: null,
     mongoose: UserRepositoryMongo,
   },
   [RepositoryName.Kahoot]: {
     typeorm: KahootRepositoryPostgres,
     mongoose: KahootRepositoryMongo,
+  },
+  [RepositoryName.Group]: {
+    typeorm: null,
+    mongoose: GroupRepositoryMongo,
   },
   [RepositoryName.Attempt]: {
     typeorm: SoloAttemptRepositoryPostgres,
@@ -40,9 +44,5 @@ export const REPOSITORY_REGISTRY: Record<
   [RepositoryName.FileMetadata]: {
     typeorm: SoloAttemptRepositoryPostgres,
     mongoose: FileMetadataMongoRespository,
-  },
-  [RepositoryName.Group]: {
-    typeorm: null,
-    mongoose: GroupRepositoryMongo,
   },
 };

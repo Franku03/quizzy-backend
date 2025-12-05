@@ -3,5 +3,9 @@
 // realice la accion de base de datos que haga falta
 
 export class CreateUserCommand {
-  constructor(public readonly name: string) {}
+  constructor(
+    public readonly email: string,
+    public readonly username: string,
+    public readonly password: string,
+  ) {}
 }
