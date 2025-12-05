@@ -7,16 +7,18 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { KahootReadModel } from '../read-model/kahoot.response.read.model';
 import { Either } from 'src/core/types/either';
 import { GetKahootByIdError } from '../../errors/kahoot-aplication.errors';
-import { KahootNotFoundError } from 'src/kahoots/domain/errors/kahoot-domain.errors';
+import { Optional } from 'src/core/types/optional';
 
 @QueryHandler(GetKahootByIdQuery)
-export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery, Either<GetKahootByIdError, KahootReadModel>> {
+export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery, Either<GetKahootByIdError, Optional<KahootReadModel>>> {  // <-- Cambiar aquí
+  
   constructor(
     @Inject(DaoName.Kahoot) 
     private readonly kahootDao: IKahootDao
   ) {}
 
-  async execute(query: GetKahootByIdQuery): Promise<Either<GetKahootByIdError, KahootReadModel>> {
+  async execute(query: GetKahootByIdQuery): Promise<Either<GetKahootByIdError, Optional<KahootReadModel>>
+  > {  
     try {
       const result = await this.kahootDao.getKahootById(query.kahootId);
       
@@ -24,18 +26,7 @@ export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery, E
         const repoError = result.getLeft();
         return Either.makeLeft(repoError);
       }
-      
-      const optionalReadModel = result.getRight();
-      if (!optionalReadModel.hasValue()) {
-        return Either.makeLeft({
-          type: 'KahootNotFound',
-          message: `Kahoot con ID ${query.kahootId} no encontrado`,
-          kahootId: query.kahootId,
-          timestamp: new Date(),
-        } as KahootNotFoundError);
-      }
-      
-      return Either.makeRight(optionalReadModel.getValue());
+      return result as Either<GetKahootByIdError, Optional<KahootReadModel>>;
       
     } catch (error) {
       const unexpectedError: GetKahootByIdError = {

@@ -65,7 +65,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
                 id: await this.idGenerator.generateId(),
             }))
         );
-
+        
         const input: KahootInput = {
             id: kahootId,
             ...command,
@@ -73,7 +73,6 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand,
             createdAt: creationDate,
             playCount: 0,
         };
-        
         return KahootFactory.createFromRawInput(input);
     }
 }

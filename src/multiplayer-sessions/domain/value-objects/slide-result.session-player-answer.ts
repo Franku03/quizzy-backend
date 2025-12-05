@@ -122,5 +122,7 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
 
     // TODO: Colocar demas getters que hagan falta
-
+    public getProperties(): SessionPlayerAnswerProps {
+        return this.properties;
+    }
 }

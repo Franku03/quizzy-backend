@@ -446,6 +446,8 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
     // TODO: demas getters que luego necesite, capaz uno para sacar datos de una entrie del scoreboard I dunno
-
+    public props(): MultiplayerSessionProps {
+        return this.properties;
+    }
     
 }
