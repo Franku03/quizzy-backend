@@ -7,7 +7,8 @@ interface ScoreboardEntryProps {
     playerId: PlayerId,
     nickname: string,
     score: number,
-    rank: number  
+    rank: number,
+    previousRank: number,
 }
 
 export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
@@ -23,7 +24,8 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
         playerId: PlayerId,
         nickname: string,
         score: number,
-        rank: number
+        rank: number,
+        previousRank: number
     ): ScoreboardEntry {
 
         const nicknameValidation = validateNicknameInvariants( nickname );
@@ -44,7 +46,7 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
             throw new Error('El número de ranking debe ser un número mayor a 0');
         }
             
-        return new ScoreboardEntry({ playerId, nickname, score, rank });
+        return new ScoreboardEntry({ playerId, nickname, score, rank, previousRank });
         
     }
 
@@ -64,6 +66,11 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
     public getRank(): number{
         return this.properties.rank;
     }
+
+    public getPreviousRank(): number{
+        return this.properties.rank;
+    }
+
 
 
 

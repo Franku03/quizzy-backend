@@ -45,7 +45,7 @@ export class JoinPlayerHandler implements ICommandHandler<JoinPlayerCommand> {
 
             // Construimos la response del game_state_update
             const hostId = session.getHostId().value;
-            const state = session.getSessionState();
+            const state = session.getSessionStateType();
             const players = session.getPlayers().map( player => ({
                 
                 playerId: player.getPlayerId(),

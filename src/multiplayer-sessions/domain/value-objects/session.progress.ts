@@ -75,4 +75,8 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
 
     }
 
+    public getCurrentSlide(): SlideId {
+        return this.properties.currentSlide;
+    }
+
 }
