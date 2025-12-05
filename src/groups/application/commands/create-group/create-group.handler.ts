@@ -8,6 +8,9 @@ import { RepositoryName } from "src/database/infrastructure/catalogs/repository.
 import { Either } from "src/core/types/either";
 import { CreateGroupResponse } from "../response-dtos/create-group.response.dto";
 import { GROUP_ERRORS } from "../group.errors";
+import { EVENT_BUS_TOKEN } from "src/core/domain/ports/event-bus.token";
+import type { EventBus } from "src/core/domain/ports/event-bus.port";
+import { GroupCreatedEvent } from "src/core/domain/domain-events/group-created.event";
 
 @CommandHandler(CreateGroupCommand)
 export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
@@ -15,6 +18,8 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
+        @Inject(EVENT_BUS_TOKEN)
+        private readonly eventBus: EventBus,
     ) { }
 
     async execute(command: CreateGroupCommand): Promise<Either<Error, CreateGroupResponse>> {
@@ -35,6 +40,10 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
         try {
             const group = Group.create(groupId, command.name, command.adminId, command.description);
             await this.groupRepository.save(group);
+
+            const event = new GroupCreatedEvent(groupId, command.adminId);
+            await this.eventBus.publish([event]);
+            console.log(`[EventBus] Evento publicado: ${GroupCreatedEvent.name}`);
 
             return Either.makeRight({
                 id: groupId,

@@ -65,7 +65,7 @@ export class GroupsController {
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
     async modifyGroupInformation(@Param('groupId') groupId: string, @GetUserId() userId: string, @Body() dto: UpdateGroupDto) {
-        console.log("modifyGroupInformation", groupId, userId, dto);
+        //console.log("modifyGroupInformation", groupId, userId, dto);
         const res: Either<Error, ModifyGroupResponse> = await this.commandBus.execute(new ModifyGroupInformationCommand(groupId, userId, dto.name, dto.description));
         return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
     }
