@@ -19,17 +19,6 @@ export class ExploreMongoDao implements IExploreDao {
 
 
 
-  
-  // Generate a simple placeholder author name based on author ID
-  // This is temporary until the user module is integrated
-  private generateAuthorPlaceholder(authorId: string): string {
-    // Use a consistent, predictable format for demo purposes
-    return `User ${authorId.substring(0, 8)}`;
-  }
-
-
-
-
   async getPublicKahoots(
     query: GetPublicKahootsQueryParams
   ): Promise<PaginatedKahootListReadModel> {
@@ -101,7 +90,7 @@ export class ExploreMongoDao implements IExploreDao {
         {
           id: kahoot.authorId,
           // Temporary placeholder until user module is integrated
-          name: this.generateAuthorPlaceholder(kahoot.authorId)
+          name: this.getAuthor(kahoot.authorId)
         },
         kahoot.playCount || 0,
         new Date(kahoot.createdAt),
@@ -183,7 +172,7 @@ export class ExploreMongoDao implements IExploreDao {
         kahoot.details?.category || 'Uncategorized',
         {
           id: kahoot.authorId,
-          name: this.generateAuthorPlaceholder(kahoot.authorId)
+          name: this.getAuthor(kahoot.authorId)
         },
         kahoot.playCount || 0,
         new Date(kahoot.createdAt),
@@ -235,11 +224,19 @@ export class ExploreMongoDao implements IExploreDao {
   }
 
   async getAuthorName(authorId: string): Promise<Optional<string>> {
-    // This method is a placeholder for when we need to fetch author details separately
+    // This method fetches the author's name based on their ID from the user module
     // When the user module is ready, this should query the user repository
     // For now, return an empty Optional as we're using placeholders in the main methods
     
     console.warn('getAuthorName called but user module not integrated. Returning empty Optional.');
     return new Optional<string>();
+  }
+
+
+  // Generate a simple placeholder author name based on author ID
+  // This is temporary until the user module is integrated
+  private getAuthor(authorId: string): string {
+    // Use a consistent, predictable format for demo purposes
+    return `User ${authorId.substring(0, 8)}`;
   }
 }
