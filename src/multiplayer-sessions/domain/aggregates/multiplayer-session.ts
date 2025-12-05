@@ -139,10 +139,30 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
-    public addSlideResult(slideId: SlideId, result: SlideResult){
+    public startSlideResults (slideId: SlideId ): void{
+
+        this.properties.playersAnswers.set( slideId.value , SlideResult.create( slideId ) );
+
+    }
+
+
+    public addSlideResult(slideId: SlideId, result: SlideResult): void{
 
         this.properties.playersAnswers.set( slideId.value , result );
 
+    }
+
+
+    public addPlayerAnswer(slideId: SlideId, playerAnswer: SessionPlayerAnswer): void{
+
+        if( !this.properties.playersAnswers.has( slideId.value  ) )
+            throw new Error("La Slide a la cual se intenta añadir una entrada no ha sido puesta aun en juego o no exista")
+
+        const updatedSlideResult =
+                this.properties.playersAnswers.get( slideId.value  )?.addResult( playerAnswer )!;
+
+        // Actualizamos con el nuevo SlideResult
+        this.addSlideResult( slideId, updatedSlideResult);
     }
 
     public updatePlayersScores( results: SlideResult ): void {
@@ -181,6 +201,9 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         if( this.properties.players.size < 1 )
             throw new Error("No se puede empezar una partida con menos de un jugador conectado");
+
+        if( !this.properties.sessionState.isLobby() )
+            throw new Error("No se puede empezar desde un estado que no esa LOBBY");
 
         // Empezamos el juego pasando a la primera pregunta
         this.properties.sessionState = this.properties.sessionState.toQuestion();

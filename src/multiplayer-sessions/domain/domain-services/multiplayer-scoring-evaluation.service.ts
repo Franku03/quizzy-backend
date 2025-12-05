@@ -16,7 +16,7 @@ export class MultiplayerScoringEvaluationService {
     public evaluateScore(
        kahoot: Kahoot,
        session: MultiplayerSession, 
-       submissions: Map< PlayerIdValue, Submission>, // Evaluar si capaz es mejor un arreglo de tuplas I dunno
+       submissions: Map<PlayerIdValue, Submission>, // Evaluar si capaz es mejor un arreglo de tuplas I dunno
        slideId: SlideIdValue
     ): void {
 
@@ -43,6 +43,7 @@ export class MultiplayerScoringEvaluationService {
 
             const playerId = session.getPlayerById( tempId ).id;
 
+            // ? Momento donde se evalua la respuesta
             const result = kahoot.evaluateAnswer( playerSubmission );
 
             playersResults.push( SessionPlayerAnswer.create( result, playerId ) );
@@ -52,7 +53,10 @@ export class MultiplayerScoringEvaluationService {
         // Actualizamos resultados de slide Actual
         const currentSlideIdSnapshot = new SlideId( slideId );
 
-        const slideResult = SlideResult.create( currentSlideIdSnapshot, playersResults )
+        // const slideResult = SlideResult.create( currentSlideIdSnapshot, playersResults )
+
+        const slideResult = SlideResult.create( currentSlideIdSnapshot )
+
 
         session.addSlideResult( currentSlideIdSnapshot, slideResult );
 

@@ -138,8 +138,8 @@ export class ExploreMongoDao implements IExploreDao {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const recentFilter = {
-      status: 'publish',
-      visibility: 'public',
+      status: 'PUBLISH',
+      visibility: 'PUBLIC',
       createdAt: { $gte: thirtyDaysAgo },
       playCount: { $gt: 0 }, // Only include kahoots that have been played at least once
     };
@@ -159,8 +159,8 @@ export class ExploreMongoDao implements IExploreDao {
       const remaining = featuredLimit - featuredKahoots.length;
       
       const olderFilter = {
-        status: 'publish',
-        visibility: 'public',
+        status: 'PUBLISH',
+        visibility: 'PUBLIC',
         _id: { $nin: featuredKahoots.map(k => k._id) }, // Avoid duplicates
       };
 
