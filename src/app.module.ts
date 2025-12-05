@@ -6,9 +6,11 @@ import { DatabaseDriverModule } from './database/infrastructure/database.driver.
 import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-sessions.module';
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
-import { GroupsModule } from './groups/groups.module'; // De HEAD
-import { MediaModule } from './media/infraestructure/media.module'; // De Incoming
+import { MediaModule } from './media/infraestructure/media.module';
 import { ReportsModule } from './reports/reports.module';
+import { ExploreModule } from './explore/explore.module';
+import { GroupsModule } from './groups/groups.module'; // De HEAD
+
 
 @Module({
   imports: [
@@ -25,6 +27,7 @@ import { ReportsModule } from './reports/reports.module';
     GroupsModule, // Agregado
     MediaModule,  // Agregado
     MediaModule,
+    ExploreModule,
   ],
 })
 export class AppModule {

@@ -82,14 +82,14 @@ export class MultiplayerSessionsController {
 
       // Si es un BadRequestException de Nest (de validación de entrada), re-lanzarlo
       if (error instanceof BadRequestException ) {
-        throw error;
+        throw new BadRequestException( message );
       }
 
       // ! Error en consola para debugeo, quitar en produccion
       const logger = new Logger('Multiplayer-Session-Controller');
       logger.error( error );
 
-      throw new InternalServerErrorException( error ); // throw unhandled error
+      throw new InternalServerErrorException( message ); // throw unhandled error
   }
 
 }
