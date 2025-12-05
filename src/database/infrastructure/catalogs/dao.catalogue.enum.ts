@@ -4,6 +4,8 @@ import { UserDaoMongo } from '../mongo/modules/users/user.dao.mongo';
 import { KahootDaoMongo } from '../mongo/modules/kahoots/kahoots.dao.mongo';
 import { SoloAttemptQueryDaoMongo } from '../mongo/modules/solo-attempts/attempts.dao.mongo';
 import { ExploreMongoDao } from '../mongo/modules/explore/explore.dao.mongo';
+import { GroupDaoMongo } from '../mongo/modules/groups/groups.dao.mongo'; // De HEAD
+
 
 export type DaoRegistryItem = {
   typeorm: Type<any> | null;
@@ -12,7 +14,8 @@ export type DaoRegistryItem = {
 
 export enum DaoName {
   User = 'UserDao',
-  Kahoot = 'KahootDao', 
+  Group = 'GroupDao',
+  Kahoot = 'KahootDao',
   SoloAttempt = 'SoloAttemptDao',
   Explore = 'ExploreDao',
 }
@@ -29,6 +32,10 @@ export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
   [DaoName.SoloAttempt]: {
     typeorm: null,
     mongoose: SoloAttemptQueryDaoMongo,
+  },
+  [DaoName.Group]: {
+    typeorm: null,
+    mongoose: GroupDaoMongo,
   },
   [DaoName.Explore]: {
     typeorm: null,

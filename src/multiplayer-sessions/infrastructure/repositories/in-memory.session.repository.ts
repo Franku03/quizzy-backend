@@ -93,7 +93,6 @@ export class InMemorySessionRepository {
         return this.activeSessions.get( pin ) || null;
     }
 
-
     async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
 
         const data = this.qrTokens.get(token);

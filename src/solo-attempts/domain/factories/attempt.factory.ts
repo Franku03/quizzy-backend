@@ -26,7 +26,6 @@ export class SoloAttemptFactory {
         kahootId: KahootId, 
         totalQuestions: number
     ): SoloAttempt {
-
         // A new game always starts with a score of zero.
         const initialScore = Score.create(0);
 

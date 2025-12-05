@@ -5,6 +5,7 @@ import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.reposito
 import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.repository.postgres';
 import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
+import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
 import { FileMetadataMongoRespository } from '../mongo/modules/media/media.repository.mongo';
 import { MultiplayerSessionRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.mongo';
 
@@ -17,6 +18,7 @@ export enum RepositoryName {
   User = 'UserRepository',
   Kahoot = 'KahootRepository',
   Attempt = 'AttemptRepository',
+  Group = 'GroupRepository',
   FileMetadata = 'FileMetadataRepository',
   MultiplayerSession = 'MultiplayerSessionRepository',
 }
@@ -26,12 +28,16 @@ export const REPOSITORY_REGISTRY: Record<
   RepositoryRegistryItem
 > = {
   [RepositoryName.User]: {
-    typeorm: UserRepositoryPostgres,
+    typeorm: null,
     mongoose: UserRepositoryMongo,
   },
   [RepositoryName.Kahoot]: {
     typeorm: KahootRepositoryPostgres,
     mongoose: KahootRepositoryMongo,
+  },
+  [RepositoryName.Group]: {
+    typeorm: null,
+    mongoose: GroupRepositoryMongo,
   },
   [RepositoryName.Attempt]: {
     typeorm: SoloAttemptRepositoryPostgres,

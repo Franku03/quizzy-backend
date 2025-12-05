@@ -14,7 +14,6 @@ interface CreateCommandProps {
 }
 
 export class CreateKahootCommand extends BaseKahootCommand {
-
     public declare readonly authorId: string;
     public declare readonly themeId: string;
     public declare readonly visibility: string;
