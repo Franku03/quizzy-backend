@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quizzy_backend_postgres
+    env_file:
+      - .env
+    ports:
+      - "${PORT}:3000"
+      - "${WEB_SOCKET_SERVER_PORT}:3003"
+    depends_on:
+      - postgres
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+
+  postgres:
+    image: postgres:18
+    container_name: quizzy_database_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_quizzy:/var/lib/postgresql/data
+
+volumes:
+  postgres_quizzy:
