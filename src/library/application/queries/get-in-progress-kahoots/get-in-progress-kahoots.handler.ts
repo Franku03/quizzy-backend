@@ -1,13 +1,12 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { Either } from 'src/core/types/either';
 import type { ILibraryDao } from '../ports/library.dao.port';
 import { LibraryReadModel } from '../read-model/library.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetInProgressKahootsQuery } from './get-in-progress-kahoots.query';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 
-@QueryHandler(GetInProgressKahootsQuery)
-export class getInProgressKahootsHandler
+export class GetInProgressKahootsHandler
   implements IQueryHandler<GetInProgressKahootsQuery>
 {
   constructor(

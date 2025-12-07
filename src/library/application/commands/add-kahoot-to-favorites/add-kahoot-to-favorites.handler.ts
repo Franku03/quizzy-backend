@@ -1,4 +1,3 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AddKahootToFavoritesCommand } from './add-kahoot-to-favorites.command';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import type { IUserRepository } from 'src/users/domain/ports/IUserRepository';
@@ -6,8 +5,8 @@ import { Inject } from '@nestjs/common';
 import { Optional } from 'src/core/types/optional';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
 
-@CommandHandler(AddKahootToFavoritesCommand)
 export class AddKahootToFavoritesHandler
   implements ICommandHandler<AddKahootToFavoritesCommand>
 {
