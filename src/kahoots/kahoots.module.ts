@@ -7,18 +7,19 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateKahootHandler } from './application/commands/create-kahoot/create-kahoothandler';
-import { KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/commands/input/kahoot.request.mapper'; 
-import { MapperName } from './application/catalogs/catalog.mapper.enum';
-import { KahootResponseMapper } from './infrastructure/adapters/commands/output/kahoot.response.mapper';
+import { KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/mappers/kahoot.request.mapper'; 
 import { UpdateKahootHandler } from './application/commands/update-kahoot/update-kahoothandler';
 import { DeleteKahootHandler } from './application/commands/delete-kahoot/delete-kahoothandler';
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
-import { SlideResponseMapper } from './infrastructure/adapters/commands/output/kahoot.slide.response.mapper';
-import { OptionResponseMapper } from './infrastructure/adapters/commands/output/kahoot.slide.option.response.mapper';
 
 import { CommandQueryExecutorService } from './infrastructure/nest-js/command-query-executor.service';
-import { EitherHandlerService } from './infrastructure/nest-js/either-handler.service';
 import { ErrorMapperService } from './infrastructure/nest-js/error-mapper.service';
+import { KahootMapperService } from './application/services/kahoot.mapper.service';
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { AttemptCleanupService } from './application/services/attempt-clear.service';
+import { KahootAuthorizationService } from './application/services/kahoot-athorization.service';
+import { KahootAssetEnricherService } from './application/services/kahoot-asset-enricher.service';
+import { MediaModule } from 'src/media/infraestructure/media.module';
 
 @Module({
   controllers: [KahootController],
@@ -26,28 +27,31 @@ import { ErrorMapperService } from './infrastructure/nest-js/error-mapper.servic
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.Kahoot),
+    
+    MediaModule, // <--- ¡IMPORTA EL MÓDULO MEDIA! Ahora KahootsModule conoce sus exports.
+    
     CqrsModule,
   ],
   providers: [
     ErrorMapperService,
-    EitherHandlerService,
     CommandQueryExecutorService,
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
     KahootNestMapperAdapter,
     GetKahootByIdHandler,
-    {
-      provide: MapperName.KahootResponse, 
-      useClass: KahootResponseMapper, 
-    },
-    SlideResponseMapper,
-    OptionResponseMapper,
+    KahootMapperService,
+    UuidGenerator,
+    AttemptCleanupService,
+    KahootAuthorizationService,
+    
+    // Aquí, KahootAssetEnricherService necesita IAssetIdToUrlService.
+    // Usaremos AssetMetadataUrlService, que ya está disponible a través de MediaModule.
+    KahootAssetEnricherService, 
   ],
   exports: [
     CommandQueryExecutorService,
     ErrorMapperService,
-    EitherHandlerService,
   ],
 })
 export class KahootsModule {}

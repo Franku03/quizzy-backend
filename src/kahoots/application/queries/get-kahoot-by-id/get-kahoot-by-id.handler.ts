@@ -4,39 +4,84 @@ import { Inject } from '@nestjs/common';
 import type { IKahootDao } from '../ports/kahoot.dao.port';
 import { GetKahootByIdQuery } from './get-kahoot-by-id.query';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
-import { KahootReadModel } from '../read-model/kahoot.response.read.model';
 import { Either } from 'src/core/types/either';
 import { GetKahootByIdError } from '../../errors/kahoot-aplication.errors';
-import { Optional } from 'src/core/types/optional';
+import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
+import { KahootErrorMapper } from '../../errors/kahoot-error.mapper';
+import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 
 @QueryHandler(GetKahootByIdQuery)
-export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery, Either<GetKahootByIdError, Optional<KahootReadModel>>> {  // <-- Cambiar aquí
+export class GetKahootByIdHandler 
+  implements IQueryHandler<GetKahootByIdQuery, Either<GetKahootByIdError, KahootHandlerResponse>> {
   
   constructor(
-    @Inject(DaoName.Kahoot) 
+    @Inject(DaoName.Kahoot)
     private readonly kahootDao: IKahootDao
   ) {}
 
-  async execute(query: GetKahootByIdQuery): Promise<Either<GetKahootByIdError, Optional<KahootReadModel>>
-  > {  
+  async execute(query: GetKahootByIdQuery): Promise<Either<GetKahootByIdError, KahootHandlerResponse>> {
     try {
+      // 1. Obtener kahoot del DAO
       const result = await this.kahootDao.getKahootById(query.kahootId);
-      
+
       if (result.isLeft()) {
         const repoError = result.getLeft();
-        return Either.makeLeft(repoError);
+        return Either.makeLeft(
+          KahootErrorMapper.fromInfrastructure(
+            repoError,
+            'getById',
+            { kahootId: query.kahootId, userId: query.userId }
+          ) as GetKahootByIdError
+        );
       }
-      return result as Either<GetKahootByIdError, Optional<KahootReadModel>>;
+
+      const optionalKahoot = result.getRight();
+
+      if (!optionalKahoot.hasValue()) {
+        return Either.makeLeft(
+          KahootErrorMapper.fromDomain(
+            { type: 'KahootNotFound', message: `Kahoot with ID ${query.kahootId} not found` },
+            'getById',
+            { kahootId: query.kahootId, userId: query.userId }
+          ) as GetKahootByIdError
+        );
+      }
+
+      const kahoot = optionalKahoot.getValue();
+      
+      // 2. Validar permisos directamente en el handler
+      const isPublic = kahoot.visibility === VisibilityStatusEnum.PUBLIC;
+      const isOwner = kahoot.authorId === query.userId;
+
+      // Usuario no autenticado o sin permisos
+      if (!isPublic && !isOwner) {
+        return Either.makeLeft(
+          KahootErrorMapper.fromDomain(
+            { 
+              type: 'UnauthorizedKahoot', 
+              message: `You don't have permission to view this kahoot` 
+            },
+            'getById',
+            { 
+              kahootId: query.kahootId, 
+              userId: query.userId,
+              isPublic,
+              isOwner
+            }
+          ) as GetKahootByIdError
+        );
+      }
+
+      return Either.makeRight(kahoot);
       
     } catch (error) {
-      const unexpectedError: GetKahootByIdError = {
-        type: 'UnexpectedError',
-        message: 'Error inesperado obteniendo kahoot',
-        timestamp: new Date(),
-        originalError: error
-      };
-      
-      return Either.makeLeft(unexpectedError);
+      return Either.makeLeft(
+        KahootErrorMapper.fromAny(
+          error,
+          'getById',
+          { kahootId: query.kahootId, userId: query.userId }
+        ) as GetKahootByIdError
+      );
     }
   }
 }

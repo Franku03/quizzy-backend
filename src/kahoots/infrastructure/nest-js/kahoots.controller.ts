@@ -13,36 +13,36 @@ import {
 } from '@nestjs/common';
 
 import { CreateKahootDTO, UpdateKahootDTO } from './dtos'; 
-import type { IKahootMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper'; 
-import { KahootNestMapperAdapter } from '../adapters/commands/input/kahoot.request.mapper';
-import { KahootResponseDTO } from 'src/kahoots/application/commands/response-dto/kahoot.response.dto';
+import type { IKahootRequestMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper'; 
+import { KahootNestMapperAdapter } from '../adapters/mappers/kahoot.request.mapper';
+import { KahootHandlerResponse } from 'src/kahoots/application/response/kahoot.handler.response';
 import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot/delete-kahootcommand';
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
 import { CommandQueryExecutorService } from './command-query-executor.service';
-import { MockAuthGuard } from '';
-import { GetUserId } from '';
+import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
+import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
 
 @Controller('kahoots')
 export class KahootController {
     constructor(
         private readonly executor: CommandQueryExecutorService,
         @Inject(KahootNestMapperAdapter) 
-        private readonly kahootMapper: IKahootMapper<CreateKahootDTO, UpdateKahootDTO>
+        private readonly kahootMapper: IKahootRequestMapper<CreateKahootDTO, UpdateKahootDTO>
     ) {}
 
-    // ✅ CUALQUIER usuario loggeado puede CREAR
+    // CUALQUIER usuario loggeado puede CREAR
     @Post()
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.CREATED)
     async createKahoot(
       @Body() input: CreateKahootDTO,
       @GetUserId() userId: string
-    ): Promise<KahootResponseDTO> {
+    ): Promise<KahootHandlerResponse> {
         const command = this.kahootMapper.toCreateCommand(input, userId); 
-        return await this.executor.executeCommand<KahootResponseDTO>(command);
+        return await this.executor.executeCommand<KahootHandlerResponse>(command);
     }
     
-    // ✅ Usuario loggeado puede EDITAR, pero el handler validará si es dueño
+    // Usuario loggeado puede EDITAR, pero el handler validará si es dueño
     @Put(':id') 
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
@@ -50,19 +50,19 @@ export class KahootController {
         @Param('id') kahootId: string,
         @Body() input: UpdateKahootDTO,
         @GetUserId() userId: string
-    ): Promise<KahootResponseDTO> {
-        const command = this.kahootMapper.toUpdateCommand(input, kahootId, userId);
-        return await this.executor.executeCommand<KahootResponseDTO>(command);
+    ): Promise<KahootHandlerResponse> {
+        const command = this.kahootMapper.toReplaceCommand(input, kahootId, userId);
+        return await this.executor.executeCommand<KahootHandlerResponse>(command);
     }
 
-    // ✅ CUALQUIERA puede VER (según visibilidad)
+    // CUALQUIERA puede VER (según visibilidad - PRIVATE SOLO OWNER)
     @Get(':id')
     @HttpCode(HttpStatus.OK)
     async getKahootById(
         @Param('id') kahootId: string,
         @GetUserId() userId?: string // Opcional para visibilidad
     ) {
-        const query = new GetKahootByIdQuery(kahootId, userId);
+        const query = new GetKahootByIdQuery({kahootId, userId});
         return await this.executor.executeQueryOptional(
             query, 
             kahootId, 
@@ -70,15 +70,15 @@ export class KahootController {
         );
     }
 
-    // ✅ Usuario loggeado puede ELIMINAR, pero el handler validará si es dueño
+    // Usuario loggeado puede ELIMINAR, pero el handler validará si es dueño
     @Delete(':id')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.NO_CONTENT) 
     async deleteKahoot(
-        @Param('id') kahootId: string,
+        @Param('id') id: string,
         @GetUserId() userId: string
     ): Promise<void> {
-        const command = new DeleteKahootCommand(kahootId, userId);
+        const command = new DeleteKahootCommand({id, userId});
         await this.executor.executeCommand<void>(command);
     }
 }

@@ -3,39 +3,29 @@ import { KahootSlideCommand } from "../base/slidecommand";
 
 // Interfaz que define las propiedades que el Command puede aceptar
 interface UpdateCommandProps {
-    id: string; // Requerido para la operación de actualización
-    
-    // Propiedades opcionales (heredadas)
+    userId: string;
+    id: string;
     title?: string;
     description?: string;
-    coverImageId?: string;
+    imageId?: string;
     themeId: string;
     category?: string;
-    visibility?: string;
-    status?: string;
+    visibility: string;
+    status: string;
     slides?: KahootSlideCommand[];
     
-    // Propiedades específicas opcionales
-    authorId?: string;
     createdAt?: Date;
     playCount?: number;
+    authorId?: string;
 }
 
 export class UpdateKahootCommand extends BaseKahootCommand {
-    // id obligatorio en el contexto de esta clase
-    public readonly id!: string; 
-    
-    //'declare' para propiedades heredadas que son opcionales en la base 
-    public declare readonly authorId?: string;
-    public declare readonly createdAt?: Date;
-    public declare readonly playCount?: number;
-    // Las propiedades 'title', 'description', etc., se asignan desde el constructor del padre.
-
+    public readonly id: string; 
+    public declare readonly authorId?: string; // ⚠️ LEGACY
+    public declare readonly createdAt?: Date; // ⚠️ LEGACY
+    public declare readonly playCount?: number; // ⚠️ LEGACY
     constructor(props: UpdateCommandProps) {
-        // Llama al constructor del padre pasándole el objeto de propiedades completo.
         super(props); 
-        
-        // Asigna todas las propiedades (incluyendo 'id') a la instancia (DRY)
         Object.assign(this, props);
     }
 }

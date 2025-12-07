@@ -13,10 +13,16 @@ export class MediaController {
     @UseInterceptors(FileInterceptor('file'))
     async uploadAsset(@UploadedFile() file: File): Promise<{ assetId: string }> { 
         if (!file) {
-            throw new HttpException('No se proporcionó ningún archivo en el campo "file".', HttpStatus.BAD_REQUEST);
+            throw new HttpException('No se proporcionó ningún archivo', HttpStatus.BAD_REQUEST);
         }
         
-        const command = new UploadAssetCommand(file.buffer, file.mimetype);
+        // Solo los 3 datos esenciales
+        const command = new UploadAssetCommand(
+            file.buffer,
+            file.mimetype,
+            file.originalname
+        );
+        
         const result = await this.commandBus.execute(command);
         
         // Manejar Either directamente

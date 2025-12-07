@@ -10,11 +10,13 @@ import { Optional } from 'src/core/types/optional';
 import { KahootFactory } from 'src/kahoots/domain/factories/kahoot.factory';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snpapshot.kahoot';
 import { Either } from 'src/core/types/either';
-import { RepositoryError } from 'src/database/domain/repository';
-import { MongoErrorAdapter } from 'src/database/infrastructure/errors/mongo.error.adapter';
+import { RepositoryError } from 'src/database/infrastructure/errors/repository-error';
+import { MongoErrorFactory } from 'src/database/infrastructure/errors/mongo/mongo-error.factory';
 
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
+  private readonly logger = new Logger(KahootRepositoryMongo.name);
+  
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
@@ -22,80 +24,49 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
   private readonly collectionName = 'kahoots';
 
+  // ========== MÉTODOS LEGACY ==========
+  
   public async saveKahoot(kahoot: Kahoot): Promise<void> {
-    const persistenceData = kahoot.getSnapshot();
-    try {
-      await this.kahootModel
-        .findOneAndUpdate({ id: kahoot.id.value }, persistenceData, {
-          upsert: true,
-          new: true,
-          runValidators: true,
-        })
-        .exec();
-    } catch (error) {
-      if (error.code === 11000) {
-        throw new Error(
-          `Kahoot ID ${kahoot.id.value} ya existe en la base de datos.`,
-        );
-      }
-      throw error;
-    }
+    this.logDeprecated('saveKahoot');
+    const result = await this.saveKahootEither(kahoot);
+    if (result.isLeft()) throw this.legacyErrorTransform(result.getLeft(), kahoot.id.value);
   }
 
   public async findKahootById(id: KahootId): Promise<Optional<Kahoot>> {
-    const document = await this.kahootModel.findOne({ id: id.value }).exec();
-
-    if (!document) {
-      return new Optional<Kahoot>();
-    }
-
-    const snapshot = document.toObject() as KahootSnapshot;
-    snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];
-    
-    const kahoot = KahootFactory.reconstructFromSnapshot(snapshot);
-    return new Optional(kahoot);
+    this.logDeprecated('findKahootById');
+    const result = await this.findKahootByIdEither(id);
+    if (result.isLeft()) throw result.getLeft();
+    return result.getRight();
   }
 
   public async findAllKahoots(): Promise<Kahoot[]> {
-    const documents = await this.kahootModel.find().exec();
-
-    return documents.map((doc) => {
-      const snapshot = doc.toObject() as KahootSnapshot;
-      snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];
-      return KahootFactory.reconstructFromSnapshot(snapshot);
-    });
+    this.logDeprecated('findAllKahoots');
+    const result = await this.findAllKahootsEither();
+    if (result.isLeft()) throw result.getLeft();
+    return result.getRight();
   }
 
   public async deleteKahoot(id: KahootId): Promise<void> {
-    await this.kahootModel.deleteOne({ id: id.value }).exec();
+    this.logDeprecated('deleteKahoot');
+    const result = await this.deleteKahootEither(id);
+    if (result.isLeft()) throw result.getLeft();
   }
 
-  // === MÉTODOS CON EITHER USANDO RepositoryError ===
+  // ========== MÉTODOS CON EITHER ==========
+  
   public async saveKahootEither(kahoot: Kahoot): Promise<Either<RepositoryError, void>> {
-    const persistenceData = kahoot.getSnapshot();
-    
     try {
       await this.kahootModel
         .findOneAndUpdate(
           { id: kahoot.id.value }, 
-          persistenceData, 
-          {
-            upsert: true,
-            new: true,
-            runValidators: true,
-          }
+          kahoot.getSnapshot(), 
+          { upsert: true, new: true, runValidators: true }
         )
         .exec();
       
       return Either.makeRight(undefined);
     } catch (error) {
-      const repositoryError = MongoErrorAdapter.toRepositoryError(
-        error,
-        this.collectionName,
-        'save',
-        kahoot.id.value
-      );
-      return Either.makeLeft(repositoryError);
+      return Either.makeLeft(this.toRepositoryError(error, 'save', kahoot.id.value));
     }
   }
 
@@ -103,46 +74,36 @@ export class KahootRepositoryMongo implements IKahootRepository {
     try {
       const document = await this.kahootModel
         .findOne({ id: id.value })
+        .lean()
         .exec();
 
       if (!document) {
         return Either.makeRight(new Optional<Kahoot>());
       }
 
-      const snapshot = document.toObject() as KahootSnapshot;
-      snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];
-      
+      const snapshot = this.prepareSnapshot(document);
       const kahoot = KahootFactory.reconstructFromSnapshot(snapshot);
       return Either.makeRight(new Optional(kahoot));
     } catch (error) {
-      const repositoryError = MongoErrorAdapter.toRepositoryError(
-        error,
-        this.collectionName,
-        'findById',
-        id.value
-      );
-      return Either.makeLeft(repositoryError);
+      return Either.makeLeft(this.toRepositoryError(error, 'findById', id.value));
     }
   }
 
   public async findAllKahootsEither(): Promise<Either<RepositoryError, Kahoot[]>> {
     try {
-      const documents = await this.kahootModel.find().exec();
+      const documents = await this.kahootModel
+        .find()
+        .lean()
+        .exec();
 
-      const kahoots = documents.map((doc) => {
-        const snapshot = doc.toObject() as KahootSnapshot;
-        snapshot.createdAt = (snapshot.createdAt as unknown as Date).toISOString().split('T')[0];
+      const kahoots = documents.map(doc => {
+        const snapshot = this.prepareSnapshot(doc);
         return KahootFactory.reconstructFromSnapshot(snapshot);
       });
       
       return Either.makeRight(kahoots);
     } catch (error) {
-      const repositoryError = MongoErrorAdapter.toRepositoryError(
-        error,
-        this.collectionName,
-        'findAll'
-      );
-      return Either.makeLeft(repositoryError);
+      return Either.makeLeft(this.toRepositoryError(error, 'findAll'));
     }
   }
 
@@ -154,13 +115,68 @@ export class KahootRepositoryMongo implements IKahootRepository {
       
       return Either.makeRight(undefined);
     } catch (error) {
-      const repositoryError = MongoErrorAdapter.toRepositoryError(
-        error,
-        this.collectionName,
-        'delete',
-        id.value
+      return Either.makeLeft(this.toRepositoryError(error, 'delete', id.value));
+    }
+  }
+
+  // ========== MÉTODOS ADICIONALES ==========
+  
+  public async existsKahootEither(id: KahootId): Promise<Either<RepositoryError, boolean>> {
+    try {
+      const count = await this.kahootModel
+        .countDocuments({ id: id.value })
+        .exec();
+      
+      return Either.makeRight(count > 0);
+    } catch (error) {
+      return Either.makeLeft(this.toRepositoryError(error, 'exists', id.value));
+    }
+  }
+
+  // ========== MÉTODOS PRIVADOS ==========
+  
+  private toRepositoryError(error: any, operation: string, documentId?: string): RepositoryError {
+    const context = {
+      table: this.collectionName,
+      operation,
+      documentId,
+    };
+
+    if (MongoErrorFactory.isMongoError(error)) {
+      return MongoErrorFactory.fromMongoError(error, context);
+    }
+
+    // Para errores no-MongoDB
+    return MongoErrorFactory.unknownError({
+      ...context,
+      details: JSON.stringify({
+        message: error?.message || String(error),
+      }),
+    });
+  }
+
+  private prepareSnapshot(document: any): KahootSnapshot {
+    const snapshot = { ...document };
+    
+    if (snapshot.createdAt instanceof Date) {
+      snapshot.createdAt = snapshot.createdAt.toISOString().split('T')[0];
+    }
+    
+    return snapshot as KahootSnapshot;
+  }
+
+  private legacyErrorTransform(error: RepositoryError, kahootId: string): Error {
+    // Solo para mantener compatibilidad con el error específico que esperabas
+  
+    
+    return error;
+  }
+
+  private logDeprecated(methodName: string): void {
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.warn(
+        `${methodName}() is deprecated. Use ${methodName}Either() instead.`
       );
-      return Either.makeLeft(repositoryError);
     }
   }
 }

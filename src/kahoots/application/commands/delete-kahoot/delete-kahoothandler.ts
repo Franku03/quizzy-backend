@@ -1,88 +1,77 @@
-// src/kahoots/application/commands/delete-kahoot/delete-kahoot.handler.ts
-import { Inject } from '@nestjs/common';
-import { DeleteKahootCommand } from './delete-kahootcommand';
-import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
-import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
-import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Either } from 'src/core/types/either';
-
-import { 
-  KahootNotFoundError,
-  UnauthorizedError 
-} from '../../../domain/errors/kahoot-domain.errors';
-import { DeleteKahootError } from '../../errors/kahoot-aplication.errors';
+import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+import { DeleteKahootCommand } from "./delete-kahootcommand";
+import { Either } from "src/core/types/either";
+import { DeleteKahootError } from "../../errors/kahoot-aplication.errors";
+import { AttemptCleanupService } from "../../services/attempt-clear.service";
+import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
+import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
+import { Inject } from "@nestjs/common";
+import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
+import { KahootErrorMapper } from "../../errors/kahoot-error.mapper";
+import { KahootNotFoundError, UnauthorizedKahootError } from "src/kahoots/domain/errors/kahoot-domain.errors";
+import { KahootAuthorizationService } from "../../services/kahoot-athorization.service";
 
 @CommandHandler(DeleteKahootCommand)
-export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand, Either<DeleteKahootError, void>> {
+export class DeleteKahootHandler 
+  implements ICommandHandler<DeleteKahootCommand, Either<DeleteKahootError, void>> {
     
     constructor(
         @Inject(RepositoryName.Kahoot)
         private readonly kahootRepository: IKahootRepository,
-        @Inject(RepositoryName.Attempt)
-        private readonly attemptRepository: SoloAttemptRepository,
+        private readonly attemptCleanup: AttemptCleanupService,
+        private readonly authService: KahootAuthorizationService
     ) {}
 
     async execute(command: DeleteKahootCommand): Promise<Either<DeleteKahootError, void>> {
         try {
-            const kahootId = new KahootId(command.id);
+            // 1. Obtener kahoot con validación de autorización
+            const authResult = await this.authService.getKahootForDelete(command.id, command.userId);
             
-            // 1. Verificar existencia
-            const findResult = await this.kahootRepository.findKahootByIdEither(kahootId);
-            
-            if (findResult.isLeft()) {
-                return Either.makeLeft(findResult.getLeft());
+            if (authResult.isLeft()) {
+                const domainError = authResult.getLeft();
+                return Either.makeLeft(
+                    KahootErrorMapper.fromDomain(
+                        domainError,
+                        'delete',
+                        { kahootId: command.id, userId: command.userId }
+                    ) as DeleteKahootError
+                );
             }
 
-            const kahootOptional = findResult.getRight();
-            if (!kahootOptional.hasValue()) {
-                return Either.makeLeft({
-                    type: 'KahootNotFound',
-                    message: `El Kahoot con ID: ${command.id} no fue encontrado`,
-                    kahootId: command.id,
-                    timestamp: new Date(),
-                } as KahootNotFoundError);
-            }
+            const kahoot = authResult.getRight();
+
+            // 2. Eliminar del repositorio
+            const deleteResult = await this.kahootRepository.deleteKahootEither(
+                new KahootId(command.id)
+            );
             
-            const kahoot = kahootOptional.getValue();
-
-            // 2. TODO: Verificar permisos cuando se implemente auth
-
-            // 3. Eliminar kahoot
-            const deleteResult = await this.kahootRepository.deleteKahootEither(kahootId);
             if (deleteResult.isLeft()) {
-                return Either.makeLeft(deleteResult.getLeft());
+                const infraError = deleteResult.getLeft();
+                return Either.makeLeft(
+                    KahootErrorMapper.fromInfrastructure(
+                        infraError,
+                        'delete',
+                        { 
+                            kahootId: command.id, 
+                            userId: command.userId,
+                            kahootAuthorId: kahoot.authorId
+                        }
+                    ) as DeleteKahootError
+                );
             }
 
-            console.log(`
-            -----------------------------------------------------
-            🗑️ DELETE SUCCESS [Kahoot ID: ${command.id}]
-            -----------------------------------------------------
-            El objeto Kahoot ha sido eliminado.
-            `);
-
-            // 4. Limpiar intentos (operación secundaria)
-            await this.cleanupAttempts(kahootId);
-
+            // 3. Limpiar intentos
+            await this.attemptCleanup.cleanupById(new KahootId(command.id));
+            
             return Either.makeRight(undefined);
-
+            
         } catch (error) {
-            // Cualquier error inesperado se maneja aquí
-            return Either.makeLeft({
-                type: 'UnexpectedError',
-                message: error instanceof Error ? error.message : 'Error inesperado eliminando kahoot',
-                timestamp: new Date(),
-                originalError: error,
-            } as DeleteKahootError);
-        }
-    }
-
-    private async cleanupAttempts(kahootId: KahootId): Promise<void> {
-        try {
-            await this.attemptRepository.deleteAllActiveForKahootId(kahootId);
-        } catch (error) {
-            console.warn(`No se pudieron limpiar intentos para kahoot ${kahootId.value}:`, error);
+            return Either.makeLeft(
+                KahootErrorMapper.fromAny(error, 'delete', { 
+                    kahootId: command.id, 
+                    userId: command.userId 
+                }) as DeleteKahootError
+            );
         }
     }
 }

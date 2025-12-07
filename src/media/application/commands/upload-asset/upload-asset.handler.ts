@@ -1,116 +1,183 @@
+// src/media/application/commands/upload-asset/upload-asset.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import { UploadAssetCommand } from './upload-asset.command';
-import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { FileMetadataSnapshot } from 'src/core/application/snapshots/i-file-metadata.snapshot';
-import type { IFileMetadataRepository } from 'src/core/application/repository/i-file-metadata.repository';
-import type { IAssetStorageService } from 'src/media/application/ports/asset-storage/i-asset-storage.service';
+import type { IAssetMetadataDao } from '../../ports/asset-metadata.dao';
+import type { IAssetStorageService } from '../../ports/asset-storage.service';
 import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
-import { CloudinaryError } from 'src/media/infraestructure/adapters/errors';
-import { DatabaseError } from 'src/database/infrastructure/errors';
+import type { IAssetUrlService } from '../../ports/asset-url-generator.interface';
+import { AssetMetadataRecord } from '../../ports/asset-metadata-record.interface';
+import { AssetMetadataReadModel } from '../../read-model/asset-metadata.read.model';
 import { Either } from 'src/core/types/either';
+import { 
+  MediaApplicationError,
+  MediaErrorFactory 
+} from '../../errors';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 
 
-export type UploadAssetError = 
-  | DatabaseError
-  | CloudinaryError
-  | {
-      type: 'InvalidFile';
-      message: string;
-      timestamp: Date;
-    }
-  | {
-      type: 'UnexpectedError';
-      message: string;
-      timestamp: Date;
-      originalError?: any;
+// Helper local (mover a archivo separado después)
+class MimeTypeHelper {
+  static getFormat(mimeType: string): string {
+    return mimeType.split('/')[1] || 'unknown';
+  }
+
+  static getCategory(mimeType: string): string {
+    const [type] = mimeType.split('/');
+    const categories: Record<string, string> = {
+      'image': 'image',
+      'video': 'video',
+      'audio': 'audio',
+      'application': 'document',
+      'text': 'document'
     };
-    
+    return categories[type] || 'other';
+  }
+
+  static isImage(mimeType: string): boolean {
+    return this.getCategory(mimeType) === 'image';
+  }
+
+  static isVideo(mimeType: string): boolean {
+    return this.getCategory(mimeType) === 'video';
+  }
+
+  static isDocument(mimeType: string): boolean {
+    const category = this.getCategory(mimeType);
+    return category === 'document' || category === 'text';
+  }
+}
+
+export type UploadAssetResult = {
+  assetId: string;
+  publicId: string;
+  url: string;
+  metadata: AssetMetadataReadModel;
+  isDuplicate: boolean;
+};
+
 @CommandHandler(UploadAssetCommand)
-export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand, Either<UploadAssetError, string>> {
-    constructor(
-        @Inject(RepositoryName.FileMetadata)
-        private readonly metadataRepository: IFileMetadataRepository,
-        @Inject('IAssetStorageService')
-        private readonly assetStorageService: IAssetStorageService,
-        @Inject('ICryptoService')
-        private readonly cryptoService: ICryptoService,
-        @Inject(UuidGenerator)
-        private readonly idGenerator: IdGenerator<string>,
-    ) {}
+export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand, Either<MediaApplicationError, UploadAssetResult>> {
+  constructor(
+    @Inject(DaoName.AssetMetadataMongo)
+    private readonly metadataDao: IAssetMetadataDao,
+    @Inject('IAssetStorageService')
+    private readonly assetStorageService: IAssetStorageService,
+    @Inject('ICryptoService')
+    private readonly cryptoService: ICryptoService,
+    @Inject('IAssetUrl')
+    private readonly urlGenerator: IAssetUrlService,
+    @Inject('IdGenerator')
+    private readonly idGenerator: IdGenerator<string>,
+  ) {}
 
-    async execute(command: UploadAssetCommand): Promise<Either<UploadAssetError, string>> {
-        
-        // 1. Validar archivo
-        if (!command.fileBuffer || command.fileBuffer.length === 0) {
-            return Either.makeLeft({
-                type: 'InvalidFile',
-                message: 'El archivo está vacío',
-                timestamp: new Date(),
-            });
-        }
-
-        if (!command.mimeType || command.mimeType.trim() === '') {
-            return Either.makeLeft({
-                type: 'InvalidFile',
-                message: 'El tipo MIME del archivo es inválido',
-                timestamp: new Date(),
-            });
-        }
-
-        // 2. Generar IDs
-        let publicId: string;
-        try {
-            publicId = await this.idGenerator.generateId();
-        } catch (error) {
-            return Either.makeLeft({
-                type: 'UnexpectedError',
-                message: 'Error generando ID para el asset',
-                timestamp: new Date(),
-                originalError: error,
-            });
-        }
-
-        const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
-
-        // 3. Subir a Cloudinary
-        const uploadResult = await this.assetStorageService.uploadAndDeduplicate(
-            command.fileBuffer,
-            contentHash
-        );
-
-        if (uploadResult.isLeft()) {
-            return Either.makeLeft(uploadResult.getLeft());
-        }
-
-        const cloudinaryPublicId = uploadResult.getRight();
-
-        // 4. Crear metadatos
-        const metadataSnapshot: FileMetadataSnapshot = {
-            publicId,
-            contentHash: cloudinaryPublicId,
-            mimeType: command.mimeType,
-            referenceCount: 0,
-            createdAt: new Date().toISOString(),
-        };
-
-        // 5. Guardar en base de datos
-        const saveResult = await this.metadataRepository.save(metadataSnapshot);
-        
-        if (saveResult.isLeft()) {
-            // Compensación: eliminar de Cloudinary si falla en DB
-            const deleteResult = await this.assetStorageService.deleteAsset(cloudinaryPublicId);
-            
-            // Log si falla la compensación, pero no afectamos el error principal
-            if (deleteResult.isLeft()) {
-                console.error('Error en compensación (eliminar de Cloudinary):', deleteResult.getLeft());
-            }
-            
-            return Either.makeLeft(saveResult.getLeft());
-        }
-
-        return Either.makeRight(publicId);
+  async execute(command: UploadAssetCommand): Promise<Either<MediaApplicationError, UploadAssetResult>> {
+    if (!command.fileBuffer || command.fileBuffer.length === 0) {
+      return Either.makeLeft(MediaErrorFactory.emptyFile());
     }
+
+    try {
+      // 1. Calcular hash del contenido
+      const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
+      
+      // 2. Verificar si ya existe (deduplicación)
+      const duplicateResult = await this.metadataDao.findByContentHash(contentHash);
+      
+      if (duplicateResult.isRight() && duplicateResult.getRight().hasValue()) {
+        const existing = duplicateResult.getRight().getValue();
+        
+        // Incrementar contador de referencias
+        const incrementResult = await this.metadataDao.incrementReferenceCount(existing.publicId);
+        if (incrementResult.isLeft()) {
+          return Either.makeLeft(
+            MediaErrorFactory.uploadFailed(`Failed to increment reference: ${incrementResult.getLeft().message}`)
+          );
+        }
+        
+        // Generar URL usando el nuevo método simple
+        const url = this.urlGenerator.generateUrl(existing.provider, existing.publicId);
+        
+        return Either.makeRight({
+          assetId: existing.assetId,
+          publicId: existing.publicId,
+          url,
+          metadata: this.toReadModel(existing),
+          isDuplicate: true,
+        });
+      }
+      
+      // 3. Generar IDs (NUEVA SUBIDA)
+      const assetId = await this.idGenerator.generateId();
+      const publicId = assetId;
+      
+      // 4. Subir a storage
+      const uploadResult = await this.assetStorageService.upload(
+        command.fileBuffer,
+        command.mimeType,
+        command.originalName,
+        publicId
+      );
+      
+      if (uploadResult.isLeft()) {
+        return Either.makeLeft(
+          MediaErrorFactory.storageUploadFailed('cloudinary', uploadResult.getLeft().message)
+        );
+      }
+      
+      const storageResult = uploadResult.getRight();
+      
+      // 5. Crear registro en base de datos
+      const record: AssetMetadataRecord = {
+        assetId,
+        publicId: storageResult.publicId,
+        provider: storageResult.provider,
+        originalName: command.originalName,
+        mimeType: command.mimeType,
+        size: command.fileBuffer.length,
+        contentHash,
+        referenceCount: 1,
+        format: MimeTypeHelper.getFormat(command.mimeType),
+        category: MimeTypeHelper.getCategory(command.mimeType),
+        uploadedAt: new Date(),
+      };
+      
+      const saveResult = await this.metadataDao.insert(record);
+      if (saveResult.isLeft()) {
+        // Rollback: eliminar del storage si falla la BD
+        await this.assetStorageService.delete(record.publicId, record.provider);
+        return Either.makeLeft(
+          MediaErrorFactory.uploadFailed(`Failed to save metadata: ${saveResult.getLeft().message}`)
+        );
+      }
+      
+      // 6. Generar URL para respuesta
+      const url = this.urlGenerator.generateUrl(record.provider, record.publicId);
+      
+      return Either.makeRight({
+        assetId,
+        publicId: record.publicId,
+        url,
+        metadata: this.toReadModel(record),
+        isDuplicate: false,
+      });
+      
+    } catch (error) {
+      return Either.makeLeft(
+        MediaErrorFactory.uploadFailed(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`)
+      );
+    }
+  }
+  
+  private toReadModel(record: AssetMetadataRecord): AssetMetadataReadModel {
+    const url = this.urlGenerator.generateUrl(record.provider, record.publicId);
+    
+    return {
+      ...record,
+      url,
+      isImage: MimeTypeHelper.isImage(record.mimeType),
+      isVideo: MimeTypeHelper.isVideo(record.mimeType),
+      isDocument: MimeTypeHelper.isDocument(record.mimeType),
+    };
+  }
 }

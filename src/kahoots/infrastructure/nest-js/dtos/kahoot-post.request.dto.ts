@@ -4,7 +4,7 @@ import { cleanNullToUndefined, toUpperCase } from "./helper.request.dto.";
 import { SlideInputDTO } from "./kahoot.slide.request.dto";
 
 export class CreateKahootDTO {
-    // Campos opcionales
+    // Campos opcionales - //Todo dependen del estado del kahoot (DRAFT/PUBLISH)
     @IsOptional()
     @IsString()
     @Transform(cleanNullToUndefined) 
@@ -41,6 +41,4 @@ export class CreateKahootDTO {
     @Type(() => SlideInputDTO)
     @IsOptional()
     questions?: SlideInputDTO[];
-    
-    // ❌ authorId REMOVIDO del DTO (viene del token)
 }

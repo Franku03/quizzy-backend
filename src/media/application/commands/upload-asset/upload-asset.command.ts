@@ -1,10 +1,8 @@
+// src/media/application/commands/upload-asset/upload-asset.command.ts
 export class UploadAssetCommand {
-
-    public readonly fileBuffer: Buffer;
-    public readonly mimeType: string;
-
-    constructor(fileBuffer: Buffer, mimeType: string) {
-        this.fileBuffer = fileBuffer;
-        this.mimeType = mimeType;
-    }
+  constructor(
+    public readonly fileBuffer: Buffer,
+    public readonly mimeType: string,
+    public readonly originalName: string
+  ) {}
 }

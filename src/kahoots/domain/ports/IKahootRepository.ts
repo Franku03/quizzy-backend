@@ -1,18 +1,22 @@
-import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-import { Either } from 'src/core/types/either';
+// src/kahoot/domain/ports/out/kahoot-repository.interface.ts (versión simplificada)
 import { Optional } from 'src/core/types/optional';
-import { RepositoryError } from 'src/database/domain/repository';
-import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
+import { Kahoot } from '../aggregates/kahoot';
+import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
+import { OptionalRepositoryResult, RepositoryResult } from 'src/core/types/repository-result.type';
 
 export interface IKahootRepository {
+  // CRUD básico
   saveKahoot(kahoot: Kahoot): Promise<void>;
   findKahootById(id: KahootId): Promise<Optional<Kahoot>>;
   findAllKahoots(): Promise<Kahoot[]>;
   deleteKahoot(id: KahootId): Promise<void>;
-
-  //Esto es para futuras iteraciones
-  findAllKahootsEither(): Promise<Either<RepositoryError, Kahoot[]>>
-  deleteKahootEither(id: KahootId): Promise<Either<RepositoryError, void>>
-  findKahootByIdEither(id: KahootId): Promise<Either<RepositoryError, Optional<Kahoot>>>
-  saveKahootEither(kahoot: Kahoot): Promise<Either<RepositoryError, void>>
+  
+  // CRUD con Either
+  saveKahootEither(kahoot: Kahoot): Promise<RepositoryResult<void>>;
+  findKahootByIdEither(id: KahootId): Promise<OptionalRepositoryResult<Kahoot>>;
+  findAllKahootsEither(): Promise<RepositoryResult<Kahoot[]>>;
+  deleteKahootEither(id: KahootId): Promise<RepositoryResult<void>>;
+  
+  // Métodos adicionales con Either
+  existsKahootEither(id: KahootId): Promise<RepositoryResult<boolean>>;
 }

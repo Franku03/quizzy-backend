@@ -1,44 +1,113 @@
 // src/kahoots/application/errors/kahoot-application.errors.ts
-import { RepositoryError } from 'src/database/domain/repository';
-import { 
-  KahootNotFoundError, 
-  InvalidKahootDataError, 
-  UnauthorizedError 
-} from '../../domain/errors/kahoot-domain.errors';
+import { ApplicationError } from 'src/core/errors/application/application-error';
 
-// Tipo base para errores inesperados
-export type UnexpectedError = {
-  type: 'UnexpectedError';
-  message: string;
-  timestamp: Date;
-  originalError?: unknown;
-};
+export class CreateKahootError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly userId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super('CreateKahootError', message, { userId, ...context }, originalError);
+    Object.setPrototypeOf(this, CreateKahootError.prototype);
+  }
+}
 
-// Errores comunes reutilizables
-export type BaseRepositoryError = RepositoryError | UnexpectedError;
-export type BaseRepositoryWithNotFoundError = RepositoryError | KahootNotFoundError | UnexpectedError;
-export type BaseRepositoryWithValidationError = RepositoryError | InvalidKahootDataError | UnexpectedError;
+export class CreateKahootValidationError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly validationDetails?: Record<string, string[]>,
+    public readonly userId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super(
+      'CreateKahootValidationError', 
+      message, 
+      { validationDetails, userId, ...context }, 
+      originalError
+    );
+    Object.setPrototypeOf(this, CreateKahootValidationError.prototype);
+  }
+}
 
-// Tipos específicos para cada operación
-export type GetKahootByIdError = 
-  | RepositoryError
-  | KahootNotFoundError
-  | UnexpectedError;
+export class UpdateKahootError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly kahootId?: string,
+    public readonly userId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super(
+      'UpdateKahootError', 
+      message, 
+      { kahootId, userId, ...context }, 
+      originalError
+    );
+    Object.setPrototypeOf(this, UpdateKahootError.prototype);
+  }
+}
 
-export type UpdateKahootError = 
-  | RepositoryError
-  | KahootNotFoundError
-  | InvalidKahootDataError
-  | UnauthorizedError
-  | UnexpectedError;
+export class UpdateKahootValidationError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly validationDetails?: Record<string, string[]>,
+    public readonly kahootId?: string,
+    public readonly userId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super(
+      'UpdateKahootValidationError', 
+      message, 
+      { validationDetails, kahootId, userId, ...context }, 
+      originalError
+    );
+    Object.setPrototypeOf(this, UpdateKahootValidationError.prototype);
+  }
+}
 
-export type DeleteKahootError = 
-  | RepositoryError
-  | KahootNotFoundError
-  | UnauthorizedError
-  | UnexpectedError;
+export class DeleteKahootError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly kahootId?: string,
+    public readonly userId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super(
+      'DeleteKahootError', 
+      message, 
+      { kahootId, userId, ...context }, 
+      originalError
+    );
+    Object.setPrototypeOf(this, DeleteKahootError.prototype);
+  }
+}
 
-export type CreateKahootError = 
-  | RepositoryError
-  | InvalidKahootDataError
-  | UnexpectedError;
+export class GetKahootByIdError extends ApplicationError {
+  constructor(
+    message: string,
+    public readonly kahootId?: string,
+    context?: Record<string, any>,
+    originalError?: any
+  ) {
+    super(
+      'GetKahootByIdError', 
+      message, 
+      { kahootId, ...context }, 
+      originalError
+    );
+    Object.setPrototypeOf(this, GetKahootByIdError.prototype);
+  }
+}
+
+// Tipo unión para todos los errores de aplicación de Kahoot
+export type KahootApplicationError = 
+  | CreateKahootError
+  | CreateKahootValidationError
+  | UpdateKahootError
+  | UpdateKahootValidationError
+  | DeleteKahootError
+  | GetKahootByIdError;

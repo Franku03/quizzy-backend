@@ -1,74 +1,97 @@
-// src/multimedia/application/queries/get-asset-url.query-handler.ts
+/*// src/media/application/queries/get-asset-url-by-id/get-asset-url-by-id.handler.ts
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { GetAssetUrlQuery } from './get-asset-url-by-id.query';
-import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import type { IFileMetadataRepository } from 'src/core/application/repository/i-file-metadata.repository';
-import type { IAssetStorageService } from 'src/media/application/ports/asset-storage/i-asset-storage.service';
-import { DatabaseError } from 'src/database/infrastructure/errors';
+import { GetAssetUrlByIdQuery } from './get-asset-url-by-id.query';
+import type { IAssetMetadataDao } from '../../ports/asset-metadata.dao';
+import type { IUrlGenerator } from '../../ports/asset-url-generator.interface';
 import { Either } from 'src/core/types/either';
+import { Optional } from 'src/core/types/optional';
+import { AssetMetadataRecord } from '../../ports/asset-metadata-record.interface';
+import { MediaErrorFactory } from '../../errors/media-error.factory';
+import { GetAssetUrlError } from '../../errors/media-aplication.errors';
 
-// Errores específicos para este caso de uso
-export type GetAssetUrlError =
-  | DatabaseError
-  | {
-    type: 'AssetNotFound';
-    message: string;
-    assetId: string;
-    timestamp: Date;
-  }
-  | {
-    type: 'InvalidAssetReference';
-    message: string;
-    assetId: string;
-    timestamp: Date;
-  };
+export type GetAssetUrlByIdResult = {
+  url: string;
+  metadata: AssetMetadataRecord;
+  expiresAt?: Date;
+};
 
-@QueryHandler(GetAssetUrlQuery)
-export class GetAssetUrlQueryHandler
-  implements IQueryHandler<GetAssetUrlQuery, Either<GetAssetUrlError, string>> {
+@QueryHandler(GetAssetUrlByIdQuery)
+export class GetAssetUrlByIdHandler 
+  implements IQueryHandler<GetAssetUrlByIdQuery, Either<GetAssetUrlError, GetAssetUrlByIdResult>> {
+  
   constructor(
-    @Inject(RepositoryName.FileMetadata)
-    private readonly metadataRepository: IFileMetadataRepository,
-    @Inject('IAssetStorageService')
-    private readonly assetStorageService: IAssetStorageService,
-  ) { }
+    @Inject('IAssetMetadataDao')
+    private readonly metadataDao: IAssetMetadataDao,
+    @Inject('IUrlGenerator')
+    private readonly urlGenerator: IUrlGenerator,
+  ) {}
 
-  async execute(query: GetAssetUrlQuery): Promise<Either<GetAssetUrlError, string>> {
-    const { publicId } = query;
+  async execute(query: GetAssetUrlByIdQuery): Promise<Either<GetAssetUrlError, GetAssetUrlByIdResult>> {
+    const { publicId, options } = query;
 
-    // 1. Buscar metadatos (puede fallar con DatabaseError)
-    const metadataResult = await this.metadataRepository.findByPublicId(publicId);
-
-    if (metadataResult.isLeft()) {
-      return Either.makeLeft(metadataResult.getLeft());
+    if (!publicId || publicId.trim() === '') {
+      return Either.makeLeft(MediaErrorFactory.invalidAssetId(publicId));
     }
 
-    // 2. Si no existe ERROR - ahora es Optional
-    const metadataOptional = metadataResult.getRight();
-    if (!metadataOptional.hasValue()) {
-      return Either.makeLeft({
-        type: 'AssetNotFound',
-        message: `El asset con ID ${publicId} no existe`,
-        assetId: publicId,
-        timestamp: new Date(),
+    try {
+      // 1. Buscar metadatos usando DAO
+      const metadataResult = await this.metadataDao.findByPublicId(publicId);
+      
+      // 2. Manejar error del DAO (RepositoryError)
+      if (metadataResult.isLeft()) {
+        const repoError = metadataResult.getLeft();
+        return Either.makeLeft(
+          MediaErrorFactory.databaseError(
+            'Error al buscar metadatos', 
+            repoError.message
+          )
+        );
+      }
+
+      // 3. Verificar si existe
+      const metadataOptional: Optional<AssetMetadataRecord> = metadataResult.getRight();
+      if (!metadataOptional.hasValue()) {
+        return Either.makeLeft(MediaErrorFactory.assetNotFound(publicId));
+      }
+
+      const metadata = metadataOptional.getValue();
+      
+      // 4. Validar datos del asset
+      if (!metadata.storageKey) {
+        return Either.makeLeft(MediaErrorFactory.invalidAssetReference(publicId));
+      }
+
+      // 5. Generar URL usando el generador de URLs
+      const url = this.urlGenerator.generateUrl(metadata.storageKey, {
+        signed: options?.signed,
+        expiresIn: options?.expiresIn,
+        transformations: options?.transformations,
       });
-    }
 
-    // 3. Si referencia inválida ERROR (datos corruptos)
-    const metadata = metadataOptional.getValue();
-    const storageReferenceId = metadata.contentHash;
-    if (!storageReferenceId) {
-      return Either.makeLeft({
-        type: 'InvalidAssetReference',
-        message: `El asset ${publicId} tiene una referencia de almacenamiento inválida`,
-        assetId: publicId,
-        timestamp: new Date(),
-      });
-    }
+      // 6. Preparar resultado
+      const result: GetAssetUrlByIdResult = {
+        url,
+        metadata,
+      };
 
-    // 4. Generar URL (operación local que no debería fallar)
-    const url = this.assetStorageService.generateUrl(storageReferenceId);
-    return Either.makeRight(url);
+      // 7. Añadir expiración si aplica
+      if (options?.expiresIn) {
+        const expiresAt = new Date();
+        expiresAt.setSeconds(expiresAt.getSeconds() + options.expiresIn);
+        result.expiresAt = expiresAt;
+      }
+
+      return Either.makeRight(result);
+
+    } catch (error) {
+      // Capturar cualquier error inesperado del generador de URLs
+      return Either.makeLeft(
+        MediaErrorFactory.unexpectedError(
+          `Error al generar URL para ${publicId}`, 
+          error
+        )
+      );
+    }
   }
-}
+}*/
