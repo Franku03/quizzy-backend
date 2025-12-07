@@ -26,8 +26,8 @@ import { AddKahootToFavoritesCommand } from 'src/library/application/commands/ad
 import { RemoveKahootFromFavoritesCommand } from '../../application/commands/remove-kahoot-from-favorites/remove-kahoot-from-favorites.command';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { GetUserId } from '../../../common/decorators/get-user-id-decorator';
-import { CommandBus } from 'src/core/infrastructure/cqrs/command-bus';
-import { QueryBus } from 'src/core/infrastructure/cqrs/query-bus';
+import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 
 // TODO: agregar autenticacion
 @Controller('library')

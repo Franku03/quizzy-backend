@@ -6,7 +6,9 @@ import { Optional } from 'src/core/types/optional';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 
+@CommandHandler(AddKahootToFavoritesCommand)
 export class AddKahootToFavoritesHandler
   implements ICommandHandler<AddKahootToFavoritesCommand>
 {

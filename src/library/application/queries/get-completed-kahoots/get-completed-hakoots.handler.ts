@@ -5,7 +5,9 @@ import { LibraryReadModel } from '../read-model/library.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetCompletedKahootsQuery } from './get-completed-kahoots.query';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 
+@QueryHandler(GetCompletedKahootsQuery)
 export class GetCompletedKahootsHandler
   implements IQueryHandler<GetCompletedKahootsQuery>
 {

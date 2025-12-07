@@ -5,7 +5,9 @@ import { LibraryReadModel } from '../read-model/library.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetFavoritesQuery } from './get-favorites.query';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 
+@QueryHandler(GetFavoritesQuery)
 export class GetFavoritesHandler implements IQueryHandler<GetFavoritesQuery> {
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,

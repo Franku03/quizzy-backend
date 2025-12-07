@@ -2,13 +2,15 @@ import { Global, Module } from '@nestjs/common';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import { InMemoryEventBus } from './infrastructure/event-buses/memory-event-bus';
 import { UuidGenerator } from './infrastructure/event-buses/idgenerator/uuid-generator';
-import { CommandBus } from './infrastructure/cqrs/command-bus';
-import { QueryBus } from './infrastructure/cqrs/query-bus';
+import { CommandBus } from './infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
+import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
 
 @Global()
 @Module({
   providers: [
     UuidGenerator,
+    CqrsBootstrapService,
     CommandBus,
     QueryBus,
     { provide: EVENT_BUS_TOKEN, useClass: InMemoryEventBus },

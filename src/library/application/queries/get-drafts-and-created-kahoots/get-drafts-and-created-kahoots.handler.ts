@@ -6,6 +6,9 @@ import { LibraryReadModel } from '../read-model/library.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
+
+@QueryHandler(GetDraftsAndCreatedKahootsQuery)
 export class GetDraftsAndCreatedKahootsHandler
   implements IQueryHandler<GetDraftsAndCreatedKahootsQuery>
 {
