@@ -71,8 +71,8 @@ Para levantar el backend en tu entorno local con Docker Compose, sigue estos pas
 
 4. **Acceder a la aplicación**  
    Una vez levantados los contenedores, el backend estará disponible. Por defecto se configura como 
-    - `http://localhost:3000` para acceder al servidor.
-    - `http://localhost:3003` para acceder al servidor de WebSockets
+    - `http://localhost:3000/api` para acceder al servidor y los endpoints HTTP respectivos a cada módulo.
+    - `ws://localhost:3000/multiplayer-sessions` para acceder al servidor de WebSockets
 
 
 ## Correr Tests 🪛
