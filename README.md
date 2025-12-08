@@ -14,8 +14,14 @@ $ yarn install
 
 Sigue estos pasos para levantar y ejecutar el proyecto localmente en modo desarrollador:
 
-1. **Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)**
-      Si necesitas una base de datos local, puedes levantar los contenedores de Docker.
+1. **Configurar Variables de Entorno**
+      Debes configurar las variables de conexión a la base de datos que hayas elegido.
+      - Crea una copia del archivo `.env.template` y renómbralo a `.env`.
+      - Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
+      - **‼️Importante‼️**Si tienes un cluster de BD en mongo atlas, puedes colocar la URL a la misma en la variable de entorno ``MONGO_CNN`` para conectarte a esta envés de la BD local.
+
+2. **Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)**
+      Si necesitas una base de datos local, puedes levantar los contenedores de Docker. Asegurate de que `DB_HOST` y `MONGO_HOST` estén configuradas como `localhost` según si usarás postgres o mongo respectivamente.
       - PostgreSQL:
       ```bash
       $ docker compose -f docker-compose.dev.postgres.yaml up -d
@@ -24,12 +30,6 @@ Sigue estos pasos para levantar y ejecutar el proyecto localmente en modo desarr
       ```bash
       $ docker compose -f docker-compose.dev.mongo.yaml up -d
       ```
-
-2. **Configurar Variables de Entorno**
-      Debes configurar las variables de conexión a la base de datos que hayas elegido.
-      - Crea una copia del archivo `.env.template` y renómbralo a `.env`.
-      - Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
-      - **‼️Importante‼️**Si tienes un cluster de BD en mongo atlas, puedes colocar la URL a la misma en la variable de entorno ``MONGO_CNN`` para conectarte a esta envés de la BD local.
 
 3. **Ejecutar el Proyecto**
       Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios si lo corres en modo development (conocido como watch mode).

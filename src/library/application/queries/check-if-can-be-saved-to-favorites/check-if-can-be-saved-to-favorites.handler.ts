@@ -1,9 +1,10 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
 import type { ILibraryDao } from '../ports/library.dao.port';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { CheckIfCanBeSavedToFavoritesQuery } from './check-if-can-be-saved-to-favorites.query';
 import { Optional } from 'src/core/types/optional';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 
 @QueryHandler(CheckIfCanBeSavedToFavoritesQuery)
 export class CheckIfCanBeSavedToFavoritesHandler

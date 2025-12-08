@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   Controller,
   Delete,
@@ -11,7 +12,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { PaginationDto } from './dtos/pagination.dto';
 import { GetDraftsAndCreatedKahootsQuery } from '../../application/queries/get-drafts-and-created-kahoots/get-drafts-and-created-kahoots.query';
 import { PaginationMapper } from './mapper/pagination.mapper';
@@ -26,6 +26,8 @@ import { AddKahootToFavoritesCommand } from 'src/library/application/commands/ad
 import { RemoveKahootFromFavoritesCommand } from '../../application/commands/remove-kahoot-from-favorites/remove-kahoot-from-favorites.command';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { GetUserId } from '../../../common/decorators/get-user-id-decorator';
+import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 
 // TODO: agregar autenticacion
 @Controller('library')
@@ -150,7 +152,6 @@ export class LibraryController {
       HttpStatus.NOT_FOUND,
     );
   }
-
   private handleAddKahootToFavoritesError(error: Error) {
     throw new InternalServerErrorException(error); // TODO: Lanzar errores desde el respositorio
   }
