@@ -14,49 +14,66 @@ $ yarn install
 
 Sigue estos pasos para levantar y ejecutar el proyecto localmente en modo desarrollador:
 
-### 1. ⚙️ Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)
+1. **Configurar Variables de Entorno**
+      Debes configurar las variables de conexión a la base de datos que hayas elegido.
+      - Crea una copia del archivo `.env.template` y renómbralo a `.env`.
+      - Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
+      - **‼️Importante‼️**Si tienes un cluster de BD en mongo atlas, puedes colocar la URL a la misma en la variable de entorno ``MONGO_CNN`` para conectarte a esta envés de la BD local.
 
-Si necesitas una base de datos local, puedes levantar los contenedores de Docker.
+2. **Levantar el Contenedor de Docker con la Base de Datos (Opcional + Recomendado)**
+      Si necesitas una base de datos local, puedes levantar los contenedores de Docker. Asegurate de que `DB_HOST` y `MONGO_HOST` estén configuradas como `localhost` según si usarás postgres o mongo respectivamente.
+      - PostgreSQL:
+      ```bash
+      $ docker compose -f docker-compose.dev.postgres.yaml up -d
+      ```
+      - MongoDB:
+      ```bash
+      $ docker compose -f docker-compose.dev.mongo.yaml up -d
+      ```
 
-- PostgreSQL:
+3. **Ejecutar el Proyecto**
+      Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios si lo corres en modo development (conocido como watch mode).
+      ```bash
+      # development
+      $ yarn run start
+      # production mode
+      $ yarn start:prod
+      ```
 
-```bash
-$ docker compose -f docker-compose.dev.postgres.yaml up -d
-```
+## 🚀 Ejecutar el Backend Localmente
 
-- MongoDB:
+Para levantar el backend en tu entorno local con Docker Compose, sigue estos pasos:
 
-```bash
-$ docker compose -f docker-compose.dev.mongo.yaml up -d
-```
+1. **Crear el archivo de entorno**  
+   - Haz una copia del archivo `.env.template` y renómbrala como `.env`.  
+   - En este archivo deberás configurar todas tus variables necesarias (puertos, credenciales de base de datos, Cloudinary, etc.).
 
-### 2. 📝 Configurar Variables de Entorno
+2. **Elegir el motor de base de datos**  
+   - Si eliges **MongoDB**, asegúrate de que en tu `.env` la variable `MONGO_HOST` esté configurada como:
+     ```env
+     MONGO_HOST=mongo
+     ```
+   - Si eliges **Postgres**, asegúrate de que en tu `.env` la variable `DB_HOST` esté configurada como:
+     ```env
+     DB_HOST=postgres
+     ```
 
-Debes configurar las variables de conexión a la base de datos que hayas elegido.
+3. **Levantar el backend con Docker Compose**  
+   Ejecuta el comando correspondiente según el motor de base de datos elegido:
+   - Para **MongoDB**:
+     ```bash
+     docker compose -f docker-compose.local.mongo.yaml up -d
+     ```
+   - Para **Postgres**:
+     ```bash
+     docker compose -f docker-compose.local.postgres.yaml up -d
+     ```
 
-1. Crea una copia del archivo .env.template y renómbralo a .env.
+4. **Acceder a la aplicación**  
+   Una vez levantados los contenedores, el backend estará disponible. Por defecto se configura como 
+    - `http://localhost:3000/api` para acceder al servidor y los endpoints HTTP respectivos a cada módulo.
+    - `ws://localhost:3000/multiplayer-sessions` para acceder al servidor de WebSockets
 
-2. Configura las variables dentro del archivo .env para establecer la conexión con la base de datos elegida (Postgres o Mongo).
-
-**‼️Importante‼️** 3. Si tienes un cluster de BD en mongo atlas, puedes colocar la URL a la misma en la variable de entorno ``MONGO_CNN`` para conectarte a esta envés de la BD local.
-
-### 3. ▶️ Ejecutar el Proyecto
-
-Ejecuta el proyecto en modo de desarrollo. Este modo se recargará automáticamente al detectar cambios (conocido como watch mode).
-
-```bash
-$ yarn start:dev
-```
-
-## Compilar y ejecutar el proyecto 💽
-
-```bash
-# development
-$ yarn run start
-
-# production mode
-$ yarn start:prod
-```
 
 ## Correr Tests 🪛
 

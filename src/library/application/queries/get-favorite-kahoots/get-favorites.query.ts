@@ -1,6 +1,7 @@
+import { IQuery } from 'src/core/application/cqrs/query.interface';
 import { QueryPaginationStructure } from '../common/query-pagination-structure';
 
-export class GetFavoritesQuery implements QueryPaginationStructure {
+export class GetFavoritesQuery implements QueryPaginationStructure, IQuery {
   constructor(
     public readonly userId: string,
     public readonly limit: number,

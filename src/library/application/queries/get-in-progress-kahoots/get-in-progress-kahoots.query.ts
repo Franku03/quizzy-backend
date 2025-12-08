@@ -1,6 +1,9 @@
+import { IQuery } from 'src/core/application/cqrs/query.interface';
 import { QueryPaginationStructure } from '../common/query-pagination-structure';
 
-export class GetInProgressKahootsQuery implements QueryPaginationStructure {
+export class GetInProgressKahootsQuery
+  implements QueryPaginationStructure, IQuery
+{
   constructor(
     public readonly userId: string,
     public readonly limit: number,
