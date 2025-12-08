@@ -1,22 +1,22 @@
-// src/kahoot/domain/ports/out/kahoot-repository.interface.ts (versión simplificada)
+// src/kahoot/domain/ports/out/kahoot-repository.interface.ts
 import { Optional } from 'src/core/types/optional';
+import { Either, ErrorData } from 'src/core/types';
 import { Kahoot } from '../aggregates/kahoot';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-import { OptionalRepositoryResult, RepositoryResult } from 'src/core/types/repository-result.type';
 
 export interface IKahootRepository {
-  // CRUD básico
+  // ========== LEGACY (NO TOCAR) ==========
+  // Estos SÍ usan KahootId (Value Object de dominio)
   saveKahoot(kahoot: Kahoot): Promise<void>;
   findKahootById(id: KahootId): Promise<Optional<Kahoot>>;
   findAllKahoots(): Promise<Kahoot[]>;
   deleteKahoot(id: KahootId): Promise<void>;
   
-  // CRUD con Either
-  saveKahootEither(kahoot: Kahoot): Promise<RepositoryResult<void>>;
-  findKahootByIdEither(id: KahootId): Promise<OptionalRepositoryResult<Kahoot>>;
-  findAllKahootsEither(): Promise<RepositoryResult<Kahoot[]>>;
-  deleteKahootEither(id: KahootId): Promise<RepositoryResult<void>>;
-  
-  // Métodos adicionales con Either
-  existsKahootEither(id: KahootId): Promise<RepositoryResult<boolean>>;
+  // ========== NUEVO CON Either (CON string, NO KahootId) ==========
+  // Ahora reciben string puro para desacoplar
+  saveKahootEither(kahoot: Kahoot): Promise<Either<ErrorData, void>>;
+  findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>>; // <- CAMBIO
+  findAllKahootsEither(): Promise<Either<ErrorData, Kahoot[]>>;
+  deleteKahootEither(id: string): Promise<Either<ErrorData, void>>; // <- CAMBIO
+  existsKahootEither(id: string): Promise<Either<ErrorData, boolean>>; // <- CAMBIO
 }

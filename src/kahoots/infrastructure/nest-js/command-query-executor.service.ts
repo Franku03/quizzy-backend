@@ -1,131 +1,126 @@
 // src/shared/services/command-query-executor.service.ts
-import { Injectable } from '@nestjs/common';
+
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+
+// Importaciones Canónicas
 import { Either } from 'src/core/types/either';
-import { Optional } from 'src/core/types/optional';
-import { BaseError, ErrorCategory } from 'src/core/errors/base';
-import { App } from 'supertest/types';
+import { ErrorData, ErrorLayer } from 'src/core/types';
+import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { IDomainErrorContext } from 'src/core/errors/interface/context/i-error-domain.context';
+import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
+
 
 @Injectable()
 export class CommandQueryExecutorService {
+  private readonly logger = new Logger(CommandQueryExecutorService.name);
+
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-  ) {}
+    // ❌ ELIMINADO: Inyección de ErrorMappingService (ya no es necesaria)
+  ) { }
+
+  // ====================================================================
+  // 🎯 MÉTODOS BASE (Comandos y Queries - Lanza error si Either es Left)
+  // ====================================================================
 
   /**
-   * Ejecuta un comando y retorna el resultado o lanza error
+   * Ejecuta un comando (que devuelve Either<ErrorData, T>) y retorna el resultado (T) 
+   * o lanza el ErrorData en caso de fallo.
    */
   async executeCommand<T>(command: any): Promise<T> {
     const result = await this.commandBus.execute(command);
-    
-    if (Either.isEither(result)) {
-      const either = result as Either<BaseError, T>;
+
+    // Si el handler devuelve Either<ErrorData, T>
+    if (result && typeof result.isLeft === 'function') {
+      const either = result as Either<ErrorData, T>;
       if (either.isLeft()) {
-        throw either.getLeft();
+        throw either.getLeft(); // Lanza ErrorData
       }
       return either.getRight();
     }
-    
+
     return result as T;
   }
 
   /**
-   * Ejecuta una query y retorna el resultado o lanza error
+   * Ejecuta una query (que devuelve Either<ErrorData, T>) y retorna el resultado (T) 
+   * o lanza el ErrorData en caso de fallo.
    */
   async executeQuery<T>(query: any): Promise<T> {
     const result = await this.queryBus.execute(query);
-    
-    if (Either.isEither(result)) {
-      const either = result as Either<BaseError, T>;
+
+    // Si el handler devuelve Either<ErrorData, T>
+    if (result && typeof result.isLeft === 'function') {
+      const either = result as Either<ErrorData, T>;
       if (either.isLeft()) {
-        throw either.getLeft();
+        throw either.getLeft(); // Lanza ErrorData
       }
       return either.getRight();
     }
-    
+
     return result as T;
   }
 
-  /**
-   * Ejecuta una query que retorna Optional y maneja NotFound
-   */
-  async executeQueryOptional<T>(
-    query: any,
-    resourceId: string,
-    resourceType: string = 'Resource'
-  ): Promise<T> {
-    const result = await this.executeQuery<Optional<T>>(query);
-    
-    if (!result.hasValue()) {
-      throw new BaseError(
-        'NotFoundError',
-        `${resourceType} "${resourceId}" not found`,
-        ErrorCategory.DOMAIN,
-        { resourceId, resourceType }
-      );
-    }
-    
-    return result.getValue();
-  }
+  // ====================================================================
+  // 🔍 MÉTODOS DE BÚSQUEDA (Reemplaza executeQueryOptional)
+  // ====================================================================
 
   /**
-   * Ejecuta una query y retorna el Optional (sin lanzar error si está vacío)
+   * Ejecuta una query que retorna T | null (el estándar de DAO) y lanza NotFound 
+   * si el resultado es null.
    */
-  async executeQueryToOptional<T>(query: any): Promise<Optional<T>> {
-    try {
-      return await this.executeQuery<Optional<T>>(query);
-    } catch (error) {
-      // Si es NotFoundError, retornar Optional vacío
-      if (error instanceof BaseError && error.type === 'NotFoundError') {
-        return new Optional<T>();
-      }
-      throw error;
+  async executeQueryRequired<T>(
+    query: any,
+    resourceId: string,
+    domainObjectType: string = 'Resource'
+  ): Promise<T> {
+    // La queryHandler debe retornar Either<ErrorData, T | null>
+    const result = await this.executeQuery<T | null>(query);
+
+    if (result === null) {
+      // Creamos un ErrorData canónico de Dominio usando el helper:
+      const context: IDomainErrorContext = createDomainContext(
+        domainObjectType,
+        'read', // El campo 'operation' ahora está definido
+        {
+          domainObjectId: resourceId,
+          // intendedAction: 'read' no es necesario aquí, ya que 'operation' ('read') lo establece por defecto.
+        }
+      );
+      throw DomainErrorFactory.notFound(context);
     }
+
+    return result;
   }
+
+  // ====================================================================
+  // 📦 MÉTODOS RAW (Devolver Either sin procesar)
+  // ====================================================================
 
   /**
    * Ejecuta un comando y devuelve el Either sin procesar
    */
-  async executeCommandRaw<E extends BaseError, T>(command: any): Promise<Either<E, T>> {
-    return this.commandBus.execute(command) as Promise<Either<E, T>>;
+  async executeCommandRaw<T>(command: any): Promise<Either<ErrorData, T>> {
+    return this.commandBus.execute(command) as Promise<Either<ErrorData, T>>;
   }
 
   /**
    * Ejecuta una query y devuelve el Either sin procesar
    */
-  async executeQueryRaw<E extends BaseError, T>(query: any): Promise<Either<E, T>> {
-    return this.queryBus.execute(query) as Promise<Either<E, T>>;
+  async executeQueryRaw<T>(query: any): Promise<Either<ErrorData, T>> {
+    return this.queryBus.execute(query) as Promise<Either<ErrorData, T>>;
   }
 
-  /**
-   * Ejecuta comando silenciosamente (retorna null en caso de error)
-   */
-  async executeCommandSilently<T>(
-    command: any,
-    onError?: (error: BaseError) => void
-  ): Promise<T | null> {
-    try {
-      return await this.executeCommand<T>(command);
-    } catch (error) {
-      if (error instanceof BaseError) {
-        onError?.(error);
-      } else {
-        // Convertir error desconocido a BaseError
-        const baseError = new BaseError(
-          'UnknownError',
-          String(error),
-          ErrorCategory.APPLICATION,
-          { originalError: error }
-        );
-        onError?.(baseError);
-      }
-      return null;
-    }
-  }
+  // ====================================================================
+  // ⚙️ MÉTODOS AUXILIARES (Utilidades)
+  // ====================================================================
+
+  // ❌ MÉTODO ELIMINADO: executeCommandSilently
 
   /**
-   * Ejecuta múltiples comandos en paralelo
+   * Ejecuta comandos en paralelo
    */
   async executeCommandsInParallel<T>(commands: any[]): Promise<T[]> {
     const promises = commands.map(cmd => this.executeCommand<T>(cmd));
@@ -133,13 +128,16 @@ export class CommandQueryExecutorService {
   }
 
   /**
-   * Verifica si un error es transitorio
+   * Verifica si un error es transitorio (retryable)
    */
-  private isTransientError(error: BaseError): boolean {
-    return error.category === 'INFRASTRUCTURE' && 
-           (error.metadata?.isTransient === true ||
-            error.type.toLowerCase().includes('timeout') ||
-            error.type.toLowerCase().includes('connection'));
+  private isTransientError(error: ErrorData): boolean {
+    // Usamos la capa y los códigos canónicos para determinar la transitoriedad
+    if (error.layer === ErrorLayer.INFRASTRUCTURE || error.layer === ErrorLayer.EXTERNAL) {
+      const code = error.code;
+      // Códigos transitorios:
+      return code.includes('CONNECTION') || code.includes('TIMEOUT') || code.includes('UNAVAILABLE') || code.includes('EXHAUSTED');
+    }
+    return false;
   }
 
   /**
@@ -150,56 +148,36 @@ export class CommandQueryExecutorService {
     maxRetries: number = 3,
     delayMs: number = 1000
   ): Promise<T> {
-    let lastError: BaseError;
-    
+    let lastError: ErrorData | undefined;
+
     for (let i = 0; i < maxRetries; i++) {
       try {
         return await this.executeCommand<T>(command);
       } catch (error) {
-        if (!(error instanceof BaseError)) {
+        if (!(error instanceof ErrorData)) {
+          // Relanzar si no es un ErrorData esperado (fallo de programación)
           throw error;
         }
-        
+
         lastError = error;
-        
+
         // Solo reintentar si es error transitorio
         if (!this.isTransientError(error)) {
           throw error;
         }
-        
+
         if (i < maxRetries - 1) {
+          this.logger.warn(`Transient error on attempt ${i + 1}. Retrying in ${delayMs * Math.pow(2, i)}ms. Code: ${error.code}`);
           await this.delay(delayMs * Math.pow(2, i)); // Exponential backoff
         }
       }
     }
-    
+
+    // Si agotamos los reintentos, lanzamos el último error transitorio.
     throw lastError!;
   }
 
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Ejecuta una operación con tiempo de espera
-   */
-  async executeWithTimeout<T>(
-    command: any,
-    timeoutMs: number = 10000
-  ): Promise<T> {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new BaseError(
-          'TimeoutError',
-          `Operation timed out after ${timeoutMs}ms`,
-          ErrorCategory.INFRASTRUCTURE,
-          { timeoutMs }
-        ));
-      }, timeoutMs);
-    });
-
-    const operationPromise = this.executeCommand<T>(command);
-    
-    return Promise.race([operationPromise, timeoutPromise]);
   }
 }

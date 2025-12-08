@@ -1,14 +1,20 @@
 // src/media/infrastructure/cloudinary/cloudinary-storage.adapter.ts
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
 import { IAssetStorageService } from 'src/media/application/ports/asset-storage.service';
-import { Either } from 'src/core/types/either';
-import { StorageError } from '../../errors/storage.error';
-import { CloudinaryErrorFactory } from '../errors/cloudinary/cloudinary-error.factory';
+
+// Importaciones Universales y del Mapper Canónico
+import { Either, ErrorData, ErrorLayer } from 'src/core/types';
+import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 
 @Injectable()
 export class CloudinaryStorageAdapter implements IAssetStorageService {
-  constructor() {
+
+  constructor(
+    @Inject('IErrorMapper') 
+    private readonly errorMapper: IErrorMapper<IExternalServiceErrorContext>
+  ) {
     cloudinary.v2.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
@@ -21,7 +27,19 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
     mimeType: string,
     originalName: string,
     publicId: string
-  ): Promise<Either<StorageError, { publicId: string; provider: string }>> {
+  ): Promise<Either<ErrorData, { publicId: string; provider: string }>> {
+
+    const context: IExternalServiceErrorContext = {
+      operation: 'upload',
+      adapterName: CloudinaryStorageAdapter.name,
+      portName: 'IAssetStorageService',
+      serviceName: 'cloudinary',
+      resourceId: publicId,
+      fileSize: fileBuffer.length,
+      mimeType: mimeType,
+      folder: process.env.CLOUDINARY_ASSET_FOLDER || 'quizzy_assets',
+    };
+
     try {
       let resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto';
       if (mimeType.startsWith('image/')) {
@@ -38,13 +56,13 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
             public_id: publicId,
             overwrite: false,
             resource_type: resourceType,
-            folder: process.env.CLOUDINARY_ASSET_FOLDER || 'quizzy_assets',
+            folder: context.folder,
             type: 'upload',
           },
           (error, result) => {
             if (error) {
               if (error.http_code === 400 && error.message.includes('already exists')) {
-                resolve({ public_id: publicId });
+                resolve({ public_id: publicId, existing: true });
               } else {
                 reject(error);
               }
@@ -60,32 +78,60 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
         publicId: result.public_id,
         provider: 'cloudinary'
       });
+
     } catch (error) {
-      const cloudinaryError = CloudinaryErrorFactory.uploadError(error, {
-        publicId,
-        storageKey: publicId,
-        folder: process.env.CLOUDINARY_ASSET_FOLDER,
-      });
-      return Either.makeLeft(cloudinaryError);
+      const errorData = this.errorMapper.toErrorData(error, context);
+      return Either.makeLeft(errorData);
     }
   }
 
-  async delete(publicId: string, provider: string): Promise<Either<StorageError, void>> {
+  async delete(publicId: string, provider: string): Promise<Either<ErrorData, void>> {
+    const context: IExternalServiceErrorContext = {
+      operation: 'delete',
+      adapterName: CloudinaryStorageAdapter.name,
+      portName: 'IAssetStorageService',
+      serviceName: 'cloudinary',
+      resourceId: publicId,
+    };
+
     try {
       if (provider !== 'cloudinary') {
-        throw new Error(`Provider mismatch: expected 'cloudinary', got '${provider}'`);
+        const error = new ErrorData(
+          "ADAPTER_MISMATCH",
+          `Provider mismatch: expected 'cloudinary', got '${provider}'`,
+          ErrorLayer.INFRASTRUCTURE,
+          context
+        );
+        return Either.makeLeft(error);
       }
 
-      await cloudinary.v2.uploader.destroy(publicId, { 
-        resource_type: 'auto' 
+      await cloudinary.v2.uploader.destroy(publicId, {
+        resource_type: 'auto'
       });
-      
+
       return Either.makeRight(undefined);
+
     } catch (error) {
-      const cloudinaryError = CloudinaryErrorFactory.deleteError(error, {
-        storageKey: publicId,
-      });
-      return Either.makeLeft(cloudinaryError);
+      const errorData = this.errorMapper.toErrorData(error, context);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async generateUrl(publicId: string): Promise<Either<ErrorData, string>> {
+    const context: IExternalServiceErrorContext = {
+      operation: 'generate-url',
+      adapterName: CloudinaryStorageAdapter.name,
+      portName: 'IAssetStorageService',
+      serviceName: 'cloudinary',
+      resourceId: publicId,
+    };
+
+    try {
+      const url = cloudinary.v2.url(publicId);
+      return Either.makeRight(url);
+    } catch (error) {
+      const errorData = this.errorMapper.toErrorData(error, context);
+      return Either.makeLeft(errorData);
     }
   }
 }

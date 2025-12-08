@@ -13,13 +13,13 @@ import { DeleteKahootHandler } from './application/commands/delete-kahoot/delete
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
 
 import { CommandQueryExecutorService } from './infrastructure/nest-js/command-query-executor.service';
-import { ErrorMapperService } from './infrastructure/nest-js/error-mapper.service';
 import { KahootMapperService } from './application/services/kahoot.mapper.service';
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
 import { AttemptCleanupService } from './application/services/attempt-clear.service';
 import { KahootAuthorizationService } from './application/services/kahoot-athorization.service';
 import { KahootAssetEnricherService } from './application/services/kahoot-asset-enricher.service';
 import { MediaModule } from 'src/media/infraestructure/media.module';
+import { KahootResponseService } from './application/services/kahoot-response.service';
 
 @Module({
   controllers: [KahootController],
@@ -33,25 +33,31 @@ import { MediaModule } from 'src/media/infraestructure/media.module';
     CqrsModule,
   ],
   providers: [
-    ErrorMapperService,
-    CommandQueryExecutorService,
+    // Handlers
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
-    KahootNestMapperAdapter,
     GetKahootByIdHandler,
+    
+    // Services
+    CommandQueryExecutorService,
     KahootMapperService,
-    UuidGenerator,
+    {
+      provide: 'IKahootMapper',  
+      useClass: KahootMapperService,  
+    },
+    
+    KahootResponseService, 
     AttemptCleanupService,
     KahootAuthorizationService,
+    KahootAssetEnricherService,
     
-    // Aquí, KahootAssetEnricherService necesita IAssetIdToUrlService.
-    // Usaremos AssetMetadataUrlService, que ya está disponible a través de MediaModule.
-    KahootAssetEnricherService, 
+    // Otros
+    KahootNestMapperAdapter,
+    UuidGenerator,
   ],
   exports: [
     CommandQueryExecutorService,
-    ErrorMapperService,
   ],
 })
 export class KahootsModule {}

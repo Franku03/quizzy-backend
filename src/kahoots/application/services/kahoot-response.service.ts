@@ -1,5 +1,5 @@
 // src/kahoots/application/services/kahoot-response.service.ts
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { IKahootMapper } from '../ports/i-kahoot-mapper.port';
 import { KahootAssetEnricherService } from './kahoot-asset-enricher.service';
 import { Kahoot } from '../../domain/aggregates/kahoot';
@@ -9,7 +9,9 @@ import { KahootHandlerResponse } from '../response/kahoot.handler.response';
 @Injectable()
 export class KahootResponseService {
   constructor(
+    @Inject('IKahootMapper')
     private readonly kahootMapper: IKahootMapper,
+    @Inject('IAssetIdToUrlService')
     private readonly assetEnricher: KahootAssetEnricherService
   ) {}
 

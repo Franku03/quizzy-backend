@@ -1,3 +1,4 @@
+// src/media/media.module.ts
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
@@ -11,54 +12,57 @@ import { CloudinaryStorageAdapter } from './adapters/cloudinary/cloudinary-stora
 import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.service';
 import { CloudinaryUrlGeneratorAdapter } from './adapters/cloudinary/cloudinary-url-generator.adapter';
 import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
-import { AssetMetadataUrlService } from '../application/ports/asset-metadata-url.service';
-import { AssetIdToUrlService } from '../application/ports/asset-id-to.url.service';
+import { AssetIdToUrlService } from '../application/services/asset-id-to.url.service';
+import { CloudinaryErrorMapper } from './adapters/cloudinary/errors/cloudinary-error.mapper';
 
 const AssetStorageServiceToken = 'IAssetStorageService';
 const CryptoServiceToken = 'ICryptoService';
-const AssetUrlServiceToken = 'IAssetIdToUrlService';
+const AssetIdToUrlServiceToken = 'IAssetIdToUrlService'; 
+const ErrorMapperToken = 'IErrorMapper';
+const AssetUrlServiceToken = 'IAssetUrlService';
 
-Module({
+
+@Module({
     controllers: [MediaController],
     imports: [
         CqrsModule,
         CoreModule,
         ConfigModule.forFeature(() => ({
-             // ... configuración de Cloudinary
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET,
         })),
-        // Importa y registra el DAO necesario
         DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
     ],
     providers: [
         UploadAssetHandler,
-        // Configuración de Cloudinary
-        { provide: 'CLOUDINARY_CONFIG', useFactory: () => { /* ... cloudinary.config ... */ return cloudinary; } },
-        { provide: AssetStorageServiceToken, useClass: CloudinaryStorageAdapter },
-        { provide: CryptoServiceToken, useClass: NodeCryptoService },
-        { provide: 'IAssetUrl', useClass: CloudinaryUrlGeneratorAdapter },
-        { provide: 'IdGenerator', useExisting: UuidGenerator },
-        CloudinaryUrlGeneratorAdapter,
-        UuidGenerator, // Asegúrate de proveerlo si otros servicios dependen de él
-        
-        // El servicio que implementa IAssetIdToUrlService y usa el DAO
-        AssetIdToUrlService,
-        // Provee el token de la interfaz usando el servicio concreto
         { 
-            provide: AssetStorageServiceToken,
-            useExisting: AssetMetadataUrlService, 
+            provide: 'CLOUDINARY_CONFIG', 
+            useFactory: () => { 
+                cloudinary.config({
+                    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+                    api_key: process.env.CLOUDINARY_API_KEY,
+                    api_secret: process.env.CLOUDINARY_API_SECRET,
+                });
+                return cloudinary; 
+            } 
         },
+        //Mapea Error a La clase ErrorBase
+        { provide: ErrorMapperToken, useClass: CloudinaryErrorMapper },
+        //Se encarga del upload / Delete 
+        { provide: AssetStorageServiceToken, useClass: CloudinaryStorageAdapter },
+        //Se encarga de Hashear la imagen
+        { provide: CryptoServiceToken, useClass: NodeCryptoService }, 
+        //Se encarga de generar el uuid
+        { provide: 'IdGenerator', useExisting: UuidGenerator },
+        //Se encarga de convertir un ID -> Url
+        { provide: AssetIdToUrlServiceToken, useClass: AssetIdToUrlService, },
+        //Usado por el anterior porque consulta el DAO para buscar la referencia exacta y devolver
+        { provide: AssetUrlServiceToken, useClass: CloudinaryUrlGeneratorAdapter,},
     ],
     exports: [
-        // Exportamos el proveedor del DAO (mediante el Factory Module)
         DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
-        
-        // Exportamos el servicio de URL para que KahootsModule pueda inyectarlo
-        AssetMetadataUrlService, 
-        AssetUrlServiceToken, // Exportamos también el token (IAssetIdToUrlService)
-        
-        // Otros exports si son necesarios para KahootsModule
-        AssetStorageServiceToken,
-        CryptoServiceToken,
+        AssetIdToUrlServiceToken,
     ]
 })
 export class MediaModule {}

@@ -1,116 +1,67 @@
 // src/kahoots/application/services/kahoot-authorization.service.ts
 import { Inject, Injectable } from '@nestjs/common';
-import { Either } from 'src/core/types/either';
+import { Either, ErrorData } from 'src/core/types';
+import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
 import type { IKahootRepository } from '../../domain/ports/IKahootRepository';
-import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { Kahoot } from '../../domain/aggregates/kahoot';
-import { VisibilityStatusEnum } from '../../domain/value-objects/kahoot.visibility-status';
-import { KahootErrorFactory } from '../../domain/errors/kahoot-error.factory';
-import { 
-  KahootNotFoundError, 
-  UnauthorizedKahootError 
-} from '../../domain/errors/kahoot-domain.errors';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
 @Injectable()
 export class KahootAuthorizationService {
   constructor(
-    @Inject(RepositoryName.Kahoot) 
+    @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository
-  ) {}
+  ) { }
 
-  /**
-   * Obtiene kahoot validando permisos de lectura
-   * Para consultas (queries) y visualización pública
-   */
-  public async getKahootForRead(
-    kahootId: string,
-    requestingUserId: string
-  ): Promise<Either<KahootNotFoundError | UnauthorizedKahootError, Kahoot>> {
-    const id = new KahootId(kahootId);
-    const findResult = await this.kahootRepository.findKahootByIdEither(id);
-
-    // Mapear resultado del repositorio a dominio
-    if (findResult.isLeft()) {
-      // Loggear para debugging (opcional)
-      console.warn(`Repository error for kahoot ${kahootId}:`, findResult.getLeft());
-      return Either.makeLeft(KahootErrorFactory.notFound(kahootId));
-    }
-
-    const kahootOptional = findResult.getRight();
-    if (!kahootOptional.hasValue()) {
-      return Either.makeLeft(KahootErrorFactory.notFound(kahootId));
-    }
-
-    const kahoot = kahootOptional.getValue();
-
-    // Validar visibilidad usando enum del dominio
-    const isPublic = kahoot.visibility.value === VisibilityStatusEnum.PUBLIC;
-    const isOwner = kahoot.authorId === requestingUserId;
-
-    if (!isPublic && !isOwner) {
-      return Either.makeLeft(
-        KahootErrorFactory.unauthorized(requestingUserId, kahootId, 'read')
-      );
-    }
-
-    return Either.makeRight(kahoot);
-  }
-
-  /**
-   * Obtiene kahoot validando permisos de modificación
-   * Para comandos de actualización
-   */
-  public async getKahootForUpdate(
-    kahootId: string,
-    requestingUserId: string
-  ): Promise<Either<KahootNotFoundError | UnauthorizedKahootError, Kahoot>> {
-    return this.validateOwnership(kahootId, requestingUserId, 'update');
-  }
-
-  /**
-   * Obtiene kahoot validando permisos de eliminación
-   * Para comandos de eliminación
-   */
-  public async getKahootForDelete(
-    kahootId: string,
-    requestingUserId: string
-  ): Promise<Either<KahootNotFoundError | UnauthorizedKahootError, Kahoot>> {
-    return this.validateOwnership(kahootId, requestingUserId, 'delete');
-  }
-
-  /**
-   * Método base para validar propiedad (ownership)
-   */
   private async validateOwnership(
     kahootId: string,
     requestingUserId: string,
-    action: 'update' | 'delete'
-  ): Promise<Either<KahootNotFoundError | UnauthorizedKahootError, Kahoot>> {
-    const id = new KahootId(kahootId);
-    const findResult = await this.kahootRepository.findKahootByIdEither(id);
+    operation: 'update' | 'delete'
+  ): Promise<Either<ErrorData, Kahoot>> {
+    // Contexto base para errores
+    const errorContext = createDomainContext('Kahoot', operation, {
+      domainObjectId: kahootId,
+      actorId: requestingUserId,
+      userId: requestingUserId,
+      intendedAction: operation,
+    });
 
-    // Mapear resultado del repositorio a dominio
+    // 1. Buscar kahoot
+    const findResult = await this.kahootRepository.findKahootByIdEither(kahootId);
+
+    // 2. Manejar error de infraestructura
     if (findResult.isLeft()) {
-      // Loggear para debugging (opcional)
-      console.warn(`Repository error for kahoot ${kahootId}:`, findResult.getLeft());
-      return Either.makeLeft(KahootErrorFactory.notFound(kahootId));
+      return Either.makeLeft(findResult.getLeft());
     }
 
-    const kahootOptional = findResult.getRight();
-    if (!kahootOptional.hasValue()) {
-      return Either.makeLeft(KahootErrorFactory.notFound(kahootId));
+    // 3. Manejar "No encontrado"
+    const kahootOrNull = findResult.getRight();
+    if (kahootOrNull === null) {
+      return Either.makeLeft(DomainErrorFactory.notFound(errorContext));
     }
 
-    const kahoot = kahootOptional.getValue();
-
-    // Solo el creador puede modificar o eliminar
-    if (kahoot.authorId !== requestingUserId) {
+    // 4. Validar propiedad (regla de negocio)
+    if (kahootOrNull.authorId !== requestingUserId) {
       return Either.makeLeft(
-        KahootErrorFactory.unauthorized(requestingUserId, kahootId, action)
+        DomainErrorFactory.unauthorized(errorContext)
       );
     }
 
-    return Either.makeRight(kahoot);
+    return Either.makeRight(kahootOrNull);
+  }
+
+  public async getKahootForUpdate(
+    kahootId: string,
+    requestingUserId: string
+  ): Promise<Either<ErrorData, Kahoot>> {
+    return this.validateOwnership(kahootId, requestingUserId, 'update');
+  }
+
+  public async getKahootForDelete(
+    kahootId: string,
+    requestingUserId: string
+  ): Promise<Either<ErrorData, Kahoot>> {
+    return this.validateOwnership(kahootId, requestingUserId, 'delete');
   }
 }
