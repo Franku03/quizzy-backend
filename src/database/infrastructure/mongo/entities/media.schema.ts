@@ -1,20 +1,45 @@
-// src/database/infrastructure/mongo/entities/file-metadata.schema.ts
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
-import { FileMetadataSnapshot } from 'src/core/application/snapshots/i-file-metadata.snapshot';
+// src/media/infrastructure/entities/media.schema.ts
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Document } from "mongoose";
 
-@Schema({ collection: 'file_metadata' })
-export class FileMetadataMongo extends Document implements FileMetadataSnapshot {
-    @Prop({ required: true, unique: true, index: true })
-    publicId: string; // El UUID (ID que usa Kahoot)
-    @Prop({ required: true, index: true })
-    contentHash: string; // El Hash (ID que usa Cloudinary)
-    @Prop({ required: true })
-    mimeType: string;
-    @Prop({ required: true, default: 0 })
-    referenceCount: number; // 0 = PENDING, > 0 = COMMITTED
-    @Prop({ type: String, required: true })
-    createdAt: string;
+@Schema({ 
+  collection: 'asset_metadata',
+  timestamps: true,
+  versionKey: false
+})
+export class AssetMetadataMongo extends Document {
+  @Prop({ required: true, unique: true, index: true })
+  assetId: string;
+
+  @Prop({ required: true, unique: true, index: true })
+  publicId: string;
+
+  @Prop({ required: true, default: 'cloudinary' })
+  provider: string;
+
+  @Prop({ required: true })
+  originalName: string;
+
+  @Prop({ required: true })
+  mimeType: string;
+
+  @Prop({ required: true, min: 0 })
+  size: number;
+
+  @Prop({ required: true, unique: true, index: true })
+  contentHash: string;
+
+  @Prop({ required: true, default: 1, min: 0 })
+  referenceCount: number;
+
+  @Prop({ required: true })
+  format: string;
+
+  @Prop({ required: true })
+  category: string;
+
+  @Prop({ required: true, type: Date, default: Date.now })
+  uploadedAt: Date;
 }
 
-export const FileMetadataSchema = SchemaFactory.createForClass(FileMetadataMongo);
+export const AssetMetadataMongoSchema = SchemaFactory.createForClass(AssetMetadataMongo);

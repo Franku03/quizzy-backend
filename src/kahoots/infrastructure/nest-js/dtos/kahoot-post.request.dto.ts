@@ -4,44 +4,41 @@ import { cleanNullToUndefined, toUpperCase } from "./helper.request.dto.";
 import { SlideInputDTO } from "./kahoot.slide.request.dto";
 
 export class CreateKahootDTO {
-    // title: String (Opcional). Purgamos null a undefined.
+    // Campos opcionales - //Todo dependen del estado del kahoot (DRAFT/PUBLISH)
     @IsOptional()
     @IsString()
     @Transform(cleanNullToUndefined) 
     title?: string;
 
-    // description: String (Opcional). Purgamos null a undefined.
     @IsOptional()
     @IsString()
     @Transform(cleanNullToUndefined) 
     description?: string;
     
-    // coverImageId: URL (Opcional). Purgamos null a undefined.
     @IsOptional()
     @IsString()
     @Transform(cleanNullToUndefined) 
     coverImageId?: string;
-    @IsUUID()
-    authorId: string; 
-    @IsString()
-    @Transform(toUpperCase)
-    status: string; 
-
-    @IsString()
-    @Transform(toUpperCase)
-    visibility: string; 
-
-    @IsUUID()
-    themeId: string;
     
-    // category: String (Opcional). Purgamos null a undefined.
     @IsOptional()
     @IsString()
     @Transform(cleanNullToUndefined) 
     category?: string;
 
-    // questions: Array anidado (Opcional).
+    // Campos requeridos
+    @IsString()
+    @Transform(toUpperCase)
+    status: string; // "DRAFT" o "PUBLISHED"
+    
+    @IsString()
+    @Transform(toUpperCase)
+    visibility: string; // "PRIVATE" o "PUBLIC"
+    
+    @IsUUID()
+    themeId: string;
+    
+    // Array opcional - la validación de "published requiere questions" va en dominio
     @Type(() => SlideInputDTO)
     @IsOptional()
-    questions?: SlideInputDTO[]; 
+    questions?: SlideInputDTO[];
 }

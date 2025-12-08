@@ -5,7 +5,6 @@ import { UserReadModel } from '../read-model/user.read.model';
 import type { IUserDao } from '../ports/users.dao.port';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { Either } from 'src/core/types/either';
-import { GET_USER_BY_ID_ERROR_CODES } from './get-user-by-id.errors';
 
 @QueryHandler(GetUserByIdQuery)
 export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
@@ -19,7 +18,7 @@ export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
     const result = await this.usersDao.getUserById(query.id);
 
     if (!result.hasValue()) {
-      return Either.makeLeft(new Error(GET_USER_BY_ID_ERROR_CODES.USER_NOT_FOUND));
+      return Either.makeLeft(new Error());
     }
 
     return Either.makeRight(result.getValue());

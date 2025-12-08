@@ -1,56 +1,59 @@
-// src/kahoots/infrastructure/dao/kahoot.dao.mongo.ts
-import { Inject, Injectable } from '@nestjs/common';
+// src/kahoots/infrastructure/persistence/mongo/kahoot.mongo-dao.ts
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { IKahootDao } from 'src/kahoots/application/queries/ports/kahoot.dao.port';
-import { Optional } from 'src/core/types/optional';
-import { KahootReadModel } from 'src/kahoots/application/queries/read-model/kahoot.response.read.model';
-import { KahootMongo, KahootMongoInput } from 'src/database/infrastructure/mongo/entities/kahoots.schema';
-import { KahootReadMapper } from 'src/kahoots/infrastructure/adapters/querys/output/kahoot.read.model.mapper';
-import { Either } from 'src/core/types/either';
-import { RepositoryError } from 'src/database/domain/repository';
-import { MongoErrorAdapter } from 'src/database/infrastructure/errors/mongo.error.adapter';
-import { QueryBus } from '@nestjs/cqrs';
+
+import { ErrorData, Either } from 'src/core/types'; 
+import { IKahootDao } from 'src/kahoots/application/ports/kahoot.dao.port';
+import { KahootMongo } from '../../entities/kahoots.schema';
+import { KahootHandlerResponse } from 'src/kahoots/application/response/kahoot.handler.response';
+import { KahootReadMapper } from './mappers/kahoot.hanlder.mapper';
+import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
-    
-    private kahootReadMapper: KahootReadMapper;
 
-    constructor(
-        @InjectModel(KahootMongo.name) 
-        private readonly kahootModel: Model<KahootMongo>,
-        @Inject(QueryBus)
-        private readonly queryBus: QueryBus,
-    ) {}
-    
-    async getKahootById(id: string): Promise<Either<RepositoryError, Optional<KahootReadModel>>> {
+  private readonly adapterContextBase: IDatabaseErrorContext = {
+    adapterName: KahootDaoMongo.name,
+    portName: 'IKahootDao',
+    module: 'kahoots',
+    databaseType: 'mongodb',
+    collectionOrTable: 'kahoots',
+    operation: '', // Base que se sobreescribe
+  } as const;
 
-        this.kahootReadMapper = new KahootReadMapper(this.queryBus);
-        try {
-            const documentResult = await this.kahootModel
-                .findOne({ id: id })
-                .lean()
-                .exec();
-            
-            if (!documentResult) {
-                return Either.makeRight(new Optional<KahootReadModel>());
-            }
-            
-            const kahootData = documentResult as unknown as KahootMongoInput;
-            const readModel = await this.kahootReadMapper.mapToReadModel(kahootData);
-            
-            return Either.makeRight(new Optional<KahootReadModel>(readModel));
-            
-        } catch (error) {
-            const repositoryError = MongoErrorAdapter.toRepositoryError(
-                error,
-                'kahoots',
-                'getKahootById',
-                id
-            );
-            
-            return Either.makeLeft(repositoryError);
-        }
+  private readonly mongoErrorMapper: MongoErrorMapper = new MongoErrorMapper();
+  private readonly kahootReadMapper: KahootReadMapper = new KahootReadMapper();
+
+  constructor(
+    @InjectModel(KahootMongo.name)
+    private readonly kahootModel: Model<KahootMongo>,
+  ) { }
+
+  async getKahootById(id: string): Promise<Either<ErrorData, KahootHandlerResponse | null>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'getKahootById',
+      entityId: id
+    };
+
+    try {
+      const document = await this.kahootModel
+        .findOne({ id })
+        .lean()
+        .exec();
+        
+      if (!document) {
+        return Either.makeRight<ErrorData, KahootHandlerResponse | null>(null);
+      }
+
+      const readModel = this.kahootReadMapper.mapDocumentToResponse(document);
+      return Either.makeRight<ErrorData, KahootHandlerResponse | null>(readModel);
+
+    } catch (error) {
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(error, fullContext);
+      return Either.makeLeft<ErrorData, KahootHandlerResponse | null>(errorData);
     }
+  }
 }

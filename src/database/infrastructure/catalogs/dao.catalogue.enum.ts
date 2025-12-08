@@ -6,6 +6,7 @@ import { KahootDaoMongo } from '../mongo/modules/kahoots/kahoots.dao.mongo';
 import { SoloAttemptQueryDaoMongo } from '../mongo/modules/solo-attempts/attempts.dao.mongo';
 import { ExploreMongoDao } from '../mongo/modules/explore/explore.dao.mongo';
 import { GroupDaoMongo } from '../mongo/modules/groups/groups.dao.mongo'; // De HEAD
+import { AssetMetadataMongoDao } from '../mongo/modules/media/media.dao.mongo';
 
 
 export type DaoRegistryItem = {
@@ -20,6 +21,7 @@ export enum DaoName {
   Kahoot = 'KahootDao',
   SoloAttempt = 'SoloAttemptDao',
   Explore = 'ExploreDao',
+  AssetMetadataMongo = 'AssetMetadataDao',
 }
 
 export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
@@ -46,5 +48,9 @@ export const DAO_REGISTRY: Record<DaoName, DaoRegistryItem> = {
   [DaoName.Explore]: {
     typeorm: null,
     mongoose: ExploreMongoDao,
+  },
+  [DaoName.AssetMetadataMongo]: {
+    typeorm: null,
+    mongoose: AssetMetadataMongoDao,
   },
 };

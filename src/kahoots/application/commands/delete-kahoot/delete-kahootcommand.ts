@@ -1,6 +1,6 @@
 interface DeleteCommandProps {
-    id: string;      
-    userId: string; 
+    id: string; 
+    userId: string;
 }
 
 export class DeleteKahootCommand {

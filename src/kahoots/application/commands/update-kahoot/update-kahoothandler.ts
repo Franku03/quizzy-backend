@@ -1,165 +1,186 @@
 // src/kahoots/application/commands/update-kahoot/update-kahoot.handler.ts
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject } from '@nestjs/common';
-import { Either } from 'src/core/types/either';
+import { Inject, Logger } from '@nestjs/common';
+import { UpdateKahootCommand } from './update-kahootcommand'; 
+import { KahootSlideCommand } from '../base';
+import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
+
+// Importaciones Universales y de Core
+import { Either, ErrorData, ErrorLayer } from 'src/core/types';
+import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator'; 
+
+// Importaciones de Dominio y Puertos
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { KahootFactory, SlideInput } from '../../../domain/factories/kahoot.factory'; 
-import { Kahoot } from '../../../domain/aggregates/kahoot'; 
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
-import { UpdateKahootCommand } from '../update-kahoot/update-kahootcommand';
+import { KahootFactory, SlideInput } from '../../../domain/factories/kahoot.factory';
+import { VisibilityStatusEnum } from '../../../domain/value-objects/kahoot.visibility-status';
+import { KahootStatusEnum } from '../../../domain/value-objects/kahoot.status';
+import { AttemptCleanupService } from '../../services/attempt-clear.service';
+import { KahootAuthorizationService } from '../../services/kahoot-athorization.service';
+import { KahootResponseService } from '../../services/kahoot-response.service';
+import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
-import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
-import { KahootStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.status';
-import { SlideIdValue } from 'src/kahoots/domain/types/id-types';
-import { Slide } from 'src/kahoots/domain/entities/kahoot.slide';
-import type { IKahootResponseMapper } from '../../ports/i-kahoot.response.mapper'; 
-import { KahootResponseDTO } from '../response-dto/kahoot.response.dto'; 
-import { MapperName } from '../../catalogs/catalog.mapper.enum'; 
-import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
-
-import { 
-  KahootNotFoundError,
-  InvalidKahootDataError,
-  UnauthorizedError 
-} from '../../../domain/errors/kahoot-domain.errors';
-import { UpdateKahootError } from '../../errors/kahoot-aplication.errors';
-
+import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
 
 @CommandHandler(UpdateKahootCommand)
-export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand, Either<UpdateKahootError, KahootResponseDTO>> {
-    
+export class UpdateKahootHandler
+    implements ICommandHandler<UpdateKahootCommand, Either<ErrorData, KahootHandlerResponse>> {
+
+    private readonly logger = new Logger(UpdateKahootHandler.name);
+
     constructor(
         @Inject(RepositoryName.Kahoot)
         private readonly kahootRepository: IKahootRepository,
-        @Inject(RepositoryName.Attempt)
-        private readonly attemptRepository: SoloAttemptRepository,
+        @Inject(KahootResponseService)
+        private readonly kahootResponseService: KahootResponseService,
+        private readonly attemptCleanup: AttemptCleanupService,
+        private readonly authService: KahootAuthorizationService,
         @Inject(UuidGenerator)
         private readonly idGenerator: IdGenerator<string>,
-        @Inject(MapperName.KahootResponse)
-        private readonly kahootResponseMapper: IKahootResponseMapper,
-    ) {}
+    ) { }
 
-    async execute(command: UpdateKahootCommand): Promise<Either<UpdateKahootError, KahootResponseDTO>> {
+    async execute(command: UpdateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponse>> {
+        // Contexto base para errores
+        const errorContext = createDomainContext('Kahoot', 'updateKahoot', {
+            domainObjectId: command.id,
+            actorId: command.userId,
+            userId: command.userId,
+            title: command.title,
+            intendedAction: 'update',
+        });
+
         try {
-            // 1. Recuperar el agregado existente
-            const kahootId = new KahootId(command.id);
-            const findResult = await this.kahootRepository.findKahootByIdEither(kahootId);
+            // 1. Obtener kahoot con validación de autorización
+            const authResult = await this.authService.getKahootForUpdate(command.id, command.userId);
 
-            if (findResult.isLeft()) {
-                return Either.makeLeft(findResult.getLeft());
+            if (authResult.isLeft()) {
+                return Either.makeLeft(authResult.getLeft());
             }
 
-            const kahootOptional = findResult.getRight();
-            if (!kahootOptional.hasValue()) {
-                return Either.makeLeft({
-                    type: 'KahootNotFound',
-                    message: `El Kahoot con ID: ${command.id} no fue encontrado`,
-                    kahootId: command.id,
-                    timestamp: new Date(),
-                } as KahootNotFoundError);
-            }
+            const currentKahoot = authResult.getRight();
 
-            const kahoot = kahootOptional.getValue();
+            // 2. Aplicar updates
+            await this.applyUpdates(currentKahoot, command);
 
-            // 2. TODO: Verificar autorización cuando se implemente auth
-            // Necesito el id del usuario que hizo la petición
-
-            // 3. Aplicar updates
-            await this.applyUpdates(kahoot, command);
-            
-            // 4. Persistencia
-            const saveResult = await this.kahootRepository.saveKahootEither(kahoot);
+            // 3. Guardar cambios
+            const saveResult = await this.kahootRepository.saveKahootEither(currentKahoot);
             if (saveResult.isLeft()) {
+                this.logger.error(`Error saving updated kahoot ${command.id}.`, saveResult.getLeft());
                 return Either.makeLeft(saveResult.getLeft());
             }
-            
-            console.log(`
-            -----------------------------------------------------
-            ✅ UPDATE SUCCESS [Kahoot ID: ${command.id}]
-            -----------------------------------------------------
-            Usuario: ${command.authorId}
-            El kahoot ha sido actualizado.
-            `);
 
-            // 5. Limpiar intentos activos
-            await this.cleanupAttempts(kahootId);
+            // 4. Limpiar intentos
+            await this.attemptCleanup.cleanupById(new KahootId(command.id));
 
-            // 6. Mapear respuesta
-            const response = await this.kahootResponseMapper.toResponseDTO(kahoot);
-            return Either.makeRight(response);
+            // 5. Obtener respuesta enriquecida usando el servicio de respuesta
+            const enrichedResponse = await this.kahootResponseService.toResponse(currentKahoot);
+
+            return Either.makeRight(enrichedResponse);
 
         } catch (error) {
-            return Either.makeLeft({
-                type: 'InvalidKahootData',
-                message: error instanceof Error ? error.message : 'Error de datos inválidos en kahoot',
-                timestamp: new Date(),
-                originalError: error,
-            } as InvalidKahootDataError);
+            // Manejo de errores específicos
+            if (error instanceof ErrorData) {
+                this.logger.warn(`Update failed due to Known ErrorData: ${error.code}`, error);
+                return Either.makeLeft(error);
+            }
+
+            // Validaciones de dominio
+            if (error instanceof Error && error.message.includes('validation')) {
+                return Either.makeLeft(
+                    DomainErrorFactory.validation(
+                        errorContext,
+                        { general: [error.message] },
+                        `Validation error: ${error.message}`
+                    )
+                );
+            }
+
+            // Error inesperado de aplicación
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during update: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                errorContext,
+                error as Error
+            );
+
+            this.logger.error('Unexpected runtime error in UpdateKahootHandler', unexpectedError);
+            return Either.makeLeft(unexpectedError);
         }
     }
 
     private async applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Promise<void> {
-        // 1. Reconstruir KahootDetails
+        // 1. Actualizar detalles
         const newDetailsOptional = KahootFactory.assembleKahootDetails(
-            command.title, 
-            command.description, 
+            command.title,
+            command.description,
             command.category,
         );
-        
+
         if (newDetailsOptional.hasValue()) {
             kahoot.updateDetails(newDetailsOptional.getValue());
         }
-        
-        // 2. Reconstruir KahootStyling
+
+        // 2. Actualizar styling
         const newStyling = KahootFactory.assembleKahootStyling(
-            command.themeId, 
-            command.coverImageId
+            command.themeId,
+            command.imageId
         );
+
         kahoot.updateStyling(newStyling);
-        
-        // 3. Actualizar Visibilidad
+
+        // 3. Actualizar visibilidad
         if (command.visibility === VisibilityStatusEnum.PUBLIC) {
             kahoot.makePublic();
         } else if (command.visibility === VisibilityStatusEnum.PRIVATE) {
             kahoot.hide();
         }
-        // 4. Reemplazar Slides
-        const slidesToReplaceCommands = command.slides ?? [];
-        
-        if (slidesToReplaceCommands.length > 0) {
-            const slidesInputWithIds: SlideInput[] = await Promise.all(
-                slidesToReplaceCommands.map(async (slideCommand) => {
-                    const slideId = slideCommand.id || await this.idGenerator.generateId();
-                    return {
-                        ...slideCommand, 
-                        id: slideId, 
-                    } as SlideInput;
-                })
-            );
-            
-            const newSlides = new Map<SlideIdValue, Slide>();
-            slidesInputWithIds.forEach((input) => {
-                const newSlide = KahootFactory.buildSlide(input); 
-                newSlides.set(newSlide.id.value, newSlide); 
-            });
-            kahoot.replaceSlides(newSlides); 
-        }
-        
-        // 5. Actualizar Estatus
+
+        // 4. Actualizar estatus
         if (command.status === KahootStatusEnum.DRAFT) {
             kahoot.draft();
         } else if (command.status === KahootStatusEnum.PUBLISH) {
             kahoot.publish();
         }
+
+        // 5. Reemplazar slides si vienen
+        if (command.slides && command.slides.length > 0) {
+            const newSlidesMap = await this.processSlidesForUpdate(command.slides);
+            kahoot.replaceSlides(newSlidesMap);
+        }
     }
 
-    private async cleanupAttempts(kahootId: KahootId): Promise<void> {
-        try {
-            await this.attemptRepository.deleteAllActiveForKahootId(kahootId);
-        } catch (error) {
-            console.warn(`No se pudieron limpiar intentos:`, error);
-        }
+    private async processSlidesForUpdate(
+        slidesCommands: KahootSlideCommand[]
+    ): Promise<Map<string, any>> {
+        const slidesInputWithIds: SlideInput[] = await Promise.all(
+            slidesCommands.map(async (slideCommand) => {
+                const slideId = slideCommand.id || await this.idGenerator.generateId();
+                const options = slideCommand.options || [];
+
+                const processedOptions = await Promise.all(
+                    options.map(async (option) => ({
+                        ...option,
+                        id: (option as any).id || await this.idGenerator.generateId(),
+                    }))
+                );
+
+                return {
+                    ...slideCommand,
+                    id: slideId,
+                    answers: processedOptions,
+                } as SlideInput;
+            })
+        );
+
+        const newSlides = new Map<string, any>();
+        slidesInputWithIds.forEach((input) => {
+            const newSlide = KahootFactory.buildSlide(input);
+            newSlides.set(newSlide.id.value, newSlide);
+        });
+
+        return newSlides;
     }
 }

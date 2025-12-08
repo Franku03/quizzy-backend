@@ -7,19 +7,21 @@ interface BaseCommandProps {
     imageId?: string;
     themeId: string;
     category?: string;
-    visibility?: string;
-    status?: string;
+    visibility: string;
+    status: string;
     slides?: KahootSlideCommand[];
+    userId: string;
 }
 
 export class BaseKahootCommand {
     public readonly title?: string;
+    public readonly userId: string;
     public readonly description?: string;
-    public readonly coverImageId?: string;
+    public readonly imageId?: string;
     public readonly themeId: string;
     public readonly category?: string;
-    public readonly visibility?: string;
-    public readonly status?: string;
+    public readonly visibility: string;
+    public readonly status: string;
     public readonly slides?: KahootSlideCommand[];
 
     constructor(props: BaseCommandProps) {

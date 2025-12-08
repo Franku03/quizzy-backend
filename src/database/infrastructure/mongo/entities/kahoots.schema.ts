@@ -109,5 +109,4 @@ export const KahootSchema = SchemaFactory.createForClass(KahootMongo);
 export type KahootMongoInput = Omit<KahootMongo, keyof Document | '_id' | '__v'> & {
     id: string; 
     createdAt: string;
-    updatedAt: string;
 };

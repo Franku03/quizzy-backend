@@ -120,10 +120,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     //Se encarga de cambiar los detalles del Kahoot.
-    public updateDetails(newDetails: KahootDetails): void {
+    public updateDetails(newDetails?: KahootDetails): void {
         // Reemplaza la referencia Optional<T> con la nueva instancia.
         this.properties.details = new Optional(newDetails);
-        this.checkInvariants();
     }
     public replaceSlides(slides: Map<SlideIdValue, Slide>): void {
         this.properties.slides = slides;
