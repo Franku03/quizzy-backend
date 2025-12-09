@@ -40,7 +40,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       private readonly commandBus: CommandBus,
       
     ) {
-      this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT || 3003}`);
+      this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT }`);
     }
 
     async handleConnection( client: SessionSocket ) {
@@ -89,7 +89,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.nickname = nickname as string;
 
-        client.data.userId = jwt as string; // * Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
+        client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   

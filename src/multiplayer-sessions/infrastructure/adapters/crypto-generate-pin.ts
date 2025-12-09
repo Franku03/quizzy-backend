@@ -4,7 +4,8 @@ import { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-serv
 import type { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
 import { FileSystemPinRepository } from './file-system.pin.repository';
 
-const MAX_ATTEMPTS = 20; // Máximo de intentos para generar un PIN único
+const MAX_ATTEMPTS = process.env.PIN_GENERATION_ATTEMPTS ? +process.env.PIN_GENERATION_ATTEMPTS : 50; // Máximo de intentos para generar un PIN único
+
 
 @Injectable()
 export class CryptoGeneratePinService implements IGeneratePinService {

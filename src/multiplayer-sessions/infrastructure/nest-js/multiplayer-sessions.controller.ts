@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, InternalServerErrorException, Logger, NotFoundException, Param, Post, UnauthorizedException } from '@nestjs/common';
 import { CreateSessionDto } from './dtos/create-session.dto';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus } from 'src/core/infrastructure/cqrs';
 
 import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session/create-session.command';
 import { GetPinWithQrTokenCommand } from 'src/multiplayer-sessions/application/commands/get-pin-with-qr-token/get-pin-with-qr-token.command';
@@ -14,7 +14,6 @@ export class MultiplayerSessionsController {
 
   constructor(
     private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus,
   ){}
 
   // TODO: Agregar obtencion del ID del usuario a traves del JWT por los headers

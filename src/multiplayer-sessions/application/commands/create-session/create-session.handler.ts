@@ -1,7 +1,9 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+import { Inject } from "@nestjs/common";
+
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
 import { CreateSessionCommand } from "./create-session.command";
 
-import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
@@ -43,6 +45,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
 
 
         try {
+            
             // Cargamos el agregado kahoot desde el repositorio
             const tempKahootId = new KahootId( command.kahootId );
 

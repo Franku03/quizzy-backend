@@ -1,4 +1,4 @@
-import { ICommand } from "@nestjs/cqrs";
+import { ICommand } from "src/core/application/cqrs/command.interface";
 
 export class CreateSessionCommand implements ICommand {
 
