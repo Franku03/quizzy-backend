@@ -21,7 +21,6 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { SlideIdValue } from "../types/id-types"
-import { KahootFactory } from "../factories/kahoot.factory";
 
 interface UserId {
     readonly value: string;
@@ -100,6 +99,31 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         this.properties.status = new KahootStatus(KahootStatusEnum.DRAFT); 
     }
 
+    public changeStatus(newStatus: string): void {
+        switch (newStatus) {
+            case KahootStatusEnum.DRAFT:
+                this.draft();
+                break;
+            case KahootStatusEnum.PUBLISH:
+                this.publish();
+                break;
+            default:
+                throw new Error(`Estado de Kahoot no válido: ${newStatus}. Solo se permite DRAFT o PUBLISH.`);
+        }
+    }
+
+    public changeVisibility(newVisibility:string): void {
+        switch (newVisibility) {
+            case VisibilityStatusEnum.PUBLIC:
+                this.makePublic();
+                break;
+            case VisibilityStatusEnum.PRIVATE:
+                this.hide();
+                break;
+            default:
+                throw new Error(`Estado de visibilidad de Kahoot no válido: ${newVisibility}. Solo se permite PUBLIC o PRIVATE.`);
+        }
+    }
 
     //Se encarga de la visibilidad del Kahoot, permitiendo cambiar entre público y privado.
     public makePublic(): void {

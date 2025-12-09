@@ -4,10 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
-// 💡 Importaciones necesarias para el manejo de errores global
 import { AllExceptionsFilter } from './core/infrastructure/filters/all-exceptions.filter'; 
 import { ErrorMappingService } from './core/infrastructure/services/global-error-mapping.service'; 
-// Asegúrate de que el path a tu servicio de mapeo sea correcto.
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,25 +29,18 @@ async function bootstrap() {
     }),
   );
 
-  // ----------------------------------------------------
-  // ✅ 4. REGISTRO GLOBAL DEL FILTRO DE EXCEPCIONES
-  // ----------------------------------------------------
+  //  4. REGISTRO GLOBAL DEL FILTRO DE EXCEPCIONES
   
-  // Obtenemos el servicio de mapeo del contenedor de módulos para inyectarlo en el filtro.
   const errorMappingService = app.get(ErrorMappingService); 
-  
-  // Aplicamos el filtro globalmente para que capture los ErrorData lanzados por los handlers.
   app.useGlobalFilters(new AllExceptionsFilter(errorMappingService));
-
-  // ----------------------------------------------------
 
   const logger = new Logger('Bootstrap');
   
-  // 5. Usa el puerto correctamente
+  // 5. Port setup
   const port = process.env.PORT || 3000;
   await app.listen(port);
   
-  // 6. Log más informativo
+  // 6. Log Inicial
   logger.log(`=================================`);
   logger.log(`🚀 App running on port: ${port}`);
   logger.log(`🕹️ WS Server running on port: ${ port }`);

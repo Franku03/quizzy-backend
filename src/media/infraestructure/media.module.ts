@@ -11,7 +11,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { CloudinaryStorageAdapter } from './adapters/cloudinary/cloudinary-storage.adapter';
 import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.service';
 import { CloudinaryUrlGeneratorAdapter } from './adapters/cloudinary/cloudinary-url-generator.adapter';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { AssetIdToUrlService } from '../application/services/asset-id-to.url.service';
 import { CloudinaryErrorMapper } from './adapters/cloudinary/errors/cloudinary-error.mapper';
 

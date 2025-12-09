@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateKahootDTO, SlideInputDTO, OptionInputDTO, UpdateKahootDTO } from 'src/kahoots/infrastructure/nest-js/dtos';
+import { CreateKahootDTO, SlideInputDTO, OptionInputDTO, UpdateKahootDTO } from 'src/kahoots/infrastructure/dtos';
 import { CreateKahootCommand, KahootSlideCommand, KahootOptionCommand, UpdateKahootCommand } from 'src/kahoots/application/commands';
 import { IKahootRequestMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper';
 

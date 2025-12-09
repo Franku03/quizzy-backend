@@ -6,18 +6,19 @@ import {
   ArgumentsHost,
   HttpException,
   Inject,
+  Logger,
 } from '@nestjs/common';
 
 // Importamos la estructura de ErrorData
 import { ErrorData, ErrorLayer } from 'src/core/types'; 
 import { ErrorMappingService } from '../services/global-error-mapping.service';
 import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface'; 
+import { isErrorData } from 'src/core/errors/type-guards.ts/error-data.type.guard';
 
 @Catch() // Captura todas las excepciones, incluyendo ErrorData y NestJS HttpExceptions
 export class AllExceptionsFilter implements ExceptionFilter {
-  
+  private readonly logger = new Logger(AllExceptionsFilter.name);
   constructor(
-    // 💡 IMPORTANTE: El servicio debe ser inyectado (o instanciado si es en main.ts)
     @Inject(ErrorMappingService) 
     private readonly errorMappingService: ErrorMappingService,
   ) {}
@@ -29,11 +30,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let clientResponse: IErrorResponse;
     
-    // 1. MANEJO DE ERRORES CANÓNICOS (ErrorData)
-    // Este es el caso que viene desde los handlers de Aplicación/Dominio.
-    if (exception instanceof ErrorData) {
+    // 1. MANEJO DE ERRORES (ErrorData) - Basically cualquier instancia de errorData.
+    if (isErrorData(exception)) {
         // Mapea el ErrorData interno a la respuesta canónica IErrorResponse.
         clientResponse = this.errorMappingService.toClientResponse(exception);
+        this.logger.error(exception.toLogString());
         
     } 
     // 2. MANEJO DE EXCEPCIONES NATIVAS DE NESTJS (ej. validación de DTO/Pipes, 404 de rutas)

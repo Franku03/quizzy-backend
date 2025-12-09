@@ -9,7 +9,6 @@ import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-acc
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 
 import { CreateUserHandler } from './application/commands/create-user/create-user.handler';
-import { GetUserByNameHandler } from './application/queries/get-user-by-name/get-user-by-name.handler';
 
 import { UuidGeneratorService } from './infrastructure/external-services/uuid-generator.service';
 import { BcryptHasherService } from './infrastructure/external-services/bcrypt-hasher.service';

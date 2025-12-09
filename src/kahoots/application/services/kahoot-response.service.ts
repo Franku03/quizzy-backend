@@ -11,7 +11,6 @@ export class KahootResponseService {
   constructor(
     @Inject('IKahootMapper')
     private readonly kahootMapper: IKahootMapper,
-    @Inject('IAssetIdToUrlService')
     private readonly assetEnricher: KahootAssetEnricherService
   ) {}
 

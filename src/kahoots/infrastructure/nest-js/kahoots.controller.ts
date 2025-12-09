@@ -15,13 +15,13 @@ import {
   // 💡 No necesitamos importar las excepciones de NestJS gracias al AllExceptionsFilter
 } from '@nestjs/common';
 
-import { CreateKahootDTO, UpdateKahootDTO } from './dtos'; 
+import { CreateKahootDTO, UpdateKahootDTO } from '../dtos'; 
 import type { IKahootRequestMapper } from 'src/kahoots/application/ports/i-kahoot.request.mapper'; 
 import { KahootNestMapperAdapter } from '../adapters/mappers/kahoot.request.mapper';
 import { KahootHandlerResponse } from 'src/kahoots/application/response/kahoot.handler.response';
 import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot/delete-kahootcommand';
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
-import { CommandQueryExecutorService } from './command-query-executor.service'; 
+import { CommandQueryExecutorService } from '../../../core/infrastructure/services/command-query-executor.service'; 
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
 

@@ -5,7 +5,7 @@ import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/r
 import { CqrsModule } from '@nestjs/cqrs';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 
 // Handlers
 import { StartSoloAttemptHandler } from './application/commands/start-attempt/start-attempt.handler';

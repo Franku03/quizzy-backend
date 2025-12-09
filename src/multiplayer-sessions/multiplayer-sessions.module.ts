@@ -5,7 +5,7 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateSessionHandler, GetPinWithQrTokenHandler } from './application/commands';
 import { InMemorySessionRepository } from './infrastructure/repositories/in-memory.session.repository';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
 import { JoinPlayerHandler } from './application/commands/join-player/join-player.handler';
@@ -17,9 +17,8 @@ import { SaveSessionHandler } from './application/commands/save-session/save-ses
 
 @Module({
   imports: [
-    RepositoryFactoryModule.forFeature(RepositoryName.Kahoot), // carga de repositorio (para commands de CQRS)
+    RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
-    // DaoFactoryModule.forFeature(DaoName.User), // Carga de un DAO (para queries de CQRS)
     CqrsModule,
   ],
   providers: [

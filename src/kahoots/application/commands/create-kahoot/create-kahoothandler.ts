@@ -7,7 +7,7 @@ import { KahootSlideCommand } from '../base';
 // Importaciones Universales y de Core
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 
 // Importaciones de Dominio y Puertos
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
@@ -56,10 +56,6 @@ export class CreateKahootHandler
 
       if (saveResult.isLeft()) {
         const error = saveResult.getLeft();
-        this.logger.error(`Error saving new kahoot ${kahoot.id.value}`, {
-          errorType: error.code,
-          details: error.details
-        });
         return Either.makeLeft(error);
       }
 
@@ -69,7 +65,6 @@ export class CreateKahootHandler
       return Either.makeRight(enrichedResponse);
 
     } catch (error) {
-      // Manejo de errores de Dominio o de Runtime
       if (error instanceof ErrorData) {
         this.logger.warn(`Kahoot creation failed due to Domain/Mapeo failure. Code: ${error.code}`, error);
         return Either.makeLeft(error);
@@ -95,7 +90,6 @@ export class CreateKahootHandler
         error as Error
       );
 
-      this.logger.error('Unexpected runtime error in CreateKahootHandler', unexpectedError);
       return Either.makeLeft(unexpectedError);
     }
   }

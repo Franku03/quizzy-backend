@@ -18,11 +18,10 @@ export class CommandQueryExecutorService {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    // ❌ ELIMINADO: Inyección de ErrorMappingService (ya no es necesaria)
   ) { }
 
   // ====================================================================
-  // 🎯 MÉTODOS BASE (Comandos y Queries - Lanza error si Either es Left)
+  //  MÉTODOS BASE (Comandos y Queries - Lanza error si Either es Left)
   // ====================================================================
 
   /**
@@ -64,7 +63,7 @@ export class CommandQueryExecutorService {
   }
 
   // ====================================================================
-  // 🔍 MÉTODOS DE BÚSQUEDA (Reemplaza executeQueryOptional)
+  //  MÉTODOS DE BÚSQUEDA 
   // ====================================================================
 
   /**
@@ -96,7 +95,7 @@ export class CommandQueryExecutorService {
   }
 
   // ====================================================================
-  // 📦 MÉTODOS RAW (Devolver Either sin procesar)
+  // MÉTODOS RAW (Devolver Either sin procesar)
   // ====================================================================
 
   /**
@@ -112,12 +111,6 @@ export class CommandQueryExecutorService {
   async executeQueryRaw<T>(query: any): Promise<Either<ErrorData, T>> {
     return this.queryBus.execute(query) as Promise<Either<ErrorData, T>>;
   }
-
-  // ====================================================================
-  // ⚙️ MÉTODOS AUXILIARES (Utilidades)
-  // ====================================================================
-
-  // ❌ MÉTODO ELIMINADO: executeCommandSilently
 
   /**
    * Ejecuta comandos en paralelo

@@ -12,9 +12,9 @@ import { UpdateKahootHandler } from './application/commands/update-kahoot/update
 import { DeleteKahootHandler } from './application/commands/delete-kahoot/delete-kahoothandler';
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
 
-import { CommandQueryExecutorService } from './infrastructure/nest-js/command-query-executor.service';
+import { CommandQueryExecutorService } from '../core/infrastructure/services/command-query-executor.service';
 import { KahootMapperService } from './application/services/kahoot.mapper.service';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { AttemptCleanupService } from './application/services/attempt-clear.service';
 import { KahootAuthorizationService } from './application/services/kahoot-athorization.service';
 import { KahootAssetEnricherService } from './application/services/kahoot-asset-enricher.service';
@@ -28,7 +28,7 @@ import { KahootResponseService } from './application/services/kahoot-response.se
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.Kahoot),
     
-    MediaModule, // <--- ¡IMPORTA EL MÓDULO MEDIA! Ahora KahootsModule conoce sus exports.
+    MediaModule,
     
     CqrsModule,
   ],

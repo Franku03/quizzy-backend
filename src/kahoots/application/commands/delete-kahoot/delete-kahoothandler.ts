@@ -46,8 +46,6 @@ export class DeleteKahootHandler
                 return Either.makeLeft(authResult.getLeft());
             }
 
-            const kahoot = authResult.getRight();
-
             // 2. Eliminar del repositorio
             const deleteResult = await this.kahootRepository.deleteKahootEither(command.id);
 
@@ -68,7 +66,6 @@ export class DeleteKahootHandler
         } catch (error) {
             // Manejo de errores específicos
             if (error instanceof ErrorData) {
-                this.logger.error(`Critical ErrorData surfaced unexpectedly: ${error.code}`, error);
                 return Either.makeLeft(error);
             }
 
@@ -80,8 +77,6 @@ export class DeleteKahootHandler
                 errorContext,
                 error as Error
             );
-
-            this.logger.error('Unexpected runtime error in DeleteKahootHandler', unexpectedError);
             return Either.makeLeft(unexpectedError);
         }
     }

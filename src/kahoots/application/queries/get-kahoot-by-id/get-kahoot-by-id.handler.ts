@@ -1,6 +1,6 @@
 // src/kahoots/application/queries/get-kahoot-by-id.handler.ts
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { GetKahootByIdQuery } from './get-kahoot-by-id.query';
 
 // Importaciones Universales y de Core
@@ -19,8 +19,6 @@ import { KahootAssetEnricherService } from '../../services/kahoot-asset-enricher
 export class GetKahootByIdHandler
   implements IQueryHandler<GetKahootByIdQuery, Either<ErrorData, KahootHandlerResponse>> {
 
-  private readonly logger = new Logger(GetKahootByIdHandler.name);
-
   constructor(
     @Inject(DaoName.Kahoot)
     private readonly kahootDao: IKahootDao,
@@ -35,7 +33,7 @@ export class GetKahootByIdHandler
       domainObjectId: query.kahootId,
       actorId: query.userId,
       userId: query.userId,
-      intendedAction: 'read', // Agregué esto explícitamente
+      intendedAction: 'read', 
     });
 
     try {
@@ -72,9 +70,7 @@ export class GetKahootByIdHandler
       return Either.makeRight(enrichedResponse);
 
     } catch (error) {
-      // Manejo de errores inesperados de runtime
       if (error instanceof ErrorData) {
-        this.logger.error(`Critical ErrorData surfaced unexpectedly: ${error.code}`, error);
         return Either.makeLeft(error);
       }
 
@@ -86,8 +82,6 @@ export class GetKahootByIdHandler
         errorContext,
         error as Error
       );
-
-      this.logger.error('Unexpected runtime error in GetKahootByIdHandler', unexpectedError);
       return Either.makeLeft(unexpectedError);
     }
   }

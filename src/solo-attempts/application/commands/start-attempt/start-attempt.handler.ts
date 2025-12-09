@@ -14,7 +14,7 @@ import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootReposito
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
 import { SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator';
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 @CommandHandler(StartSoloAttemptCommand)

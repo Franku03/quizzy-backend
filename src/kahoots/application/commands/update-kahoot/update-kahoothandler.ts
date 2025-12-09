@@ -8,7 +8,7 @@ import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 // Importaciones Universales y de Core
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { UuidGenerator } from 'src/core/infrastructure/event-buses/idgenerator/uuid-generator'; 
+import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator'; 
 
 // Importaciones de Dominio y Puertos
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
@@ -67,7 +67,7 @@ export class UpdateKahootHandler
             // 3. Guardar cambios
             const saveResult = await this.kahootRepository.saveKahootEither(currentKahoot);
             if (saveResult.isLeft()) {
-                this.logger.error(`Error saving updated kahoot ${command.id}.`, saveResult.getLeft());
+                //this.logger.error(`Error saving updated kahoot ${command.id}.`, saveResult.getLeft());
                 return Either.makeLeft(saveResult.getLeft());
             }
 
@@ -82,7 +82,7 @@ export class UpdateKahootHandler
         } catch (error) {
             // Manejo de errores específicos
             if (error instanceof ErrorData) {
-                this.logger.warn(`Update failed due to Known ErrorData: ${error.code}`, error);
+                //this.logger.warn(`Update failed due to Known ErrorData: ${error.code}`, error);
                 return Either.makeLeft(error);
             }
 
@@ -105,8 +105,6 @@ export class UpdateKahootHandler
                 errorContext,
                 error as Error
             );
-
-            this.logger.error('Unexpected runtime error in UpdateKahootHandler', unexpectedError);
             return Either.makeLeft(unexpectedError);
         }
     }
@@ -132,18 +130,10 @@ export class UpdateKahootHandler
         kahoot.updateStyling(newStyling);
 
         // 3. Actualizar visibilidad
-        if (command.visibility === VisibilityStatusEnum.PUBLIC) {
-            kahoot.makePublic();
-        } else if (command.visibility === VisibilityStatusEnum.PRIVATE) {
-            kahoot.hide();
-        }
+        kahoot.changeVisibility(command.visibility);
 
         // 4. Actualizar estatus
-        if (command.status === KahootStatusEnum.DRAFT) {
-            kahoot.draft();
-        } else if (command.status === KahootStatusEnum.PUBLISH) {
-            kahoot.publish();
-        }
+        kahoot.changeStatus(command.status);
 
         // 5. Reemplazar slides si vienen
         if (command.slides && command.slides.length > 0) {
