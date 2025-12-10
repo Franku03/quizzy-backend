@@ -16,6 +16,10 @@ export class MultiplayerSessionsController {
     private readonly commandBus: CommandBus,
   ){}
 
+
+  // --- C O M A N D S (Mutación) ---
+
+
   // TODO: Agregar obtencion del ID del usuario a traves del JWT por los headers
   @Post()
   @HttpCode( 201 )
@@ -39,6 +43,9 @@ export class MultiplayerSessionsController {
     }
 
   }
+
+
+  // --- Q U E R I E S (Lectura) ---
 
   @Get('qr-token/:qrToken')
   async getSessionPin(

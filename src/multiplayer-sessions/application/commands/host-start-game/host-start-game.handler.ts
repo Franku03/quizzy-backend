@@ -1,17 +1,18 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
 
 import { HostStartGameCommand } from "./host-start-game.command";
 import { COMMON_ERRORS } from "../common.errors";
 import { HOST_START_GAME_ERRORS } from "./host-start-game.errors";
 import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { Either } from '../../../../core/types/either';
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
-import { OptionSnapshotWithoutAnswers, SlideSnapshotWithoutAnswers } from "../../response-dtos/slide-without-answers.interface";
-import { SlideSnapshot } from "src/database/infrastructure/mongo/entities/kahoots.schema";
+
 import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
 
 
@@ -20,8 +21,8 @@ import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-r
 export class HostStartGameHandler implements ICommandHandler<HostStartGameCommand> {
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
     async execute(command: HostStartGameCommand): Promise<Either<Error, QuestionStartedResponse>> {

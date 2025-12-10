@@ -1,6 +1,9 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
+
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { PlayerSubmitAnswerCommand } from "./player-submit-answer.command";
 import { COMMON_ERRORS } from "../common.errors";
@@ -21,8 +24,8 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     private readonly playerSubmissionEvaluationService: PlayerSubmissionEvaluationService
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){
         this.playerSubmissionEvaluationService = new PlayerSubmissionEvaluationService()
     }

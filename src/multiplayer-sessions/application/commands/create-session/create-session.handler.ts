@@ -5,7 +5,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 import { CreateSessionCommand } from "./create-session.command";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
@@ -22,14 +22,15 @@ import { CreateSessionResponse } from "../../response-dtos/create-session.respon
 import { Either } from '../../../../core/types/either';
 
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 
 @CommandHandler( CreateSessionCommand )
 export class CreateSessionHandler implements ICommandHandler<CreateSessionCommand> {
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
         @Inject( RepositoryName.Kahoot )
         private readonly kahootRepository: IKahootRepository,
@@ -87,10 +88,9 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 pin
             )
 
-            const qrToken = await this.sessionRepository.save({
+            const qrToken = await this.sessionRepository.saveSession({
                 session,
                 kahoot,
-                lastActivity: 0 // Luego se actualizara al guardarse
             });
 
             return Either.makeRight({ sessionPin: pin, sessionId: sessionId.value, qrToken: qrToken }); 

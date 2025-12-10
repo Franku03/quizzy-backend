@@ -1,6 +1,6 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
 
 import { COMMON_ERRORS } from "../common.errors";
 
@@ -16,6 +16,8 @@ import { Either } from '../../../../core/types/either';
 import { HOST_NEXT_PHASE_ERRORS } from "./host-next-phase.errors";
 import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
 import { mapEntriesToResponse } from "../../helpers/map-entries-to-scoreboard";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 @CommandHandler( HostNextPhaseCommand )
 export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseCommand> {
@@ -23,8 +25,8 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     private readonly updateProgressAndRankingService: UpdateSessionProgressAndRankingService;
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){
         this.updateProgressAndRankingService = new UpdateSessionProgressAndRankingService()
     }

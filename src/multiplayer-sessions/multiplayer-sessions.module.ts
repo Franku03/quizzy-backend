@@ -15,7 +15,8 @@ import {
   SaveSessionHandler 
 } from './application/commands';
 
-import { InMemorySessionRepository } from './infrastructure/repositories/in-memory.session.repository';
+import { InMemoryActiveSessionRepository } from './infrastructure/repositories/in-memory.session.repository';
+
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
@@ -32,7 +33,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     MultiplayerSessionsGateway, 
     MultiplayerSessionsService,
     // Injectables
-    InMemorySessionRepository,
+    InMemoryActiveSessionRepository,
     CryptoGeneratePinService,
     FileSystemPinRepository,
     UuidGenerator,

@@ -5,7 +5,7 @@ import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.re
 import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
 import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
 import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
-import { MultiplayerSessionMongoRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.mongo';
+import { MultiplayerSessionHistoryMongoRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.repository.mongo';
 
 export type RepositoryRegistryItem = {
   typeorm: Type<any> | null;
@@ -42,6 +42,6 @@ export const REPOSITORY_REGISTRY: Record<
   },
   [RepositoryName.MultiplayerSession]: {
     typeorm: SoloAttemptRepositoryPostgres,
-    mongoose: MultiplayerSessionMongoRepository,
+    mongoose: MultiplayerSessionHistoryMongoRepository,
   },
 };

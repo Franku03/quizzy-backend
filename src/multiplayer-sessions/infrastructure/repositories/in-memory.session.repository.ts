@@ -1,19 +1,20 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
-import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 import { v4 as uuidv4 } from 'uuid';
 import { FileSystemPinRepository } from "../adapters/file-system.pin.repository";
 
-import type { IPinRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ActiveSessionContext, IActiveMultiplayerSessionRepository, IPinRepository,  } from "src/multiplayer-sessions/domain/ports";
+
+import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
+import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 
 type sessionPin = string
 
 type qrToken = string;
 
-interface SessionWrapper { 
-    session: MultiplayerSession, 
-    kahoot: Kahoot,
+interface MemorySessionContext extends ActiveSessionContext { 
+
     lastActivity: number,
+
 }
 
 interface QrTokenData {
@@ -23,14 +24,14 @@ interface QrTokenData {
 
 
 @Injectable()
-export class InMemorySessionRepository {
+export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessionRepository {
 
     // ! Nueva estructura para manejar la cola de promesas (Bloqueo Asíncrono) - Se dejara para futuras iteraciones
     // private readonly locks = new Map<sessionPin, Promise<any>>(); 
 
     // * Base de datos en memoria para llevar los agregados asoaciados a cada partida.
     // Al ser un Singleton, este Map vive mientras el servidor este corriendo.
-    private readonly activeSessions = new Map<sessionPin, SessionWrapper>();
+    private readonly activeSessions = new Map<sessionPin, MemorySessionContext>();
 
 
     // * Mapa: QR Token -> PIN
@@ -40,12 +41,15 @@ export class InMemorySessionRepository {
 
 
     // Configuración: Los tokens QR expiran rápido (ej. 10 minutos)
-    // Esto es bueno por seguridad, el QR no debería ser eterno.
+    // Esto es bueno por seguridad, el QR no debería ser eterno. (TTL -> Time To Live)
     private readonly QR_TTL = 10 * 60 * 1000;
 
     constructor(
         @Inject( FileSystemPinRepository )
-        private readonly pinRepo: IPinRepository
+        private readonly pinRepo: IPinRepository,
+
+        @Inject( UuidGenerator )
+        private readonly IdGenerator: IdGenerator<string>,
     ) {
         // Limpiador de sesiones no usadas automático cada 10 minutos
         setInterval(() => this.cleanupUnusedSessions(), 10 * 60 * 1000);
@@ -57,19 +61,19 @@ export class InMemorySessionRepository {
 
 
     // Cada vez que se toque la sesión, actualiza lastActivity
-    async save(sessionWraper: SessionWrapper): Promise<qrToken> {
+    async saveSession(sessionWraper: MemorySessionContext): Promise<qrToken> {
 
-        // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al sessionWrapper
+        // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al MemorySessionContext
         const { session, kahoot } = sessionWraper;
 
         this.activeSessions.set( session.getSessionPin().getPin() , {
              session, 
              kahoot,
-             lastActivity: Date.now()
+             lastActivity: Date.now() // Actualizamos el timestamp de última actividad
         });
 
         // Generas un token aleatorio (puedes usar crypto.randomUUID())
-        const token: qrToken = uuidv4();
+        const token: qrToken = await this.IdGenerator.generateId()
         
         // Lo guardas mapeado al PIN
         // Guardamos cuándo se creó
@@ -80,20 +84,19 @@ export class InMemorySessionRepository {
                 createdAt: Date.now() 
             }
         );
-        
-        // (Opcional) Guardas el token dentro de la sesión por si necesitas borrarlo
-        // session.setQrToken(token);
 
         console.log( this.activeSessions.values() );
 
         return token;
+
     }
 
-    async findByPin(pin: string): Promise<SessionWrapper| null> {
+    async findByPin(pin: string): Promise<MemorySessionContext| null> {
         return this.activeSessions.get( pin ) || null;
     }
 
-    async findSessionByQrToken(token: string): Promise<SessionWrapper | null> {
+    // Buscamos en este caso por qrToken
+    async findByTemporalToken(token: string): Promise<MemorySessionContext | null> {
 
         const data = this.qrTokens.get(token);
         
@@ -111,12 +114,14 @@ export class InMemorySessionRepository {
 
     
     async delete(pin: string): Promise<void> {
-        this.activeSessions.delete( pin );
+
         // Al hacer delete, se rompe la referencia fuerte.
         // Si nadie más usa esa Session, el GC la eliminará en la próxima pasada.
+        this.activeSessions.delete( pin );
 
         // Eliminamos el pin del txt para liberarlo
         this.pinRepo.releasePin( pin );
+
     }
 
     // TODO: Implementar metodo para chequear existencia de la partida y si el usuario es propietario

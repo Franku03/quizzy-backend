@@ -1,6 +1,10 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
+
+
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { JoinPlayerCommand } from './join-player.command';
 import { COMMON_ERRORS } from "../common.errors";
@@ -18,8 +22,8 @@ import { Either } from '../../../../core/types/either';
 export class JoinPlayerHandler implements ICommandHandler<JoinPlayerCommand> {
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
     async execute(command: JoinPlayerCommand): Promise<Either<Error, GameStateUpdateResponse>> {

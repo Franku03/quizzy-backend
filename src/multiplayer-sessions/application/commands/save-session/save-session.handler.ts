@@ -1,15 +1,15 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
 
 import { COMMON_ERRORS } from "../common.errors";
 import { SaveSessionCommand } from "./save-session.command";
 
-import type { IMultiplayerSessionRepository, IPinRepository } from "src/multiplayer-sessions/domain/ports";
+import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { Either } from '../../../../core/types/either';
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { FileSystemPinRepository } from "src/multiplayer-sessions/infrastructure/adapters/file-system.pin.repository";
 
 
 @CommandHandler( SaveSessionCommand )
@@ -18,11 +18,9 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
 
 constructor(
         @Inject(RepositoryName.MultiplayerSession)
-        private readonly sessionSavingRepository: IMultiplayerSessionRepository,
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
-        // @Inject( FileSystemPinRepository )
-        // private readonly fileSystemRepo: IPinRepository
+        private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
     async execute(command: SaveSessionCommand): Promise<Either<Error, boolean >> {
@@ -41,7 +39,7 @@ constructor(
             session.validateAllInvariantsForCompletion();
 
             // TODO: Hacer mapeo de monadas Either desde la respuesta del saveSession
-            await this.sessionSavingRepository.saveSession( session );
+            await this.sessionSavingRepository.archiveSession( session );
 
             // Liberamos el recurso de memoria y tambien el pin del txt
             await this.sessionRepository.delete( command.sessionPin );
