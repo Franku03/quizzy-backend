@@ -4,6 +4,7 @@ import { CreateKahootDTO } from "./kahoot-post.request.dto";
 
 export class UpdateKahootDTO extends CreateKahootDTO {
     // ⚠️ LEGACY: Mantener por compatibilidad hasta v2.0
+    @IsOptional()
     @IsUUID()
     id: string; 
 

@@ -87,7 +87,7 @@ export class ErrorData extends Error {
 
     const headerLine = (
         `${headerColor}${BOLD}[🚨 ${headerLabel}]` + 
-        ` - ID de Traza: ` +               
+        ` - ID Error: ` +               
         `${GREEN_BRIGHT}${BOLD}${this.errorId}${RESET}` 
     );
 

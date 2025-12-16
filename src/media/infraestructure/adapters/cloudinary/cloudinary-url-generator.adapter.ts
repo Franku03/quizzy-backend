@@ -1,9 +1,11 @@
 // src/media/infrastructure/cloudinary/cloudinary-url-generator.adapter.ts
-import { Injectable } from '@nestjs/common';
+
+import { Injectable, Inject } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
 import { IAssetUrlService } from 'src/media/application/ports/asset-url-generator.interface';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
+import { CLOUDINARY_CONFIG } from 'src/media/application/dependecy-tokkens/application-media.tokens';
 
 @Injectable()
 export class CloudinaryUrlGeneratorAdapter implements IAssetUrlService {
@@ -14,13 +16,10 @@ export class CloudinaryUrlGeneratorAdapter implements IAssetUrlService {
     serviceName: 'cloudinary',
   };
 
-  constructor() {
-    cloudinary.v2.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-  }
+  constructor(
+    @Inject(CLOUDINARY_CONFIG) 
+    private readonly cloudinaryInstance: typeof cloudinary.v2
+  ) {}
 
   generateUrls(
     assets: Array<{ provider: string; publicId: string }>,
@@ -35,7 +34,7 @@ export class CloudinaryUrlGeneratorAdapter implements IAssetUrlService {
     for (const asset of assets) {
       try {
         this.validateProvider(asset.provider, asset.publicId);
-        const url = cloudinary.v2.url(asset.publicId, {
+        const url = this.cloudinaryInstance.url(asset.publicId, {
           secure: true,
           sign_url: options?.signed || false,
           expires_at: options?.expiresIn ? Math.floor(Date.now() / 1000) + options.expiresIn : undefined,

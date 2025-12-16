@@ -1,4 +1,5 @@
 import { KahootSlideCommand } from "./slidecommand";
+import { ICommand } from 'src/core/application/cqrs/command.interface';
 
 // Interfaz que define la estructura del objeto de propiedades
 interface BaseCommandProps {
@@ -13,7 +14,7 @@ interface BaseCommandProps {
     userId: string;
 }
 
-export class BaseKahootCommand {
+export class BaseKahootCommand implements ICommand {
     public readonly title?: string;
     public readonly userId: string;
     public readonly description?: string;

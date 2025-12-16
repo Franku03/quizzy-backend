@@ -1,5 +1,6 @@
 // src/media/application/commands/upload-asset/upload-asset.handler.ts
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { Inject, Logger } from '@nestjs/common'; 
 import { UploadAssetCommand } from './upload-asset.command';
 
@@ -15,6 +16,8 @@ import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
+import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependecy-tokkens/application-media.tokens';
+import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 
 export type UploadAssetResult = {
   assetId: string;
@@ -24,18 +27,18 @@ export type UploadAssetResult = {
   category: string;
 };
 
-@CommandHandler(UploadAssetCommand)
-export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand, Either<ErrorData, UploadAssetResult>> {
+@CommandHandler(UploadAssetCommand)         //ICommandHandler<UploadAssetCommand, Either<ErrorData, UploadAssetResult>>
+export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
   private readonly logger = new Logger(UploadAssetHandler.name); 
 
   constructor(
     @Inject(DaoName.AssetMetadataMongo)
     private readonly metadataDao: IAssetMetadataDao,
-    @Inject('IAssetStorageService')
+    @Inject(ASSET_STORAGE_SERVICE)
     private readonly assetStorageService: IAssetStorageService,
-    @Inject('ICryptoService')
+    @Inject(CRYPTO_SERVICE)
     private readonly cryptoService: ICryptoService,
-    @Inject('IdGenerator')
+    @Inject(ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
   ) {}
 

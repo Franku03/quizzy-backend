@@ -1,15 +1,14 @@
 // src/kahoots/application/commands/create-kahoot/create-kahoot.handler.ts
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { CreateKahootCommand } from './create-kahootcommand';
 import { KahootSlideCommand } from '../base';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 
 // Importaciones Universales y de Core
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 
-// Importaciones de Dominio y Puertos
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import type { IKahootRepository } from '../../../domain/ports/IKahootRepository';
 import { KahootFactory } from '../../../domain/factories/kahoot.factory';
@@ -20,19 +19,20 @@ import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import { KahootResponseService } from '../../services/kahoot-response.service';
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 
 @CommandHandler(CreateKahootCommand)
 export class CreateKahootHandler
-  implements ICommandHandler<CreateKahootCommand, Either<ErrorData, KahootHandlerResponse>> {
 
-  private readonly logger = new Logger(CreateKahootHandler.name);
+  implements ICommandHandler<CreateKahootCommand>{
 
+  //Por si nos acoplamos a nest implements ICommandHandler<CreateKahootCommand, Either<ErrorData, KahootHandlerResponse>>
   constructor(
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
     @Inject(KahootResponseService)
     private readonly kahootResponseService: KahootResponseService,
-    @Inject(UuidGenerator)
+    @Inject(ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
   ) { }
 
@@ -66,7 +66,6 @@ export class CreateKahootHandler
 
     } catch (error) {
       if (error instanceof ErrorData) {
-        this.logger.warn(`Kahoot creation failed due to Domain/Mapeo failure. Code: ${error.code}`, error);
         return Either.makeLeft(error);
       }
 

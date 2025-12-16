@@ -1,26 +1,23 @@
 // src/media/infrastructure/cloudinary/cloudinary-storage.adapter.ts
+
 import { Inject, Injectable } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
-import { IAssetStorageService } from 'src/media/application/ports/asset-storage.service';
+import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
 
-// Importaciones Universales y del Mapper Canónico
+import { IAssetStorageService } from 'src/media/application/ports/asset-storage.service';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { ERROR_MAPPER, CLOUDINARY_CONFIG } from 'src/media/application/dependecy-tokkens/application-media.tokens';
 
 @Injectable()
 export class CloudinaryStorageAdapter implements IAssetStorageService {
-
   constructor(
-    @Inject('IErrorMapper') 
-    private readonly errorMapper: IErrorMapper<IExternalServiceErrorContext>
-  ) {
-    cloudinary.v2.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-    });
-  }
+    @Inject(ERROR_MAPPER)
+    private readonly errorMapper: IErrorMapper<IExternalServiceErrorContext>,
+    @Inject(CLOUDINARY_CONFIG)
+    private readonly cloudinaryInstance: typeof cloudinary.v2
+  ) { }
 
   async upload(
     fileBuffer: Buffer,
@@ -50,8 +47,8 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
         resourceType = 'raw';
       }
 
-      const result = await new Promise<any>((resolve, reject) => {
-        const uploadStream = cloudinary.v2.uploader.upload_stream(
+      const result = await new Promise<UploadApiResponse | { public_id: string; existing: true }>((resolve, reject) => {
+        const uploadStream = this.cloudinaryInstance.uploader.upload_stream(
           {
             public_id: publicId,
             overwrite: false,
@@ -59,7 +56,7 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
             folder: context.folder,
             type: 'upload',
           },
-          (error, result) => {
+          (error: UploadApiErrorResponse, result: UploadApiResponse) => {
             if (error) {
               if (error.http_code === 400 && error.message.includes('already exists')) {
                 resolve({ public_id: publicId, existing: true });
@@ -105,7 +102,7 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
         return Either.makeLeft(error);
       }
 
-      await cloudinary.v2.uploader.destroy(publicId, {
+      await this.cloudinaryInstance.uploader.destroy(publicId, {
         resource_type: 'auto'
       });
 
@@ -127,7 +124,7 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
     };
 
     try {
-      const url = cloudinary.v2.url(publicId);
+      const url = this.cloudinaryInstance.url(publicId);
       return Either.makeRight(url);
     } catch (error) {
       const errorData = this.errorMapper.toErrorData(error, context);

@@ -4,13 +4,14 @@ import type { IAssetMetadataDao } from '../ports/asset-metadata.dao';
 import type { IAssetUrlService } from '../ports/asset-url-generator.interface';
 import { IAssetIdToUrlService } from '../ports/asset-id-to-url.service.interface';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import {  ASSET_URL_SERVICE } from '../dependecy-tokkens/application-media.tokens';
 
 @Injectable()
 export class AssetIdToUrlService implements IAssetIdToUrlService {
   constructor(
     @Inject(DaoName.AssetMetadataMongo)
     private readonly metadataDao: IAssetMetadataDao,
-    @Inject('IAssetUrlService')
+    @Inject(ASSET_URL_SERVICE)
     private readonly urlGenerator: IAssetUrlService,
   ) { }
 

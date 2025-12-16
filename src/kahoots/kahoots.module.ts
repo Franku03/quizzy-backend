@@ -7,14 +7,16 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { CqrsModule } from '@nestjs/cqrs';
 import { CreateKahootHandler } from './application/commands/create-kahoot/create-kahoothandler';
-import { KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/mappers/kahoot.request.mapper'; 
+import { KahootNestMapperAdapter } from 'src/kahoots/infrastructure/adapters/mappers/kahoot.request.mapper';
 import { UpdateKahootHandler } from './application/commands/update-kahoot/update-kahoothandler';
 import { DeleteKahootHandler } from './application/commands/delete-kahoot/delete-kahoothandler';
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
 
-import { CommandQueryExecutorService } from '../core/infrastructure/services/command-query-executor.service';
+// IMPORTACIONES ORIGINALES:
+// import { CommandQueryExecutorService } from '../core/infrastructure/services/command-query-executor.service';
+// import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
+
 import { KahootMapperService } from './application/services/kahoot.mapper.service';
-import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { AttemptCleanupService } from './application/services/attempt-clear.service';
 import { KahootAuthorizationService } from './application/services/kahoot-athorization.service';
 import { KahootAssetEnricherService } from './application/services/kahoot-asset-enricher.service';
@@ -27,9 +29,9 @@ import { KahootResponseService } from './application/services/kahoot-response.se
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.Kahoot),
-    
+
     MediaModule,
-    
+
     CqrsModule,
   ],
   providers: [
@@ -38,26 +40,23 @@ import { KahootResponseService } from './application/services/kahoot-response.se
     UpdateKahootHandler,
     DeleteKahootHandler,
     GetKahootByIdHandler,
-    
+
     // Services
-    CommandQueryExecutorService,
     KahootMapperService,
     {
-      provide: 'IKahootMapper',  
-      useClass: KahootMapperService,  
+      provide: 'IKahootMapper',
+      useClass: KahootMapperService,
     },
-    
-    KahootResponseService, 
+
+    KahootResponseService,
     AttemptCleanupService,
     KahootAuthorizationService,
     KahootAssetEnricherService,
-    
+
     // Otros
     KahootNestMapperAdapter,
-    UuidGenerator,
+    
   ],
-  exports: [
-    CommandQueryExecutorService,
-  ],
+  exports: [],
 })
-export class KahootsModule {}
+export class KahootsModule { }

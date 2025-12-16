@@ -1,5 +1,6 @@
 // src/kahoots/application/queries/get-kahoot-by-id.handler.ts
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetKahootByIdQuery } from './get-kahoot-by-id.query';
 
@@ -17,7 +18,9 @@ import { KahootAssetEnricherService } from '../../services/kahoot-asset-enricher
 
 @QueryHandler(GetKahootByIdQuery)
 export class GetKahootByIdHandler
-  implements IQueryHandler<GetKahootByIdQuery, Either<ErrorData, KahootHandlerResponse>> {
+
+            // IQueryHandler<GetKahootByIdQuery, Either<ErrorData, KahootHandlerResponse>>
+  implements IQueryHandler<GetKahootByIdQuery> {
 
   constructor(
     @Inject(DaoName.Kahoot)

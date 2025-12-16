@@ -2,11 +2,12 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { KahootHandlerResponse } from '../response/kahoot.handler.response';
 import type { IAssetIdToUrlService } from 'src/media/application/ports/asset-id-to-url.service.interface';
+import { ASSET_ID_TO_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
 
 @Injectable()
 export class KahootAssetEnricherService {
   constructor(
-    @Inject('IAssetIdToUrlService')
+    @Inject(ASSET_ID_TO_URL_SERVICE)
     private readonly assetIdToUrlService: IAssetIdToUrlService
   ) {}
 

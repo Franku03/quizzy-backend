@@ -7,12 +7,16 @@ import { CoreController } from './nest-js/core.controller';
 import { CommandBus } from './infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
 import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
+import { ID_GENERATOR } from './application/ports/crypto/core-application.tokens';
+import { CommandQueryExecutorService } from './infrastructure/services/command-query-executor.service';
+
 
 @Global()
 @Module({
   controllers: [CoreController],
   providers: [
-    UuidGenerator,
+    CommandQueryExecutorService,
+    { provide: ID_GENERATOR, useClass: UuidGenerator },
     CqrsBootstrapService,
     CommandBus,
     QueryBus,
@@ -23,8 +27,9 @@ import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.servi
     CommandBus,
     QueryBus,
     EVENT_BUS_TOKEN,
-    UuidGenerator,
+    ID_GENERATOR,
     ErrorMappingService,
+    CommandQueryExecutorService,
   ]
 })
 export class CoreModule {}

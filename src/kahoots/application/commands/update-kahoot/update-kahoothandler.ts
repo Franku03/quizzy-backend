@@ -1,9 +1,10 @@
 // src/kahoots/application/commands/update-kahoot/update-kahoot.handler.ts
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { UpdateKahootCommand } from './update-kahootcommand'; 
 import { KahootSlideCommand } from '../base';
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 
 // Importaciones Universales y de Core
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
@@ -14,8 +15,6 @@ import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { KahootFactory, SlideInput } from '../../../domain/factories/kahoot.factory';
-import { VisibilityStatusEnum } from '../../../domain/value-objects/kahoot.visibility-status';
-import { KahootStatusEnum } from '../../../domain/value-objects/kahoot.status';
 import { AttemptCleanupService } from '../../services/attempt-clear.service';
 import { KahootAuthorizationService } from '../../services/kahoot-athorization.service';
 import { KahootResponseService } from '../../services/kahoot-response.service';
@@ -23,12 +22,12 @@ import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
+import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 
 @CommandHandler(UpdateKahootCommand)
 export class UpdateKahootHandler
-    implements ICommandHandler<UpdateKahootCommand, Either<ErrorData, KahootHandlerResponse>> {
-
-    private readonly logger = new Logger(UpdateKahootHandler.name);
+                // ICommandHandler<UpdateKahootCommand, Either<ErrorData, KahootHandlerResponse>>
+    implements ICommandHandler<UpdateKahootCommand> {
 
     constructor(
         @Inject(RepositoryName.Kahoot)
@@ -37,7 +36,7 @@ export class UpdateKahootHandler
         private readonly kahootResponseService: KahootResponseService,
         private readonly attemptCleanup: AttemptCleanupService,
         private readonly authService: KahootAuthorizationService,
-        @Inject(UuidGenerator)
+        @Inject(ID_GENERATOR)
         private readonly idGenerator: IdGenerator<string>,
     ) { }
 

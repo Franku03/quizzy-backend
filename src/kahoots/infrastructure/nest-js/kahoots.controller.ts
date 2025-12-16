@@ -1,5 +1,4 @@
-// src/kahoots/infrastructure/controllers/kahoot.controller.ts (VERSIÓN FINAL)
-
+// src/kahoots/infrastructure/controllers/kahoot.controller.ts
 import {
   Controller,
   Post,
@@ -12,7 +11,6 @@ import {
   Delete,
   Get,
   UseGuards,
-  // 💡 No necesitamos importar las excepciones de NestJS gracias al AllExceptionsFilter
 } from '@nestjs/common';
 
 import { CreateKahootDTO, UpdateKahootDTO } from '../dtos'; 
@@ -21,22 +19,20 @@ import { KahootNestMapperAdapter } from '../adapters/mappers/kahoot.request.mapp
 import { KahootHandlerResponse } from 'src/kahoots/application/response/kahoot.handler.response';
 import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot/delete-kahootcommand';
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
-import { CommandQueryExecutorService } from '../../../core/infrastructure/services/command-query-executor.service'; 
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
 @Controller('kahoots')
 export class KahootController {
   
-  // Usamos el ejecutor de la Capa Compartida
   constructor(
     private readonly executor: CommandQueryExecutorService,
     @Inject(KahootNestMapperAdapter) 
     private readonly kahootMapper: IKahootRequestMapper<CreateKahootDTO, UpdateKahootDTO>
   ) {}
 
-  // --- C O M A N D S (Mutación) ---
-
+  // Commands
   @Post()
   @UseGuards(MockAuthGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -45,7 +41,6 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<KahootHandlerResponse> {
     const command = this.kahootMapper.toCreateCommand(input, userId); 
-    // Si executeCommand lanza ErrorData (ej. INVALID_DATA), el filtro global lo captura.
     return await this.executor.executeCommand<KahootHandlerResponse>(command);
   }
   
@@ -58,7 +53,6 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<KahootHandlerResponse> {
     const command = this.kahootMapper.toReplaceCommand(input, kahootId, userId);
-    // Si executeCommand lanza ErrorData (ej. UNAUTHORIZED, NOT_FOUND), el filtro global lo captura.
     return await this.executor.executeCommand<KahootHandlerResponse>(command);
   }
 
@@ -70,30 +64,18 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<void> {
     const command = new DeleteKahootCommand({id, userId});
-    // Si executeCommand lanza ErrorData (ej. UNAUTHORIZED, NOT_FOUND), el filtro global lo captura.
     await this.executor.executeCommand<void>(command);
   }
   
-  // --- Q U E R I E S (Lectura) ---
-
-  // ✅ Uso de executeQueryRequired (Reemplazo de executeQueryOptional)
+  // Queries
   @Get(':id')
-   @UseGuards(MockAuthGuard)
+  @UseGuards(MockAuthGuard)
   @HttpCode(HttpStatus.OK)
   async getKahootById(
     @Param('id') kahootId: string,
-    @GetUserId() userId?: string // Opcional para visibilidad
+    @GetUserId() userId?: string
   ): Promise<KahootHandlerResponse> {
     const query = new GetKahootByIdQuery({kahootId, userId});
-    
-    // 💡 executeQueryRequired: 
-    // 1. Ejecuta la Query.
-    // 2. Si el Handler devuelve null, lanza ErrorData(RESOURCE_NOT_FOUND) con el contexto.
-    // 3. El filtro global atrapa ese ErrorData y lo convierte a HTTP 404.
-    return await this.executor.executeQueryRequired<KahootHandlerResponse>(
-        query, 
-        kahootId, 
-        'Kahoot' // Este valor se usa para el domainObjectType en el ErrorData(NOT_FOUND)
-    );
+    return await this.executor.executeQuery<KahootHandlerResponse>(query);
   }
 }

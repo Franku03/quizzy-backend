@@ -1,7 +1,8 @@
 // src/kahoots/application/commands/delete-kahoot/delete-kahoot.handler.ts
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { DeleteKahootCommand } from "../../commands";
-import { Inject, Logger } from "@nestjs/common"; 
+import { Inject } from "@nestjs/common"; 
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 
 // Importaciones Universales
@@ -18,9 +19,8 @@ import { RepositoryName } from "src/database/infrastructure/catalogs/repository.
 
 @CommandHandler(DeleteKahootCommand)
 export class DeleteKahootHandler
-    implements ICommandHandler<DeleteKahootCommand, Either<ErrorData, void>> {
-
-    private readonly logger = new Logger(DeleteKahootHandler.name);
+                //ICommandHandler<DeleteKahootCommand, Either<ErrorData, void>>
+    implements ICommandHandler<DeleteKahootCommand> {
 
     constructor(
         @Inject(RepositoryName.Kahoot)
@@ -53,11 +53,10 @@ export class DeleteKahootHandler
                 return Either.makeLeft(deleteResult.getLeft());
             }
 
-            // 3. Limpiar intentos (fire-and-forget)
+            // 3. Limpiar intentos activos singleplayer
             try {
                 await this.attemptCleanup.cleanupById(new KahootId(command.id));
             } catch (cleanupError) {
-                this.logger.warn(`Failed to cleanup attempts for deleted kahoot ${command.id}`, cleanupError);
                 // No bloquea la eliminación principal
             }
 

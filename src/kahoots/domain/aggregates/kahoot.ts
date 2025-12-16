@@ -150,7 +150,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
     public replaceSlides(slides: Map<SlideIdValue, Slide>): void {
         this.properties.slides = slides;
-        this.checkPublishingReadiness(); 
+        this.checkInvariants(); 
             
     }
 
@@ -322,10 +322,6 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
         slide.updateSlideType(newSlideType);
         this.checkInvariants();
-    }
-
-    public replaceSlide(newSlides: Slide[]): void {
-
     }
 
     private getSortedSlides(): Slide[] {
