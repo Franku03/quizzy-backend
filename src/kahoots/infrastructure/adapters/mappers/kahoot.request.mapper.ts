@@ -94,22 +94,15 @@ export class KahootNestMapperAdapter implements IKahootRequestMapper<CreateKahoo
     public toReplaceCommand(input: UpdateKahootDTO, id: string, userId: string): UpdateKahootCommand {
         // Extraemos las propiedades que el cliente puede enviar
         const { 
-            id: dtoId, // ⚠️ IGNORAR: No usar este id
-            createdAt: dtoCreatedAt, // ⚠️ IGNORAR: Para replace, usamos valor por defecto
-            playCount: dtoPlayCount, // ⚠️ IGNORAR: Para replace, usamos valor por defecto
             questions, 
             coverImageId,
             ...updatesBody 
         } = input;
 
-        // Para replace necesitamos todos los campos requeridos
         const replaceProps = {
             ...updatesBody, 
             ...this.mapBaseFields(input), 
             imageId: coverImageId,
-            // Para replace, proporcionamos valores por defecto para campos requeridos
-            createdAt: new Date(), // Valor por defecto para replace
-            playCount: 0, // Valor por defecto para replace
         };
         
         return new UpdateKahootCommand({

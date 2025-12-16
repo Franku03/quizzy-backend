@@ -138,6 +138,9 @@ export class UpdateKahootHandler
         if (command.slides && command.slides.length > 0) {
             const newSlidesMap = await this.processSlidesForUpdate(command.slides);
             kahoot.replaceSlides(newSlidesMap);
+        } else {
+            //Poner mas bonito
+           kahoot.replaceSlides(new Map<string, any>()); 
         }
     }
 

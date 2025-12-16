@@ -13,17 +13,10 @@ interface UpdateCommandProps {
     visibility: string;
     status: string;
     slides?: KahootSlideCommand[];
-    
-    createdAt?: Date;
-    playCount?: number;
-    authorId?: string;
 }
 
 export class UpdateKahootCommand extends BaseKahootCommand {
     public readonly id: string; 
-    public declare readonly authorId?: string; // ⚠️ LEGACY
-    public declare readonly createdAt?: Date; // ⚠️ LEGACY
-    public declare readonly playCount?: number; // ⚠️ LEGACY
     constructor(props: UpdateCommandProps) {
         super(props); 
         Object.assign(this, props);
