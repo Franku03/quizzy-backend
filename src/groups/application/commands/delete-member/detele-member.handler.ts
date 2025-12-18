@@ -1,16 +1,17 @@
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { DeleteMemberCommand } from "./delete-member.command";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
-import { ICommandHandler } from "@nestjs/cqrs";
 import { Inject } from "@nestjs/common";
 import { Either } from "src/core/types/either";
 import { GROUP_ERRORS } from "../group.errors";
-import { CommandHandler } from "@nestjs/cqrs";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { EVENT_BUS_TOKEN } from "src/core/domain/ports/event-bus.token";
 import type { EventBus } from "src/core/domain/ports/event-bus.port";
 import { MemberRemovedEvent } from "src/core/domain/domain-events/member-removed.event";
 
+
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 
 @CommandHandler(DeleteMemberCommand)
 export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand> {

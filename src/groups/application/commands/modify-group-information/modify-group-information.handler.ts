@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+
 import { ModifyGroupInformationCommand } from "./modify-group-information.command";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
@@ -8,6 +8,9 @@ import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
 import { GROUP_ERRORS } from "../group.errors";
 import { Either } from "src/core/types/either";
 import { ModifyGroupResponse } from "../response-dtos/modify-group.response.dto";
+
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 
 @CommandHandler(ModifyGroupInformationCommand)
 export class ModifyGroupInformationHandler implements ICommandHandler<ModifyGroupInformationCommand> {

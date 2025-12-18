@@ -3,13 +3,16 @@ import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository"
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 
 import { AssignKahootToGroupCommand } from "./assign-kahoot.command";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { AssignKahootToGroupResponse } from "../response-dtos/assign-kahoot.response.dto";
 import { Inject } from "@nestjs/common";
 import { GROUP_ERRORS } from "../group.errors";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { Either } from "src/core/types/either";
+
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+
 
 @CommandHandler(AssignKahootToGroupCommand)
 export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootToGroupCommand> {

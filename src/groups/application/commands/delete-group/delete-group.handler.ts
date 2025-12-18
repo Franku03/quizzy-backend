@@ -5,8 +5,10 @@ import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository"
 import { Either } from "src/core/types/either";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { GROUP_ERRORS } from "../group.errors";
-import { CommandHandler } from "@nestjs/cqrs";
-import { ICommandHandler } from "@nestjs/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+
+
 
 @CommandHandler(DeleteGroupCommand)
 export class DeleteGroupHandler implements ICommandHandler<DeleteGroupCommand> {

@@ -1,7 +1,6 @@
 import { Group } from "../../../domain/aggregates/group";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { v4 as uuidv4 } from 'uuid';
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
 import { CreateGroupCommand } from "./create-group.command";
 import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
@@ -11,6 +10,10 @@ import { GROUP_ERRORS } from "../group.errors";
 import { EVENT_BUS_TOKEN } from "src/core/domain/ports/event-bus.token";
 import type { EventBus } from "src/core/domain/ports/event-bus.port";
 import { GroupCreatedEvent } from "src/core/domain/domain-events/group-created.event";
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+
+
 
 @CommandHandler(CreateGroupCommand)
 export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {

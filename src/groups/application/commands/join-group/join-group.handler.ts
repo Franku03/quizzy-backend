@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
+
 import { JoinGroupCommand } from "./join-group.command";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import type { IUserRepository } from "src/users/domain/ports/IUserRepository";
@@ -10,6 +10,10 @@ import { JoinGroupResponse } from "../response-dtos/join-group.response.dto";
 import { InvitationToken } from "src/groups/domain/value-objects/group.invitation.token";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { GroupMemberRole } from "src/groups/domain/value-objects/group.member.role";
+
+
+import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
+import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 
 @CommandHandler(JoinGroupCommand)
 export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
