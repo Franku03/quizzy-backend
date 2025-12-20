@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CreateGroupCommand } from "./create-group.command";
 import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { Either } from "src/core/types/either";
+import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { CreateGroupResponse } from "../response-dtos/create-group.response.dto";
 import { GROUP_ERRORS } from "../group.errors";
 import { EVENT_BUS_TOKEN } from "src/core/domain/ports/event-bus.token";
@@ -12,6 +12,8 @@ import type { EventBus } from "src/core/domain/ports/event-bus.port";
 import { GroupCreatedEvent } from "src/core/domain/domain-events/group-created.event";
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 
 
@@ -25,20 +27,37 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
         private readonly eventBus: EventBus,
     ) { }
 
-    async execute(command: CreateGroupCommand): Promise<Either<Error, CreateGroupResponse>> {
+    async execute(command: CreateGroupCommand): Promise<Either<ErrorData, CreateGroupResponse>> {
+        const groupId = uuidv4();
+        const errorContext = createDomainContext('Group', 'createGroup', {
+            domainObjectId: groupId,
+            actorId: command.adminId,
+            userId: command.adminId,
+            name: command.name,
+        });
 
-        if (!command.adminId)
-            return Either.makeLeft(new Error(GROUP_ERRORS.ADMIN_REQUIRED));
+        if (!command.adminId) {
+            return Either.makeLeft(
+                DomainErrorFactory.validation(
+                    errorContext,
+                    { adminId: [GROUP_ERRORS.ADMIN_REQUIRED] },
+                    GROUP_ERRORS.ADMIN_REQUIRED
+                )
+            );
+        }
 
         // pending: descomentar cuando se tenga el repositorio de usuarios
         //const admin = await this.userRepository.findById(new UserId(command.adminId));
-        const admin = true
+        const admin = true;
 
         if (!admin) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.USER_NOT_FOUND));
+            return Either.makeLeft(
+                DomainErrorFactory.notFound(
+                    { ...errorContext, domainObjectType: 'User', domainObjectId: command.adminId },
+                    GROUP_ERRORS.USER_NOT_FOUND
+                )
+            );
         }
-
-        const groupId = uuidv4();
 
         try {
             const group = Group.create(groupId, command.name, command.adminId, command.description);
@@ -56,7 +75,29 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
             });
 
         } catch (error) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.INVALID_DETAILS));
+            if (error instanceof ErrorData) {
+                return Either.makeLeft(error);
+            }
+
+            if (error instanceof Error && error.message.includes('validation')) {
+                return Either.makeLeft(
+                    DomainErrorFactory.validation(
+                        errorContext,
+                        { general: [error.message] },
+                        GROUP_ERRORS.INVALID_DETAILS
+                    )
+                );
+            }
+
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during group creation: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                errorContext,
+                error as Error
+            );
+
+            return Either.makeLeft(unexpectedError);
         }
     }
 }

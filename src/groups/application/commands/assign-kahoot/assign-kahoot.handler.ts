@@ -8,10 +8,12 @@ import { Inject } from "@nestjs/common";
 import { GROUP_ERRORS } from "../group.errors";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
-import { Either } from "src/core/types/either";
+import { Either, ErrorData, ErrorLayer } from "src/core/types";
 
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 
 @CommandHandler(AssignKahootToGroupCommand)
@@ -23,34 +25,61 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
         private readonly kahootRepository: IKahootRepository,
     ) { }
 
-    async execute(command: AssignKahootToGroupCommand): Promise<Either<Error, AssignKahootToGroupResponse>> {
+    async execute(command: AssignKahootToGroupCommand): Promise<Either<ErrorData, AssignKahootToGroupResponse>> {
+        const errorContext = createDomainContext('Group', 'assignKahoot', {
+            domainObjectId: command.groupId,
+            actorId: command.userId,
+            userId: command.userId,
+            kahootId: command.kahootId,
+        });
 
         const groupOptional = await this.groupRepository.findById(command.groupId);
 
         if (!groupOptional.hasValue()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_FOUND));
+            return Either.makeLeft(
+                DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND)
+            );
         }
 
         const group = groupOptional.getValue();
 
         if (!group.isAdmin(new UserId(command.userId))) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.ONLY_ADMIN));
+            return Either.makeLeft(
+                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.ONLY_ADMIN)
+            );
         }
 
         const kahootOptional = await this.kahootRepository.findKahootById(new KahootId(command.kahootId));
 
         if (!kahootOptional.hasValue()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_FOUND_KAHOOT));
+            return Either.makeLeft(
+                DomainErrorFactory.notFound(
+                    { ...errorContext, domainObjectType: 'Kahoot', domainObjectId: command.kahootId },
+                    GROUP_ERRORS.NOT_FOUND_KAHOOT
+                )
+            );
         }
 
         const kahoot = kahootOptional.getValue();
 
         if (kahoot.isDraft()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.KAHOOT_IS_DRAFT));
+            return Either.makeLeft(
+                DomainErrorFactory.validation(
+                    errorContext,
+                    { kahootId: [GROUP_ERRORS.KAHOOT_IS_DRAFT] },
+                    GROUP_ERRORS.KAHOOT_IS_DRAFT
+                )
+            );
         }
 
         if (command.availableFrom > command.availableUntil) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.INVALID_DATE_RANGE));
+            return Either.makeLeft(
+                DomainErrorFactory.validation(
+                    errorContext,
+                    { dateRange: [GROUP_ERRORS.INVALID_DATE_RANGE] },
+                    GROUP_ERRORS.INVALID_DATE_RANGE
+                )
+            );
         }
 
         try {
@@ -67,7 +96,19 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
             });
 
         } catch (error) {
-            return Either.makeLeft(new Error(error.message));
+            if (error instanceof ErrorData) {
+                return Either.makeLeft(error);
+            }
+
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during kahoot assignment: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                errorContext,
+                error as Error
+            );
+
+            return Either.makeLeft(unexpectedError);
         }
     }
 

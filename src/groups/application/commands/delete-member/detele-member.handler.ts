@@ -2,7 +2,7 @@ import { RepositoryName } from "src/database/infrastructure/catalogs/repository.
 import { DeleteMemberCommand } from "./delete-member.command";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { Inject } from "@nestjs/common";
-import { Either } from "src/core/types/either";
+import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { GROUP_ERRORS } from "../group.errors";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { EVENT_BUS_TOKEN } from "src/core/domain/ports/event-bus.token";
@@ -12,6 +12,8 @@ import { MemberRemovedEvent } from "src/core/domain/domain-events/member-removed
 
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 @CommandHandler(DeleteMemberCommand)
 export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand> {
@@ -23,7 +25,13 @@ export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand>
     ) { }
 
 
-    async execute(command: DeleteMemberCommand): Promise<Either<Error, void>> {
+    async execute(command: DeleteMemberCommand): Promise<Either<ErrorData, void>> {
+        const errorContext = createDomainContext('Group', 'deleteMember', {
+            domainObjectId: command.groupId,
+            actorId: command.requesterId,
+            userId: command.requesterId,
+            targetUserId: command.targetUserId,
+        });
 
         const requesterId = new UserId(command.requesterId);
         const targetUserId = new UserId(command.targetUserId);
@@ -31,21 +39,29 @@ export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand>
         const groupOptional = await this.groupRepository.findById(command.groupId);
 
         if (!groupOptional.hasValue()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_FOUND));
+            return Either.makeLeft(
+                DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND)
+            );
         }
 
         const group = groupOptional.getValue();
 
         if (!group.isAdmin(requesterId)) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_ADMIN));
+            return Either.makeLeft(
+                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
+            );
         }
 
         if (!group.isMember(targetUserId)) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_MEMBER));
+            return Either.makeLeft(
+                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER)
+            );
         }
 
         if (group.isAdmin(targetUserId)) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.CANNOT_DELETE_ADMIN));
+            return Either.makeLeft(
+                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.CANNOT_DELETE_ADMIN)
+            );
         }
 
         try {
@@ -57,7 +73,19 @@ export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand>
 
             return Either.makeRight(undefined);
         } catch (error) {
-            return Either.makeLeft(new Error(error.message));
+            if (error instanceof ErrorData) {
+                return Either.makeLeft(error);
+            }
+
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during member deletion: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                errorContext,
+                error as Error
+            );
+
+            return Either.makeLeft(unexpectedError);
         }
     }
 

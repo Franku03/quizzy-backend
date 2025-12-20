@@ -157,7 +157,7 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
 
 
 
-  public transferAdmin(requesterId: UserId, targetUserId: UserId, isAdminPremium: boolean): void {
+  public transferAdmin(requesterId: UserId, targetUserId: UserId): void {
     if (!this.isAdmin(requesterId)) {
       throw new Error("Solo el admin del grupo puede transferir el admin.");
     }
@@ -170,6 +170,9 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     }
 
     this.properties.adminId = targetUserId;
+
+    this.properties.members.find(member => member.getUserId().equals(requesterId))?.changeRole(new Role(GroupMemberRole.MEMBER));
+    this.properties.members.find(member => member.getUserId().equals(targetUserId))?.changeRole(new Role(GroupMemberRole.ADMIN));
   }
 
 

@@ -5,12 +5,14 @@ import type { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository'
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import type { ITokenGenerator } from 'src/groups/domain/domain-services/i.token-generator.service.interface';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
-import { Either } from 'src/core/types/either';
+import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { GROUP_ERRORS } from '../group.errors';
 import { InvitationResponse } from '../response-dtos/generate-invitation.response.dto';
 
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 
 @CommandHandler(GenerateInvitationCommand)
@@ -22,17 +24,27 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
         private readonly tokenGenerator: ITokenGenerator,
     ) { }
 
-    async execute(command: GenerateInvitationCommand): Promise<Either<Error, InvitationResponse>> {
+    async execute(command: GenerateInvitationCommand): Promise<Either<ErrorData, InvitationResponse>> {
+        const errorContext = createDomainContext('Group', 'generateInvitation', {
+            domainObjectId: command.groupId,
+            actorId: command.adminId,
+            userId: command.adminId,
+        });
+
         const groupOptional = await this.groupRepository.findById(command.groupId);
         if (!groupOptional.hasValue()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_FOUND));
+            return Either.makeLeft(
+                DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND)
+            );
         }
 
         const group = groupOptional.getValue();
         const requesterId = new UserId(command.adminId);
 
         if (!group.isAdmin(requesterId)) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.NOT_ADMIN));
+            return Either.makeLeft(
+                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
+            );
         }
 
         try {
@@ -42,9 +54,7 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
                 command.expiresInDays
             );
 
-
             await this.groupRepository.save(group);
-
 
             const baseUrl = 'https://quizzy.app/groups/join';
             const link = `${baseUrl}?token=${tokenVO.getValue()}`;
@@ -56,7 +66,19 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
             });
 
         } catch (error) {
-            return Either.makeLeft(error);
+            if (error instanceof ErrorData) {
+                return Either.makeLeft(error);
+            }
+
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during invitation generation: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                errorContext,
+                error as Error
+            );
+
+            return Either.makeLeft(unexpectedError);
         }
     }
 }

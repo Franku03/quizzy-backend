@@ -4,7 +4,7 @@ import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository"
 import type { IUserRepository } from "src/users/domain/ports/IUserRepository";
 import { Inject } from "@nestjs/common";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { Either } from "src/core/types/either";
+import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { GROUP_ERRORS } from "../group.errors";
 import { JoinGroupResponse } from "../response-dtos/join-group.response.dto";
 import { InvitationToken } from "src/groups/domain/value-objects/group.invitation.token";
@@ -14,6 +14,8 @@ import { GroupMemberRole } from "src/groups/domain/value-objects/group.member.ro
 
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 @CommandHandler(JoinGroupCommand)
 export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
@@ -24,20 +26,30 @@ export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
         private readonly userRepository: IUserRepository,
     ) { }
 
-    async execute(command: JoinGroupCommand): Promise<Either<Error, JoinGroupResponse>> {
+    async execute(command: JoinGroupCommand): Promise<Either<ErrorData, JoinGroupResponse>> {
+        const errorContext = createDomainContext('Group', 'joinGroup', {
+            userId: command.userId,
+            actorId: command.userId,
+            invitationToken: command.invitationToken,
+        });
 
         const groupOptional = await this.groupRepository.findByInvitationToken(command.invitationToken);
 
-
-
         if (!groupOptional.hasValue()) {
-            return Either.makeLeft(new Error(GROUP_ERRORS.INVALID_INVITATION_TOKEN));
+            return Either.makeLeft(
+                DomainErrorFactory.validation(
+                    errorContext,
+                    { invitationToken: [GROUP_ERRORS.INVALID_INVITATION_TOKEN] },
+                    GROUP_ERRORS.INVALID_INVITATION_TOKEN
+                )
+            );
         }
 
         const group = groupOptional.getValue();
+        const groupId = group.getId().value;
+        const updatedContext = { ...errorContext, domainObjectId: groupId };
 
         try {
-
             const userToJoin = new UserId(command.userId);
             // pending: descomentar cuando se tenga el repositorio de usuarios
 
@@ -60,14 +72,18 @@ export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
             );
 
             if (group.isMember(userToJoin)) {
-                return Either.makeLeft(new Error(GROUP_ERRORS.ALREADY_MEMBER));
+                return Either.makeLeft(
+                    DomainErrorFactory.conflict(
+                        updatedContext,
+                        'DUPLICATE',
+                        GROUP_ERRORS.ALREADY_MEMBER
+                    )
+                );
             }
 
             group.joinGroup(userToJoin, tokenVO, isAdminPremium);
 
-
             await this.groupRepository.save(group);
-
 
             return Either.makeRight({
                 groupId: group.getId().value,
@@ -77,7 +93,19 @@ export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
             });
 
         } catch (error) {
-            return Either.makeLeft(error);
+            if (error instanceof ErrorData) {
+                return Either.makeLeft(error);
+            }
+
+            const unexpectedError = new ErrorData(
+                "APPLICATION_UNEXPECTED_ERROR",
+                `Unexpected error during join group: ${error instanceof Error ? error.message : String(error)}`,
+                ErrorLayer.APPLICATION,
+                updatedContext,
+                error as Error
+            );
+
+            return Either.makeLeft(unexpectedError);
         }
     }
 }

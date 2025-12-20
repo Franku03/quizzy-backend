@@ -20,6 +20,7 @@ import { JoinGroupHandler } from './application/commands/join-group/join-group.h
 import { DeleteMemberHandler } from './application/commands/delete-member/detele-member.handler';
 import { DeleteGroupHandler } from './application/commands/delete-group/delete-group.handler';
 import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot/assign-kahoot.handler';
+import { TransferAdminHandler } from './application/commands/transfer-admin/transfer-admin.handler';
 
 @Module({
     controllers: [GroupsController],
@@ -39,6 +40,7 @@ import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot
         DeleteMemberHandler,
         DeleteGroupHandler,
         AssignKahootToGroupHandler,
+        TransferAdminHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,
