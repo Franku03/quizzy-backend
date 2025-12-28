@@ -1,8 +1,8 @@
 // src/solo-attempts/application/queries/get-resume-context/get-resume-context.handler.ts
 
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
-import { Optional } from 'src/core/types/optional';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetAttemptStatusQuery } from './get-attempt.query';
 import { AttemptResumeReadModel } from '../read-models/resume.attempt.read.model';

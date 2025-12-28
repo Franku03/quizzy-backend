@@ -1,6 +1,6 @@
 import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, Get, UseGuards } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';import { Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { GET_DETAILED_REPORT_ERROR_CODES } from 'src/reports/application/queries/get-solo-attempt-report/attempt.report.errors';
 import { AttemptReportReadModel } from 'src/reports/application/queries/read-models/solo.attempt.report.read.model';
 import { GetDetailedReportQuery } from 'src/reports/application/queries/get-solo-attempt-report/attempt.report.query';

@@ -1,4 +1,5 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetFeaturedKahootsQuery } from './get-featured-kahoots.query';
 import { KahootListReadModel } from '../../read-models/kahoot-list.read-model';

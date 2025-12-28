@@ -1,5 +1,6 @@
 // src/explore/application/queries/get-public-kahoots/get-public-kahoots.handler.ts
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetPublicKahootsQuery } from './get.public.kahoots.query';
 import { PaginatedKahootListReadModel } from '../../read-models/kahoot-list.read-model';

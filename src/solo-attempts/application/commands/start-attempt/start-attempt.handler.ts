@@ -1,4 +1,5 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { StartSoloAttemptCommand } from './start-attempt.command';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
@@ -17,6 +18,7 @@ import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
+
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
   constructor(
@@ -35,12 +37,16 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const kahootId = new KahootId(command.kahootId);
     const playerId = new UserId(command.userId);
     
-    // We Fetch the Kahoot Aggregate to ensure it exists 
-    const kahootOptional = await this.kahootRepository.findKahootById(kahootId);
-    if (!kahootOptional.hasValue()) {
+    // We Fetch the Kahoot Aggregate to ensure it exists
+    const kahootIdString = kahootId.value;
+    const kahootEither = await this.kahootRepository.findKahootByIdEither(kahootIdString);
+    if (kahootEither.isLeft()) {
       throw new Error(START_ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
     }
-    const kahoot = kahootOptional.getValue();
+    const kahoot = kahootEither.getRight();
+    if (kahoot === null) {
+      throw new Error(START_ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
+    }
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
     if (kahoot.isDraft()){

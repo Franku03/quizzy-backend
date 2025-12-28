@@ -1,7 +1,8 @@
 import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, Get, UseGuards } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 import { StartSoloAttemptCommand } from 'src/solo-attempts/application/commands/start-attempt/start-attempt.command';
-import { Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SubmissionMapper } from 'src/solo-attempts/application/commands/mappers/submission.mapper';
 import { SubmitAnswerCommand } from 'src/solo-attempts/application/commands/submit-answer/submit-answer.command';
 // import { JwtAuthGuard } from 'src/auth/infrastructure/guards/jwt-auth.guard';

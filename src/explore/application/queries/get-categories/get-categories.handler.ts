@@ -1,5 +1,6 @@
 // src/explore/application/queries/get-categories/get-categories.handler.ts
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetCategoriesQuery } from './get-categories.query';
 import { CategoryReadModel } from '../../read-models/category.read-model';

@@ -1,10 +1,9 @@
 // src/solo-attempts/application/queries/get-attempt-summary/get-attempt-summary.handler.ts
-
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetAttemptSummaryQuery } from './get-summary.query';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
-import { Optional } from 'src/core/types/optional';
 import { AttemptSummaryReadModel } from '../read-models/summary.attempt.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GET_SUMMARY_ERROR_CODES } from './get-summary.errors';

@@ -1,6 +1,7 @@
 // src/singleplayer/application/commands/submit-answer/submit-answer.handler.ts
 
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
+import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { SubmitAnswerCommand } from './submit-answer.command';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
@@ -74,14 +75,19 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
       );
     }
 
-    // We load the Kahoot Aggregate using the kahootId from the attempt
-    const kahootOptional = await this.kahootRepository.findKahootById(attempt.kahootId);
-    if (!kahootOptional.hasValue()) {
-      throw new Error(
-        `${SUBMIT_ANSWER_ERROR_CODES.KAHOOT_NOT_FOUND}: Kahoot ${attempt.kahootId.value} not found`
-      );
+    // We fetch the Kahoot Aggregate to evaluate the answer
+    // This is necessary because the evaluation logic depends on Kahoot data
+    // such as correct answers, slide types, scoring rules, etc.
+    const kahootIdString = attempt.kahootId.value;
+    const kahootEither = await this.kahootRepository.findKahootByIdEither(kahootIdString);
+    if (kahootEither.isLeft()) {
+      const errorData = kahootEither.getLeft();
+      throw new Error(SUBMIT_ANSWER_ERROR_CODES.KAHOOT_NOT_FOUND);
     }
-    const kahoot = kahootOptional.getValue();
+    const kahoot = kahootEither.getRight();
+    if (kahoot === null) {
+      throw new Error(SUBMIT_ANSWER_ERROR_CODES.KAHOOT_NOT_FOUND);
+    }
 
     // We use the application layer mapper to create a Submission value object 
     // from the player's response data provided in the command

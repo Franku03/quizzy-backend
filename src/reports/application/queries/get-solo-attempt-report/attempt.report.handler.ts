@@ -1,8 +1,8 @@
 // src/solo-attempts/application/queries/get-detailed-report/get-detailed-report.handler.ts
 
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
-import { Optional } from 'src/core/types/optional';
 import { GetDetailedReportQuery } from './attempt.report.query';
 import { AttemptReportReadModel } from '../read-models/solo.attempt.report.read.model';
 import type { ISoloAttemptQueryDao } from 'src/solo-attempts/application/queries/ports/attempts.dao.port';
