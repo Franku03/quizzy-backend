@@ -32,6 +32,9 @@ import { TransferAdminDto } from 'src/groups/application/commands/request-dtos/t
 import { TransferAdminCommand } from 'src/groups/application/commands/transfer-admin/transfer-admin.command';
 import { TransferAdminResponse } from 'src/groups/application/commands/response-dtos/transfer-admin.response.dto';
 
+import { GetGroupLeaderboardQuery } from 'src/groups/application/queries/get-leaderboard/get-group-leaderboard.query';
+import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
+
 @Controller('groups')
 export class GroupsController {
     constructor(
@@ -151,5 +154,17 @@ export class GroupsController {
     ): Promise<TransferAdminResponse> {
         const command = new TransferAdminCommand(groupId, userId, dto.newAdminId);
         return await this.executor.executeCommand<TransferAdminResponse>(command);
+    }
+
+    // Obtener el leaderboard de un grupo
+    @Get(':groupId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupLeaderboard(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<GroupLeaderboardReadModel[]> {
+        const query = new GetGroupLeaderboardQuery(userId, groupId);
+        return await this.executor.executeQuery<GroupLeaderboardReadModel[]>(query);
     }
 }
