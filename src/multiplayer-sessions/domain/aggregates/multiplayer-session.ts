@@ -31,8 +31,8 @@ interface MultiplayerSessionProps {
 
 export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, MultiplayerSessionId> {
 
+    // TODO: Quitar Eventos de dominio pues parace que no los usaré
     private domainEvents: DomainEvent[] = [];
-    
 
     public constructor(props: MultiplayerSessionProps, id: MultiplayerSessionId){
 
@@ -223,6 +223,8 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     public startSession(): void {
 
+        if( this.getCurrentSlideIndex() !== 0 )
+            throw new Error("No se puede empezar una partida en una slide que no sea la primero (O la partida ya comenzó)");
 
         if( this.properties.players.size < 1 )
             throw new Error("No se puede empezar una partida con menos de un jugador conectado");

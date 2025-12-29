@@ -13,7 +13,7 @@ interface ConnectedClients {
 }
 
 @Injectable()
-export class MultiplayerSessionsService {
+export class MultiplayerSessionsTracingService {
 
     private availableRooms: Map<string, ConnectedClients> = new Map<string, ConnectedClients>();
 

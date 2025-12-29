@@ -13,7 +13,7 @@ import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessio
 import { Either } from '../../../../core/types/either';
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 
-import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
+import { mapSnapshotsToQuestionResponse } from "../../mappers/map-snapshots-to-response";
 
 
 
@@ -38,31 +38,19 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
             const { session, kahoot } = sessionWrapper
 
-            // Verificamos algunas incoherencias con los datos a devolver
+            // * Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta
+            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
 
-            const currentSlideIndex = session.getCurrentSlideIndex();
-
-            if( currentSlideIndex !== 0 )
-                return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
-
-            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot);
-
-
-            // ? Ahora si, iniciamos la partida
-
+            // * Iniciamos la partida
             session.startSession(); // Pasa a estado question automaticamente
-
-            if( !session.getSessionState().isQuestion() )
-                return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
 
             // * Creamos la tabla de resultados
             session.startSlideResults( new SlideId( currentSlideSnapshot.id ) );
 
-
             return Either.makeRight({
                 
                 state: session.getSessionStateType(),
-                questionIndex: currentSlideIndex,
+                questionIndex: session.getCurrentSlideIndex(),
                 currentSlideData: currentSlideSnapshot
     
             });

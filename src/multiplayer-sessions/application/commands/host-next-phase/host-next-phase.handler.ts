@@ -17,8 +17,8 @@ import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
 import { SessionArchiverService, UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
 
-import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
-import { mapEntriesToResponse } from "../../helpers/map-entries-to-scoreboard";
+import { mapSnapshotsToQuestionResponse } from "../../mappers/map-snapshots-to-response";
+import { mapEntriesToResponse } from "../../mappers/map-entries-to-scoreboard";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
@@ -46,8 +46,6 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
     async execute(command: HostNextPhaseCommand): Promise<Either<Error, HostNextPhaseResponse >> {
 
-
-        // TODO: Todo este handler requiere un tremendo refactoring
         try {
             // Cargamos el agregado session desde el repositorio en memoria
             const sessionWrapper = await this.sessionRepository.findByPin( command.sessionPin );
@@ -60,9 +58,10 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
             // 1) Lógica previa (Cálculo de puntajes)
             // Solo necesitamos calcular puntajes si estamos SALIENDO de una pregunta ( QUESTION -> RESULTS )
-            if( session.getSessionState().isQuestion()){
+            if( session.getSessionState().isQuestion() ){
 
                 this.updateProgressAndRankingService.updateSessionProgressAndRanking( kahoot, session );
+                
             }
 
             // 2) transicionar el estado de la sesión, el agregado se encarga de validar la transición

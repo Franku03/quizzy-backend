@@ -10,19 +10,16 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
-import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
-import { SlideId } from '../../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
-import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
 import { CreateSessionResponse } from "../../response-dtos/create-session.response.dto";
 import { Either } from '../../../../core/types/either';
 
-import { CREATE_SESSION_ERRORS } from "./create-session.errors";
-import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { CREATE_SESSION_ERRORS } from "./create-session.errors";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -38,8 +35,9 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         @Inject( UuidGenerator )
         private readonly IdGenerator: IdGenerator<string>,
 
-        @Inject( CryptoGeneratePinService)
-        private readonly sessionPinGenerator: IGeneratePinService
+        @Inject( CryptoGeneratePinService )
+        private readonly sessionPinGenerator: IGeneratePinService,
+
     ){}
 
     async execute(command: CreateSessionCommand): Promise<Either<Error,CreateSessionResponse>> {
@@ -78,33 +76,28 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
 
             }
 
+            // TODO: mover esta validación a un método dentro de kahoot
+            // Obtenemos el IDuser del host y verificamos que el kahoot le corresponda en caso de ser privado, y que el kahoot no esté en draft
+            const hostIdString = command.hostId
 
-            // Creamos el idUser del host y verificamos que el kahoot le corresponda
-            const hostId = new UserId( command.hostId );
+            // Regla 1: No se puede jugar si es Draft
+            if( kahoot.isDraft() )
+                return Either.makeLeft( new Error(CREATE_SESSION_ERRORS.KAHOOT_IS_DRAFT) );
 
-            if( !(hostId.value === kahoot.authorId) )
+            // Regla 2: Si es privado, solo el autor puede hostearlo
+            if( kahoot.isPrivate() && !(command.hostId === kahoot.authorId) )
                 return Either.makeLeft( new Error(CREATE_SESSION_ERRORS.USER_UNAUTHORIZED) );
 
-            // Obtenemos la informacion del kahoot necesaria para construir el player session
-            const slideId = new SlideId( kahoot.getNextSlideSnapshotByIndex()?.id! )
-
-            const kahootInfo = {
-                kahootId: kahoot.id,
-                firstSlideId: slideId,
-                slidesNumber: kahoot.hasHowManySlides(), // ! Algo me dice que hay un problema con el numero de slidesTotales y el progreso
-            }
-
-            // Creamos el id de la sesion y reconstruimos el VO del id del user host
+            // Creamos el id de la sesion y para que la fábrica construya el VO del id de la sesión en base al mismo
             const sessionIdString = await this.IdGenerator.generateId();
-            const sessionId = new MultiplayerSessionId( sessionIdString );
 
             // Generamos el Pin de la sesion
             const pin = await this.sessionPinGenerator.generateUniquePin();
 
             const session = MultiplayerSessionFactory.createMultiplayerSession(
-                kahootInfo,
-                hostId,
-                sessionId,
+                kahoot,
+                hostIdString,
+                sessionIdString,
                 pin
             )
 
@@ -114,7 +107,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 kahoot,
             });
 
-            return Either.makeRight({ sessionPin: pin, sessionId: sessionId.value, qrToken: qrToken }); 
+            return Either.makeRight({ sessionPin: pin, sessionId: session.idToString(), qrToken: qrToken }); 
 
         } catch (error) {
 

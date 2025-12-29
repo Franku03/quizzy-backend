@@ -3,14 +3,14 @@ import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGa
 import { CommandBus } from '@nestjs/cqrs';
 import { Server } from 'socket.io';
 
-import { MultiplayerSessionsService } from './multiplayer-sessions.logging.service';
+import { MultiplayerSessionsTracingService } from './multiplayer-sessions.tracing.service';
 
 import { SessionRoles } from './enums/session-roles.enum';
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from './enums/websocket.events.enum';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 import type { SessionSocket  } from './interfaces/socket-definitions.interface';
 
-import { JoinPlayerCommand } from 'src/multiplayer-sessions/application/commands/join-player/join-player.command';
+import { PlayerJoinCommand } from 'src/multiplayer-sessions/application/commands/player-join/player-join.command';
 import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
 import { PlayerSubmitAnswerCommand } from 'src/multiplayer-sessions/application/commands/player-submit-answer/player-submit-answer.command';
 import { HostNextPhaseCommand } from 'src/multiplayer-sessions/application/commands/host-next-phase/host-next-phase.command';
@@ -31,13 +31,11 @@ import { Either } from 'src/core/types/either';
 export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatewayDisconnect {
 
     @WebSocketServer() wss: Server;
-
-    private logger = new Logger('WebSocketGateway');
+    private readonly logger: Logger = new Logger('WebSocketGateway')
 
     constructor(
-      private readonly loggingWsService: MultiplayerSessionsService,
+      private readonly tracingWsService: MultiplayerSessionsTracingService,
       private readonly commandBus: CommandBus,
-      
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.PORT }`);
     }
@@ -59,7 +57,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
   
             // ! Validar que este usuario es realmente el dueño de la sesión 'pin'
   
-            this.loggingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
+            this.tracingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
               
             client.emit( ServerEvents.HOST_CONNECTED_SUCCESS, { status: 'IN_LOBBY - CONNECTED TO SERVER' });
               
@@ -76,7 +74,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         // Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
         client.join( pin );
 
-        this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
+        this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
 
         console.log(`${client.data.role} conectado a la sala ${pin}`);
 
@@ -92,7 +90,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   
-        this.loggingWsService.logConnectedClients(); // Registramos en logging en memoria
+        this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
         
       } catch (error) {
         
@@ -140,7 +138,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       console.log('Cliente Desconectado', client.id );
       try {
 
-        this.loggingWsService.removeClient( roomPin ,client.id );
+        this.tracingWsService.removeClient( roomPin ,client.id );
 
       } catch (error) {
 
@@ -164,7 +162,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
  
 
         const res: Either<Error, GameStateUpdateResponse> = 
-          await this.commandBus.execute( new JoinPlayerCommand( client.data.userId, client.data.nickname, client.data.roomPin ) );
+          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, client.data.nickname, client.data.roomPin ) );
 
         if( res.isRight() ){
 

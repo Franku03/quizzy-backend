@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { MultiplayerSessionsController, MultiplayerSessionsGateway, MultiplayerSessionsService } from './infrastructure/nest-js';
+import { MultiplayerSessionsController, MultiplayerSessionsGateway, MultiplayerSessionsTracingService } from './infrastructure/nest-js';
 
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { 
@@ -10,7 +12,7 @@ import {
   GetPinWithQrTokenHandler, 
   HostNextPhaseHandler, 
   HostStartGameHandler, 
-  JoinPlayerHandler, 
+  PlayerJoinHandler, 
   PlayerSubmitAnswerHandler, 
   SaveSessionHandler 
 } from './application/commands';
@@ -27,11 +29,12 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
   imports: [
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
+    DaoFactoryModule.forFeature(DaoName.User), 
     CqrsModule,
   ],
   providers: [
     MultiplayerSessionsGateway, 
-    MultiplayerSessionsService,
+    MultiplayerSessionsTracingService,
     // Injectables
     InMemoryActiveSessionRepository,
     CryptoGeneratePinService,
@@ -40,7 +43,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     //Commands
     CreateSessionHandler,
     GetPinWithQrTokenHandler,
-    JoinPlayerHandler,
+    PlayerJoinHandler,
     HostStartGameHandler,
     PlayerSubmitAnswerHandler,
     HostNextPhaseHandler,
