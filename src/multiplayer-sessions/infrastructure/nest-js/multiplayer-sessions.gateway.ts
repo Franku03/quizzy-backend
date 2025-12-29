@@ -12,16 +12,16 @@ import type { SessionSocket  } from './interfaces/socket-definitions.interface';
 
 import { JoinPlayerCommand } from 'src/multiplayer-sessions/application/commands/join-player/join-player.command';
 import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
-import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
-import { QuestionStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/question-started.response.dto';
-
-import { Either } from 'src/core/types/either';
 import { PlayerSubmitAnswerCommand } from 'src/multiplayer-sessions/application/commands/player-submit-answer/player-submit-answer.command';
-import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
 import { HostNextPhaseCommand } from 'src/multiplayer-sessions/application/commands/host-next-phase/host-next-phase.command';
-import { SessionStateType } from 'src/multiplayer-sessions/domain/value-objects';
-import { QuestionResultsResponse } from 'src/multiplayer-sessions/application/response-dtos/question-results.response.dto';
-import { SaveSessionCommand } from 'src/multiplayer-sessions/application/commands/save-session/save-session.command';
+import { HostNextPhaseType } from '../../application/response-dtos/enums/host-next-phase-type.enum';
+
+import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
+import { HostNextPhaseResponse } from 'src/multiplayer-sessions/application/response-dtos/types/host-next-phase-response.type';
+import { GameStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/game-started.response.dto';
+
+import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
+import { Either } from 'src/core/types/either';
 
 
 
@@ -35,12 +35,11 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     private logger = new Logger('WebSocketGateway');
 
     constructor(
-      // * Quitar el servicio, esta para realizar impresiones en consola
       private readonly loggingWsService: MultiplayerSessionsService,
       private readonly commandBus: CommandBus,
       
     ) {
-      this.logger.log(`WebSocketServer running on port ${ process.env.WEB_SOCKET_SERVER_PORT }`);
+      this.logger.log(`WebSocketServer running on port ${ process.env.PORT }`);
     }
 
     async handleConnection( client: SessionSocket ) {
@@ -74,7 +73,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
   
         }
 
-        // ? Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
+        // Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
         client.join( pin );
 
         this.loggingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
@@ -82,7 +81,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         console.log(`${client.data.role} conectado a la sala ${pin}`);
 
 
-        // ? Guardamos la data de los clientes en su propio socket
+        // Guardamos la data de los clientes en su propio socket
         client.data.roomPin = pin as string;
 
         client.data.role = role as SessionRoles;
@@ -233,7 +232,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
  
 
-        const res: Either<Error, QuestionStartedResponse> = 
+        const res: Either<Error, GameStartedResponse> = 
           await this.commandBus.execute( new HostStartGameCommand( client.data.roomPin ) );
 
         if( res.isRight() ){
@@ -263,39 +262,37 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
  
 
-        const res: Either<Error, QuestionStartedResponse | QuestionResultsResponse > = 
+        const result: Either<Error, HostNextPhaseResponse > = 
           await this.commandBus.execute( new HostNextPhaseCommand( client.data.roomPin ) );
 
-        if( res.isRight() ){
-
-          const state = res.getRight().state
-
-          if( state === SessionStateType.RESULTS ){
-
-            this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res.getRight() );
-
-          } else if ( state === SessionStateType.QUESTION ) {
-            
-            this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
-
-          } else {
-
-            // ! Definitivamente necesitamos eventos de dominio, este handler quedo muy feo en codigo, esta logica deberia estar fuera
-            const saveRes: Either<Error, boolean > = 
-              await this.commandBus.execute( new SaveSessionCommand( client.data.roomPin ) );
-
-            if( saveRes.isLeft() )
-              this.handleError( client, saveRes.getLeft() );
+        if( result.isRight() ){
 
 
-            this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res.getRight() )
+          const res = result.getRight();
+
+          switch( res.type ){
+
+            case HostNextPhaseType.QUESTION_STARTED:
+
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res );
+              break;  
+
+            case HostNextPhaseType.QUESTION_RESULTS:
+
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res );
+              break;
+
+            case HostNextPhaseType.GAME_END: 
+              // Si llegamos aquí, GARANTIZAMOS que está en la BD.  
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res)  
+              break;
+              
           }
           
 
         } else {
 
-
-          this.handleError( client, res.getLeft() );
+          this.handleError( client, result.getLeft() );
 
         }
 

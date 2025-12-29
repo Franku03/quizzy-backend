@@ -66,7 +66,7 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
         // ? Para mejorar rendimiento podemos hacer que si un kahoot ya se encuentra registrado, simplemente tomemos la referencia de uno ya existente y asociemos ese al MemorySessionContext
         const { session, kahoot } = sessionWraper;
 
-        this.activeSessions.set( session.getSessionPin().getPin() , {
+        this.activeSessions.set( session.getSessionPin() , {
              session, 
              kahoot,
              lastActivity: Date.now() // Actualizamos el timestamp de última actividad
@@ -80,7 +80,7 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
         this.qrTokens.set( 
             token, 
             { 
-                pin: session.getSessionPin().getPin(), 
+                pin: session.getSessionPin(), 
                 createdAt: Date.now() 
             }
         );

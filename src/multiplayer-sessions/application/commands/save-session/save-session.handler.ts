@@ -7,21 +7,28 @@ import { COMMON_ERRORS } from "../common.errors";
 import { SaveSessionCommand } from "./save-session.command";
 
 import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
+import { SessionArchiverService } from "src/multiplayer-sessions/domain/domain-services";
 
 import { Either } from '../../../../core/types/either';
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 
-
+// Este caso de uso es utilizado cuando el host decide finalizar la partida antes de que se hayan mostrado todas las preguntas
 @CommandHandler( SaveSessionCommand )
 export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
 
+    private readonly sessionArchiverService: SessionArchiverService;
 
-constructor(
+    constructor(
         @Inject(RepositoryName.MultiplayerSession)
         private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
-    ){}
+    ){
+        this.sessionArchiverService = new SessionArchiverService(
+            this.sessionSavingRepository,
+            this.sessionRepository
+        );
+    }
 
     async execute(command: SaveSessionCommand): Promise<Either<Error, boolean >> {
 
@@ -35,19 +42,10 @@ constructor(
 
             const { session } = sessionWrapper;
 
-            // validamos que todo este en orden antes de guardar y que no hayan inconsistencia
-            session.validateAllInvariantsForCompletion();
+            // Procesamos la limpieza y archivado de la sesión
+            await this.sessionArchiverService.archiveAndClean( session );
 
-            // TODO: Hacer mapeo de monadas Either desde la respuesta del saveSession
-            await this.sessionSavingRepository.archiveSession( session );
-
-            // Liberamos el recurso de memoria y tambien el pin del txt
-            await this.sessionRepository.delete( command.sessionPin );
-
-            // ? No hace falta pues ya lo hacemos en el repositorio en memoria
-            // await this.fileSystemRepo.releasePin( command.sessionPin );
-
-            // Respuesta guardada con exita
+            // Respuesta guardada con exito
             return Either.makeRight( true );
    
         } catch (error) {

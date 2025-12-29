@@ -24,7 +24,7 @@ export class UpdateSessionProgressAndRankingService {
         session.updateRanking();
 
         // Obtenemos la siguiente slide
-        const slideSnapshot = kahoot.getNextSlideSnapshotByIndex( session.getTotalOfSlidesAnswered() );
+        const slideSnapshot = kahoot.getNextSlideSnapshotByIndex( session.getCurrentSlideIndex() );
 
         // Si hay siguiente Slide actualizamos el progress y creamos una nueva entrada de SlideResult, si no lo dejamos tal cual pues deberia estar ya al 100%
         if( slideSnapshot ){

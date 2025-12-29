@@ -11,7 +11,6 @@ import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootReposito
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
 
-import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
@@ -23,6 +22,7 @@ import { Either } from '../../../../core/types/either';
 
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -48,14 +48,35 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         try {
             
             // Cargamos el agregado kahoot desde el repositorio
-            const tempKahootId = new KahootId( command.kahootId );
 
-            const kahootOpt = await this.kahootRepository.findKahootById( tempKahootId );
+            const searchedKahoot = await this.kahootRepository.findKahootByIdEither( command.kahootId );
 
-            if( !kahootOpt.hasValue() )
-                return Either.makeLeft( new Error(CREATE_SESSION_ERRORS.KAHOOT_NOT_FOUND) );
 
-            const kahoot = kahootOpt.getValue()
+            if( searchedKahoot.isLeft() ){
+
+                const error = searchedKahoot.getLeft();
+                return Either.makeLeft(error);
+
+            }
+                    
+            const kahoot = searchedKahoot.getRight()
+
+            if( !kahoot ){
+
+                const error = DomainErrorFactory.notFound(
+                    {
+                        domainObjectType: 'Kahoot',
+                        domainObjectId: command.kahootId,
+                        actorId: command.hostId,
+                        intendedAction: 'Create multiplayer session for a Kahoot',
+                        operation: 'CreateSessionHandler.execute',
+                    },
+                    CREATE_SESSION_ERRORS.KAHOOT_NOT_FOUND
+                );
+
+                return Either.makeLeft(error);
+
+            }
 
 
             // Creamos el idUser del host y verificamos que el kahoot le corresponda
@@ -78,7 +99,6 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             const sessionId = new MultiplayerSessionId( sessionIdString );
 
             // Generamos el Pin de la sesion
-                
             const pin = await this.sessionPinGenerator.generateUniquePin();
 
             const session = MultiplayerSessionFactory.createMultiplayerSession(
@@ -88,6 +108,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 pin
             )
 
+            // Guardamos la sesion en el repositorio de sesiones activas y obtenemos el token QR
             const qrToken = await this.sessionRepository.saveSession({
                 session,
                 kahoot,

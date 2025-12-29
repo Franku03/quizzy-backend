@@ -3,37 +3,51 @@ import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
 import { COMMON_ERRORS } from "../common.errors";
-
+import { HOST_NEXT_PHASE_ERRORS } from "./host-next-phase.errors";
+import { HostNextPhaseType } from "../../response-dtos/enums/host-next-phase-type.enum";
 
 
 import { HostNextPhaseCommand } from "./host-next-phase.command";
 import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 import { QuestionResultsResponse } from "../../response-dtos/question-results.response.dto";
 import { GameEndedResponse } from "../../response-dtos/game-ended.response.dto";
+import { HostNextPhaseResponse } from '../../response-dtos/types/host-next-phase-response.type';
 
-import { UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
-import { Either } from '../../../../core/types/either';
-import { HOST_NEXT_PHASE_ERRORS } from "./host-next-phase.errors";
+import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
+import { SessionArchiverService, UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
+import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
+
 import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
 import { mapEntriesToResponse } from "../../helpers/map-entries-to-scoreboard";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
-import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
+import { Either } from '../../../../core/types/either';
 
 @CommandHandler( HostNextPhaseCommand )
 export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseCommand> {
 
     private readonly updateProgressAndRankingService: UpdateSessionProgressAndRankingService;
+    private readonly sessionArchiverService: SessionArchiverService;
 
     constructor(
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
+
+        @Inject(RepositoryName.MultiplayerSession)
+        private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
     ){
-        this.updateProgressAndRankingService = new UpdateSessionProgressAndRankingService()
+        this.updateProgressAndRankingService = new UpdateSessionProgressAndRankingService();
+
+        this.sessionArchiverService = new SessionArchiverService(
+            this.sessionSavingRepository,
+            this.sessionRepository
+        )
     }
 
-    async execute(command: HostNextPhaseCommand): Promise<Either<Error, QuestionStartedResponse | QuestionResultsResponse | GameEndedResponse >> {
+    async execute(command: HostNextPhaseCommand): Promise<Either<Error, HostNextPhaseResponse >> {
 
 
+        // TODO: Todo este handler requiere un tremendo refactoring
         try {
             // Cargamos el agregado session desde el repositorio en memoria
             const sessionWrapper = await this.sessionRepository.findByPin( command.sessionPin );
@@ -43,80 +57,74 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
             const { session, kahoot } = sessionWrapper
 
-            if( session.getSessionState().isQuestion() ){
+
+            // 1) Lógica previa (Cálculo de puntajes)
+            // Solo necesitamos calcular puntajes si estamos SALIENDO de una pregunta ( QUESTION -> RESULTS )
+            if( session.getSessionState().isQuestion()){
 
                 this.updateProgressAndRankingService.updateSessionProgressAndRanking( kahoot, session );
+            }
 
-                // ? Avanzamos a results
+            // 2) transicionar el estado de la sesión, el agregado se encarga de validar la transición
+            const transitionResult = session.advanceToNextPhase();
 
-                session.advanceToNextPhase();
+            // 3) Mapear la respuesta según el estado correspondiente
+            switch ( transitionResult.state ) {
+                case StateTransitionsTypes.TRANSITION_TO_QUESTION:
+                    {
+                        const currentSlideIndex = session.getCurrentSlideIndex();
+                        const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
+                        const response: QuestionStartedResponse = {
+                            type: HostNextPhaseType.QUESTION_STARTED,
+                            data: {
+                                state: session.getSessionStateType(),
+                                questionIndex: currentSlideIndex,
+                                currentSlideData: currentSlideSnapshot
 
-                const response = mapEntriesToResponse( session, kahoot );
+                            }
+                        };
 
-                // ! Puede ocurrir que aqui llege un END
-                if( session.getSessionState().isEnd() ){
+                        return Either.makeRight( response );
+                    }
 
-                    
-                    const { playerScoreboard } = mapEntriesToResponse( session, kahoot );
+                case StateTransitionsTypes.TRANSITION_TO_RESULTS:
+                    {
+                        const response: QuestionResultsResponse = mapEntriesToResponse( session, kahoot );
+                        return Either.makeRight( response );
+                    }
 
-                    return Either.makeRight({
-                        state: session.getSessionStateType(),
-                        finalScoreboard: playerScoreboard,
-                        winnerNickname: playerScoreboard[0].nickname,
-                    });
+                case StateTransitionsTypes.TRANSITION_TO_END:
+                    {
+                        try {
 
-                } else {
- 
-                    return Either.makeRight( response );
+                            // Guardamos la partida en persistencia y limpiamos recursos
+                            await this.sessionArchiverService.archiveAndClean( session );
+                            
+                            const { playerScoreboard, state } = mapEntriesToResponse( session, kahoot ).data;
+                            const response: GameEndedResponse = {
+                                type: HostNextPhaseType.GAME_END,
+                                data: {
+                                    state: state,
+                                    finalScoreboard: playerScoreboard,
+                                    winnerNickname: playerScoreboard[0]?.nickname,
+                                }
+                            };
+                            return Either.makeRight(response);
 
+                        } catch (error) {
+                            // Si falla el guardado, podemos decidir qué hacer.
+                            // Lo ideal: Retornar Error (Left) para que el controller lo sepa
+                            // y el estado en memoria siga sucio pero recuperable, 
+                            return Either.makeLeft(new Error("Error crítico guardando la partida: " + error.message));
+                        }
 
-                }
+                    }
 
-
-
-            }else if( session.getSessionState().isResults() ){
-
-                const currentSlideIndex = session.getTotalOfSlidesAnswered();
-
-                // ? Avanzamos a question
-                session.advanceToNextPhase();
-
-                const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
-
-                // ! Puede ocurrir que aqui llege un END
-                if( session.getSessionState().isEnd() ){
-
-
-                    const { playerScoreboard } = mapEntriesToResponse( session, kahoot );
-
-                    return Either.makeRight({
-                        state: session.getSessionStateType(),
-                        finalScoreboard: playerScoreboard,
-                        winnerNickname: playerScoreboard[0].nickname,
-                    });
-
-                }else {
-
-    
-                    return Either.makeRight({
-                        state: session.getSessionStateType(),
-                        questionIndex: currentSlideIndex,
-                        currentSlideData: currentSlideSnapshot
-                    });
-
-
-                }
-
-
-
-            } else {
-
-                return Either.makeLeft( new Error(HOST_NEXT_PHASE_ERRORS.SESSION_INVALID_STATE) );
+                default:
+                    return Either.makeLeft( new Error(HOST_NEXT_PHASE_ERRORS.SESSION_INVALID_STATE) );
                 
             }
 
-
-   
         } catch (error) {
 
             return Either.makeLeft( error );

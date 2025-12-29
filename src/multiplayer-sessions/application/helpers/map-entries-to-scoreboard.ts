@@ -4,10 +4,11 @@ import { QuestionResultsResponse } from "../response-dtos/question-results.respo
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 import { HOST_NEXT_PHASE_ERRORS } from "../commands/host-next-phase/host-next-phase.errors";
+import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
 
 export const mapEntriesToResponse = ( session: MultiplayerSession, kahoot: Kahoot): QuestionResultsResponse => {
 
-    // const currentSlideIndex = session.getTotalOfSlidesAnswered();
+    // const currentSlideIndex = session.getCurrentSlideIndex();
 
     const currentSlideId = session.getCurrentSlideInSession(); 
 
@@ -43,9 +44,14 @@ export const mapEntriesToResponse = ( session: MultiplayerSession, kahoot: Kahoo
 
 
     return {
-        state: session.getSessionStateType(),
-        correctAnswerId: correctAnswerId,
-        playerScoreboard: scoreboard,
+
+        type: HostNextPhaseType.QUESTION_RESULTS,
+        data: {
+            state: session.getSessionStateType(),
+            correctAnswerId: correctAnswerId,
+            playerScoreboard: scoreboard,
+        }
+
     };
 
 }

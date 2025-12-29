@@ -47,24 +47,6 @@ export class SessionPin extends ValueObject<SessionPinProps> {
     }
 
 
-    // Para construccion del VO
-
-
-
-
-    // private static isPinAvailable( pin: string, verificationService: IVerifyAvailablePinService ): boolean {
-
-    //     return verificationService.verifyPin( pin );
-
-    // }
-
-    // private static generatePin( generationService: IGeneratePinService ): string {
-
-    //     return generationService.generateUniquePin();
-
-    // }
-
-
 
     // * Vieja version para generar el pin directamente con Math.random()
     // private static generatePin(): string {

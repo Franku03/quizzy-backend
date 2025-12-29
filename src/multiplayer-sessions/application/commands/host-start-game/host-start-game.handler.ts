@@ -5,7 +5,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 import { HostStartGameCommand } from "./host-start-game.command";
 import { COMMON_ERRORS } from "../common.errors";
 import { HOST_START_GAME_ERRORS } from "./host-start-game.errors";
-import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
+import { GameStartedResponse } from "../../response-dtos/game-started.response.dto";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
@@ -25,7 +25,7 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
-    async execute(command: HostStartGameCommand): Promise<Either<Error, QuestionStartedResponse>> {
+    async execute(command: HostStartGameCommand): Promise<Either<Error, GameStartedResponse>> {
 
 
         try {
@@ -40,7 +40,7 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
             // Verificamos algunas incoherencias con los datos a devolver
 
-            const currentSlideIndex = session.getTotalOfSlidesAnswered();
+            const currentSlideIndex = session.getCurrentSlideIndex();
 
             if( currentSlideIndex !== 0 )
                 return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
@@ -60,11 +60,12 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
 
             return Either.makeRight({
+                
                 state: session.getSessionStateType(),
                 questionIndex: currentSlideIndex,
                 currentSlideData: currentSlideSnapshot
+    
             });
-
    
         } catch (error) {
 

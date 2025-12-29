@@ -31,7 +31,7 @@ export class GetPinWithQrTokenHandler implements ICommandHandler<GetPinWithQrTok
             if( !searchedSession )
                return Either.makeLeft( new Error(QR_TOKEN_ERRORS.QR_NOT_FOUND) );
     
-            const pin = searchedSession.session.getSessionPin().getPin();
+            const pin = searchedSession.session.getSessionPin();
             const sessionId = searchedSession.session.id.value;
     
     
