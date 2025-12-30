@@ -94,7 +94,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
             const score = player.getScore();
 
-            const results = this.getOnePlayerAnswers( player.id ).map( results => results.getEarnedScore() );
+            const results = this.getOnePlayerAnswers( player.id ).map( results => results ? results.getEarnedScore() : 0 );
 
             const totalScore = results.reduce(( resA, resB ) => resA + resB , 0);
 
@@ -318,7 +318,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public getOnePlayerAnswers( playerId: PlayerId ): SessionPlayerAnswer[] {
+    public getOnePlayerAnswers( playerId: PlayerId ): (SessionPlayerAnswer | undefined)[] {
 
         if( !this.properties.players.has( playerId.value ) )
             throw new Error("El jugador solicitado no se encuentra en la partida");  

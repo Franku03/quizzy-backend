@@ -54,6 +54,9 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
             // 1) Lógica previa (Cálculo de puntajes)
             // Solo necesitamos calcular puntajes si estamos SALIENDO de una pregunta ( QUESTION -> RESULTS )
+            // obtenemos la slide actual ANTES de avanzar de fase en caso de que estemos en QUESTION y vayamos a RESULTS
+            const previousSlideInSessionId = session.getCurrentSlideInSession();
+
             if( session.getSessionState().isQuestion() ){
 
                 this.updateProgressAndRankingService.updateSessionProgressAndRanking( kahoot, session );
@@ -73,7 +76,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
                 case StateTransitionsTypes.TRANSITION_TO_RESULTS:
                     {
-                        const response = mapEntriesToResultsResponse( session, kahoot );
+                        const response = mapEntriesToResultsResponse( session, kahoot, previousSlideInSessionId );
                         return Either.makeRight( response );
                     }
 
@@ -84,7 +87,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
                             // Guardamos la partida en persistencia y limpiamos recursos
                             await this.sessionArchiverService.archiveAndClean( session );
                             // Mapear la respuesta de fin de juego          
-                            const response = mapFinalScoreboard( session, kahoot );
+                            const response = mapFinalScoreboard( session, kahoot, previousSlideInSessionId );
                             return Either.makeRight(response);
 
                         } catch (error) {

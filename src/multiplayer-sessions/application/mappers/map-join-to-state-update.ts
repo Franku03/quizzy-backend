@@ -35,7 +35,7 @@ export const mapJoinToStateUpdate = ( player: Player, session: MultiplayerSessio
         state: state,
         players: players,
         quizTitle: quizTitle, // No siempre hara falta pasar esto en un GameStateUpdate
-        quizMediaUrls: { ImageUrl: kahootImageId, ThemeUrl: kahootThemeId } // No siempre hara falta pasar esto en un GameStateUpdte
+        quizMediaURLs: { imageURL: kahootImageId, themeURL: kahootThemeId } // No siempre hara falta pasar esto en un GameStateUpdte
         // ? currentSlideData: currentSlideData,
     }; 
 

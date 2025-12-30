@@ -45,10 +45,10 @@ export class SlideResult extends ValueObject<SlideResultProps> {
 
     }
 
-    public searchPlayerAnswer(playerId: PlayerId ): SessionPlayerAnswer {
+    public searchPlayerAnswer(playerId: PlayerId ): SessionPlayerAnswer | undefined {
 
         if( !this.properties.answers.has( playerId.value ) )
-            throw Error('El jugador solicitado no tiene una respuesta asociada a esta Slide');
+            return undefined;
 
         return this.properties.answers.get( playerId.value )!
 

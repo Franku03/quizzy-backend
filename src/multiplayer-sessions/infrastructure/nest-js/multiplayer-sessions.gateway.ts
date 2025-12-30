@@ -207,8 +207,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         if( res.isRight() ){
 
-          // this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
-
           client.emit( ServerEvents.PLAYER_ANSWER_CONFIRMATION, { status: 'ANSWER SUCCESFULLY SUBMITTED' });
 
         } else {
@@ -277,17 +275,17 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
             case HostNextPhaseType.QUESTION_STARTED:
 
-              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res );
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.data );
               break;  
 
             case HostNextPhaseType.QUESTION_RESULTS:
 
-              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res );
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res.data );
               break;
 
             case HostNextPhaseType.GAME_END: 
               // Si llegamos aquí, GARANTIZAMOS que está en la BD.  
-              this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res)  
+              this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res.data)  
               break;
               
           }
