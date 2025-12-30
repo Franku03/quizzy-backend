@@ -166,7 +166,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public addSlideResult(slideId: SlideId, result: SlideResult): void{
+    private addSlideResult(slideId: SlideId, result: SlideResult): void{
 
         this.properties.playersAnswers.set( slideId.value , result );
 
@@ -176,7 +176,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     public addPlayerAnswer(slideId: SlideId, playerAnswer: SessionPlayerAnswer): void{
 
         if( !this.properties.playersAnswers.has( slideId.value  ) )
-            throw new Error("La Slide a la cual se intenta añadir una entrada no ha sido puesta aun en juego o no exista")
+            throw new Error("La Slide a la cual se intenta añadir una entrada no ha sido puesta aun en juego o no existe")
 
         const updatedSlideResult =
                 this.properties.playersAnswers.get( slideId.value  )?.addResult( playerAnswer )!;

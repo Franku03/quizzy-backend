@@ -6,7 +6,7 @@ import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/m
 import { HOST_NEXT_PHASE_ERRORS } from "../commands/host-next-phase/host-next-phase.errors";
 import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
 
-export const mapEntriesToResponse = ( session: MultiplayerSession, kahoot: Kahoot): QuestionResultsResponse => {
+export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot): QuestionResultsResponse => {
 
     // const currentSlideIndex = session.getCurrentSlideIndex();
 

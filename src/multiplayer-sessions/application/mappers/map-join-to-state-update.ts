@@ -4,7 +4,7 @@ import { Player } from "src/multiplayer-sessions/domain/entity/session.player";
 import { GameStateUpdateResponse } from "../response-dtos/game-state-update.response.dto";
 
 
-export const mapJoinToStateUpdate = (player: Player, session: MultiplayerSession, kahoot: Kahoot): GameStateUpdateResponse => {
+export const mapJoinToStateUpdate = ( player: Player, session: MultiplayerSession, kahoot: Kahoot): GameStateUpdateResponse => {
 
     // Construimos la response del game_state_update
 

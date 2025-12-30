@@ -1,12 +1,15 @@
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from '../../domain/aggregates/multiplayer-session';
 
-import { OptionSnapshotWithoutAnswers, SlideSnapshotWithoutAnswers } from "../response-dtos/slide-without-answers.interface";
+import { OptionSnapshotWithoutAnswers, SlideSnapshotWithoutAnswers } from "../response-dtos/types/slide-without-answers.interface";
 import { SlideSnapshot } from "src/database/infrastructure/mongo/entities/kahoots.schema";
+
+import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
+import { QuestionStartedResponse } from "../response-dtos/question-started.response.dto";
 
 import { COMMON_ERRORS } from "../commands/common.errors";
 
-export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kahoot: Kahoot ): SlideSnapshotWithoutAnswers => {
+export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionStartedResponse => {
     
     const currentSlideId = session.getCurrentSlideInSession(); 
 
@@ -32,6 +35,13 @@ export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kah
 
     currentSlideSnapshot.options = cleanSnapshotOptions;
 
-    return currentSlideSnapshot;
+    return {
+        type: HostNextPhaseType.QUESTION_STARTED,
+        data: {
+            state: session.getSessionStateType(),
+            questionIndex: session.getCurrentSlideIndex(),
+            currentSlideData: currentSlideSnapshot
+        }
+    };
 
 }

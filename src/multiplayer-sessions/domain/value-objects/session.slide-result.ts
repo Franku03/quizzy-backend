@@ -17,19 +17,6 @@ export class SlideResult extends ValueObject<SlideResultProps> {
         super({ ...props });
     }
 
-    // Viejo metodo fabrica
-    // public static create (slideId: SlideId,  playerAnswers: SessionPlayerAnswer[] ): SlideResult {
-
-    //     const answers = new Map();
-
-    //     playerAnswers.forEach( answer => {
-    //         answers.set( answer.getPlayerId(), answer );
-    //     });
-
-    //     return new SlideResult({ slideId, answers });
-
-    // }
-
 
     public static create ( slideId: SlideId ): SlideResult {
 
@@ -41,6 +28,9 @@ export class SlideResult extends ValueObject<SlideResultProps> {
 
 
     public addResult ( playerAnswer: SessionPlayerAnswer ): SlideResult {
+
+        if( this.properties.answers.has( playerAnswer.getPlayerId().value ) )
+            throw Error('El jugador ya tiene una respuesta asociada a esta Slide, no puede añadir otra');
 
         const updatedAnswers: Map<PlayerIdValue, SessionPlayerAnswer> = new Map();
 

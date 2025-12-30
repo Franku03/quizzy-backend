@@ -54,7 +54,7 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
             // TODO: Hacer path alternativo si el usuario ya esta en la partida (reconexion)
 
             const player = PlayerFactory.createPlayerForSession( 
-                result.hasValue() ? result.getValue().username : await this.IdGenerator.generateId(), // Si no se encontro el usuario, le generamos un id unico
+                result.hasValue() ? result.getValue().id : command.userId, // Si no se encontro el usuario, pasamos el id que viene del JWT de invitado
                 command.nickname, 
                 !result.hasValue() // Si no se encontro el usuario, es un invitado
             );

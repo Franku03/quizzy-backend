@@ -4,21 +4,17 @@ import { ICommandHandler } from "src/core/application/cqrs";
 
 import { COMMON_ERRORS } from "../common.errors";
 import { HOST_NEXT_PHASE_ERRORS } from "./host-next-phase.errors";
-import { HostNextPhaseType } from "../../response-dtos/enums/host-next-phase-type.enum";
 
 
 import { HostNextPhaseCommand } from "./host-next-phase.command";
-import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
-import { QuestionResultsResponse } from "../../response-dtos/question-results.response.dto";
-import { GameEndedResponse } from "../../response-dtos/game-ended.response.dto";
 import { HostNextPhaseResponse } from '../../response-dtos/types/host-next-phase-response.type';
 
 import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
 import { SessionArchiverService, UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
 
-import { mapSnapshotsToQuestionResponse } from "../../mappers/map-snapshots-to-response";
-import { mapEntriesToResponse } from "../../mappers/map-entries-to-scoreboard";
+import { mapEntriesToResultsResponse, mapFinalScoreboard, mapSnapshotsToQuestionResponse } from "../../mappers";
+
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
@@ -71,24 +67,13 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
             switch ( transitionResult.state ) {
                 case StateTransitionsTypes.TRANSITION_TO_QUESTION:
                     {
-                        const currentSlideIndex = session.getCurrentSlideIndex();
-                        const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
-                        const response: QuestionStartedResponse = {
-                            type: HostNextPhaseType.QUESTION_STARTED,
-                            data: {
-                                state: session.getSessionStateType(),
-                                questionIndex: currentSlideIndex,
-                                currentSlideData: currentSlideSnapshot
-
-                            }
-                        };
-
+                        const response = mapSnapshotsToQuestionResponse( session, kahoot );
                         return Either.makeRight( response );
                     }
 
                 case StateTransitionsTypes.TRANSITION_TO_RESULTS:
                     {
-                        const response: QuestionResultsResponse = mapEntriesToResponse( session, kahoot );
+                        const response = mapEntriesToResultsResponse( session, kahoot );
                         return Either.makeRight( response );
                     }
 
@@ -98,22 +83,12 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
                             // Guardamos la partida en persistencia y limpiamos recursos
                             await this.sessionArchiverService.archiveAndClean( session );
-                            
-                            const { playerScoreboard, state } = mapEntriesToResponse( session, kahoot ).data;
-                            const response: GameEndedResponse = {
-                                type: HostNextPhaseType.GAME_END,
-                                data: {
-                                    state: state,
-                                    finalScoreboard: playerScoreboard,
-                                    winnerNickname: playerScoreboard[0]?.nickname,
-                                }
-                            };
+                            // Mapear la respuesta de fin de juego          
+                            const response = mapFinalScoreboard( session, kahoot );
                             return Either.makeRight(response);
 
                         } catch (error) {
-                            // Si falla el guardado, podemos decidir qué hacer.
-                            // Lo ideal: Retornar Error (Left) para que el controller lo sepa
-                            // y el estado en memoria siga sucio pero recuperable, 
+                            // Si falla el guardado, podemos decidir qué hacer. Es Lo ideal: Retornar Error (Left) para que el controller lo sepa y el estado en memoria siga sucio pero recuperable
                             return Either.makeLeft(new Error("Error crítico guardando la partida: " + error.message));
                         }
 

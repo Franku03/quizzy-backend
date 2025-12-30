@@ -1,5 +1,5 @@
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects";
-import { SlideSnapshotWithoutAnswers } from "./slide-without-answers.interface";
+import { SlideSnapshotWithoutAnswers } from "./types/slide-without-answers.interface";
 import { HostNextPhaseType } from "./enums/host-next-phase-type.enum";
 
 export interface QuestionStartedResponse {

@@ -22,8 +22,3 @@ export * from './get-pin-with-qr-token/get-pin-with-qr-token.errors'
 export * from './host-next-phase/host-next-phase.errors';
 export * from './host-start-game/host-start-game.errors';
 export * from './player-submit-answer/player-submit-answer.errors';
-
-
-// export * from './end-session/end-session.command';
-// export * from './end-session/end-session.handler';
-// export * from './end-session/end-session.errors';

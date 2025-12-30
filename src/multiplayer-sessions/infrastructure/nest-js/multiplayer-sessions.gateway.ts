@@ -1,26 +1,33 @@
 import { BadRequestException, Logger } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
-import { CommandBus } from '@nestjs/cqrs';
 import { Server } from 'socket.io';
 
+import { CommandBus } from 'src/core/infrastructure/cqrs';
 import { MultiplayerSessionsTracingService } from './multiplayer-sessions.tracing.service';
 
 import { SessionRoles } from './enums/session-roles.enum';
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from './enums/websocket.events.enum';
-import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 import type { SessionSocket  } from './interfaces/socket-definitions.interface';
 
-import { PlayerJoinCommand } from 'src/multiplayer-sessions/application/commands/player-join/player-join.command';
-import { HostStartGameCommand } from 'src/multiplayer-sessions/application/commands/host-start-game/host-start-game.command';
-import { PlayerSubmitAnswerCommand } from 'src/multiplayer-sessions/application/commands/player-submit-answer/player-submit-answer.command';
-import { HostNextPhaseCommand } from 'src/multiplayer-sessions/application/commands/host-next-phase/host-next-phase.command';
-import { HostNextPhaseType } from '../../application/response-dtos/enums/host-next-phase-type.enum';
 
-import { GameStateUpdateResponse } from 'src/multiplayer-sessions/application/response-dtos/game-state-update.response.dto';
-import { HostNextPhaseResponse } from 'src/multiplayer-sessions/application/response-dtos/types/host-next-phase-response.type';
-import { GameStartedResponse } from 'src/multiplayer-sessions/application/response-dtos/game-started.response.dto';
+import { 
+  HostNextPhaseCommand, 
+  HostStartGameCommand, 
+  PlayerJoinCommand, 
+  PlayerSubmitAnswerCommand 
+} from 'src/multiplayer-sessions/application/commands';
+
+import { 
+  HostNextPhaseType, 
+  GameStateUpdateResponse, 
+  HostNextPhaseResponse, 
+  QuestionStartedResponse 
+} from 'src/multiplayer-sessions/application/response-dtos';
+
 
 import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
+import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
+
 import { Either } from 'src/core/types/either';
 
 
@@ -76,9 +83,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
 
-        console.log(`${client.data.role} conectado a la sala ${pin}`);
-
-
         // Guardamos la data de los clientes en su propio socket
         client.data.roomPin = pin as string;
 
@@ -88,6 +92,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
+        console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   
         this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
@@ -230,12 +235,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
  
 
-        const res: Either<Error, GameStartedResponse> = 
+        const res: Either<Error, QuestionStartedResponse> = 
           await this.commandBus.execute( new HostStartGameCommand( client.data.roomPin ) );
 
         if( res.isRight() ){
 
-          this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight() );
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight().data );
 
         } else {
 

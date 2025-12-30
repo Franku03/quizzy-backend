@@ -4,8 +4,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 
 import { HostStartGameCommand } from "./host-start-game.command";
 import { COMMON_ERRORS } from "../common.errors";
-import { HOST_START_GAME_ERRORS } from "./host-start-game.errors";
-import { GameStartedResponse } from "../../response-dtos/game-started.response.dto";
+import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
@@ -25,7 +24,7 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
-    async execute(command: HostStartGameCommand): Promise<Either<Error, GameStartedResponse>> {
+    async execute(command: HostStartGameCommand): Promise<Either<Error, QuestionStartedResponse>> {
 
 
         try {
@@ -38,22 +37,17 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
             const { session, kahoot } = sessionWrapper
 
-            // * Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta
-            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot );
+            // Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta, y obtenemos directamente los datos de la respuesta a dar
+            const res = mapSnapshotsToQuestionResponse( session, kahoot );
+            const currentSlideSnapshot = res.data.currentSlideData;
 
-            // * Iniciamos la partida
+            // Iniciamos la partida
             session.startSession(); // Pasa a estado question automaticamente
 
-            // * Creamos la tabla de resultados
+            // Creamos la tabla de resultados para la primera slide
             session.startSlideResults( new SlideId( currentSlideSnapshot.id ) );
 
-            return Either.makeRight({
-                
-                state: session.getSessionStateType(),
-                questionIndex: session.getCurrentSlideIndex(),
-                currentSlideData: currentSlideSnapshot
-    
-            });
+            return Either.makeRight( res );
    
         } catch (error) {
 
