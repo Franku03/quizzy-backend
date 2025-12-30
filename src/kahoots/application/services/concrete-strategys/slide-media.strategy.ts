@@ -1,7 +1,7 @@
 // src/kahoots/application/strategies/slide-media.strategy.ts
 import { Injectable } from '@nestjs/common';
-import { IMediaStrategy } from '../ports/i-media-strategy.interface';
-import { SlideHandlerResponse } from '../response/kahoot.slide.handler.response';
+import { IMediaStrategy } from '../../ports/i-media-strategy.interface';
+import { SlideHandlerResponse } from '../../response/kahoot.slide.handler.response';
 
 @Injectable()
 export class SlideMediaStrategy implements IMediaStrategy<SlideHandlerResponse> {

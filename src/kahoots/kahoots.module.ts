@@ -12,16 +12,17 @@ import { UpdateKahootHandler } from './application/commands/update-kahoot/update
 import { DeleteKahootHandler } from './application/commands/delete-kahoot/delete-kahoothandler';
 import { GetKahootByIdHandler } from './application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
 
-// IMPORTACIONES ORIGINALES:
-// import { CommandQueryExecutorService } from '../core/infrastructure/services/command-query-executor.service';
-// import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
-
 import { KahootMapperService } from './application/services/kahoot.mapper.service';
 import { AttemptCleanupService } from './application/services/attempt-clear.service';
 import { KahootAuthorizationService } from './application/services/kahoot-athorization.service';
-import { KahootAssetEnricherService } from './application/services/kahoot-asset-enricher.service';
 import { MediaModule } from 'src/media/infraestructure/media.module';
 import { KahootResponseService } from './application/services/kahoot-response.service';
+
+import { KAHOOT_MEDIA_ENRICHER, KAHOOT_MEDIA_STRATEGY } from './application/ports/kahoot-application.tokens';
+import { MediaEnricher } from './application/services/media-enricher.service';
+import { KahootMediaStrategy } from './application/services/concrete-strategys/kahoot-media.strategy';
+import { ASSET_ID_TO_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
+import { IAssetIdToUrlService } from 'src/media/application/ports/asset-id-to-url.service.interface';
 
 @Module({
   controllers: [KahootController],
@@ -29,33 +30,41 @@ import { KahootResponseService } from './application/services/kahoot-response.se
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.Kahoot),
-
     MediaModule,
-
     CqrsModule,
   ],
   providers: [
-    // Handlers
+    // --- Handlers ---
     CreateKahootHandler,
     UpdateKahootHandler,
     DeleteKahootHandler,
     GetKahootByIdHandler,
 
-    // Services
+    // --- Services de Mapeo ---
+    KahootResponseService,
     KahootMapperService,
     {
       provide: 'IKahootMapper',
       useClass: KahootMapperService,
     },
+    {
+      provide: KAHOOT_MEDIA_STRATEGY,
+      useClass: KahootMediaStrategy,
+    },
 
-    KahootResponseService,
+    {
+      provide: KAHOOT_MEDIA_ENRICHER,
+      useFactory: (assetService: IAssetIdToUrlService, strategy: KahootMediaStrategy) => {
+        return new MediaEnricher(assetService, strategy);
+      },
+      inject: [ASSET_ID_TO_URL_SERVICE, KAHOOT_MEDIA_STRATEGY],
+    },
+
+    // --- Otros Servicios ---
     AttemptCleanupService,
     KahootAuthorizationService,
-    KahootAssetEnricherService,
-
-    // Otros
     KahootNestMapperAdapter,
-    
+  
   ],
   exports: [],
 })

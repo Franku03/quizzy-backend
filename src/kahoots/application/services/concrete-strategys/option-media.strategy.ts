@@ -1,7 +1,7 @@
-// src/kahoots/application/strategies/option-media.strategy.ts
+// src\kahoots\application\services\concrete-strategys\option-media.strategy.ts
 import { Injectable } from '@nestjs/common';
-import { IMediaStrategy } from '../ports/i-media-strategy.interface';
-import { OptionHandlerResponse } from '../response/kahoot.slide.option.handler.response';
+import { IMediaStrategy } from '../../ports/i-media-strategy.interface';
+import { OptionHandlerResponse } from '../../response/kahoot.slide.option.handler.response';
 
 @Injectable()
 export class OptionMediaStrategy implements IMediaStrategy<OptionHandlerResponse> {
