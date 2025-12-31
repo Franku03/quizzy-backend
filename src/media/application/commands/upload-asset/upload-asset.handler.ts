@@ -37,7 +37,13 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
       const existing = duplicateResult.getRight();
       if (existing) {
         await this.metadataDao.incrementReferenceCount(existing.publicId);
-        return Either.makeRight(existing);
+        return Either.makeRight({
+          assetId: existing.assetId,
+          mimeType: existing.mimeType,
+          size: existing.size,
+          format: existing.format,
+          category: existing.category,
+        });
       }
 
       // PASO 2: Proceso de subida
@@ -64,7 +70,6 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
         referenceCount: 1,
         format: storageResult.format,
         category: MimeTypeHelper.getCategory(command.mimeType),
-        theme: true,
         uploadedAt: new Date(),
       };
 
