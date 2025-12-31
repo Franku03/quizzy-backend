@@ -34,6 +34,10 @@ import { TransferAdminResponse } from 'src/groups/application/commands/response-
 
 import { GetGroupLeaderboardQuery } from 'src/groups/application/queries/get-leaderboard/get-group-leaderboard.query';
 import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
+import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
+import { GetKahootLeaderboardQuery } from 'src/groups/application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.query';
+
+
 
 @Controller('groups')
 export class GroupsController {
@@ -166,5 +170,18 @@ export class GroupsController {
     ): Promise<GroupLeaderboardReadModel[]> {
         const query = new GetGroupLeaderboardQuery(userId, groupId);
         return await this.executor.executeQuery<GroupLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener el leaderboard de un kahoot
+    @Get(':groupId/quizzes/:quizId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getKahootLeaderboard(
+        @Param('groupId') groupId: string,
+        @Param('quizId') quizId: string,
+        @GetUserId() userId: string,
+    ): Promise<KahootLeaderboardReadModel[]> {
+        const query = new GetKahootLeaderboardQuery(userId, groupId, quizId);
+        return await this.executor.executeQuery<KahootLeaderboardReadModel[]>(query);
     }
 }

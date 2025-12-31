@@ -7,6 +7,7 @@ import { GroupMongo } from '../../entities/groups.schema';
 import { GroupReadModel } from 'src/groups/application/queries/read-model/group.read.model';
 import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
 import { UserMongo } from '../../entities/users.schema';
+import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
 
 @Injectable()
 export class GroupDaoMongo implements IGroupsDao {
@@ -83,5 +84,50 @@ export class GroupDaoMongo implements IGroupsDao {
         );
 
         return new Optional<GroupLeaderboardReadModel[]>(leaderboard);
+    }
+
+    async getKahootLeaderboard(groupId: string, quizId: string): Promise<Optional<KahootLeaderboardReadModel>> {
+        const group = await this.groupModel.findOne({ groupId }).exec();
+        if (!group || !group.completions || group.completions.length === 0) {
+            return new Optional<KahootLeaderboardReadModel>();
+        }
+
+
+        const quizCompletions = group.completions.filter(completion => completion.quizId === quizId);
+
+        if (quizCompletions.length === 0) {
+            return new Optional<KahootLeaderboardReadModel>();
+        }
+
+
+        const userIds = [...new Set(quizCompletions.map(completion => completion.userId))];
+
+
+        const users = await this.userModel.find({ userId: { $in: userIds } }).exec();
+        const userMap = new Map<string, string>();
+        users.forEach(user => {
+            userMap.set(user.userId, user.username);
+        });
+
+
+        const leaderboardEntries = quizCompletions.map(completion => ({
+            userId: completion.userId,
+            name: userMap.get(completion.userId) || 'Unknown User',
+            score: completion.score || 0,
+        }));
+
+
+        leaderboardEntries.sort((a, b) => b.score - a.score);
+
+
+        const topPlayers = leaderboardEntries.map(entry => ({
+            userId: entry.userId,
+            name: entry.name,
+            score: entry.score,
+        }));
+
+
+        const leaderboard = new KahootLeaderboardReadModel(quizId, groupId, topPlayers);
+        return new Optional<KahootLeaderboardReadModel>(leaderboard);
     }
 }
