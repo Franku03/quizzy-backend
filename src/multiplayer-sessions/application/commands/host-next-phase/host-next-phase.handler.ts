@@ -87,7 +87,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
                             // Guardamos la partida en persistencia y limpiamos recursos
                             await this.sessionArchiverService.archiveAndClean( session );
                             // Mapear la respuesta de fin de juego          
-                            const response = mapFinalScoreboard( session, kahoot, previousSlideInSessionId );
+                            const response = mapFinalScoreboard( session );
                             return Either.makeRight(response);
 
                         } catch (error) {

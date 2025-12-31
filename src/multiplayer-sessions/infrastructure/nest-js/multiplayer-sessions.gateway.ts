@@ -29,6 +29,7 @@ import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
+import { mapPayloadToPlayer } from 'src/multiplayer-sessions/application/helpers/map-payload-to-player.helper';
 
 
 
@@ -278,14 +279,36 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
               this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.data );
               break;  
 
-            case HostNextPhaseType.QUESTION_RESULTS:
+            case HostNextPhaseType.QUESTION_RESULTS:{
+  
+                // Emitimos payload al Host
+                client.emit( ServerEvents.HOST_RESULTS, res.hostData);
 
-              this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_RESULTS, res.data );
-              break;
+                // Emitimos la respuesta particular a cada Player
+                const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+                for (const socket of sockets) {
+                    if ( socket.data.role === SessionRoles.PLAYER ) {
+                        // * creo que no hace falta el helper realmente
+                        const playerPayload = mapPayloadToPlayer( res , socket.data.userId );
+                        socket.emit(ServerEvents.PLAYER_RESULTS, playerPayload);
+                    }
+                }
+                break;
+            }
 
-            case HostNextPhaseType.GAME_END: 
-              // Si llegamos aquí, GARANTIZAMOS que está en la BD.  
-              this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_END, res.data)  
+            case HostNextPhaseType.GAME_END:{
+                // Si llegamos aquí, GARANTIZAMOS que está en la BD.  
+                // Emitimos payload al Host
+                client.emit( ServerEvents.HOST_GAME_END, res.hostData );
+                // Emitimos la respuesta particular a cada Player
+                const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+                for (const socket of sockets) {
+                    if ( socket.data.role === SessionRoles.PLAYER ) {
+                        socket.emit(ServerEvents.PLAYER_RESULTS, res.playerData.get( socket.data.userId ));
+                    }
+                }
+
+            }
               break;
               
           }
@@ -299,6 +322,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
     }
+
+    private mapToPlayerPayload
     
 
     // ? Este metodo solo sirve solo para cuando es llamado dentro de un metodo que esta decorado por un @SubscribeMessage()
