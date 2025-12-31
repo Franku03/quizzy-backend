@@ -20,7 +20,7 @@ import { Kahoot } from '../../../domain/aggregates/kahoot';
 // Response & Media (PUERTOS)
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
-import { KAHOOT_MEDIA_ENRICHER } from '../../ports/kahoot-application.tokens';
+import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens';
 
 // Servicios
 import { KahootResponseService } from '../../services/kahoot-response.service';
@@ -61,9 +61,11 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
       // 3. MAPEO: De Dominio a Response Plano (Solo IDs)
       // Usamos el servicio que solo se encarga de transformar la estructura.
       const plainResponse = await this.kahootResponseService.toResponse(kahoot);
+      console.log('ANTES DEL ENRICH:', plainResponse.themeId);
 
       // Delegamos a la estrategia inyectada a través del MediaEnricher.
       const enrichedResponse = await this.mediaEnricher.enrich(plainResponse);
+      console.log('DESPUÉS DEL ENRICH:', enrichedResponse.theme);
 
       return Either.makeRight(enrichedResponse);
 

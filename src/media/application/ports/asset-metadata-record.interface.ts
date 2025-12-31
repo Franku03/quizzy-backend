@@ -21,7 +21,7 @@ export interface AssetMetadataRecord {
   // Metadata calculada
   format: string;                // 'jpg', 'png', 'pdf' (del mimeType)
   category: string;              // 'image', 'video', 'document' (del mimeType)
-  
+  theme?: boolean; 
   // Temporal
   uploadedAt: Date;              // Cuándo se subió por primera vez
 }

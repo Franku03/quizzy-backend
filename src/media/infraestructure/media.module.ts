@@ -6,11 +6,9 @@ import { v2 as cloudinary } from 'cloudinary';
 
 // Application Layer
 import { UploadAssetHandler } from '../application/commands/upload-asset/upload-asset.handler';
-import { AssetIdToUrlService } from '../application/services/asset-id-to.url.service';
 import { 
   ASSET_STORAGE_SERVICE,
   CRYPTO_SERVICE,
-  ASSET_ID_TO_URL_SERVICE,
   ASSET_URL_SERVICE,
   ERROR_MAPPER,
   CLOUDINARY_CONFIG
@@ -26,7 +24,7 @@ import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.
 import { CloudinaryUrlGeneratorAdapter } from './adapters/cloudinary/cloudinary-url-generator.adapter';
 import { CloudinaryErrorMapper } from './adapters/cloudinary/errors/cloudinary-error.mapper';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
-import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
+import { GetThemesHandler } from '../application/queries/get-themes/get-themes.handler';
 
 @Module({
     controllers: [MediaController],
@@ -39,6 +37,7 @@ import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application
     providers: [
         CommandQueryExecutorService,
         UploadAssetHandler,
+        GetThemesHandler,
         { 
             provide: CLOUDINARY_CONFIG,
             useFactory: () => { 
@@ -57,13 +56,12 @@ import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application
         // Se encarga de Hashear la imagen
         { provide: CRYPTO_SERVICE, useClass: NodeCryptoService }, 
         // Se encarga de convertir un ID -> Url
-        { provide: ASSET_ID_TO_URL_SERVICE, useClass: AssetIdToUrlService },
         // Usado por el anterior porque consulta el DAO para buscar la referencia exacta y devolver
         { provide: ASSET_URL_SERVICE, useClass: CloudinaryUrlGeneratorAdapter },
     ],
     exports: [
         DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
-        ASSET_ID_TO_URL_SERVICE,
+        ASSET_URL_SERVICE,
     ]
 })
 export class MediaModule {}
