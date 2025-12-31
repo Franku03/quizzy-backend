@@ -9,16 +9,24 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetAttemptSummaryQuery)
 export class GetAttemptSummaryHandler
   implements IQueryHandler<GetAttemptSummaryQuery>
 {
+  private readonly useCase: string = 'User retrieves the summary of a solo attempt';
+
   constructor(
     @Inject(DaoName.SoloAttempt)
     private readonly attemptQueryDao: ISoloAttemptQueryDao,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
   // We check that the user requesting the attempt summary owns the attempt
   @Authorize(AttemptOwnershipAuthorizer, 'attemptQueryDao')
   async execute(
