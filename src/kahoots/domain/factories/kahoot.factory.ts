@@ -183,7 +183,7 @@ export class KahootFactory{
     // --- PARTE DE CREACIÓN (BUILD) ---
     // ====================================================================
 
-    private static buildOption(optionInput: OptionInput): Option {
+    public static buildOption(optionInput: OptionInput): Option {
         // OptionInput ya viene con optionText garantizado y optionImageId como string | undefined
         
         const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(

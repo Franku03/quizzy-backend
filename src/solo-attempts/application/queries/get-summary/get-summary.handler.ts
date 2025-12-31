@@ -6,7 +6,9 @@ import { GetAttemptSummaryQuery } from './get-summary.query';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
 import { AttemptSummaryReadModel } from '../read-models/summary.attempt.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
-import { GET_SUMMARY_ERROR_CODES } from './get-summary.errors';
+import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
 
 @QueryHandler(GetAttemptSummaryQuery)
 export class GetAttemptSummaryHandler
@@ -17,6 +19,8 @@ export class GetAttemptSummaryHandler
     private readonly attemptQueryDao: ISoloAttemptQueryDao,
   ) {}
 
+  // We check that the user requesting the attempt summary owns the attempt
+  @Authorize(AttemptOwnershipAuthorizer, 'attemptQueryDao')
   async execute(
     query: GetAttemptSummaryQuery,
   ): Promise<AttemptSummaryReadModel> {
@@ -29,11 +33,8 @@ export class GetAttemptSummaryHandler
 
     // If no summary is found, we throw an error indicating the completed attempt was not found
     if (!summaryOptional.hasValue()) {
-      throw new Error(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
     }
-
-    // When user module is integrated, we will check if the userId from the attempt
-    // matches the currently authenticated user. For now, we skip this step.
 
     return summaryOptional.getValue();
   }

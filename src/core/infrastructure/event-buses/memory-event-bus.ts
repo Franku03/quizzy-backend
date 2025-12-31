@@ -10,7 +10,7 @@ import { Injectable } from "@nestjs/common";
 @Injectable()
 export class InMemoryEventBus implements EventBus {
     
-    // Hanlders is a map where the keys are event names (strings)
+    // Handlers is a map where the keys are event names (strings)
     // and the values are arrays of callback functions that handle those events.
 
     // When the class is instantiated, the handlers map is initialized empty.

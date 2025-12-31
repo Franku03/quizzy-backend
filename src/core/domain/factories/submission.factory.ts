@@ -8,7 +8,7 @@ import { Option } from "src/kahoots/domain/value-objects/kahoot.slide.option";
 import { SlideSnapshot } from "../snapshots/snapshot.slide";
 
 import { Submission } from "../shared-value-objects/parameter-objects/parameter.object.submission";
-import { ImageId } from "../shared-value-objects/id-objects/image.id";
+import { KahootFactory } from '../../../kahoots/domain/factories/kahoot.factory';
 
 export class SubmissionFactory {
 
@@ -55,23 +55,14 @@ export class SubmissionFactory {
 
         });
 
-        // ! Posiblemente no sea legal esto, pero genuinamente me pregunto si una fabrica completamente externa a todo agregado puede construir un VO interno de un agregado, aquí estamos en Domain despues de todo
+        // * La importacion del Option aqui existe solo para tipear el arreglo, TS exige que lo hagamos asi (de lo contrario es una arreglo de tipo never[])
         const options: Option[] = [];
 
         for( const answer of answerTexts ){
 
-            let imageId: Optional<ImageId>;
+            // let imageId: Optional<ImageId>;
+            const imageIdString = answer.optionImageId;
             let text: string;
-
-            if( !answer.optionImageId ){
-
-                imageId = new Optional();
-                
-            }else{
-                
-                imageId  = new Optional(new ImageId( answer.optionImageId ));
-
-            }
 
 
             if( !answer.optionText ){
@@ -83,10 +74,12 @@ export class SubmissionFactory {
                 text = answer.optionText;
             }
             
-            options.push( new Option(
-                text,
-                answer.isCorrect,
-                imageId
+            options.push( KahootFactory.buildOption(
+              {
+                text:text,
+                optionImage: imageIdString,
+                isCorrect: answer.isCorrect,
+              }
             ));
 
 

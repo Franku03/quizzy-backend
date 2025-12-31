@@ -191,10 +191,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         for( const result of playerResults ){
 
-            // * Quizas no devuelve la referencia al objeto, espero que si
             const player = this.properties.players.get( result.getPlayerId().value );
 
+            // Actualizamos el score y el streak
             player?.updateScore( Score.create( player.getScore() + result.getEarnedScore() ) );
+
+            player?.updateStreak( result.isCorrect() );
 
         }
 
@@ -230,10 +232,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             throw new Error("No se puede empezar una partida con menos de un jugador conectado");
 
         if( !this.properties.sessionState.isLobby() )
-            throw new Error("No se puede empezar desde un estado que no esa LOBBY");
+            throw new Error("No se puede empezar una partida desde un estado que no esa LOBBY");
 
         // Empezamos el juego pasando a la primera pregunta
-        this.transitionToQuestion();
+        this.properties.sessionState = this.properties.sessionState.toQuestion();
 
     }
 
@@ -251,11 +253,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
-    private transitionToQuestion(): StateTransition {
+    private transitionFromResults(): StateTransition {
 
-        if( !this.properties.sessionState.isResults() && !this.properties.sessionState.isLobby())
-            throw new Error("No se puede pasar a QUESTION desde un estado que no sea RESULTS o LOBBY");
+        if( !this.properties.sessionState.isResults() )
+            throw new Error("No se puede pasar a QUESTION desde un estado que no sea RESULTS");
 
+        // Si no hay mas slides, terminamos la sesion
         if( !this.properties.progress.hasMoreSlidesLeft() ){
             
             return this.endSession(); // Delegamos a endSession el cambio de estado a END
@@ -281,7 +284,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         if( currentState.isResults() ){
             // Estando en RESULTS, intentamos ir a la siguiente pregunta.
             // Si no hay más, transitionQuestion delegará a endSession.
-            return this.transitionToQuestion();
+            return this.transitionFromResults();
         }
 
         throw new Error(`Desde el estado ${currentState.getActualState()} no se puede pasar a RESULT o QUESTION`);
@@ -305,6 +308,14 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     // ? GETTERS CUSTOM
 
     // Para obtener datos de los jugadores y el ranking
+
+    public getNumberOfAnswersForASlide( slideId: SlideId ): number{
+
+        return this.getPlayersAnswersForASlide( slideId ).length
+
+    }
+    
+
 
     public getPlayersAnswersForASlide( slideId: SlideId ): SessionPlayerAnswer[] {
 
@@ -335,8 +346,58 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+    public getOnePlayerAnswerForASlide( slideId: SlideId, playerId: PlayerId ): SessionPlayerAnswer | undefined {
+            
+        // Intentamos obtener la respuesta del jugador para esta slide
+        const slideResults = this.getSlideResultsBySlideId( slideId );
+        const answer = slideResults.searchPlayerAnswer( playerId );
+
+        return answer;
         
-    public getPlayersRankinEntries(): ScoreboardEntry[] {
+    }
+
+
+    // Calcula la distribución de respuestas para una slide específica.
+    public calculateAnswerDistributionForASlide( slideId: SlideId, possibleOptionIds: string[] ): Record<string, number> {
+        
+        // 1) Inicializamos el mapa de distribución con 0 para todas las opciones posibles.
+        // Esto asegura que si nadie votó por la opción "C", aparezca "C: 0" y no "undefined".
+        const distribution: Record<string, number> = {};
+        possibleOptionIds.forEach(id => {
+            distribution[id] = 0;
+        });
+
+        // 2) Iteramos sobre los jugadores registrados
+        for (const player of this.properties.players.values()) {
+            
+            // Intentamos obtener la respuesta del jugador para esta slide
+            const answer = this.getOnePlayerAnswerForASlide( slideId, player.id );
+
+            // Si el jugador respondió
+            if (answer) {
+                // Obtenemos los IDs que seleccionó (asumiendo que answer.selectedOptions es un array de strings)
+                // Esto funciona tanto para Single Select como Multi Select
+                const selectedIds = answer.getAnswerIndex(); 
+
+                selectedIds.forEach( optionId => {
+
+                    const optionIdString = optionId.toString()
+                    // Solo contamos si el ID es válido (protección defensiva)
+                    if (distribution[optionIdString] !== undefined) {
+                        distribution[optionIdString]++;
+                    }
+                    
+                });
+
+            }
+        }
+
+        return distribution;
+    }
+
+
+        
+    public getPlayersRankingEntries(): ScoreboardEntry[] {
 
         return this.properties.ranking.getEntries();
 
@@ -382,11 +443,11 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         
     }  
 
-    public getTopFive(): ScoreboardEntry[] {
+    // public getTopFive(): ScoreboardEntry[] {
 
-        return  this.properties.ranking.getTop( 5 ) ;
+    //     return  this.properties.ranking.getTop( 5 ) ;
         
-    }
+    // }
 
     public getScoreboardEntryFor( playerId: PlayerId ): ScoreboardEntry {
 
@@ -435,7 +496,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public getSlidesResultBySlideId( slideId: SlideId ): SlideResult {
+    public getSlideResultsBySlideId( slideId: SlideId ): SlideResult {
 
         if( !this.properties.playersAnswers.has( slideId.value ))
             throw new Error("La slide solicitada no tiene resultados");
