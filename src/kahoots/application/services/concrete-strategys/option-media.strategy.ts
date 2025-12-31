@@ -16,7 +16,7 @@ export class OptionMediaStrategy implements IMediaStrategy<OptionHandlerResponse
     return mediaIds;
   }
 
-  replaceWithUrls(option: OptionHandlerResponse, urlMap: Map<string, string>): void {
+async replaceWithUrls(option: OptionHandlerResponse, urlMap: Map<string, string>): Promise<void> {
     // Reemplazar media de la opción
     if (option?.mediaId && urlMap.has(option.mediaId)) {
       option.mediaId = urlMap.get(option.mediaId)!;

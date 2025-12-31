@@ -59,9 +59,6 @@ export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery> {
         return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext));
       }
 
-      // 4. ENRIQUECER 🎯
-      // Aquí es donde el IMediaEnricher usa la estrategia de Kahoot
-      // para transformar los IDs que vienen del DAO en URLs reales.
       const enrichedResponse = await this.mediaEnricher.enrich(kahoot);
       
       return Either.makeRight(enrichedResponse);
