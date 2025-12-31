@@ -1,5 +1,4 @@
 // src/kahoots/application/strategies/kahoot-media.strategy.ts
-
 import { Injectable, Inject } from '@nestjs/common';
 import { IMediaStrategy } from '../../ports/i-media-strategy.interface';
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
