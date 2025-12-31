@@ -7,7 +7,8 @@ import { validateNicknameInvariants } from "../helpers/validate-nickname-invaria
 interface PlayerProps {
     nickname: string;  
     score: Score;  
-    isGuest: boolean       
+    streak: number;
+    isGuest: boolean;       
 }
 
 export class Player extends Entity<PlayerProps, PlayerId> {
@@ -16,9 +17,10 @@ export class Player extends Entity<PlayerProps, PlayerId> {
         playerId: PlayerId,
         nickname: string,
         score: Score,
+        streak: number = 0,
         isGuest: boolean
     ){    
-        super({ nickname, score, isGuest }, playerId);
+        super({ nickname, score, isGuest, streak }, playerId);
     }
 
 
@@ -39,6 +41,20 @@ export class Player extends Entity<PlayerProps, PlayerId> {
         this.properties.score = updatedScore;
     }
 
+    public updateStreak( lastAnswerWasCorrect: boolean ): void {
+
+        if( lastAnswerWasCorrect ){
+
+            this.properties.streak++
+
+        }else{
+
+            this.properties.streak = 0;
+
+        }
+
+    }
+
 
     public getPlayerId(): string {
         return this.idToString();
@@ -51,6 +67,12 @@ export class Player extends Entity<PlayerProps, PlayerId> {
     public getScore(): number {
 
         return this.properties.score.getScore();
+
+    }
+
+    public getStreak(): number {
+
+        return this.properties.streak;
 
     }
 

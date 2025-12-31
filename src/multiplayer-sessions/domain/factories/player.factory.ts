@@ -25,7 +25,7 @@ export class PlayerFactory {
 
         const baseScore = Score.create( 0 );
 
-        return new Player( playerId , cleanNickname, baseScore, isGuest );
+        return new Player( playerId , cleanNickname, baseScore, 0, isGuest ); // El streak inicial está en 0 por default
 
     }
 

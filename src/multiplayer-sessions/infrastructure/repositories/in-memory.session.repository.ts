@@ -85,7 +85,7 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
             }
         );
 
-        console.log( this.activeSessions.values() );
+        // console.log( this.activeSessions.values() );
 
         return token;
 
