@@ -55,7 +55,7 @@ export class SubmissionFactory {
 
         });
 
-        // ! Posiblemente no sea legal esto, pero genuinamente me pregunto si una fabrica completamente externa a todo agregado puede construir un VO interno de un agregado, estamos en Domain a este punto despues de todo
+        // ! Posiblemente no sea legal esto, pero genuinamente me pregunto si una fabrica completamente externa a todo agregado puede construir un VO interno de un agregado, aquí estamos en Domain despues de todo
         const options: Option[] = [];
 
         for( const answer of answerTexts ){

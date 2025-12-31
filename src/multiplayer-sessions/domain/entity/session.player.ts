@@ -6,7 +6,8 @@ import { validateNicknameInvariants } from "../helpers/validate-nickname-invaria
 
 interface PlayerProps {
     nickname: string;  
-    score: Score;         
+    score: Score;  
+    isGuest: boolean       
 }
 
 export class Player extends Entity<PlayerProps, PlayerId> {
@@ -14,25 +15,11 @@ export class Player extends Entity<PlayerProps, PlayerId> {
     public constructor(
         playerId: PlayerId,
         nickname: string,
-        score: Score
+        score: Score,
+        isGuest: boolean
     ){    
-        super({ nickname, score }, playerId);
+        super({ nickname, score, isGuest }, playerId);
     }
-
-    // * Vieja factory method, se reemplazo por una fabrica dedicada
-
-    // public create(playerId: PlayerId, nickname: string, score: Score): Player {
-
-    //     const nicknameValidation = validateNicknameInvariants( nickname );
-
-    //     if( !nicknameValidation.isValid ) {
-
-    //         throw new Error( nicknameValidation.error );
-
-    //     } 
-     
-    //     return new Player( playerId , nickname, score );
-    // }
 
 
     public changeNickname( newNickname: string ): void {
@@ -65,6 +52,10 @@ export class Player extends Entity<PlayerProps, PlayerId> {
 
         return this.properties.score.getScore();
 
+    }
+
+    public isGuest(): boolean {
+        return this.properties.isGuest;
     }
 
 

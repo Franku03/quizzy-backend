@@ -1,6 +1,6 @@
-import { ICommand } from "@nestjs/cqrs";
+import { ICommand } from "src/core/application/cqrs";
 
-export class JoinPlayerCommand implements ICommand {
+export class PlayerJoinCommand implements ICommand {
 
     constructor(
         public readonly userId: string,

@@ -4,17 +4,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MultiplayerSession } from 'src/multiplayer-sessions/domain/aggregates/multiplayer-session';
 import { MultiplayerSessionMongo } from '../../entities/multiplayer-session.schema';
-import { IMultiplayerSessionRepository } from 'src/multiplayer-sessions/domain/ports';
+import { IMultiplayerSessionHistoryRepository } from 'src/multiplayer-sessions/domain/ports';
 
 
 @Injectable()
-export class MultiplayerSessionMongoRepository implements IMultiplayerSessionRepository {
+export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSessionHistoryRepository {
   constructor(
     @InjectModel(MultiplayerSessionMongo.name) 
     private readonly sessionModel: Model<MultiplayerSessionMongo>
   ) {}
 
- async saveSession(session: MultiplayerSession): Promise<void> {
+ async archiveSession(session: MultiplayerSession): Promise<void> {
   try {
     const props = session.props();
     

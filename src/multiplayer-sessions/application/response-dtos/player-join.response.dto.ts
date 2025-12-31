@@ -1,7 +1,7 @@
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects"
 
-export interface JoinPlayerDtoResponse {
+export interface PlayerJoinDtoResponse {
 
     
     hostId: string, 

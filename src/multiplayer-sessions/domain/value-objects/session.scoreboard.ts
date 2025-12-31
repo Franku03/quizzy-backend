@@ -27,8 +27,12 @@ export class Scoreboard extends ValueObject<ScoreboardProps> {
 
     public updateScoreboard( players: Player[] ): Scoreboard {
 
+        // 1, 2
         const previousRanks = this.properties.entries.map( entry =>({ id: entry.getPlayerId().value, previousRank: entry.getRank() }));
         
+        console.log('Previous Ranks:', previousRanks);
+
+        // 1, 2
         const entries = players
                             .sort((p1,p2) => p2.getScore() - p1.getScore()  ) // orden descendente
                             .map(( player, index )  => {
@@ -51,6 +55,8 @@ export class Scoreboard extends ValueObject<ScoreboardProps> {
                                 )
 
                             });
+        
+        console.log('Updated Entries:', entries);
 
         return new Scoreboard( { entries } );
         
