@@ -36,6 +36,8 @@ import { GetGroupLeaderboardQuery } from 'src/groups/application/queries/get-lea
 import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
 import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
 import { GetKahootLeaderboardQuery } from 'src/groups/application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.query';
+import { GetGroupQuizzesQuery } from 'src/groups/application/queries/get-group-quizzes/get-group-quizzes.query';
+import { GroupQuizAssignmentReadModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
 
 
 
@@ -183,5 +185,18 @@ export class GroupsController {
     ): Promise<KahootLeaderboardReadModel[]> {
         const query = new GetKahootLeaderboardQuery(userId, groupId, quizId);
         return await this.executor.executeQuery<KahootLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener los quizzes asignados al grupo con su status y resultados
+    @Get(':groupId/quizzes')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupQuizzes(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<{ data: GroupQuizAssignmentReadModel[] }> {
+        const query = new GetGroupQuizzesQuery(userId, groupId);
+        const quizzes = await this.executor.executeQuery<GroupQuizAssignmentReadModel[]>(query);
+        return { data: quizzes };
     }
 }

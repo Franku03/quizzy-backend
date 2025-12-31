@@ -8,6 +8,9 @@ import { GroupReadModel } from 'src/groups/application/queries/read-model/group.
 import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
 import { UserMongo } from '../../entities/users.schema';
 import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
+import { KahootMongo } from '../../entities/kahoots.schema';
+import { AttemptMongo } from '../../entities/attempts.scheme';
+import { GroupQuizAssignmentReadModel, UserResultModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
 
 @Injectable()
 export class GroupDaoMongo implements IGroupsDao {
@@ -16,6 +19,10 @@ export class GroupDaoMongo implements IGroupsDao {
         private readonly groupModel: Model<GroupMongo>,
         @InjectModel(UserMongo.name)
         private readonly userModel: Model<UserMongo>,
+        @InjectModel(KahootMongo.name)
+        private readonly kahootModel: Model<KahootMongo>,
+        @InjectModel(AttemptMongo.name)
+        private readonly attemptModel: Model<AttemptMongo>,
     ) { }
 
     async getGroupsByUserId(userId: string): Promise<Optional<GroupReadModel[]>> {
@@ -129,5 +136,86 @@ export class GroupDaoMongo implements IGroupsDao {
 
         const leaderboard = new KahootLeaderboardReadModel(quizId, groupId, topPlayers);
         return new Optional<KahootLeaderboardReadModel>(leaderboard);
+    }
+
+    async getGroupQuizzes(groupId: string, userId: string): Promise<Optional<GroupQuizAssignmentReadModel[]>> {
+        const group = await this.groupModel.findOne({ groupId }).exec();
+
+        if (!group || !group.assignments || group.assignments.length === 0) {
+            return new Optional<GroupQuizAssignmentReadModel[]>([]);
+        }
+
+        const quizIds = group.assignments.map(assignment => assignment.quizId);
+
+        const kahoots = await this.kahootModel.find({ id: { $in: quizIds } }).exec();
+        const kahootMap = new Map<string, { title: string }>();
+        kahoots.forEach(kahoot => {
+            kahootMap.set(kahoot.id, { title: kahoot.details?.title || 'Unknown Quiz' });
+        });
+
+        const userCompletionsMap = new Map<string, { attemptId: string; score: number }>();
+        group.completions
+            .filter(c => c.userId === userId)
+            .forEach(c => {
+                userCompletionsMap.set(c.quizId, { attemptId: c.attemptId, score: c.score });
+            });
+
+        const attemptIds = Array.from(userCompletionsMap.values()).map(c => c.attemptId);
+        const attemptMap = new Map<string, Date | null>();
+        if (attemptIds.length > 0) {
+            const attempts = await this.attemptModel.find({ id: { $in: attemptIds } }).exec();
+            attempts.forEach(attempt => {
+                attemptMap.set(attempt.id, attempt.timeDetails?.completedAt || null);
+            });
+        }
+
+
+        const quizAssignments: GroupQuizAssignmentReadModel[] = [];
+
+        for (const assignment of group.assignments) {
+            const quizId = assignment.quizId;
+            const kahoot = kahootMap.get(quizId);
+            const title = kahoot?.title || 'Unknown Quiz';
+
+
+            const userCompletion = userCompletionsMap.get(quizId);
+            const status: 'COMPLETED' | 'PENDING' = userCompletion ? 'COMPLETED' : 'PENDING';
+
+
+            let userResult: UserResultModel | null = null;
+            if (userCompletion) {
+                const completedAt = attemptMap.get(userCompletion.attemptId);
+                if (completedAt) {
+                    userResult = new UserResultModel(
+                        userCompletion.score,
+                        userCompletion.attemptId,
+                        completedAt
+                    );
+                }
+            }
+
+
+            const leaderboardOptional = await this.getKahootLeaderboard(groupId, quizId);
+            const leaderboard = leaderboardOptional.hasValue()
+                ? leaderboardOptional.getValue().topPlayers.map((player: any) => ({
+                    name: player.name,
+                    score: player.score
+                }))
+                : [];
+
+            quizAssignments.push(
+                new GroupQuizAssignmentReadModel(
+                    assignment.id,
+                    quizId,
+                    title,
+                    assignment.availableUntil,
+                    status,
+                    userResult,
+                    leaderboard
+                )
+            );
+        }
+
+        return new Optional<GroupQuizAssignmentReadModel[]>(quizAssignments);
     }
 }

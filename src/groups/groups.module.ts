@@ -23,6 +23,7 @@ import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot
 import { TransferAdminHandler } from './application/commands/transfer-admin/transfer-admin.handler';
 import { GetGroupLeaderboardHandler } from './application/queries/get-leaderboard/get-group-leaderboard.handler';
 import { GetKahootLeaderboardHandler } from './application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.handler';
+import { GetGroupQuizzesHandler } from './application/queries/get-group-quizzes/get-group-quizzes.handler';
 
 @Module({
     controllers: [GroupsController],
@@ -45,6 +46,7 @@ import { GetKahootLeaderboardHandler } from './application/queries/get-kahoot-le
         TransferAdminHandler,
         GetGroupLeaderboardHandler,
         GetKahootLeaderboardHandler,
+        GetGroupQuizzesHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,
