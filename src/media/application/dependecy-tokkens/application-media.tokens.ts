@@ -12,7 +12,6 @@ export const ASSET_STORAGE_SERVICE = 'IAssetStorageService';
 export const CRYPTO_SERVICE = 'ICryptoService';
 
 // URL Services
-export const ASSET_ID_TO_URL_SERVICE = 'IAssetIdToUrlService';
 export const ASSET_URL_SERVICE = 'IAssetUrlService';
 
 // Error Handling
@@ -25,7 +24,6 @@ export const CLOUDINARY_CONFIG = 'CLOUDINARY_CONFIG';
 export const MEDIA_TOKENS = {
   ASSET_STORAGE_SERVICE,
   CRYPTO_SERVICE,
-  ASSET_ID_TO_URL_SERVICE,
   ASSET_URL_SERVICE,
   ERROR_MAPPER,
   CLOUDINARY_CONFIG,

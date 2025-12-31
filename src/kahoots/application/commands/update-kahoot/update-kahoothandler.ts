@@ -21,7 +21,7 @@ import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot
 // Response y Media (LA CLAVE)
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
-import { KAHOOT_MEDIA_ENRICHER } from '../../ports/kahoot-application.tokens'; // Tu nuevo Token de Symbol
+import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens'; // Tu nuevo Token de Symbol
 
 // Servicios de Aplicación
 import { AttemptCleanupService } from '../../services/attempt-clear.service';

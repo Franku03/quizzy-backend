@@ -13,7 +13,7 @@ import { createDomainContext } from 'src/core/errors/helpers/domain-error-contex
 // Response & Media (PUERTOS)
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
-import { KAHOOT_MEDIA_ENRICHER } from '../../ports/kahoot-application.tokens'; // Tu Token Symbol
+import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens'; // Tu Token Symbol
 
 // Infraestructura & Dominio
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';

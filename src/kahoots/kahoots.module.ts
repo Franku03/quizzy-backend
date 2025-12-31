@@ -18,11 +18,11 @@ import { KahootAuthorizationService } from './application/services/kahoot-athori
 import { MediaModule } from 'src/media/infraestructure/media.module';
 import { KahootResponseService } from './application/services/kahoot-response.service';
 
-import { KAHOOT_MEDIA_ENRICHER, KAHOOT_MEDIA_STRATEGY } from './application/ports/kahoot-application.tokens';
+import { KAHOOT_MEDIA_ENRICHER, KAHOOT_MEDIA_STRATEGY } from './application/dependency-tokkens/application-kahoot.tokens';
 import { MediaEnricher } from './application/services/media-enricher.service';
 import { KahootMediaStrategy } from './application/services/concrete-strategys/kahoot-media.strategy';
-import { ASSET_ID_TO_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
-import { IAssetIdToUrlService } from 'src/media/application/ports/asset-id-to-url.service.interface';
+import { ASSET_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
+import { IAssetUrlGenerator } from 'src/media/application/ports/asset-url-generator.interface';
 
 @Module({
   controllers: [KahootController],
@@ -54,10 +54,10 @@ import { IAssetIdToUrlService } from 'src/media/application/ports/asset-id-to-ur
 
     {
       provide: KAHOOT_MEDIA_ENRICHER,
-      useFactory: (assetService: IAssetIdToUrlService, strategy: KahootMediaStrategy) => {
+      useFactory: (assetService: IAssetUrlGenerator, strategy: KahootMediaStrategy) => {
         return new MediaEnricher(assetService, strategy);
       },
-      inject: [ASSET_ID_TO_URL_SERVICE, KAHOOT_MEDIA_STRATEGY],
+      inject: [ASSET_URL_SERVICE, KAHOOT_MEDIA_STRATEGY],
     },
 
     // --- Otros Servicios ---

@@ -38,6 +38,9 @@ export class AssetMetadataMongo extends Document {
   @Prop({ required: true })
   category: string;
 
+  @Prop({ required: true, default: false })
+  theme: boolean;
+
   @Prop({ required: true, type: Date, default: Date.now })
   uploadedAt: Date;
 }

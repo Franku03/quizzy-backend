@@ -18,7 +18,7 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
     module: 'media',
     databaseType: 'mongodb',
     collectionOrTable: 'asset_metadata',
-    operation: '', // Base que se sobreescribe
+    operation: '',
   } as const;
 
   private readonly mongoErrorMapper: MongoErrorMapper = new MongoErrorMapper();
@@ -28,12 +28,38 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
     private readonly model: Model<AssetMetadataMongo>,
   ) { }
 
-  private toRecord(doc: AssetMetadataMongo): AssetMetadataRecord { 
-    return doc as unknown as AssetMetadataRecord; 
+  private toRecord(doc: AssetMetadataMongo): AssetMetadataRecord {
+    return {
+      assetId: doc.assetId,
+      publicId: doc.publicId,
+      provider: doc.provider,
+      originalName: doc.originalName,
+      mimeType: doc.mimeType,
+      size: doc.size,
+      contentHash: doc.contentHash,
+      referenceCount: doc.referenceCount,
+      format: doc.format,
+      category: doc.category,
+      theme: doc.theme,
+      uploadedAt: doc.uploadedAt,
+    };
   }
-  
-  private fromRecord(record: AssetMetadataRecord): Partial<AssetMetadataMongo> { 
-    return record as unknown as Partial<AssetMetadataMongo>; 
+
+  private fromRecord(record: AssetMetadataRecord): Partial<AssetMetadataMongo> {
+    return {
+      assetId: record.assetId,
+      publicId: record.publicId,
+      provider: record.provider,
+      originalName: record.originalName,
+      mimeType: record.mimeType,
+      size: record.size,
+      contentHash: record.contentHash,
+      referenceCount: record.referenceCount,
+      format: record.format,
+      category: record.category,
+      theme: record.theme,
+      uploadedAt: record.uploadedAt,
+    };
   }
 
   async insert(record: AssetMetadataRecord): Promise<Either<ErrorData, void>> {
@@ -46,10 +72,10 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
     try {
       const data = this.fromRecord(record);
       await this.model.create(data);
-      return Either.makeRight<ErrorData, void>(undefined);
+      return Either.makeRight(undefined);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, void>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -62,15 +88,10 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
 
     try {
       const doc = await this.model.findOne({ publicId }).exec();
-
-      if (!doc) {
-        return Either.makeRight<ErrorData, AssetMetadataRecord | null>(null);
-      }
-
-      return Either.makeRight<ErrorData, AssetMetadataRecord | null>(this.toRecord(doc));
+      return Either.makeRight(doc ? this.toRecord(doc) : null);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, AssetMetadataRecord | null>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -83,15 +104,10 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
 
     try {
       const doc = await this.model.findOne({ contentHash }).exec();
-
-      if (!doc) {
-        return Either.makeRight<ErrorData, AssetMetadataRecord | null>(null);
-      }
-
-      return Either.makeRight<ErrorData, AssetMetadataRecord | null>(this.toRecord(doc));
+      return Either.makeRight(doc ? this.toRecord(doc) : null);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, AssetMetadataRecord | null>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -107,10 +123,82 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
       }).exec();
 
       const records = docs.map(doc => this.toRecord(doc));
-      return Either.makeRight<ErrorData, AssetMetadataRecord[]>(records);
+      return Either.makeRight(records);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, AssetMetadataRecord[]>(errorData);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async findThemeById(assetId: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'findTheme',
+      entityId: assetId,
+    };
+
+    try {
+      // Buscamos estrictamente por el UUID de assetId y que sea un tema
+      const doc = await this.model.findOne({
+        assetId: assetId,
+        theme: true
+      }).exec();
+
+      return Either.makeRight(doc ? this.toRecord(doc) : null);
+    } catch (error) {
+      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async findThemes(options?: {
+    category?: string;
+    format?: string;
+    mimeType?: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: 'uploadedAt' | 'size' | 'originalName';
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<Either<ErrorData, AssetMetadataRecord[]>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'findThemes',
+    };
+
+    try {
+      // Construir query base
+      const query: any = { theme: true };
+
+      // Aplicar filtros opcionales
+      if (options?.category) query.category = options.category;
+      if (options?.format) query.format = options.format;
+      if (options?.mimeType) query.mimeType = options.mimeType;
+
+      // Construir consulta
+      let dbQuery = this.model.find(query);
+
+      // Aplicar sorting (por defecto: uploadedAt descendente)
+      const sortBy = options?.sortBy || 'uploadedAt';
+      const sortOrder = options?.sortOrder === 'asc' ? 1 : -1;
+      dbQuery = dbQuery.sort({ [sortBy]: sortOrder });
+
+      // Aplicar paginación
+      if (options?.offset && options.offset > 0) {
+        dbQuery = dbQuery.skip(options.offset);
+      }
+
+      if (options?.limit && options.limit > 0) {
+        dbQuery = dbQuery.limit(options.limit);
+      }
+
+      // Ejecutar consulta
+      const docs = await dbQuery.exec();
+      const records = docs.map(doc => this.toRecord(doc));
+
+      return Either.makeRight(records);
+    } catch (error) {
+      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -125,7 +213,7 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
       const result = await this.model.findOneAndUpdate(
         { publicId },
         { $inc: { referenceCount: 1 } },
-        { new: true, runValidators: true }
+        { new: true }
       );
 
       if (!result) {
@@ -135,13 +223,13 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
           ErrorLayer.INFRASTRUCTURE,
           fullContext
         );
-        return Either.makeLeft<ErrorData, void>(notFoundError);
+        return Either.makeLeft(notFoundError);
       }
 
-      return Either.makeRight<ErrorData, void>(undefined);
+      return Either.makeRight(undefined);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, void>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -158,11 +246,11 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
       if (!asset) {
         const notFoundError = new ErrorData(
           "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' not found for decrement.`,
+          `Asset metadata with publicId '${publicId}' not found.`,
           ErrorLayer.INFRASTRUCTURE,
           fullContext
         );
-        return Either.makeLeft<ErrorData, void>(notFoundError);
+        return Either.makeLeft(notFoundError);
       }
 
       if (asset.referenceCount <= 0) {
@@ -172,29 +260,18 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
           ErrorLayer.INFRASTRUCTURE,
           { ...fullContext, currentValue: asset.referenceCount }
         );
-        return Either.makeLeft<ErrorData, void>(validationError);
+        return Either.makeLeft(validationError);
       }
 
-      const result = await this.model.findOneAndUpdate(
+      await this.model.updateOne(
         { publicId },
-        { $inc: { referenceCount: -1 } },
-        { new: true, runValidators: true }
+        { $inc: { referenceCount: -1 } }
       );
 
-      if (!result) {
-        const notFoundError = new ErrorData(
-          "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' vanished during decrement.`,
-          ErrorLayer.INFRASTRUCTURE,
-          fullContext
-        );
-        return Either.makeLeft<ErrorData, void>(notFoundError);
-      }
-
-      return Either.makeRight<ErrorData, void>(undefined);
+      return Either.makeRight(undefined);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, void>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 
@@ -211,17 +288,17 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
       if (!result) {
         const notFoundError = new ErrorData(
           "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' not found for deletion.`,
+          `Asset metadata with publicId '${publicId}' not found.`,
           ErrorLayer.INFRASTRUCTURE,
           fullContext
         );
-        return Either.makeLeft<ErrorData, void>(notFoundError);
+        return Either.makeLeft(notFoundError);
       }
 
-      return Either.makeRight<ErrorData, void>(undefined);
+      return Either.makeRight(undefined);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, void>(errorData);
+      return Either.makeLeft(errorData);
     }
   }
 }
