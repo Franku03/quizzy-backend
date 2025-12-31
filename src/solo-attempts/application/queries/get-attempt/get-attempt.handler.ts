@@ -7,7 +7,9 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { GetAttemptStatusQuery } from './get-attempt.query';
 import { AttemptResumeReadModel } from '../read-models/resume.attempt.read.model';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
-import { GET_ATTEMPT_ERROR_CODES } from './get-attempt.errors';
+import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
 
 @QueryHandler(GetAttemptStatusQuery)
 export class GetAttemptStatusHandler
@@ -18,6 +20,8 @@ export class GetAttemptStatusHandler
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
   ) {}
 
+  // We check that the user requesting the attempt status owns the attempt
+  @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(
     query: GetAttemptStatusQuery,
   ): Promise<AttemptResumeReadModel> {
@@ -28,13 +32,11 @@ export class GetAttemptStatusHandler
 
     // If the attempt doesn't exist in the system, we throw an error
     if (!attemptOptional.hasValue()) {
-      throw new Error(GET_ATTEMPT_ERROR_CODES.ATTEMPT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.ATTEMPT_NOT_FOUND);
     }
 
+    // If found, we return the attempt resume context
     const attempt = attemptOptional.getValue();
-
-    // When user module is integrated, we will check if the userId from the attempt
-    // matches the currently authenticated user. For now, we skip this step.
 
     return attempt;
   }

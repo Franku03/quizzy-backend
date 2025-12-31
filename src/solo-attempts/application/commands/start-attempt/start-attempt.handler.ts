@@ -14,7 +14,7 @@ import type { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attem
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.factory';
 import { SlideSnapshotMapper } from '../mappers/slide.mapper';
-import { START_ATTEMPT_ERROR_CODES } from './start-attempt.errors';
+import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
@@ -41,16 +41,16 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const kahootIdString = kahootId.value;
     const kahootEither = await this.kahootRepository.findKahootByIdEither(kahootIdString);
     if (kahootEither.isLeft()) {
-      throw new Error(START_ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
     }
     const kahoot = kahootEither.getRight();
     if (kahoot === null) {
-      throw new Error(START_ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.KAHOOT_NOT_FOUND);
     }
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
     if (kahoot.isDraft()){
-      throw new Error(START_ATTEMPT_ERROR_CODES.DRAFT_KAHOOT);
+      throw new Error(ATTEMPT_ERROR_CODES.DRAFT_KAHOOT);
     }
 
     // Before creating a new attempt, we check if there's already an active
@@ -99,7 +99,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     const firstSlideSnapshot = kahoot.getNextSlideSnapshotByIndex();
 
     if (!firstSlideSnapshot) {
-      throw new Error(START_ATTEMPT_ERROR_CODES.NO_SLIDES);
+      throw new Error(ATTEMPT_ERROR_CODES.NO_SLIDES);
     }
     
     // We construct the output object matching the output response requirement.
