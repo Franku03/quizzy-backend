@@ -22,6 +22,9 @@ import { OutputSlide, SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 // Application Layer Mapper
 import { SubmissionMapper } from '../mappers/submission.mapper';
@@ -31,6 +34,7 @@ import { SubmissionMapper } from '../mappers/submission.mapper';
 export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand> {
   
   private readonly evaluationService: SoloAttemptEvaluationService;
+  private readonly useCase: string = 'User submits an answer in a solo attempt';
 
   constructor(
     @Inject(RepositoryName.Attempt)
@@ -41,10 +45,13 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {
     this.evaluationService = new SoloAttemptEvaluationService();
   }
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
   // We check that the user submitting the answer owns the attempt
   @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(command: SubmitAnswerCommand): Promise<any> {
