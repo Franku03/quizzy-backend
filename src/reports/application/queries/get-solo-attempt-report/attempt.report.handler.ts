@@ -10,12 +10,23 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetDetailedReportQuery)
 export class GetDetailedReportHandler implements IQueryHandler<GetDetailedReportQuery> {
-  // We inject the DAO that knows how to retrieve detailed attempt reports from the database
-  constructor(@Inject(DaoName.SoloAttempt) private readonly soloAttemptQueryDao: ISoloAttemptQueryDao) {}
+  private readonly useCase: string = 'User retrieves the detailed report of a solo attempt';
 
+  // We inject the DAO that knows how to retrieve detailed attempt reports from the database
+  // we also inject a logger for logging purposes
+  constructor(
+    @Inject(DaoName.SoloAttempt) private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+  ) {}
+
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
   // We check that the user requesting the detailed report owns the attempt
   @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(query: GetDetailedReportQuery): Promise<AttemptReportReadModel> {

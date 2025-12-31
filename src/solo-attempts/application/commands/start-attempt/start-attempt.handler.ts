@@ -18,9 +18,14 @@ import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.err
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
+  private readonly useCase: string = 'User starts a solo attempt';
+
   constructor(
     @Inject(RepositoryName.Attempt)
     private readonly attemptRepository: SoloAttemptRepository,
@@ -28,10 +33,13 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     private readonly kahootRepository: IKahootRepository,
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     @Inject(UuidGenerator) private readonly uuidGenerator: IdGenerator<string>,
   
   ) {}
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
   async execute(command: StartSoloAttemptCommand): Promise<any> {
     // We instantiate the Value Objects to ensure structural validity of IDs
     const kahootId = new KahootId(command.kahootId);
