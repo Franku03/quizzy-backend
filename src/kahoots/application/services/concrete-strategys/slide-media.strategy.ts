@@ -25,7 +25,7 @@ export class SlideMediaStrategy implements IMediaStrategy<SlideHandlerResponse> 
     return mediaIds;
   }
 
-  replaceWithUrls(slide: SlideHandlerResponse, urlMap: Map<string, string>): void {
+async replaceWithUrls(slide: SlideHandlerResponse, urlMap: Map<string, string>): Promise<void> {
     // Reemplazar media del slide
     if (slide?.mediaId && urlMap.has(slide.mediaId)) {
       slide.mediaId = urlMap.get(slide.mediaId)!;

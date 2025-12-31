@@ -61,12 +61,8 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
       // 3. MAPEO: De Dominio a Response Plano (Solo IDs)
       // Usamos el servicio que solo se encarga de transformar la estructura.
       const plainResponse = await this.kahootResponseService.toResponse(kahoot);
-      console.log('ANTES DEL ENRICH:', plainResponse.themeId);
-
       // Delegamos a la estrategia inyectada a través del MediaEnricher.
       const enrichedResponse = await this.mediaEnricher.enrich(plainResponse);
-      console.log('DESPUÉS DEL ENRICH:', enrichedResponse.theme);
-
       return Either.makeRight(enrichedResponse);
 
     } catch (error) {
