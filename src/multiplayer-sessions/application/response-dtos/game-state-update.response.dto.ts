@@ -1,5 +1,5 @@
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects"
-import { SlideSnapshotWithoutAnswers } from "./slide-without-answers.interface";
+import { SlideSnapshotWithoutAnswers } from "./types/slide-without-answers.interface";
 
 
 interface PlayerData {
@@ -11,8 +11,8 @@ interface PlayerData {
 
 interface KahootStyling {
     
-    ImageUrl?: string,
-    ThemeUrl?: string,
+    imageURL?: string,
+    themeURL?: string,
     // * avatarURL: string, 
 }
 
@@ -22,7 +22,7 @@ export interface GameStateUpdateResponse {
     state: SessionStateType,
     players: PlayerData[],
     quizTitle?: string, // No siempre hara falta pasar esto en un GameStateUpdate
-    quizMediaUrls?: KahootStyling, // No siempre hara falta pasar esto en un GameStateUpdte
+    quizMediaURLs?: KahootStyling, // No siempre hara falta pasar esto en un GameStateUpdte
     currentSlideData?: SlideSnapshotWithoutAnswers, // Esto solo lo devolvemos para cuando un jugador que se reconecta
         
 }

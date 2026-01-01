@@ -1,6 +1,8 @@
 // This command carries the necessary data to submit an answer in a single-player attempt.
 // It acts as a DTO between the infrastructure (Controller) and the application layer.
-export class SubmitAnswerCommand {
+import { ICommand } from 'src/core/application/cqrs/command.interface';
+
+export class SubmitAnswerCommand implements ICommand {
   constructor(
     public readonly attemptId: string,
     public readonly userId: string,

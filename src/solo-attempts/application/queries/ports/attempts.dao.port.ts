@@ -30,5 +30,15 @@ export interface ISoloAttemptQueryDao {
   // mapping the snapshots of questions and answers stored.
   // It also requires a join with Kahoot to fetch the game Title.
   getDetailedReport(attemptId: string): Promise<Optional<AttemptReportReadModel>>;
+  
+
+  // ---------------------------------------------------------------------------
+  // AUTHORIZATION CONTEXT
+  // ---------------------------------------------------------------------------
+
+  // FAST lookup of user ID associated with a given attempt. 
+  // Used for authorization checks.
+  // O(1) speed.
+  getAttemptUserId(attemptId: string): Promise<Optional<string>>;
 
 }

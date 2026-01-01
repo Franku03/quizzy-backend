@@ -1,9 +1,6 @@
-// src/media/infrastructure/cloudinary/cloudinary-storage.adapter.ts
-
 import { Inject, Injectable } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
-import { UploadApiResponse, UploadApiErrorResponse } from 'cloudinary';
-
+import { UploadApiResponse} from 'cloudinary';
 import { IAssetStorageService } from 'src/media/application/ports/asset-storage.service';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
@@ -24,61 +21,54 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
     mimeType: string,
     originalName: string,
     publicId: string
-  ): Promise<Either<ErrorData, { publicId: string; provider: string }>> {
+  ): Promise<Either<ErrorData, { publicId: string; provider: string; mimeType: string; format: string; size: number }>> {
+    const baseFolder = process.env.CLOUDINARY_ASSET_FOLDER || 'quizzy_assets';
+    const [folderPath, assetId] = publicId.split('/');
+    const cleanName = this.slugify(originalName);
+    const targetFolder = `${baseFolder}/${folderPath}`;
+    const fileName = `${cleanName}-${assetId.substring(0, 6)}`;
+
+    const isGif = mimeType === 'image/gif';
+    const isSvg = mimeType.includes('svg');
+    const shouldConvert = mimeType.startsWith('image/') && !isGif && !isSvg;
 
     const context: IExternalServiceErrorContext = {
       operation: 'upload',
       adapterName: CloudinaryStorageAdapter.name,
       portName: 'IAssetStorageService',
       serviceName: 'cloudinary',
-      resourceId: publicId,
-      fileSize: fileBuffer.length,
-      mimeType: mimeType,
-      folder: process.env.CLOUDINARY_ASSET_FOLDER || 'quizzy_assets',
+      resourceId: fileName
     };
 
     try {
-      let resourceType: 'image' | 'video' | 'raw' | 'auto' = 'auto';
-      if (mimeType.startsWith('image/')) {
-        resourceType = 'image';
-      } else if (mimeType.startsWith('video/')) {
-        resourceType = 'video';
-      } else if (mimeType.startsWith('application/') || mimeType.startsWith('text/')) {
-        resourceType = 'raw';
-      }
-
-      const result = await new Promise<UploadApiResponse | { public_id: string; existing: true }>((resolve, reject) => {
-        const uploadStream = this.cloudinaryInstance.uploader.upload_stream(
+      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+        this.cloudinaryInstance.uploader.upload_stream(
           {
-            public_id: publicId,
-            overwrite: false,
-            resource_type: resourceType,
-            folder: context.folder,
-            type: 'upload',
+            public_id: fileName,
+            folder: targetFolder,
+            asset_folder: targetFolder,
+            resource_type: 'auto',
+            format: shouldConvert ? 'webp' : undefined,
+            quality: shouldConvert ? 'auto:best' : undefined,
+            flags: 'preserve_transparency',
           },
-          (error: UploadApiErrorResponse, result: UploadApiResponse) => {
-            if (error) {
-              if (error.http_code === 400 && error.message.includes('already exists')) {
-                resolve({ public_id: publicId, existing: true });
-              } else {
-                reject(error);
-              }
-            } else {
-              resolve(result);
-            }
+          (error, result) => {
+            if (error) return reject(error);
+            if (!result) return reject(new Error('Cloudinary upload result is undefined'));
+            resolve(result);
           }
-        );
-        uploadStream.end(fileBuffer);
+        ).end(fileBuffer);
       });
 
       return Either.makeRight({
         publicId: result.public_id,
-        provider: 'cloudinary'
+        provider: 'cloudinary',
+        mimeType: shouldConvert ? 'image/webp' : mimeType,
+        format: shouldConvert ? 'webp' : result.format,
+        size: result.bytes
       });
-
     } catch (error) {
-      const errorData = this.errorMapper.toErrorData(error, context);
-      return Either.makeLeft(errorData);
+      return Either.makeLeft(this.errorMapper.toErrorData(error, context));
     }
   }
 
@@ -88,47 +78,21 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
       adapterName: CloudinaryStorageAdapter.name,
       portName: 'IAssetStorageService',
       serviceName: 'cloudinary',
-      resourceId: publicId,
+      resourceId: publicId
     };
 
     try {
       if (provider !== 'cloudinary') {
-        const error = new ErrorData(
-          "ADAPTER_MISMATCH",
-          `Provider mismatch: expected 'cloudinary', got '${provider}'`,
-          ErrorLayer.INFRASTRUCTURE,
-          context
-        );
-        return Either.makeLeft(error);
+        return Either.makeLeft(new ErrorData("ADAPTER_MISMATCH", "Expected cloudinary", ErrorLayer.INFRASTRUCTURE, context));
       }
-
-      await this.cloudinaryInstance.uploader.destroy(publicId, {
-        resource_type: 'auto'
-      });
-
+      await this.cloudinaryInstance.uploader.destroy(publicId, { resource_type: 'auto' });
       return Either.makeRight(undefined);
-
     } catch (error) {
-      const errorData = this.errorMapper.toErrorData(error, context);
-      return Either.makeLeft(errorData);
+      return Either.makeLeft(this.errorMapper.toErrorData(error, context));
     }
   }
 
-  async generateUrl(publicId: string): Promise<Either<ErrorData, string>> {
-    const context: IExternalServiceErrorContext = {
-      operation: 'generate-url',
-      adapterName: CloudinaryStorageAdapter.name,
-      portName: 'IAssetStorageService',
-      serviceName: 'cloudinary',
-      resourceId: publicId,
-    };
-
-    try {
-      const url = this.cloudinaryInstance.url(publicId);
-      return Either.makeRight(url);
-    } catch (error) {
-      const errorData = this.errorMapper.toErrorData(error, context);
-      return Either.makeLeft(errorData);
-    }
+  private slugify(text: string): string {
+    return text.split('.')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').trim();
   }
 }

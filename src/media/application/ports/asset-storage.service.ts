@@ -1,5 +1,5 @@
 // src/media/application/ports/asset-storage.service.interface.ts
-import { Either, ErrorData } from 'src/core/types'; 
+import { Either, ErrorData } from 'src/core/types';
 
 export interface IAssetStorageService {
     upload(
@@ -7,11 +7,14 @@ export interface IAssetStorageService {
         mimeType: string,
         originalName: string,
         publicId: string
-    ): Promise<Either<ErrorData, { 
+    ): Promise<Either<ErrorData, {
         publicId: string;
         provider: string;
+        mimeType: string;
+        format: string;
+        size: number;
     }>>;
-    
+
     delete(
         publicId: string,
         provider: string

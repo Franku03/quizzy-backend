@@ -25,6 +25,32 @@ export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
     private readonly kahootModel: Model<KahootMongo>,
   ) {}
 
+  
+  // Fast lookup of user ID associated with a given attempt. 
+  // Used for authorization checks.
+  // O(1) speed.
+  async getAttemptUserId(attemptId: string): Promise<Optional<string>> {
+    // We use a specific projection { playerId: 1 } to strictly fetch only the 
+    // ID required for authorization, ignoring the heavy 'answers' array.
+    // We use .lean() to bypass Mongoose document hydration, returning a 
+    // plain JavaScript object which is significantly faster.
+    // Since the prop is defined as @Prop({ unique: true, index: true }), this lookup is O(1).
+    const attempt = await this.attemptModel
+      .findOne({ id: attemptId })
+      .select({ playerId: 1 })
+      .lean()
+      .exec();
+
+    // If no attempt is found, return an empty Optional
+    if (!attempt) {
+      return new Optional<string>();
+    }
+
+    // Wrap the result in your Optional class
+    return new Optional(attempt.playerId);
+  }
+
+
   async getResumeContext(attemptId: string): Promise<Optional<AttemptResumeReadModel>> {
     // We first need to retrieve the current state of the gameplay attempt.
     const attempt = await this.attemptModel.findOne({ id: attemptId }).exec();

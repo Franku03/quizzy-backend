@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ExploreController } from './infrastructure/nestjs/explore.controller';
-import { CqrsModule } from '@nestjs/cqrs';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 
@@ -13,7 +12,6 @@ import { GetCategoriesHandler } from './application/queries/get-categories/get-c
   controllers: [ExploreController],
   imports: [
     DaoFactoryModule.forFeature(DaoName.Explore), // Carga de un DAO (para queries de CQRS)
-    CqrsModule,
   ],
   providers: [
     // handlers

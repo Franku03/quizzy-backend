@@ -1,4 +1,4 @@
-import { SlideHandlerResponse} from "./kahoot.slide.handler.response";
+import { SlideHandlerResponse } from "./kahoot.slide.handler.response";
 
 export class KahootHandlerResponse {
     id: string;
@@ -6,9 +6,14 @@ export class KahootHandlerResponse {
     description: string | null;
     coverImageId: string | null;
     visibility: string;
-    themeId: string;
+    themeId?: string | null;
+    theme: {
+        id: string;
+        url: string;
+        name: string;
+    } | null;
     authorId: string;
-    createdAt: string; 
+    createdAt: string;
     playCount: number;
     category: string | null;
     status: string;

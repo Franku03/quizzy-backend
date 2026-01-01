@@ -51,7 +51,7 @@ export class Scoreboard extends ValueObject<ScoreboardProps> {
                                 )
 
                             });
-
+        
         return new Scoreboard( { entries } );
         
     };
@@ -66,8 +66,15 @@ export class Scoreboard extends ValueObject<ScoreboardProps> {
                                     player.getPlayerNickname(),
                                     player.getScore(),
                                     1,
-                                    1 // su ranking anterior por defecto es 1
+                                    0 // su ranking anterior inicial y por defecto es 0
                             ));
+
+        // Agregamos las demas entradas que ya existian (si las hay)
+        this.properties.entries.forEach( entry => {
+
+            playerEntries.push( entry );     
+
+        });
 
         return new Scoreboard( { entries: playerEntries } );
         

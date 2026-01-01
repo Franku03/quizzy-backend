@@ -1,18 +1,18 @@
 import { Inject } from "@nestjs/common";
-import { CommandHandler, ICommandHandler } from "@nestjs/cqrs";
-import { InMemorySessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { CommandHandler } from "src/core/infrastructure/cqrs";
+import { ICommandHandler } from "src/core/application/cqrs";
 
 import { HostStartGameCommand } from "./host-start-game.command";
 import { COMMON_ERRORS } from "../common.errors";
-import { HOST_START_GAME_ERRORS } from "./host-start-game.errors";
 import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { Either } from '../../../../core/types/either';
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
-import { OptionSnapshotWithoutAnswers, SlideSnapshotWithoutAnswers } from "../../response-dtos/slide-without-answers.interface";
-import { SlideSnapshot } from "src/database/infrastructure/mongo/entities/kahoots.schema";
-import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-response";
+
+import { mapSnapshotsToQuestionResponse } from "../../mappers/map-snapshots-to-response";
 
 
 
@@ -20,8 +20,8 @@ import { mapSnapshotsToQuestionResponse } from "../../helpers/map-snapshots-to-r
 export class HostStartGameHandler implements ICommandHandler<HostStartGameCommand> {
 
     constructor(
-        @Inject( InMemorySessionRepository )
-        private readonly sessionRepository: InMemorySessionRepository,
+        @Inject( InMemoryActiveSessionRepository )
+        private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){}
 
     async execute(command: HostStartGameCommand): Promise<Either<Error, QuestionStartedResponse>> {
@@ -37,33 +37,17 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
             const { session, kahoot } = sessionWrapper
 
-            // Verificamos algunas incoherencias con los datos a devolver
+            // Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta, y obtenemos directamente los datos de la respuesta a dar
+            const res = mapSnapshotsToQuestionResponse( session, kahoot );
+            const currentSlideSnapshot = res.data.currentSlideData;
 
-            const currentSlideIndex = session.getTotalOfSlidesAnswered();
-
-            if( currentSlideIndex !== 0 )
-                return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
-
-            const currentSlideSnapshot = mapSnapshotsToQuestionResponse( session, kahoot);
-
-
-            // ? Ahora si, iniciamos la partida
-
+            // Iniciamos la partida
             session.startSession(); // Pasa a estado question automaticamente
 
-            if( !session.getSessionState().isQuestion() )
-                return Either.makeLeft( new Error(HOST_START_GAME_ERRORS.SESSION_ALREADY_BEGUN) );
-
-            // * Creamos la tabla de resultados
+            // Creamos la tabla de resultados para la primera slide
             session.startSlideResults( new SlideId( currentSlideSnapshot.id ) );
 
-
-            return Either.makeRight({
-                state: session.getSessionStateType(),
-                questionIndex: currentSlideIndex,
-                currentSlideData: currentSlideSnapshot
-            });
-
+            return Either.makeRight( res );
    
         } catch (error) {
 
