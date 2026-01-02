@@ -7,7 +7,7 @@ export class KahootId extends UuidVO {
     }
 
     public static create(value: string): Either<ErrorData, KahootId> {
-        return this.check(value, 'KahootId')
+        return UuidVO.check(value, 'KahootId')
             .map(validId => new KahootId(validId));
     }
 }

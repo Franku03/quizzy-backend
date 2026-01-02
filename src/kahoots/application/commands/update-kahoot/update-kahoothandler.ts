@@ -77,7 +77,17 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   private async applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Promise<Either<ErrorData, Kahoot>> {
     const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
 
-    // Validaciones Síncronas iniciales (Status, Visibility, Details)
+    // Procesamiento de Styling (Asíncrono)
+    const stylingRes = await KahootFactory.assembleStyling(command.themeId, command.imageId);
+    if (stylingRes.isLeft()) return Either.makeLeft(stylingRes.getLeft());
+    kahoot.updateStyling(stylingRes.getRight());
+
+    // Procesamiento de Slides (Asíncrono)
+    const slidesRes = await this.processSlidesMap(command.slides || []);
+    if (slidesRes.isLeft()) return Either.makeLeft(slidesRes.getLeft());
+    kahoot.replaceSlides(slidesRes.getRight());
+
+    // Validaciones Síncronas  (Status, Visibility, Details)
     const initialSyncRes = KahootStatus.create(command.status)
       .chain(status => VisibilityStatus.create(command.visibility)
         .chain(visibility => {
@@ -94,16 +104,6 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
       );
 
     if (initialSyncRes.isLeft()) return Either.makeLeft(initialSyncRes.getLeft());
-
-    // Procesamiento de Styling (Asíncrono)
-    const stylingRes = await KahootFactory.assembleStyling(command.themeId, command.imageId);
-    if (stylingRes.isLeft()) return Either.makeLeft(stylingRes.getLeft());
-    kahoot.updateStyling(stylingRes.getRight());
-
-    // Procesamiento de Slides (Asíncrono)
-    const slidesRes = await this.processSlidesMap(command.slides || []);
-    if (slidesRes.isLeft()) return Either.makeLeft(slidesRes.getLeft());
-    kahoot.replaceSlides(slidesRes.getRight());
 
     return Either.makeRight(kahoot);
   }
