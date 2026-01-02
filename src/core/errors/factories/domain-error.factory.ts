@@ -44,24 +44,35 @@ export class DomainErrorFactory {
      * Crea ErrorData: Fallo de validación de reglas de negocio (Ej: 400).
      * Se usa cuando un VO o una regla de negocio compleja falla.
      */
-    static validation(
-        context: IDomainErrorContext,
-        validationDetails: Record<string, string[]>,
-        message?: string
-    ): ErrorData {
-        const defaultMsg = `Validation failed for ${context.domainObjectType}.`;
+// src/shared/errors/domain-error.factory.ts
 
-        return new ErrorData(
-            "INVALID_DATA",
-            message || defaultMsg,
-            ErrorLayer.DOMAIN,
-            { 
-                ...context, 
-                validationDetails: validationDetails, 
-                errorCategory: 'VALIDATION' 
-            }
-        );
-    }
+static validation(
+    context: IDomainErrorContext,
+    validationDetails: Record<string, string[]>,
+    message?: string
+): ErrorData {
+    const kind = context.domainObjectKind || 'Object';
+    const fields = Object.keys(validationDetails).join(', ');
+    
+    // Construcción de un mensaje jerárquico
+    // Si tenemos rootAggregateName, el mensaje dirá: "Validation failed for Kahoot -> ValueObject "VisibilityStatus"..."
+    const breadcrumb = context.rootAggregateName 
+        ? `${context.rootAggregateName} -> ` 
+        : '';
+
+    const defaultMsg = `Validation failed for ${breadcrumb}${kind} "${context.domainObjectType}". Invalid fields: [${fields}]`;
+
+    return new ErrorData(
+        "INVALID_DATA",
+        message || defaultMsg,
+        ErrorLayer.DOMAIN,
+        { 
+            ...context, 
+            validationDetails,
+            errorCategory: 'VALIDATION'
+        }
+    );
+}
     
     /**
      * Crea ErrorData: Conflicto de estado (Ej: 409).
