@@ -19,7 +19,6 @@ export class MultiplayerSessionsTracingService {
 
     registerRoom( client: SessionSocket ){
 
-
         const roomPin = client.handshake.headers.pin as string;
 
         this.availableRooms.set( roomPin, {} );
@@ -58,6 +57,20 @@ export class MultiplayerSessionsTracingService {
             return;
 
         delete room[ clientId ];
+    }
+
+
+    removeRoom( roomPin: string ){
+
+        const roomExists = this.availableRooms.has( roomPin );
+
+        // IMPORTANTE: Si no encontramos sala para este cliente, significa que nunca se registró correctamente o ya se borró.
+        // Simplemente retornamos sin hacer nada (return), NO lanzamos error.
+        if(! roomExists )
+            return;
+
+        this.availableRooms.delete( roomPin );
+
     }
 
     private getConnectedClients() {

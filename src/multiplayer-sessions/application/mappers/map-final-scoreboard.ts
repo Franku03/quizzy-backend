@@ -6,6 +6,7 @@ import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.e
 
 export const mapFinalScoreboard = ( session: MultiplayerSession ): GameEndedResponse => {
 
+    const state = session.getSessionStateType();
     
     const playerPodium = session.getTopThree().map( entry => ({
             playerId: entry.getPlayerId().value,
@@ -29,7 +30,7 @@ export const mapFinalScoreboard = ( session: MultiplayerSession ): GameEndedResp
         
 
         playerData.set( entry.getPlayerId().value , {
-
+            state: state,
             rank: rank,         
             totalScore: player.getScore(),   
             isPodium: rank >= 1 && rank <= 3,    
@@ -45,7 +46,7 @@ export const mapFinalScoreboard = ( session: MultiplayerSession ): GameEndedResp
     const response: GameEndedResponse = {
         type: HostNextPhaseType.GAME_END,
         hostData: {
-            state: session.getSessionStateType(),
+            state: state,
             finalPodium: playerPodium,
             winner: playerPodium[0],
             totalParticipants: session.getPlayers().length,
