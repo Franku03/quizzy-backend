@@ -9,9 +9,11 @@ import {
   QuestionStartedResponse 
 } from "src/multiplayer-sessions/application/response-dtos";
 
-import { SessionRoles } from "../enums/session-roles.enum";
-import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from '../enums/websocket.events.enum';
+import { SessionClosed } from "../dtos/session-closed.response.dto";
 import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
+import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from '../enums/websocket.events.enum';
+
+import { SessionRoles } from "../enums/session-roles.enum";
 
 
 // Eventos que el Servidor envía a los Clientes
@@ -25,10 +27,10 @@ export interface ServerToClientEvents {
   [ServerEvents.PLAYER_ANSWER_CONFIRMATION]:(payload: { status: 'ANSWER SUCCESFULLY SUBMITTED' }) => void; 
   [ServerEvents.HOST_RESULTS]:(payload: QuestionResultsHostResponse ) => void;
   [ServerEvents.PLAYER_RESULTS]:(payload: QuestionResultsPlayerResponse ) => void;
-  // [ServerEvents.QUESTION_RESULTS]:(payload: QuestionResultsResponse ) => void; 
   [ServerEvents.HOST_GAME_END]:(payload: HostEndGameResponse ) => void; 
   [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void; 
-  // [ServerEvents.GAME_END]:(payload: GameEndedResponse ) => void; 
+  [ServerEvents.SESSION_CLOSED]:(payload: SessionClosed ) => void; 
+
 
    // Errores
   [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;

@@ -172,8 +172,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         if( res.isRight() ){
 
-          this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
           client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { status: 'CONNECTED TO SESSION AS PLAYER' });
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
 
         } else {
 
@@ -323,8 +323,42 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     }
 
-    private mapToPlayerPayload
+    @SubscribeMessage( HostUserEvents.HOST_END_SESSION )
+    async handleHostEndSession( client: SessionSocket ){
+
+      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+
+        // 1) SEGURIDAD: Verificar que quien ordena cerrar es el HOST
+        if( !(client.data.role === SessionRoles.HOST) )
+          this.handleError( client, new WsException("El cliente no es Host"));
+
+        if( !client.rooms.has( client.data.roomPin as string ))
+          this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"));
+
+        const roomPin = client.data.roomPin;
+
+        if (!roomPin) return;
+        
+        this.logger.log(`Host cerrando sesión y desconectando sala: ${roomPin}`);
+
+        // 2) NOTIFICACIÓN FINAL (Graceful Shutdown)
+        // Antes de cortar el cable, avisamos a los clientes para que el Frontend sepa que fue un cierre intencional y no un error de red.
+        // Así evitamos que el cliente intente reconectarse automáticamente.
+        this.wss.to(roomPin).emit(ServerEvents.SESSION_CLOSED, {
+            reason: ServerEvents.SESSION_CLOSED,
+            message:'El anfitrión ha finalizado la sesión.',
+        });
+
+        // 3) DESCONEXIÓN DE LA SALA
+        // Esto desconecta a TODOS los sockets en esa sala (Host incluido)
+        // El argumento 'true' fuerza el cierre del nivel bajo.
+        await this.wss.in(roomPin).disconnectSockets(true);
+        
+        // 4. LIMPIEZA ADICIONAL (Opcional)
+        // Limpiamos la sala del servicio de traza
+        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString }`)
     
+    }
 
     // ? Este metodo solo sirve solo para cuando es llamado dentro de un metodo que esta decorado por un @SubscribeMessage()
     private handleError( client: SessionSocket, error: Error ): never {

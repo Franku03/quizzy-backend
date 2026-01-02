@@ -3,6 +3,7 @@ export enum HostUserEvents {
 
     HOST_START_GAME = "host_start_game",
     HOST_NEXT_PHASE = "host_next_phase",
+    HOST_END_SESSION = "host_end_session"
 
 }
 
@@ -30,7 +31,7 @@ export enum ServerEvents {
     HOST_GAME_END = "host_game_end",
     PLAYER_GAME_END = "player_game_end",
     // GAME_END = "game_end",
-    SESSION_END = "session_end",
+    SESSION_CLOSED = "session_closed",
 
 
 }
