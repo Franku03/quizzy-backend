@@ -1,23 +1,35 @@
 // src/solo-attempts/application/queries/get-resume-context/get-resume-context.handler.ts
 
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
-import { Optional } from 'src/core/types/optional';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { GetAttemptStatusQuery } from './get-attempt.query';
 import { AttemptResumeReadModel } from '../read-models/resume.attempt.read.model';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
-import { GET_ATTEMPT_ERROR_CODES } from './get-attempt.errors';
+import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetAttemptStatusQuery)
 export class GetAttemptStatusHandler
   implements IQueryHandler<GetAttemptStatusQuery>
 {
+  private readonly useCase: string = 'User retrieves the status of a solo attempt';
+
   constructor(
     @Inject(DaoName.SoloAttempt)
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
+  // We check that the user requesting the attempt status owns the attempt
+  @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(
     query: GetAttemptStatusQuery,
   ): Promise<AttemptResumeReadModel> {
@@ -28,13 +40,11 @@ export class GetAttemptStatusHandler
 
     // If the attempt doesn't exist in the system, we throw an error
     if (!attemptOptional.hasValue()) {
-      throw new Error(GET_ATTEMPT_ERROR_CODES.ATTEMPT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.ATTEMPT_NOT_FOUND);
     }
 
+    // If found, we return the attempt resume context
     const attempt = attemptOptional.getValue();
-
-    // When user module is integrated, we will check if the userId from the attempt
-    // matches the currently authenticated user. For now, we skip this step.
 
     return attempt;
   }

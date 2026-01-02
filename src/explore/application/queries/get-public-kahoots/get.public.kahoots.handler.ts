@@ -1,22 +1,31 @@
 // src/explore/application/queries/get-public-kahoots/get-public-kahoots.handler.ts
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetPublicKahootsQuery } from './get.public.kahoots.query';
 import { PaginatedKahootListReadModel } from '../../read-models/kahoot-list.read-model';
 import type { IExploreDao } from '../ports/explore.dao.port';
 import { EXPLORE_ERROR_CODES } from '../explore.query.errors';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 // This handler processes the query to fetch public kahoots with pagination and filtering.
 // It serves the GET /explore endpoint by retrieving published, public kahoots based on
 // various search and filter criteria provided by the user.
 @QueryHandler(GetPublicKahootsQuery)
 export class GetPublicKahootsHandler implements IQueryHandler<GetPublicKahootsQuery> {
+  private readonly useCase: string = 'User retrieves the list of public kahoots';
+
   constructor(
     @Inject(DaoName.Explore)
     private readonly exploreDao: IExploreDao,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
   async execute(query: GetPublicKahootsQuery): Promise<PaginatedKahootListReadModel> {
     // Throw error if pagination parameters are invalid
     if (query.page !== undefined && query.page <= 0) {

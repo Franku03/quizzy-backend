@@ -1,14 +1,12 @@
-// src/media/application/ports/asset-url.service.interface.ts
-export interface IAssetUrlService {
+// src/media/application/ports/asset-url-generator.interface.ts
+export interface IAssetUrlGenerator {
   /**
-   * Genera URLs para múltiples assets 
+   * Genera URL para un asset
    */
-  generateUrls(
-    assets: Array<{ provider: string; publicId: string }>,
-    options?: {
-      signed?: boolean;
-      expiresIn?: number;
-      transformations?: Record<string, any>;
-    }
-  ): Map<string, string>;
+  generateUrl(publicId: string): string;
+  
+  /**
+   * Genera URLs para múltiples assets
+   */
+  generateUrls(publicIds: string[]): Map<string, string>;
 }

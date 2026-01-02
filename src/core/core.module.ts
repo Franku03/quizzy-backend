@@ -9,8 +9,8 @@ import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
 import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
 import { ID_GENERATOR } from './application/ports/crypto/core-application.tokens';
 import { CommandQueryExecutorService } from './infrastructure/services/command-query-executor.service';
-
-
+import { PinoLogger } from './infrastructure/loggers/pino.logger';
+import { LOGGER_TOKEN } from './application/aspects/logging/logger.token';
 @Global()
 @Module({
   controllers: [CoreController],
@@ -22,6 +22,10 @@ import { CommandQueryExecutorService } from './infrastructure/services/command-q
     QueryBus,
     { provide: EVENT_BUS_TOKEN, useClass: InMemoryEventBus },
     ErrorMappingService,
+     {
+      provide: LOGGER_TOKEN,
+      useClass: PinoLogger,
+    },
   ],
   exports: [
     CommandBus,
@@ -30,6 +34,7 @@ import { CommandQueryExecutorService } from './infrastructure/services/command-q
     ID_GENERATOR,
     ErrorMappingService,
     CommandQueryExecutorService,
+    LOGGER_TOKEN,
   ]
 })
 export class CoreModule {}

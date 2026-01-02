@@ -2,4 +2,6 @@
 // It is empty because the GetCategoriesQuery does not require any parameters.
 // It serves as a simple request object that signals the intention to retrieve
 // the list of categories from the data source.
-export class GetCategoriesQuery {}
+import { IQuery } from 'src/core/application/cqrs/query.interface';
+
+export class GetCategoriesQuery implements IQuery {}

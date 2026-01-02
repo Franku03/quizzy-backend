@@ -1,5 +1,6 @@
 import { Body, Query, Controller, Post, Param, Req, HttpStatus, HttpCode, Get, UseGuards } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
+import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 import { Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { GetPublicKahootsQuery } from 'src/explore/application/queries/get-public-kahoots/get.public.kahoots.query';

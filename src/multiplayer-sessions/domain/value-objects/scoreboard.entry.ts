@@ -68,7 +68,7 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
     }
 
     public getPreviousRank(): number{
-        return this.properties.rank;
+        return this.properties.previousRank;
     }
 
 

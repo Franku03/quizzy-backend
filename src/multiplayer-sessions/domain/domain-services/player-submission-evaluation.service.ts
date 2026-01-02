@@ -13,7 +13,7 @@ export class PlayerSubmissionEvaluationService {
     public evaluatePlayerSubmission(
        kahoot: Kahoot,
        session: MultiplayerSession, 
-       submission: [PlayerIdValue, Submission], // Evaluar si capaz es mejor un arreglo de tuplas I dunno
+       submission: [PlayerIdValue, Submission],
        slideId: SlideId
     ): void {
 

@@ -2,14 +2,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { IMediaEnricher } from '../ports/i-media-enricher.interface';
 import type { IMediaStrategy } from '../ports/i-media-strategy.interface';
-import type { IAssetIdToUrlService } from 'src/media/application/ports/asset-id-to-url.service.interface';
-import { ASSET_ID_TO_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
+import type { IAssetUrlGenerator } from 'src/media/application/ports/asset-url-generator.interface';
+import { ASSET_URL_SERVICE } from 'src/media/application/dependecy-tokkens/application-media.tokens';
 
 @Injectable()
 export class MediaEnricher<T> implements IMediaEnricher<T> {
   constructor(
-    @Inject(ASSET_ID_TO_URL_SERVICE)
-    private readonly assetIdToUrlService: IAssetIdToUrlService,
+    @Inject(ASSET_URL_SERVICE)
+    private readonly assetIdToUrlService: IAssetUrlGenerator,
     private readonly strategy: IMediaStrategy<T>
   ) {}
 
@@ -20,8 +20,8 @@ export class MediaEnricher<T> implements IMediaEnricher<T> {
       return target;
     }
 
-    const urlMap = await this.assetIdToUrlService.getUrls(mediaIds);
-    this.strategy.replaceWithUrls(target, urlMap);
+    const urlMap = this.assetIdToUrlService.generateUrls(mediaIds);
+    await this.strategy.replaceWithUrls(target, urlMap);
     
     return target;
   }
@@ -40,7 +40,7 @@ export class MediaEnricher<T> implements IMediaEnricher<T> {
     }
 
     // Obtener todas las URLs en batch
-    const urlMap = await this.assetIdToUrlService.getUrls(Array.from(allMediaIds));
+    const urlMap = await this.assetIdToUrlService.generateUrls(Array.from(allMediaIds));
 
     // Reemplazar URLs en todos los objetos
     for (const target of targets) {

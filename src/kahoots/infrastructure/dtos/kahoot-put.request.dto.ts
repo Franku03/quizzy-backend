@@ -3,19 +3,6 @@ import { IsDateString, IsInt, IsOptional, IsUUID, Min } from "class-validator";
 import { CreateKahootDTO } from "./kahoot-post.request.dto";
 
 export class UpdateKahootDTO extends CreateKahootDTO {
-    // ⚠️ LEGACY: Mantener por compatibilidad hasta v2.0
-    @IsOptional()
-    @IsUUID()
-    id: string; 
-
-    // ⚠️ LEGACY: Metadata del sistema - no debería ser enviada por el cliente
-    @IsOptional()
-    @IsDateString()
-    createdAt?: string; 
-    
-    // ⚠️ LEGACY: Contador interno - no debería ser enviado por el cliente
-    @IsOptional()
-    @IsInt()
-    @Min(0)
-    playCount?: number; 
+    //Esta class perdio la razon de ser peor bueno se mantiene por si acaso
+    //Eso es debido a que es un put y es esencia un post porque se modifica lo mismo 
 }

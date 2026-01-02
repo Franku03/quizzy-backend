@@ -1,2 +1,3 @@
-export * from './IMultiplayerSessionRepository';
+export * from './IActiveMultiplayerSessionRepository';
+export * from './IMultiplayerSessionHistoryRepository';
 export * from './IPinRepository';

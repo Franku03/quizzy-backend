@@ -22,10 +22,16 @@ export enum ServerEvents {
     PLAYER_ANSWER_CONFIRMATION = "player_answer_confirmation",
 
 
-    QUESTION_STARTED = "question_started",
-    QUESTION_RESULTS = "question_results",
     GAME_STATE_UPDATE = "game_state_update",
-    GAME_END = "game_end",
+    QUESTION_STARTED = "question_started",
+    HOST_RESULTS = "host_results",
+    PLAYER_RESULTS = "player_results",
+    // QUESTION_RESULTS = "question_results",
+    HOST_GAME_END = "host_game_end",
+    PLAYER_GAME_END = "player_game_end",
+    // GAME_END = "game_end",
+    SESSION_END = "session_end",
+
 
 }
 

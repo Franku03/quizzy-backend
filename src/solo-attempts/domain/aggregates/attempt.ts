@@ -329,7 +329,7 @@ export class SoloAttempt extends AggregateRoot<SoloAttemptProps, AttemptId> {
     }
 
     // We retrieve and clear the list of pending domain events.
-    // This method is called by the Repository
+    // This method is called by the app layer
     // immediately after persisting the aggregate state, ensuring that events are only
     // published if the data change was successful.
     public pullDomainEvents(): DomainEvent[] {

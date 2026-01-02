@@ -5,14 +5,16 @@ import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
+import { DomainEvent } from "src/core/domain/abstractions/domain-event";
 import { Optional } from "src/core/types/optional";
 
 import { PlayerId, Scoreboard, ScoreboardEntry, SessionPin, SessionProgress, SessionState, SessionStateType, SlideResult } from "../value-objects";
 import { Player } from "../entity/session.player";
 import { SessionPlayerAnswer } from '../value-objects/slide-result.session-player-answer';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
+import { PlayerIdValue, SlideIdValue, StateTransition, StateTransitionsTypes } from "../types";
 
-import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
+
 
 interface MultiplayerSessionProps {
     readonly hostId: UserId,
@@ -29,16 +31,12 @@ interface MultiplayerSessionProps {
 
 export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, MultiplayerSessionId> {
 
+    // TODO: Quitar Eventos de dominio pues parace que no los usaré
+    private domainEvents: DomainEvent[] = [];
+
     public constructor(props: MultiplayerSessionProps, id: MultiplayerSessionId){
 
         super({...props}, id);
-
-        // Comprueba que el estado no sea Lobby dado que una partida iniciada no se le pueden chequear invarianzas, sin embargo a una partida cargada si deberia
-        // if( !props.sessionState.isLobby() ){
-
-        //     this.checkInvariants();
-
-        // }
 
     }
 
@@ -83,10 +81,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             throw new Error("Invarianza violada: La partida tiene 0 jugadores asociados");
 
         if( this.getTotalOfSlides() !== this.properties.playersAnswers.size  )
-            throw new Error("Invarianza violada: La partida tiene menos respuestas totales para cada slide que el numero de slide");
+            throw new Error("Invarianza violada: La partida tiene menos respuestas totales para cada slide que el numero de slides jugadas");
 
 
-        if( this.getTotalOfSlidesAnswered() !== this.properties.playersAnswers.size  )
+        if( this.getCurrentSlideIndex() !== this.properties.playersAnswers.size  )
             throw new Error("Invarianza violada: El numero de respuestas registradas es incoherente con el numero de slides respondidos");
 
  
@@ -96,7 +94,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
             const score = player.getScore();
 
-            const results = this.getOnePlayerAnswers( player.id ).map( results => results.getEarnedScore() );
+            const results = this.getOnePlayerAnswers( player.id ).map( results => results ? results.getEarnedScore() : 0 );
 
             const totalScore = results.reduce(( resA, resB ) => resA + resB , 0);
 
@@ -110,6 +108,21 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     // Para llamar antes de persistir la partida
     public validateAllInvariantsForCompletion(): void{
         this.checkInvariants();
+    }
+
+    // * Métodos para manejo de eventos de dominio
+    // Este método es protected ya que solo el agregado debe poder registrar eventos de dominio cuanod una regla de negocio ha sido cumplida y un evento debe emitirse
+    protected record(event: DomainEvent): void {
+        this.domainEvents.push(event);
+    }
+
+    // Método público para que la capa de aplicación e infraestructura pueda obtener y limpiar los eventos de dominio pendientes de publicación
+    // En este caso no es llamado por el repositorio historico ya que el mismo solo se encarga de persistir la partida cuando esta llega a END
+    public pullDomainEvents(): DomainEvent[] {
+        // creamos una copia de los eventos actuales y limpiamos el array interno
+        const events = this.domainEvents.slice();
+        this.domainEvents = [];
+        return events;
     }
 
     // ¿ LOGICA DE JUEGO ESTANDAR - UNIR JUGADORES, ANADIR RESULTADOS A LA SESION Y ACTUALIZAR PUNTAJES Y RANKING
@@ -153,7 +166,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public addSlideResult(slideId: SlideId, result: SlideResult): void{
+    private addSlideResult(slideId: SlideId, result: SlideResult): void{
 
         this.properties.playersAnswers.set( slideId.value , result );
 
@@ -163,7 +176,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     public addPlayerAnswer(slideId: SlideId, playerAnswer: SessionPlayerAnswer): void{
 
         if( !this.properties.playersAnswers.has( slideId.value  ) )
-            throw new Error("La Slide a la cual se intenta añadir una entrada no ha sido puesta aun en juego o no exista")
+            throw new Error("La Slide a la cual se intenta añadir una entrada no ha sido puesta aun en juego o no existe")
 
         const updatedSlideResult =
                 this.properties.playersAnswers.get( slideId.value  )?.addResult( playerAnswer )!;
@@ -178,10 +191,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         for( const result of playerResults ){
 
-            // * Quizas no devuelve la referencia al objeto, espero que si
             const player = this.properties.players.get( result.getPlayerId().value );
 
+            // Actualizamos el score y el streak
             player?.updateScore( Score.create( player.getScore() + result.getEarnedScore() ) );
+
+            player?.updateStreak( result.isCorrect() );
 
         }
 
@@ -210,70 +225,97 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     public startSession(): void {
 
-        // TODO: Verificar que hayan suficientes jugadores, por ejemplo a través de checkInvariants()
+        if( this.getCurrentSlideIndex() !== 0 )
+            throw new Error("No se puede empezar una partida en una slide que no sea la primero (O la partida ya comenzó)");
 
         if( this.properties.players.size < 1 )
             throw new Error("No se puede empezar una partida con menos de un jugador conectado");
 
         if( !this.properties.sessionState.isLobby() )
-            throw new Error("No se puede empezar desde un estado que no esa LOBBY");
+            throw new Error("No se puede empezar una partida desde un estado que no esa LOBBY");
 
         // Empezamos el juego pasando a la primera pregunta
         this.properties.sessionState = this.properties.sessionState.toQuestion();
 
-        // return this.properties.sessionState;
+    }
+
+
+    private transitionToResults(): StateTransition {
+
+        if( !this.properties.sessionState.isQuestion() )
+            throw new Error("No se puede pasar a RESULTS desde un estado que no sea QUESTION");
+
+        // Lógica detransicion
+
+        this.properties.sessionState = this.properties.sessionState.toResults();
+
+        return { state: StateTransitionsTypes.TRANSITION_TO_RESULTS };
 
     }
 
-    public advanceToNextPhase(): void { // !Este metodo requiere mejoras
+    private transitionFromResults(): StateTransition {
 
-        // console.log(!this.properties.progress.hasMoreSlidesLeft());
+        if( !this.properties.sessionState.isResults() )
+            throw new Error("No se puede pasar a QUESTION desde un estado que no sea RESULTS");
 
-        // console.log( this.properties.progress.getProperties() );
-        
-        if( !this.properties.progress.hasMoreSlidesLeft() ){ // ! La logica de transicion de estados requiere una ligera revision
-
-            this.endSession();
-            return;
+        // Si no hay mas slides, terminamos la sesion
+        if( !this.properties.progress.hasMoreSlidesLeft() ){
+            
+            return this.endSession(); // Delegamos a endSession el cambio de estado a END
 
         }
-        
-        if( this.properties.sessionState.isQuestion() ){
 
-            this.properties.sessionState = this.properties.sessionState.toResults();
+        // Lógica de transicion
+        this.properties.sessionState = this.properties.sessionState.toQuestion();
 
-        } else if( this.properties.sessionState.isResults()){
-
-            // ? Podria llamarse aqui al updatePlayerScores
-            this.properties.sessionState = this.properties.sessionState.toQuestion();
-
-        } else {
-            throw new Error(`Desde el estado ${this.properties.sessionState.getActualState()} no se puede pasar a RESULT o QUESTION`);
-        }
-
-        // return this.properties.sessionState;
+        return { state: StateTransitionsTypes.TRANSITION_TO_QUESTION };
     }
 
-    public endSession(): void {
 
-        // ! Este metodo deberia emitir un evento de dominio para notificar a la capa de infraestructura
+    // Metodo public mediante el cual el caso de uso correspondiente solicita el avance de estado en la partida
+    public advanceToNextPhase(): StateTransition {
 
-        if( this.properties.sessionState.isQuestion() && !this.properties.progress.hasMoreSlidesLeft() )
-             this.properties.sessionState = this.properties.sessionState.toResults(); // Muchos efectos colaterales, pero es necesario pasar a results para luego pasar a end
+        const currentState = this.properties.sessionState;
 
-        // Terminamos el juego pasando a estado END
+        if( currentState.isQuestion() ){
+            return this.transitionToResults();
+        }
+        
+        if( currentState.isResults() ){
+            // Estando en RESULTS, intentamos ir a la siguiente pregunta.
+            // Si no hay más, transitionQuestion delegará a endSession.
+            return this.transitionFromResults();
+        }
+
+        throw new Error(`Desde el estado ${currentState.getActualState()} no se puede pasar a RESULT o QUESTION`);
+
+
+    }
+
+    private endSession(): StateTransition{
+
+        // ! if( this.properties.sessionState.isQuestion() && !this.properties.progress.hasMoreSlidesLeft() )
+        //      this.properties.sessionState = this.properties.sessionState.toResults(); // Muchos efectos colaterales, pero es necesario pasar a results para luego pasar a end
+
+        // Terminamos el juego pasando a estado END y generando la fecha de culminacion
         this.properties.sessionState = this.properties.sessionState.toEnd();
-
-        // ¡ Marcamos la fecha de finalizacion de la partida
         this.properties.completedAt = new Optional<DateISO>( DateISO.generate() );
 
-        // return this.properties.sessionState;
 
+        return { state: StateTransitionsTypes.TRANSITION_TO_END };
     }
 
     // ? GETTERS CUSTOM
 
     // Para obtener datos de los jugadores y el ranking
+
+    public getNumberOfAnswersForASlide( slideId: SlideId ): number{
+
+        return this.getPlayersAnswersForASlide( slideId ).length
+
+    }
+    
+
 
     public getPlayersAnswersForASlide( slideId: SlideId ): SessionPlayerAnswer[] {
 
@@ -287,7 +329,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public getOnePlayerAnswers( playerId: PlayerId ): SessionPlayerAnswer[] {
+    public getOnePlayerAnswers( playerId: PlayerId ): (SessionPlayerAnswer | undefined)[] {
 
         if( !this.properties.players.has( playerId.value ) )
             throw new Error("El jugador solicitado no se encuentra en la partida");  
@@ -304,8 +346,58 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+    public getOnePlayerAnswerForASlide( slideId: SlideId, playerId: PlayerId ): SessionPlayerAnswer | undefined {
+            
+        // Intentamos obtener la respuesta del jugador para esta slide
+        const slideResults = this.getSlideResultsBySlideId( slideId );
+        const answer = slideResults.searchPlayerAnswer( playerId );
+
+        return answer;
         
-    public getPlayersRankinEntries(): ScoreboardEntry[] {
+    }
+
+
+    // Calcula la distribución de respuestas para una slide específica.
+    public calculateAnswerDistributionForASlide( slideId: SlideId, possibleOptionIds: string[] ): Record<string, number> {
+        
+        // 1) Inicializamos el mapa de distribución con 0 para todas las opciones posibles.
+        // Esto asegura que si nadie votó por la opción "C", aparezca "C: 0" y no "undefined".
+        const distribution: Record<string, number> = {};
+        possibleOptionIds.forEach(id => {
+            distribution[id] = 0;
+        });
+
+        // 2) Iteramos sobre los jugadores registrados
+        for (const player of this.properties.players.values()) {
+            
+            // Intentamos obtener la respuesta del jugador para esta slide
+            const answer = this.getOnePlayerAnswerForASlide( slideId, player.id );
+
+            // Si el jugador respondió
+            if (answer) {
+                // Obtenemos los IDs que seleccionó (asumiendo que answer.selectedOptions es un array de strings)
+                // Esto funciona tanto para Single Select como Multi Select
+                const selectedIds = answer.getAnswerIndex(); 
+
+                selectedIds.forEach( optionId => {
+
+                    const optionIdString = optionId.toString()
+                    // Solo contamos si el ID es válido (protección defensiva)
+                    if (distribution[optionIdString] !== undefined) {
+                        distribution[optionIdString]++;
+                    }
+                    
+                });
+
+            }
+        }
+
+        return distribution;
+    }
+
+
+        
+    public getPlayersRankingEntries(): ScoreboardEntry[] {
 
         return this.properties.ranking.getEntries();
 
@@ -351,11 +443,11 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         
     }  
 
-    public getTopFive(): ScoreboardEntry[] {
+    // public getTopFive(): ScoreboardEntry[] {
 
-        return  this.properties.ranking.getTop( 5 ) ;
+    //     return  this.properties.ranking.getTop( 5 ) ;
         
-    }
+    // }
 
     public getScoreboardEntryFor( playerId: PlayerId ): ScoreboardEntry {
 
@@ -378,7 +470,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public getTotalOfSlidesAnswered(): number {
+    public getCurrentSlideIndex(): number {
 
         return this.properties.progress.getNumberOfSlidesAnswered() ;
 
@@ -404,7 +496,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
 
-    public getSlidesResultBySlideId( slideId: SlideId ): SlideResult {
+    public getSlideResultsBySlideId( slideId: SlideId ): SlideResult {
 
         if( !this.properties.playersAnswers.has( slideId.value ))
             throw new Error("La slide solicitada no tiene resultados");
@@ -425,8 +517,8 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     // ? GETTERS NORMALES
 
-    public getSessionPin(): SessionPin {
-        return this.properties.sessionPin;
+    public getSessionPin(): string {
+        return this.properties.sessionPin.getPin();
     }
 
     public getSessionStateType(): SessionStateType {

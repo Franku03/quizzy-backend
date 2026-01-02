@@ -1,4 +1,4 @@
-import { MAX_NICKNAME_TEXT_LENGTH, MIN_NICKNAME_TEXT_LENGTH } from "../constants/player-constanst";
+import { MAX_NICKNAME_TEXT_LENGTH, MIN_NICKNAME_TEXT_LENGTH } from "../constants/player-constants";
 
 interface validation {
     isValid: boolean,

@@ -1,23 +1,34 @@
 // src/solo-attempts/application/queries/get-attempt-summary/get-attempt-summary.handler.ts
-
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetAttemptSummaryQuery } from './get-summary.query';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
-import { Optional } from 'src/core/types/optional';
 import { AttemptSummaryReadModel } from '../read-models/summary.attempt.read.model';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
-import { GET_SUMMARY_ERROR_CODES } from './get-summary.errors';
+import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetAttemptSummaryQuery)
 export class GetAttemptSummaryHandler
   implements IQueryHandler<GetAttemptSummaryQuery>
 {
+  private readonly useCase: string = 'User retrieves the summary of a solo attempt';
+
   constructor(
     @Inject(DaoName.SoloAttempt)
     private readonly attemptQueryDao: ISoloAttemptQueryDao,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
+  // We check that the user requesting the attempt summary owns the attempt
+  @Authorize(AttemptOwnershipAuthorizer, 'attemptQueryDao')
   async execute(
     query: GetAttemptSummaryQuery,
   ): Promise<AttemptSummaryReadModel> {
@@ -30,11 +41,8 @@ export class GetAttemptSummaryHandler
 
     // If no summary is found, we throw an error indicating the completed attempt was not found
     if (!summaryOptional.hasValue()) {
-      throw new Error(GET_SUMMARY_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
+      throw new Error(ATTEMPT_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
     }
-
-    // When user module is integrated, we will check if the userId from the attempt
-    // matches the currently authenticated user. For now, we skip this step.
 
     return summaryOptional.getValue();
   }

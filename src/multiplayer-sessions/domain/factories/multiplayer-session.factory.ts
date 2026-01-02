@@ -1,4 +1,5 @@
 import { MultiplayerSession } from "../aggregates/multiplayer-session";
+import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 
 import { MultiplayerSessionId } from "src/core/domain/shared-value-objects/id-objects/multiplayer-session.id";
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id"
@@ -22,14 +23,28 @@ export class MultiplayerSessionFactory {
 
 
     public static createMultiplayerSession( 
-        kahootInfo: KahootInfo,
-        hostId: UserId,
-        sessionId: MultiplayerSessionId,
+        kahoot: Kahoot,
+        hostIdString: string,  // UserId
+        sessionIdString: string, // MultiplayerSessionId
         pin: string,
         // pinGenerationService: IGeneratePinService,
         // pinVerificationService: IVerifyAvailablePinService,
     ): MultiplayerSession {
 
+        // Lógica de creación de la info del kahoot
+        // Creamos el idUser del host y verificamos que el kahoot le corresponda
+        const hostId = new UserId( hostIdString );
+
+        // Obtenemos la informacion del kahoot necesaria para construir el player session
+        const slideId = new SlideId( kahoot.getNextSlideSnapshotByIndex()?.id! )
+
+        const kahootInfo: KahootInfo = {
+            kahootId: kahoot.id,
+            firstSlideId: slideId,
+            slidesNumber: kahoot.hasHowManySlides(),
+        }
+
+        const sessionId = new MultiplayerSessionId( sessionIdString );
 
         const sessionPin = SessionPin.create( pin );
 
