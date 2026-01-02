@@ -7,7 +7,7 @@ export class SlideId extends UuidVO {
     } 
 
     public static create(value: string): Either<ErrorData, SlideId> {
-        return this.check(value, 'SlideId')
+        return UuidVO.check(value, 'SlideId')
             .map(validId => new SlideId(validId));
     }
 }

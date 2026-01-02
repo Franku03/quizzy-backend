@@ -7,7 +7,7 @@ export class ImageId extends UuidVO {
     }
 
     public static create(value: string): Either<ErrorData, ImageId> {
-        return this.check(value, 'ImageId')
+        return UuidVO.check(value, 'ImageId')
             .map(validId => new ImageId(validId));
     }
 }

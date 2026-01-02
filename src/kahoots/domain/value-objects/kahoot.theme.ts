@@ -11,7 +11,7 @@ export class ThemeId extends UuidVO {
 
     public static create(value: string): Either<ErrorData, ThemeId> {
         // Si el check pasa, hacemos el new. Si no, devolvemos el error. 
-        return this.check(value, 'ThemeId')
+        return UuidVO.check(value, 'ThemeId')
             .map(validId => new ThemeId(validId));
     }
 }

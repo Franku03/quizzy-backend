@@ -6,7 +6,7 @@ import { ICommandHandler } from 'src/core/application/cqrs/command-handler.inter
 // --- Core Logic & Errors ---
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
+import { createKahootAppContext } from '../base/base-kahoot-context';
 import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 
@@ -22,7 +22,6 @@ import { KahootResponseService } from '../../services/kahoot-response.service';
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
 import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens';
 import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
-import { createKahootAppContext } from '../base/base-kahoot-context';
 
 @CommandHandler(CreateKahootCommand)
 export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand> {
