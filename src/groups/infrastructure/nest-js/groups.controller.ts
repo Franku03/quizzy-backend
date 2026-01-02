@@ -38,6 +38,8 @@ import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-
 import { GetKahootLeaderboardQuery } from 'src/groups/application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.query';
 import { GetGroupQuizzesQuery } from 'src/groups/application/queries/get-group-quizzes/get-group-quizzes.query';
 import { GroupQuizAssignmentReadModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
+import { GetGroupMembersQuery } from 'src/groups/application/queries/get-group-members/get-group-members.query';
+import { GroupMemberReadModel } from 'src/groups/application/queries/read-model/group.member.read.model';
 
 
 
@@ -198,5 +200,17 @@ export class GroupsController {
         const query = new GetGroupQuizzesQuery(userId, groupId);
         const quizzes = await this.executor.executeQuery<GroupQuizAssignmentReadModel[]>(query);
         return { data: quizzes };
+    }
+
+    // Obtener los miembros de un grupo
+    @Get(':groupId/members')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupMembers(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<GroupMemberReadModel[]> {
+        const query = new GetGroupMembersQuery(userId, groupId);
+        return await this.executor.executeQuery<GroupMemberReadModel[]>(query);
     }
 }

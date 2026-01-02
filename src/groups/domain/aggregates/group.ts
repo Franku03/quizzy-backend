@@ -280,6 +280,10 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     return this.properties.details.getDescription();
   }
 
+  public getMembers(): GroupMember[] {
+    return [...this.properties.members];
+  }
+
   public toPrimitives(): GroupPrimitives {
     return {
       id: this.id.value,
