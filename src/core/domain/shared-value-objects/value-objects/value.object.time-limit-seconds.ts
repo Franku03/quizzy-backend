@@ -1,6 +1,9 @@
+import { Either, ErrorData } from "src/core/types";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
-enum TimeLimitSecondsEnum {
+export enum TimeLimitSecondsEnum {
     FIVE_SECONDS = 5,
     TEN_SECONDS = 10,
     TWENTY_SECONDS = 20,
@@ -20,17 +23,30 @@ interface TimeLimitProps {
 export class TimeLimitSeconds extends ValueObject<TimeLimitProps> {
     
     public constructor(seconds: number) {
-        
-        if (!Number.isInteger(seconds) || seconds <= 0) {
-            throw new Error("El límite de tiempo debe ser un número entero positivo (mayor a 0).");
-        }
-        
-        if (!Object.values(TimeLimitSecondsEnum).includes(seconds)) {
-            throw new Error(`El valor de tiempo (${seconds}s) no es un valor permitido.`);
-        }
-        
         super({ value: seconds });
     }
+
+    public static create(seconds: number): Either<ErrorData, TimeLimitSeconds> {
+        const domainContext = createDomainContext('TimeLimitSeconds', 'ValueObject');
+
+        if (!Number.isInteger(seconds) || seconds <= 0) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                domainContext,
+                { value: ['MUST_BE_POSITIVE_INTEGER'] },
+                "El límite de tiempo debe ser un número entero positivo."
+            ));
+        }
+
+        if (!Object.values(TimeLimitSecondsEnum).includes(seconds)) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                domainContext,
+                { value: ['INVALID_TIME_LIMIT'] },
+                `El valor de tiempo (${seconds}s) no es un valor permitido.`
+            ));
+        }
+
+        return Either.makeRight(new TimeLimitSeconds(seconds));
+    }
     
-    public get value(): number {return this.properties.value;}
+    public get value(): number { return this.properties.value; }
 }

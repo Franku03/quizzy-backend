@@ -1,237 +1,232 @@
+// --- Externals & Core ---
+import { Either, ErrorData } from "src/core/types";
 import { Optional } from "src/core/types/optional";
+import { Entity } from "src/core/domain/abstractions/entity";
+
+// --- Domain Models & VOs ---
 import { Question } from "../value-objects/kahoot.slide.question";
 import { TimeLimitSeconds } from "../../../core/domain/shared-value-objects/value-objects/value.object.time-limit-seconds";
 import { Points } from "../../../core/domain/shared-value-objects/value-objects/value.object.points";
 import { SlideType } from '../value-objects/kahoot.slide.type';
-import { Entity } from "src/core/domain/abstractions/entity";
 import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { ImageId } from "../../../core/domain/shared-value-objects/id-objects/image.id";
 import { Option } from "../value-objects/kahoot.slide.option";
+import { Description } from "../value-objects/kahoot.slide.description";
+
+// --- Parameters, Strategies & Snapshots ---
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { Submission } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission";
 import { Result } from "../../../core/domain/shared-value-objects/parameter-objects/parameter.object.result";
-import { Description } from "../value-objects/kahoot.slide.description";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
+
+// --- Shared Errors & Context ---
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 export interface SlideProps {
     position: number;
-    slideType: SlideType; 
+    slideType: SlideType;
     timeLimit: TimeLimitSeconds;
-    // VOs Opcionales
-    question: Optional<Question>; //Se revisa en publish
-    slideImage: Optional<ImageId>; //Puede existir sin esto (no problema)
-    points: Optional<Points>; //Se revisa en publish
-    options: Optional<Option[]>; //Se revisa en publish
+    question: Optional<Question>;
+    slideImage: Optional<ImageId>;
+    points: Optional<Points>;
+    options: Optional<Option[]>;
     description: Optional<Description>
-    evalStrategy: EvaluationStrategy; //Deberia extraerse a domain service
+    evalStrategy: EvaluationStrategy;
 }
 
 export abstract class Slide extends Entity<SlideProps, SlideId> {
-    
-    //valida sus invariantes minimas
 
-    public constructor(props: SlideProps, id: SlideId) {
-        Slide.checkBaseinitialInvariants(props);
+    protected constructor(props: SlideProps, id: SlideId) {
         super(props, id);
     }
 
+    private getContext(operation: string) {
+        return createDomainContext(this.constructor.name, operation, {
+            domainObjectKind: 'Entity',
+            domainObjectId: this.id.value
+        });
+    }
 
-    private static checkBaseinitialInvariants(props: SlideProps): void {
+    protected static checkBaseInvariants(props: SlideProps, className: string): Either<ErrorData, true> {
+        const context = createDomainContext(className, 'checkBaseInvariants', {
+            domainObjectKind: 'Entity'
+        });
 
         if (props.position < 0) {
-            throw new Error("La posición del slide no puede ser negativa.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { position: ['NEGATIVE_POSITION'] },
+                "Slide position cannot be negative."
+            ));
         }
+
         if (!props.slideType || !props.timeLimit) {
-             throw new Error("El slide debe tener SlideType y TimeLimit definidos.");
-        } 
-    }
-    
-    //Comportamiento propio de la class e invariantes comunes (manejadas por sus VO (gracias a Dios))
-    public changePosition(newPosition: number): void {
-        if (newPosition < 0) {
-            throw new Error("La nueva posición no es válida.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { structure: ['MISSING_CORE_PROPS'] },
+                "Slide must have a SlideType and TimeLimit defined."
+            ));
         }
-        this.properties.position = newPosition; 
+
+        return Either.makeRight(true);
     }
+
+    public changePosition(newPosition: number): Either<ErrorData, void> {
+        if (newPosition < 0) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                this.getContext('changePosition'),
+                { position: ['NEGATIVE_POSITION'] },
+                "The new position is not valid."
+            ));
+        }
+        this.properties.position = newPosition;
+        return Either.makeRight(undefined);
+    }
+
     public updateQuestion(newQuestion: Optional<Question>): void {
         this.properties.question = newQuestion;
     }
+
     public updateSlideImage(newImageId: Optional<ImageId>): void {
         this.properties.slideImage = newImageId;
     }
+
     public updateTimeLimit(newTimeLimit: TimeLimitSeconds): void {
         this.properties.timeLimit = newTimeLimit;
     }
-    public updatePoints(newPoints: Optional<Points>): void {
+
+    public updatePoints(newPoints: Optional<Points>): Either<ErrorData, void> {
         this.properties.points = newPoints;
+        return Either.makeRight(undefined);
     }
-    public removeOptionByIndex(indexToDelete: number): void {
-        const currentOptions = this.properties.options.hasValue() 
-            ? this.properties.options.getValue() 
-            : [];
-            
-        if (indexToDelete < 0 || indexToDelete >= currentOptions.length) {
-            throw new Error("Índice de opción fuera de rango.");
-        }
-        
-        const newOptionsArray = currentOptions.filter((NotUsedIndex, index) => index !== indexToDelete);
-        
-        this.properties.options = new Optional(newOptionsArray);
-    }
-
-
-    //Invariantes que dependen de cada tipo de slide
-    public updateSlideType(newSlideType: SlideType): void {
-        this.properties.slideType = newSlideType; 
-        this.checkInitialInvariants();
-    }
-    public addOption(newOption: Option): void {
-        this.properties.slideType.canHaveOption();
-        if(newOption.hasImage()) {
-            this.properties.slideType.canHaveOptionImage();
-        }
-        const currentOptions = this.properties.options.hasValue() 
-            ? this.properties.options.getValue() 
-            : [];
-            
-        const newOptionsArray = [...currentOptions, newOption];
-        
-        this.properties.options = new Optional(newOptionsArray);
-        this.checkStructuralOptionLimits(this.getOptionsList());
-    }
-    public updateOption(indexToUpdate: number, newOption: Option): void {
-        this.properties.slideType.canHaveOption();
-        if(newOption.hasImage()) {
-            this.properties.slideType.canHaveOptionImage();
-        }
+    public removeOptionByIndex(indexToDelete: number): Either<ErrorData, void> {
         const currentOptions = this.getOptionsList();
-        
-        if (indexToUpdate < 0 || indexToUpdate >= currentOptions.length) {
-            throw new Error("Índice de opción fuera de rango para actualizar.");
-        }
-        
-        const newOptionsArray = [...currentOptions];
-        
-        newOptionsArray[indexToUpdate] = newOption; 
 
-        this.properties.options = new Optional(newOptionsArray);
-    }
-    public changeDescription(newDesciption: Description): void{
-        this.properties.slideType.canHaveDescription()
-        this.properties.description = new Optional(newDesciption);
-    }
-    private checkStructuralOptionLimits(options: Option[]): void {
-        const max = this.getMaxOptions(); 
-        if (options.length > max) {
-            throw new Error(`Máximo de opciones excedido. Este tipo de slide ${this.properties.slideType} solo permite ${max} opciones.`);
+        if (indexToDelete < 0 || indexToDelete >= currentOptions.length) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                this.getContext('removeOption'),
+                { options: ['OUT_OF_RANGE'] },
+                "Option index out of range."
+            ));
         }
+
+        const newOptionsArray = currentOptions.filter((_, index) => index !== indexToDelete);
+        this.properties.options = new Optional(newOptionsArray);
+        return Either.makeRight(undefined);
     }
-    //Comportamiento puro
-    
+
+    public updateSlideType(newSlideType: SlideType): Either<ErrorData, void> {
+        this.properties.slideType = newSlideType;
+        return this.checkInitialInvariants();
+    }
+
+    public addOption(newOption: Option): Either<ErrorData, void> {
+        return this.properties.slideType.canHaveOption()
+            .chain(() => newOption.hasImage() ? this.properties.slideType.canHaveOptionImage() : Either.makeRight(true))
+            .chain(() => {
+                const currentOptions = this.getOptionsList();
+                const newOptionsArray = [...currentOptions, newOption];
+                return this.checkStructuralOptionLimits(newOptionsArray)
+                    .map(() => {
+                        this.properties.options = new Optional(newOptionsArray);
+                    });
+            });
+    }
+
+    public updateOption(indexToUpdate: number, newOption: Option): Either<ErrorData, void> {
+        return this.properties.slideType.canHaveOption()
+            .chain(() => newOption.hasImage() ? this.properties.slideType.canHaveOptionImage() : Either.makeRight(true))
+            .chain(() => {
+                const currentOptions = this.getOptionsList();
+                if (indexToUpdate < 0 || indexToUpdate >= currentOptions.length) {
+                    return Either.makeLeft(DomainErrorFactory.validation(
+                        this.getContext('updateOption'),
+                        { options: ['OUT_OF_RANGE'] },
+                        "Option index out of range for update."
+                    ));
+                }
+                const newOptionsArray = [...currentOptions];
+                newOptionsArray[indexToUpdate] = newOption;
+                this.properties.options = new Optional(newOptionsArray);
+                return Either.makeRight(undefined);
+            });
+    }
+
+    public changeDescription(newDescription: Description): Either<ErrorData, void> {
+        return this.properties.slideType.canHaveDescription()
+            .map(() => {
+                this.properties.description = new Optional(newDescription);
+            });
+    }
+
+    private checkStructuralOptionLimits(options: Option[]): Either<ErrorData, void> {
+        const max = this.getMaxOptions();
+        if (options.length > max) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                this.getContext('checkOptionLimits'),
+                { options: ['LIMIT_EXCEEDED'] },
+                `Maximum options exceeded. This slide type only allows ${max}.`
+            ));
+        }
+        return Either.makeRight(undefined);
+    }
+
     public evaluateAnswer(submission: Submission): Result {
-    // Get the selected options based on answerIndex
-    let selectedOptions: Optional<Option[]>;
-    
-    if (submission.getAnswerIndex().hasValue()) {
-        const answerIndices = submission.getAnswerIndex().getValue();
-        const allOptions = this.getOptionsList();
-        const selected = answerIndices
-            .filter(index => index >= 0 && index < allOptions.length)
-            .map(index => allOptions[index]);
-        
-        selectedOptions = new Optional(selected);
-    } else {
-        selectedOptions = new Optional<Option[]>();
+        let selectedOptions: Optional<Option[]>;
+
+        if (submission.getAnswerIndex().hasValue()) {
+            const answerIndices = submission.getAnswerIndex().getValue();
+            const allOptions = this.getOptionsList();
+            const selected = answerIndices
+                .filter(index => index >= 0 && index < allOptions.length)
+                .map(index => allOptions[index]);
+
+            selectedOptions = new Optional(selected);
+        } else {
+            selectedOptions = new Optional<Option[]>();
+        }
+
+        const newSubmission = new Submission(
+            this.id,
+            this.properties.question.hasValue()
+                ? new Optional(this.properties.question.getValue().value)
+                : new Optional<string>(),
+            this.properties.points,
+            new Optional(this.properties.timeLimit),
+            selectedOptions,
+            submission.getAnswerIndex(),
+            submission.getTimeElapsed()
+        );
+
+        return this.properties.evalStrategy.evaluateAnswer(newSubmission, this.getOptionsList());
     }
-    
-    // Create a new submission with slide data and selected options
-    const newSubmission = new Submission(
-        // Slide data
-        this.id, // SlideId
-        this.properties.question.hasValue()
-            ? new Optional(this.properties.question.getValue().value)
-            : new Optional<string>(),
-        this.properties.points, // Optional<Points>
-        new Optional(this.properties.timeLimit), // Optional<TimeLimitSeconds>
-        selectedOptions, // Only pass selected options, not all options
-        
-        // Preserved from original submission
-        submission.getAnswerIndex(), // Optional<number[]>
-        submission.getTimeElapsed() // ResponseTime
-    );
-    
-    return this.properties.evalStrategy.evaluateAnswer(newSubmission, this.getOptionsList());
-}
 
     public getOptionsList(): Option[] {
-        const optionalOptions = this.properties.options; 
-        return optionalOptions.hasValue() ? optionalOptions.getValue() : [];
-    }
-    public get points(): Optional<Points> {
-        return this.properties.points;
-    }
-    public get position(): number {
-        return this.properties.position;
+        return this.properties.options.hasValue() ? this.properties.options.getValue() : [];
     }
 
-    
-    //Utilizado por Kahoot
-    /*public isPublishingCompliant(): boolean {
-        try {
-            this.validatePublishingInvariants(); 
-            return true; 
-        } catch (e) {
-            return false;
-        }
-    }*/
-
-    public isPublishingCompliant(): void {
-        this.validatePublishingInvariants();
+    public isPublishingCompliant(): Either<ErrorData, void> {
+        return this.validatePublishingInvariants();
     }
 
-
-    //Comportamiento Puro
-    protected abstract checkInitialInvariants():void
-    protected abstract validatePublishingInvariants(): void 
+    protected abstract checkInitialInvariants(): Either<ErrorData, void>
+    protected abstract validatePublishingInvariants(): Either<ErrorData, void>
     public abstract getMaxOptions(): number;
-
-    //Esto si lo aprueba el team lo mando a domain service a futuro
-    public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): void
-    
+    public abstract changeEvaluationStrategy(newStrategy: EvaluationStrategy): Either<ErrorData, void>;
 
     public getSnapshot(): SlideSnapshot {
-
-        // Para manejar Optional<T>, usamos la lógica hasValue() ? getValue().value : null
-        
         const options = this.getOptionsList();
-        
         return {
-            //datos q siempre tiene el slide
             id: this.id.value,
             position: this.properties.position,
             slideType: this.properties.slideType.type,
             timeLimitSeconds: this.properties.timeLimit.value,
-
-            //datos opcionales
-            questionText: this.properties.question.hasValue()
-                ? this.properties.question.getValue().value
-                : undefined,
-                
-            slideImageId: this.properties.slideImage.hasValue()
-                ? this.properties.slideImage.getValue().value
-                : undefined,
-                
-            pointsValue: this.properties.points.hasValue()
-                ? this.properties.points.getValue().value
-                : undefined,
-                
-            descriptionText: this.properties.description.hasValue()
-                ? this.properties.description.getValue().description
-                : undefined,
-
-            options: options.length > 0
-                ? options.map(option => option.getSnapshot())
-                : undefined,
+            questionText: this.properties.question.hasValue() ? this.properties.question.getValue().value : undefined,
+            slideImageId: this.properties.slideImage.hasValue() ? this.properties.slideImage.getValue().value : undefined,
+            pointsValue: this.properties.points.hasValue() ? this.properties.points.getValue().value : undefined,
+            descriptionText: this.properties.description.hasValue() ? this.properties.description.getValue().description : undefined,
+            options: options.length > 0 ? options.map(option => option.getSnapshot()) : undefined,
         };
     }
 
@@ -241,6 +236,7 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
     public get question(): Optional<Question> { return this.properties.question; }
     public get slideImage(): Optional<ImageId> { return this.properties.slideImage; }
     public get options(): Optional<Option[]> { return this.properties.options; }
+    public get points(): Optional<Points> { return this.properties.points; }
+    public get position(): number { return this.properties.position; }
     public get description(): Optional<Description> { return this.properties.description; }
-
 }

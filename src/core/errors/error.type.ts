@@ -8,7 +8,6 @@ export class ErrorData extends Error {
 
     public readonly errorId: string;
     public readonly code: string;
-    public readonly message: string; // Heredada y seteada por super()
     public readonly layer: ErrorLayer;
     public readonly timestamp: Date;
     public readonly details?: Record<string, any>;
@@ -52,77 +51,103 @@ export class ErrorData extends Error {
         return Math.random().toString(36).substring(2, 9);
     }
 
-   public toLogString(): string {
-    const SEPARATOR_RED_DARK = '\x1b[31m==================================================\x1b[0m'; 
-    const CYAN = '\x1b[36m';
-    const RED = '\x1b[91m';
-    const BOLD = '\x1b[1m';
-    const YELLOW = '\x1b[33m'; 
-    const MAGENTA = '\x1b[35m'; 
-    const BLUE = '\x1b[34m'; 
-    const GREEN_BRIGHT = '\x1b[92m'; 
-    const RESET = '\x1b[0m';
+public setContext(newDetails: Record<string, any>): this {
+    const currentDetails = this.details || {};
+    const mergedDetails = { ...currentDetails };
+    const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
 
-    const lines: string[] = [];
-
-    let headerColor = BLUE; 
-    let headerLabel = 'FALLO DE SISTEMA';
-
-    switch (this.layer) {
-        case 'DOMAIN': 
-            headerColor = YELLOW;
-            headerLabel = 'ERROR DE DOMINIO';
-            break;
-        case 'APPLICATION':
-            headerColor = MAGENTA;
-            headerLabel = 'FALLO DE APLICACIÓN';
-            break;
-        case 'INFRASTRUCTURE':
-        case 'PRESENTATION':
-        case 'EXTERNAL':
-        default:
-            headerLabel = `ERROR DE ${this.layer}`;
-            break;
+    // 1. Si el Handler nos pasa el nombre del Agregado, decoramos el mensaje
+    if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
+        // @ts-ignore - Accedemos a la propiedad interna de Error
+        this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
     }
 
-    const headerLine = (
-        `${headerColor}${BOLD}[🚨 ${headerLabel}]` + 
-        ` - ID Error: ` +               
-        `${GREEN_BRIGHT}${BOLD}${this.errorId}${RESET}` 
-    );
-
-    lines.push(`\n${SEPARATOR_RED_DARK}`);
-    lines.push(headerLine);
-    lines.push(SEPARATOR_RED_DARK);
-
-    lines.push(`${CYAN}Layer:       ${headerColor}${this.layer}${RESET}`);
-    lines.push(`${CYAN}Code:        ${RED}${this.code}${RESET}`);
-    lines.push(`${CYAN}Timestamp:   ${this.timestamp.toISOString()}${RESET}`);
-    lines.push(`${CYAN}Message:     ${this.message}${RESET}`);
-
-    if (this.details && Object.keys(this.details).length > 0) {
-        lines.push(`\n${SEPARATOR_RED_DARK}`);
-        lines.push(`${CYAN}${BOLD}--------------- CONTEXT DETAILS ----------------${RESET}`);
-        lines.push(SEPARATOR_RED_DARK);
-        lines.push(`${CYAN}${JSON.stringify(this.details, null, 2)}${RESET}`);
+    for (const key in newDetails) {
+        const newValue = newDetails[key];
+        if (newValue !== undefined && newValue !== null) {
+            if (protectedFields.includes(key) && mergedDetails[key]) continue;
+            mergedDetails[key] = newValue;
+        }
     }
 
-    if (this.innerError) {
-        lines.push(`\n${SEPARATOR_RED_DARK}`);
-        lines.push(`${CYAN}${BOLD}--------------- ERROR INTERNO ----------------${RESET}`);
-        lines.push(SEPARATOR_RED_DARK);
-        lines.push(`${CYAN}Name:        ${this.innerError.name}`);
-        lines.push(`${CYAN}Message:     ${this.innerError.message}${RESET}`);
-    }
-
-    if (this.stackTrace) {
-        lines.push(`\n${SEPARATOR_RED_DARK}`);
-        lines.push(`${CYAN}${BOLD}--------------- STACK TRACE ----------------${RESET}`);
-        lines.push(SEPARATOR_RED_DARK);
-        lines.push(this.stackTrace.trim());
-    }
-
-    lines.push(`\n${SEPARATOR_RED_DARK}\n`);
-    return lines.join('\n');
+    (this.details as any) = mergedDetails;
+    return this;
 }
+
+    public toLogString(): string {
+        const SEPARATOR_RED_DARK = '\x1b[31m==================================================\x1b[0m';
+        const CYAN = '\x1b[36m';
+        const RED = '\x1b[91m';
+        const BOLD = '\x1b[1m';
+        const YELLOW = '\x1b[33m';
+        const MAGENTA = '\x1b[35m';
+        const BLUE = '\x1b[34m';
+        const GREEN_BRIGHT = '\x1b[92m';
+        const RESET = '\x1b[0m';
+
+        const lines: string[] = [];
+
+        let headerColor = BLUE;
+        let headerLabel = 'FALLO DE SISTEMA';
+
+        switch (this.layer) {
+            case 'DOMAIN':
+                headerColor = YELLOW;
+                headerLabel = 'ERROR DE DOMINIO';
+                break;
+            case 'APPLICATION':
+                headerColor = MAGENTA;
+                headerLabel = 'FALLO DE APLICACIÓN';
+                break;
+            case 'INFRASTRUCTURE':
+            case 'PRESENTATION':
+            case 'EXTERNAL':
+            default:
+                headerLabel = `ERROR DE ${this.layer}`;
+                break;
+        }
+
+        const headerLine = (
+            `${headerColor}${BOLD}[🚨 ${headerLabel}]` +
+            ` - ID Error: ` +
+            `${GREEN_BRIGHT}${BOLD}${this.errorId}${RESET}`
+        );
+
+        lines.push(`\n${SEPARATOR_RED_DARK}`);
+        lines.push(headerLine);
+        lines.push(SEPARATOR_RED_DARK);
+
+        lines.push(`${CYAN}Layer:       ${headerColor}${this.layer}${RESET}`);
+        lines.push(`${CYAN}Code:        ${RED}${this.code}${RESET}`);
+        lines.push(`${CYAN}Timestamp:   ${this.timestamp.toISOString()}${RESET}`);
+        lines.push(`${CYAN}Message:     ${this.message}${RESET}`);
+
+        if (this.details && Object.keys(this.details).length > 0) {
+            lines.push(`\n${SEPARATOR_RED_DARK}`);
+            lines.push(`${CYAN}${BOLD}--------------- CONTEXT DETAILS ----------------${RESET}`);
+            lines.push(SEPARATOR_RED_DARK);
+            lines.push(`${CYAN}${JSON.stringify(this.details, null, 2)}${RESET}`);
+        }
+
+        if (this.innerError) {
+            lines.push(`\n${SEPARATOR_RED_DARK}`);
+            lines.push(`${CYAN}${BOLD}--------------- ERROR INTERNO ----------------${RESET}`);
+            lines.push(SEPARATOR_RED_DARK);
+            lines.push(`${CYAN}Name:        ${this.innerError.name}`);
+            lines.push(`${CYAN}Message:     ${this.innerError.message}${RESET}`);
+        }
+
+        if (this.stackTrace) {
+            lines.push(`\n${SEPARATOR_RED_DARK}`);
+            lines.push(`${CYAN}${BOLD}--------------- STACK TRACE ----------------${RESET}`);
+            lines.push(SEPARATOR_RED_DARK);
+            lines.push(this.stackTrace.trim());
+        }
+
+        lines.push(`\n${SEPARATOR_RED_DARK}\n`);
+        return lines.join('\n');
+    }
+
+    // En src/core/types/ErrorData.ts
+
 }
