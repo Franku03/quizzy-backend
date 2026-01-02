@@ -32,6 +32,15 @@ import { TransferAdminDto } from 'src/groups/application/commands/request-dtos/t
 import { TransferAdminCommand } from 'src/groups/application/commands/transfer-admin/transfer-admin.command';
 import { TransferAdminResponse } from 'src/groups/application/commands/response-dtos/transfer-admin.response.dto';
 
+import { GetGroupLeaderboardQuery } from 'src/groups/application/queries/get-leaderboard/get-group-leaderboard.query';
+import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
+import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
+import { GetKahootLeaderboardQuery } from 'src/groups/application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.query';
+import { GetGroupQuizzesQuery } from 'src/groups/application/queries/get-group-quizzes/get-group-quizzes.query';
+import { GroupQuizAssignmentReadModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
+
+
+
 @Controller('groups')
 export class GroupsController {
     constructor(
@@ -151,5 +160,43 @@ export class GroupsController {
     ): Promise<TransferAdminResponse> {
         const command = new TransferAdminCommand(groupId, userId, dto.newAdminId);
         return await this.executor.executeCommand<TransferAdminResponse>(command);
+    }
+
+    // Obtener el leaderboard de un grupo
+    @Get(':groupId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupLeaderboard(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<GroupLeaderboardReadModel[]> {
+        const query = new GetGroupLeaderboardQuery(userId, groupId);
+        return await this.executor.executeQuery<GroupLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener el leaderboard de un kahoot
+    @Get(':groupId/quizzes/:quizId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getKahootLeaderboard(
+        @Param('groupId') groupId: string,
+        @Param('quizId') quizId: string,
+        @GetUserId() userId: string,
+    ): Promise<KahootLeaderboardReadModel[]> {
+        const query = new GetKahootLeaderboardQuery(userId, groupId, quizId);
+        return await this.executor.executeQuery<KahootLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener los quizzes asignados al grupo con su status y resultados
+    @Get(':groupId/quizzes')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupQuizzes(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<{ data: GroupQuizAssignmentReadModel[] }> {
+        const query = new GetGroupQuizzesQuery(userId, groupId);
+        const quizzes = await this.executor.executeQuery<GroupQuizAssignmentReadModel[]>(query);
+        return { data: quizzes };
     }
 }

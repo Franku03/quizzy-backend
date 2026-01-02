@@ -21,6 +21,9 @@ import { DeleteMemberHandler } from './application/commands/delete-member/detele
 import { DeleteGroupHandler } from './application/commands/delete-group/delete-group.handler';
 import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot/assign-kahoot.handler';
 import { TransferAdminHandler } from './application/commands/transfer-admin/transfer-admin.handler';
+import { GetGroupLeaderboardHandler } from './application/queries/get-leaderboard/get-group-leaderboard.handler';
+import { GetKahootLeaderboardHandler } from './application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.handler';
+import { GetGroupQuizzesHandler } from './application/queries/get-group-quizzes/get-group-quizzes.handler';
 
 @Module({
     controllers: [GroupsController],
@@ -41,6 +44,9 @@ import { TransferAdminHandler } from './application/commands/transfer-admin/tran
         DeleteGroupHandler,
         AssignKahootToGroupHandler,
         TransferAdminHandler,
+        GetGroupLeaderboardHandler,
+        GetKahootLeaderboardHandler,
+        GetGroupQuizzesHandler,
         {
             provide: 'ITokenGenerator',
             useClass: UuidTokenGenerator,
