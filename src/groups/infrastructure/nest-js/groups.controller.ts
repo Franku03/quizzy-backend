@@ -1,9 +1,7 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, Patch, Post, UseGuards, Delete } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards, Delete } from '@nestjs/common';
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { Either } from 'src/core/types/either';
-import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
 import { GetGroupsByUserQuery } from 'src/groups/application/queries/get-groups-by-user/get-group-by-user.query';
 import { GroupReadModel } from 'src/groups/application/queries/read-model/group.read.model';
@@ -30,11 +28,25 @@ import { AssignKahootToGroupDto } from 'src/groups/application/commands/request-
 import { AssignKahootToGroupCommand } from 'src/groups/application/commands/assign-kahoot/assign-kahoot.command';
 import { AssignKahootToGroupResponse } from 'src/groups/application/commands/response-dtos/assign-kahoot.response.dto';
 
+import { TransferAdminDto } from 'src/groups/application/commands/request-dtos/transfer-admin.request.dto';
+import { TransferAdminCommand } from 'src/groups/application/commands/transfer-admin/transfer-admin.command';
+import { TransferAdminResponse } from 'src/groups/application/commands/response-dtos/transfer-admin.response.dto';
+
+import { GetGroupLeaderboardQuery } from 'src/groups/application/queries/get-leaderboard/get-group-leaderboard.query';
+import { GroupLeaderboardReadModel } from 'src/groups/application/queries/read-model/group.leaderboard.model';
+import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-model/kahoot.leaderboard.model';
+import { GetKahootLeaderboardQuery } from 'src/groups/application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.query';
+import { GetGroupQuizzesQuery } from 'src/groups/application/queries/get-group-quizzes/get-group-quizzes.query';
+import { GroupQuizAssignmentReadModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
+import { GetGroupMembersQuery } from 'src/groups/application/queries/get-group-members/get-group-members.query';
+import { GroupMemberReadModel } from 'src/groups/application/queries/read-model/group.member.read.model';
+
+
+
 @Controller('groups')
 export class GroupsController {
     constructor(
-        private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus,
+        private readonly executor: CommandQueryExecutorService,
     ) { }
 
 
@@ -45,29 +57,31 @@ export class GroupsController {
     async create(
         @GetUserId() adminId: string,
         @Body() dto: CreateGroupDto,
-    ) {
-        const res: Either<Error, CreateGroupResponse> = await this.commandBus.execute(new CreateGroupCommand(dto.name, adminId, dto.description));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
-
+    ): Promise<CreateGroupResponse> {
+        const command = new CreateGroupCommand(dto.name, adminId, dto.description);
+        return await this.executor.executeCommand<CreateGroupResponse>(command);
     }
 
     // Obtener grupos del usuario logueado
     @Get()
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async getGroupsByUser(@GetUserId() userId: string) {
-        const res: Either<Error, GroupReadModel[]> = await this.queryBus.execute(new GetGroupsByUserQuery(userId));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async getGroupsByUser(@GetUserId() userId: string): Promise<GroupReadModel[]> {
+        const query = new GetGroupsByUserQuery(userId);
+        return await this.executor.executeQuery<GroupReadModel[]>(query);
     }
 
     // Modificar información de un grupo
     @Patch(':groupId')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async modifyGroupInformation(@Param('groupId') groupId: string, @GetUserId() userId: string, @Body() dto: UpdateGroupDto) {
-        //console.log("modifyGroupInformation", groupId, userId, dto);
-        const res: Either<Error, ModifyGroupResponse> = await this.commandBus.execute(new ModifyGroupInformationCommand(groupId, userId, dto.name, dto.description));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async modifyGroupInformation(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+        @Body() dto: UpdateGroupDto
+    ): Promise<ModifyGroupResponse> {
+        const command = new ModifyGroupInformationCommand(groupId, userId, dto.name, dto.description);
+        return await this.executor.executeCommand<ModifyGroupResponse>(command);
     }
 
 
@@ -79,18 +93,21 @@ export class GroupsController {
         @Param('groupId') groupId: string,
         @GetUserId() adminId: string,
         @Body() dto: GenerateInvitationDto
-    ) {
-        const res: Either<Error, InvitationResponse> = await this.commandBus.execute(new GenerateInvitationCommand(groupId, adminId, parseInt(dto.expiresIn)));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    ): Promise<InvitationResponse> {
+        const command = new GenerateInvitationCommand(groupId, adminId, parseInt(dto.expiresIn));
+        return await this.executor.executeCommand<InvitationResponse>(command);
     }
 
     // Unirse a un grupo
     @Post('/join')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async joinGroup(@GetUserId() userId: string, @Body() dto: JoinGroupDto) {
-        const res: Either<Error, JoinGroupResponse> = await this.commandBus.execute(new JoinGroupCommand(userId, dto.invitationToken));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async joinGroup(
+        @GetUserId() userId: string,
+        @Body() dto: JoinGroupDto
+    ): Promise<JoinGroupResponse> {
+        const command = new JoinGroupCommand(userId, dto.invitationToken);
+        return await this.executor.executeCommand<JoinGroupResponse>(command);
     }
 
 
@@ -98,18 +115,25 @@ export class GroupsController {
     @Delete(':groupId/members/:targetUserId')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
-    async deleteMember(@Param('groupId') groupId: string, @Param('targetUserId') targetUserId: string, @GetUserId() userId: string) {
-        const res: Either<Error, void> = await this.commandBus.execute(new DeleteMemberCommand(groupId, userId, targetUserId));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async deleteMember(
+        @Param('groupId') groupId: string,
+        @Param('targetUserId') targetUserId: string,
+        @GetUserId() userId: string
+    ): Promise<void> {
+        const command = new DeleteMemberCommand(groupId, userId, targetUserId);
+        await this.executor.executeCommand<void>(command);
     }
 
     // Eliminar un grupo
     @Delete(':groupId')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.NO_CONTENT)
-    async deleteGroup(@Param('groupId') groupId: string, @GetUserId() userId: string) {
-        const res: Either<Error, void> = await this.commandBus.execute(new DeleteGroupCommand(groupId, userId));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async deleteGroup(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string
+    ): Promise<void> {
+        const command = new DeleteGroupCommand(groupId, userId);
+        await this.executor.executeCommand<void>(command);
     }
 
 
@@ -117,43 +141,76 @@ export class GroupsController {
     @Post(':groupId/quizzes')
     @UseGuards(MockAuthGuard)
     @HttpCode(HttpStatus.OK)
-    async assignKahootToGroup(@Param('groupId') groupId: string, @GetUserId() userId: string, @Body() dto: AssignKahootToGroupDto) {
-        const res: Either<Error, AssignKahootToGroupResponse> = await this.commandBus.execute(new AssignKahootToGroupCommand(groupId, userId, dto.quizId, dto.availableFrom, dto.availableUntil));
-        return res.isLeft() ? this.handleError(res.getLeft()) : res.getRight();
+    async assignKahootToGroup(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+        @Body() dto: AssignKahootToGroupDto
+    ): Promise<AssignKahootToGroupResponse> {
+        const command = new AssignKahootToGroupCommand(groupId, userId, dto.quizId, dto.availableFrom, dto.availableUntil);
+        return await this.executor.executeCommand<AssignKahootToGroupResponse>(command);
     }
 
-    private handleError(error: Error): never {
-        const message = error.message
-        if (message.startsWith(GROUP_ERRORS.NOT_FOUND)) {
-            throw new NotFoundException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.INVALID_DETAILS)) {
-            throw new BadRequestException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.NOT_ADMIN)) {
-            throw new ForbiddenException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.NOT_MEMBER)) {
-            throw new ForbiddenException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.INVALID_INVITATION_TOKEN)) {
-            throw new BadRequestException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.ALREADY_MEMBER)) {
-            throw new BadRequestException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.CANNOT_DELETE_ADMIN)) {
-            throw new ForbiddenException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.ONLY_ADMIN)) {
-            throw new ForbiddenException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.NOT_FOUND_KAHOOT)) {
-            throw new NotFoundException(message);
-        }
-        if (message.startsWith(GROUP_ERRORS.KAHOOT_IS_DRAFT)) {
-            throw new BadRequestException(message);
-        }
-        throw new InternalServerErrorException(error.message);
+
+    // Transferir el admin de un grupo
+    @Patch(':groupId/transfer-admin')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async transferAdmin(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+        @Body() dto: TransferAdminDto
+    ): Promise<TransferAdminResponse> {
+        const command = new TransferAdminCommand(groupId, userId, dto.newAdminId);
+        return await this.executor.executeCommand<TransferAdminResponse>(command);
+    }
+
+    // Obtener el leaderboard de un grupo
+    @Get(':groupId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupLeaderboard(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<GroupLeaderboardReadModel[]> {
+        const query = new GetGroupLeaderboardQuery(userId, groupId);
+        return await this.executor.executeQuery<GroupLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener el leaderboard de un kahoot
+    @Get(':groupId/quizzes/:quizId/leaderboard')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getKahootLeaderboard(
+        @Param('groupId') groupId: string,
+        @Param('quizId') quizId: string,
+        @GetUserId() userId: string,
+    ): Promise<KahootLeaderboardReadModel[]> {
+        const query = new GetKahootLeaderboardQuery(userId, groupId, quizId);
+        return await this.executor.executeQuery<KahootLeaderboardReadModel[]>(query);
+    }
+
+    // Obtener los quizzes asignados al grupo con su status y resultados
+    @Get(':groupId/quizzes')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupQuizzes(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<{ data: GroupQuizAssignmentReadModel[] }> {
+        const query = new GetGroupQuizzesQuery(userId, groupId);
+        const quizzes = await this.executor.executeQuery<GroupQuizAssignmentReadModel[]>(query);
+        return { data: quizzes };
+    }
+
+    // Obtener los miembros de un grupo
+    @Get(':groupId/members')
+    @UseGuards(MockAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    async getGroupMembers(
+        @Param('groupId') groupId: string,
+        @GetUserId() userId: string,
+    ): Promise<GroupMemberReadModel[]> {
+        const query = new GetGroupMembersQuery(userId, groupId);
+        return await this.executor.executeQuery<GroupMemberReadModel[]>(query);
     }
 }
