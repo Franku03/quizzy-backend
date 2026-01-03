@@ -1,6 +1,6 @@
 import { IHasMediaAssets } from "../abstractions/media.assets.interface";
 import { KahootDetailsSnapshot } from "./snapshot.kahoot.details";
-import { KahootStylingSnapshotData, KahootStylingSnapshot } from "./snapshot.kahoot.stiyling";
+import { KahootStylingSnapshotData, KahootStylingSnapshot } from "./snapshot.kahoot.styling";
 import { SlideSnapshotData, SlideSnapshot } from "./snapshot.slide";
 
 export interface KahootSnapshotData {

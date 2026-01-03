@@ -2,7 +2,7 @@
 import { ImageId } from '../../../core/domain/shared-value-objects/id-objects/image.id';
 import { ThemeId } from './kahoot.theme';
 // Importamos la CLASE
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 
 // --- Core & Externals ---
 import { Either, ErrorData } from "src/core/types";
