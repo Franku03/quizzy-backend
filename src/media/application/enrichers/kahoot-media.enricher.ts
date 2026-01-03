@@ -2,7 +2,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 import type { IMediaEnricher } from "../ports/i-media-enricher.interface";
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 
