@@ -17,20 +17,19 @@ export enum PlayerUserEvents {
 
 export enum ServerEvents {
 
+    // Eventos provenientes de infraestructura 
     HOST_CONNECTED_SUCCESS = "host_connected_success",
     PLAYER_CONNECTED_TO_SERVER = "player_connected_to_server",
     PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",
     PLAYER_ANSWER_CONFIRMATION = "player_answer_confirmation",
 
-
+    // Eventos provenientes de aplicación
     GAME_STATE_UPDATE = "game_state_update",
     QUESTION_STARTED = "question_started",
     HOST_RESULTS = "host_results",
     PLAYER_RESULTS = "player_results",
-    // QUESTION_RESULTS = "question_results",
     HOST_GAME_END = "host_game_end",
     PLAYER_GAME_END = "player_game_end",
-    // GAME_END = "game_end",
     SESSION_CLOSED = "session_closed",
 
 
