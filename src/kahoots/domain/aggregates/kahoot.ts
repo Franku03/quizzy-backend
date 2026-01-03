@@ -306,7 +306,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     // --- Snapshots ---
     public getSnapshot(): KahootSnapshot {
-        return KahootSnapshot.fromRaw({
+        return {
             id: this.id.value,
             authorId: this.properties.author.value,
             createdAt: this.properties.createdAt.value,
@@ -314,11 +314,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             status: this.properties.status.value,
             playCount: this.properties.playCount.count,
             styling: this.properties.styling.getSnapshot(),
-            details: this.properties.details.hasValue() 
-                ? this.properties.details.getValue().getSnapshot() 
-                : undefined,
+            details: this.properties.details.hasValue() ? this.properties.details.getValue().getSnapshot() : undefined,
             slides: this.getSortedSlides().map(s => s.getSnapshot()),
-        });
+        };
     }
 
     // --- Getters y Checkers ---

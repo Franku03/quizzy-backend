@@ -217,28 +217,17 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
 
     public getSnapshot(): SlideSnapshot {
         const options = this.getOptionsList();
-        
-        return SlideSnapshot.fromRaw({
+        return {
             id: this.id.value,
             position: this.properties.position,
             slideType: this.properties.slideType.type,
             timeLimitSeconds: this.properties.timeLimit.value,
-            questionText: this.properties.question.hasValue() 
-                ? this.properties.question.getValue().value 
-                : undefined,
-            slideImageId: this.properties.slideImage.hasValue() 
-                ? this.properties.slideImage.getValue().value 
-                : undefined,
-            pointsValue: this.properties.points.hasValue() 
-                ? this.properties.points.getValue().value 
-                : undefined,
-            descriptionText: this.properties.description.hasValue() 
-                ? this.properties.description.getValue().description 
-                : undefined,
-            options: options.length > 0 
-                ? options.map(option => option.getSnapshot()) 
-                : undefined,
-        });
+            questionText: this.properties.question.hasValue() ? this.properties.question.getValue().value : undefined,
+            slideImageId: this.properties.slideImage.hasValue() ? this.properties.slideImage.getValue().value : undefined,
+            pointsValue: this.properties.points.hasValue() ? this.properties.points.getValue().value : undefined,
+            descriptionText: this.properties.description.hasValue() ? this.properties.description.getValue().description : undefined,
+            options: options.length > 0 ? options.map(option => option.getSnapshot()) : undefined,
+        };
     }
 
     public get idString(): string { return this.id.value; }

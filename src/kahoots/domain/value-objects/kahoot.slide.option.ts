@@ -85,12 +85,12 @@ export class Option extends ValueObject<OptionProps> {
     }
 
     public getSnapshot(): OptionSnapshot {
-        return OptionSnapshot.fromRaw({
-            optionText: this.text || undefined,
-            isCorrect: this.isCorrect,
-            optionImageId: this.optionImage.hasValue() 
-                ? this.optionImage.getValue().value 
+        return {
+            optionText: this.properties.text ? this.properties.text : undefined,
+            isCorrect: this.properties.isCorrect,
+            optionImageId: this.properties.optionImage.hasValue() 
+                ? this.properties.optionImage.getValue().value
                 : undefined,
-        });
+        };
     }
 }

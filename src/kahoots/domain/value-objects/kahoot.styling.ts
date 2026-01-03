@@ -1,13 +1,14 @@
-// --- Domain Models & Snapshots ---
-import { ImageId } from '../../../core/domain/shared-value-objects/id-objects/image.id';
-import { ThemeId } from './kahoot.theme';
-// Importamos la CLASE
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
-
-// --- Core & Externals ---
+// --- Externals & Core ---
 import { Either, ErrorData } from "src/core/types";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Optional } from "src/core/types/optional";
+
+// --- Domain Models & Snapshots ---
+import { ImageId } from '../../../core/domain/shared-value-objects/id-objects/image.id';
+import { ThemeId } from './kahoot.theme';
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
+
+// --- Shared Errors & Context ---
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
@@ -42,15 +43,12 @@ export class KahootStyling extends ValueObject<KahootStylingProps> {
     }
     
     public get imageId(): Optional<ImageId> { return this.properties.imageId; }
-    public get themeId(): ThemeId { return this.properties.themeId; }
     public get themeName(): string { return this.properties.themeId.value; }
 
     public getSnapshot(): KahootStylingSnapshot {
-        return KahootStylingSnapshot.fromRaw({
-            imageId: this.imageId.hasValue() 
-                ? this.imageId.getValue().value 
-                : undefined,
-            themeId: this.themeId.value,
-        });
+        return {
+            imageId: this.properties.imageId.hasValue() ? this.properties.imageId.getValue().value : undefined,
+            themeId: this.properties.themeId.value,
+        };
     }
 }

@@ -1,7 +1,7 @@
 // src/media/application/services/media-enrichment.service.ts
 import { Injectable, Inject } from "@nestjs/common";
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
