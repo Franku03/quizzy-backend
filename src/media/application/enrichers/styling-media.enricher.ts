@@ -1,6 +1,6 @@
 // src/media/application/enrichers/styling-media.enricher.ts
 import { Injectable, Inject } from "@nestjs/common";
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
 import { IMediaEnricher } from "../ports/i-media-enricher.interface";
 import type { IThemeEnricher } from "../ports/i-theme-enricher.interface";
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";

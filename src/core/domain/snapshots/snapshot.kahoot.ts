@@ -1,4 +1,4 @@
-import { KahootStylingSnapshot } from "./snapshot.kahoot.styling";
+import { KahootStylingSnapshot } from "./snapshot.kahoot.stiyling";
 import { KahootDetailsSnapshot } from "./snapshot.kahoot.details";
 import { SlideSnapshot } from "./snapshot.slide";
 

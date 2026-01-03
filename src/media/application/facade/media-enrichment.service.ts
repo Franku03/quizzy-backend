@@ -1,76 +1,113 @@
-// src/media/application/services/media-enrichment.service.ts
-import { Injectable, Inject } from "@nestjs/common";
+// src/media/application/facade/media-enrichment.service.ts
+import { Inject, Injectable } from "@nestjs/common";
+
+// Snapshots
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
-import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
+import { OptionSnapshot } from "src/core/domain/snapshots/snapshot.option";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
+
+// Ports & Tokens
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
-import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factory";
+import type { IMediaEnricher } from "../ports/i-media-enricher.interface"; 
+import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens"; 
 
 @Injectable()
 export class MediaEnrichmentService {
   constructor(
+    @Inject(MEDIA_TOKENS.KAHOOT_MEDIA_ENRICHER)
+    private readonly kahootEnricher: IMediaEnricher<KahootSnapshot>,
+
+    @Inject(MEDIA_TOKENS.SLIDE_MEDIA_ENRICHER)
+    private readonly slideEnricher: IMediaEnricher<SlideSnapshot>,
+
+    @Inject(MEDIA_TOKENS.STYLING_MEDIA_ENRICHER)
+    private readonly stylingEnricher: IMediaEnricher<KahootStylingSnapshot>,
+
+    @Inject(MEDIA_TOKENS.OPTION_MEDIA_ENRICHER)
+    private readonly optionEnricher: IMediaEnricher<OptionSnapshot>,
+    
     @Inject(MEDIA_TOKENS.IMAGE_URL_ENRICHER)
-    private readonly imageService: IImageUrlEnricher,
-    private readonly handlerFactory: EnrichmentHandlerFactory
+    private readonly imageService: IImageUrlEnricher
   ) {}
 
-  public async enrichKahoot(kahoot: KahootSnapshot): Promise<KahootSnapshot> {
-    // 1. Resolvemos todos los IDs de golpe (Batching eficiente)
-    const assetIds = kahoot.getMediaAssetIds();
-    const urlMap = await this.resolveUrlMap(assetIds);
+  // =================================================================
+  // 1. ENRICH KAHOOT (Raíz)
+  // =================================================================
+  async enrichKahoot(k: KahootSnapshot): Promise<KahootSnapshot> { 
+    // A. Recolectar IDs 
+    const ids = this.extractKahootIds(k);
     
-    // 2. Enriquecer Styling (Chain: URL -> Theme)
-    kahoot.styling = await this.enrichStylingWithMap(kahoot.styling, urlMap);
-    
-    // 3. Enriquecer Slides (Solo URL)
-    if (kahoot.slides?.length) {
-      const slideUrlHandler = this.handlerFactory.createUrlHandler<SlideSnapshot>(urlMap);
-      
-      // Procesamos en paralelo para máxima velocidad
-      kahoot.slides = await Promise.all(
-        kahoot.slides.map(slide => slideUrlHandler.handle(slide))
-      );
-    }
-    
-    return kahoot;
+    // B. Resolver Mapa 
+    const map = await this.resolveMap(ids);
+
+    // C. Enriquecer (Delegamos a la implementación inyectada)
+    // Nota: Funciona sea síncrono o asíncrono gracias al 'async' del método padre.
+    return this.kahootEnricher.enrich(k, map); 
   }
 
-  public async enrichSlide(slide: SlideSnapshot): Promise<SlideSnapshot> {
-    const urlMap = await this.resolveUrlMap(slide.getMediaAssetIds());
-    return this.handlerFactory.createUrlHandler<SlideSnapshot>(urlMap).handle(slide);
+  // =================================================================
+  // 2. ENRICH SLIDE (Individual)
+  // =================================================================
+  async enrichSlide(s: SlideSnapshot): Promise<SlideSnapshot> { 
+    const ids = this.extractSlideIds(s);
+    const map = await this.resolveMap(ids);
+
+    return this.slideEnricher.enrich(s, map); 
   }
 
-  public async enrichStyling(styling: KahootStylingSnapshot): Promise<KahootStylingSnapshot> {
-    const urlMap = await this.resolveUrlMap(styling.getMediaAssetIds());
-    return this.enrichStylingWithMap(styling, urlMap);
+  // =================================================================
+  // 3. ENRICH STYLING
+  // =================================================================
+  async enrichStyling(st: KahootStylingSnapshot): Promise<KahootStylingSnapshot> { 
+    const ids = st.imageId ? [st.imageId] : [];
+    const map = await this.resolveMap(ids);
+    return this.stylingEnricher.enrich(st, map); 
   }
 
-  private async enrichStylingWithMap(
-    styling: KahootStylingSnapshot, 
-    urlMap: Map<string, string>
-  ): Promise<KahootStylingSnapshot> {
-    // Creamos los eslabones de la cadena
-    const urlHandler = this.handlerFactory.createUrlHandler<KahootStylingSnapshot>(urlMap);
-    const themeHandler = this.handlerFactory.createThemeHandler<KahootStylingSnapshot>();
+  // =================================================================
+  // 4. ENRICH OPTION
+  // =================================================================
+  async enrichOption(o: OptionSnapshot): Promise<OptionSnapshot> { 
+    const ids = o.optionImageId ? [o.optionImageId] : [];
+    const map = await this.resolveMap(ids);
     
-    // Configuramos la cadena: URL primero, luego el Tema
-    urlHandler.setNext(themeHandler);
-    
-    // Ejecutamos la cadena completa
-    return urlHandler.handle(styling);
+    return this.optionEnricher.enrich(o, map); 
   }
 
-  private async resolveUrlMap(ids: string[]): Promise<Map<string, string>> {
+  // =================================================================
+  // HELPERS PRIVADOS
+  // =================================================================
+
+  /**
+   * Resuelve una lista de IDs a un Mapa URL de forma segura.
+   * Centraliza el acceso a la infraestructura de imágenes.
+   */
+  private async resolveMap(ids: string[]): Promise<Map<string, string>> {
+    // Si no hay IDs, ahorramos el viaje 
     if (ids.length === 0) return new Map();
 
     const resultEither = await this.imageService.resolveUrlsBatch(ids);
-    
-    if (resultEither.isLeft()) {
-        // Aquí podrías inyectar un Logger si fuera necesario
-        return new Map();
-    }
+    return resultEither.isRight() ? resultEither.getRight() : new Map();
+  }
 
-    return resultEither.getRight()!;
+  private extractKahootIds(k: KahootSnapshot): string[] {
+    const ids: string[] = [];
+    if (k.styling?.imageId) ids.push(k.styling.imageId);
+    if (k.slides) {
+      k.slides.forEach(s => ids.push(...this.extractSlideIds(s)));
+    }
+    return ids;
+  }
+
+  private extractSlideIds(s: SlideSnapshot): string[] {
+    const ids: string[] = [];
+    if (s.slideImageId) ids.push(s.slideImageId);
+    if (s.options) {
+      s.options.forEach(o => {
+        if (o.optionImageId) ids.push(o.optionImageId);
+      });
+    }
+    return ids;
   }
 }

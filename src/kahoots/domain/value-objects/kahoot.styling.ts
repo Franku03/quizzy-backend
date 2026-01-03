@@ -6,7 +6,7 @@ import { Optional } from "src/core/types/optional";
 // --- Domain Models & Snapshots ---
 import { ImageId } from '../../../core/domain/shared-value-objects/id-objects/image.id';
 import { ThemeId } from './kahoot.theme';
-import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.stiyling";
 
 // --- Shared Errors & Context ---
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";

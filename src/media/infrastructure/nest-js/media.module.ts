@@ -1,17 +1,28 @@
-// src/media/infrastructure/nestjs/media.module.ts
-import { Module, Scope } from '@nestjs/common';
+// src/media/media.module.ts
+import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Application Layer - Commands & Queries
 import { UploadAssetHandler } from '../../application/commands/upload-asset/upload-asset.handler';
 import { GetThemesHandler } from '../../application/queries/get-themes/get-themes.handler';
+
+// Application Layer - Facade & Enrichers
 import { MediaEnrichmentService } from '../../application/facade/media-enrichment.service';
-import { EnrichmentHandlerFactory } from '../../application/factories/enrichment-handler.factory';
+import { KahootMediaEnricher } from '../../application/enrichers/kahoot-media.enricher';
+import { SlideMediaEnricher } from '../../application/enrichers/slide-media.enricher';
+import { StylingMediaEnricher } from '../../application/enrichers/styling-media.enricher';
+import { OptionMediaEnricher } from '../../application/enrichers/option-media.enricher';
+
+// Application Layer - Services (Resolvers)
 import { AssetResolutionService } from '../../application/services/asset-resolution.service';
 import { ThemeResolutionService } from '../../application/services/theme-resolution.service';
+
+// Tokens
 import { MEDIA_TOKENS } from '../../application/dependency-tokens/application-media.tokens';
 
+// Infrastructure Layer
 import { MediaController } from './media.controller';
 import { CoreModule } from 'src/core/core.module';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
@@ -22,10 +33,6 @@ import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.
 import { CloudinaryErrorMapper } from '../adapters/cloudinary/errors/cloudinary.error.mapper';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
-// Handlers
-import { UrlEnrichmentHandler } from '../../application/handlers/url-enrichment.handler';
-import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enrichemnt.handler';
-
 @Module({
     controllers: [MediaController],
     imports: [
@@ -35,22 +42,41 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
         DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
     ],
     providers: [
+        // =================================================================
+        // 1. HANDLERS (CQRS)
+        // =================================================================
         CommandQueryExecutorService,
         UploadAssetHandler,
         GetThemesHandler,
+
+        // =================================================================
+        // 2. ARQUITECTURA DE ENRIQUECIMIENTO (CORE)
+        // =================================================================
+
+        // A. Facade (Punto de entrada)
         MediaEnrichmentService,
-        EnrichmentHandlerFactory,
-        // Registro de Handlers con SCOPE TRANSIENT (10/10 SOLID)
+
+        // B. Enrichers (Implementaciones de Interfaces)
         {
-            provide: UrlEnrichmentHandler,
-            useClass: UrlEnrichmentHandler,
-            scope: Scope.TRANSIENT,
+            provide: MEDIA_TOKENS.KAHOOT_MEDIA_ENRICHER,
+            useClass: KahootMediaEnricher,
         },
         {
-            provide: ThemeEnrichmentHandler,
-            useClass: ThemeEnrichmentHandler,
-            scope: Scope.TRANSIENT,
+            provide: MEDIA_TOKENS.SLIDE_MEDIA_ENRICHER,
+            useClass: SlideMediaEnricher,
         },
+        {
+            provide: MEDIA_TOKENS.STYLING_MEDIA_ENRICHER,
+            useClass: StylingMediaEnricher,
+        },
+        {
+            provide: MEDIA_TOKENS.OPTION_MEDIA_ENRICHER,
+            useClass: OptionMediaEnricher,
+        },
+
+        // =================================================================
+        // 3. SERVICIOS DE APLICACIÓN (RESOLVERS)
+        // =================================================================
         {
             provide: MEDIA_TOKENS.IMAGE_URL_ENRICHER,
             useClass: AssetResolutionService
@@ -59,6 +85,10 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
             provide: MEDIA_TOKENS.THEME_ENRICHER,
             useClass: ThemeResolutionService
         },
+
+        // =================================================================
+        // 4. INFRAESTRUCTURA (ADAPTERS)
+        // =================================================================
         {
             provide: MEDIA_TOKENS.ASSET_URL_GENERATOR,
             useClass: CloudinaryUrlGeneratorAdapter
@@ -75,6 +105,8 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
             provide: MEDIA_TOKENS.CRYPTO_SERVICE,
             useClass: NodeCryptoService
         },
+
+        // Configuración de Cloudinary
         {
             provide: MEDIA_TOKENS.CLOUDINARY_CONFIG,
             useFactory: () => {
