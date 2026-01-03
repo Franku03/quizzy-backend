@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { KahootsModule } from './kahoots/kahoots.module';
+import { KahootsModule } from './kahoots/infrastructure/nest-js/kahoots.module';
 import { UsersModule } from './users/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseDriverModule } from './database/infrastructure/database.driver.module';
@@ -7,7 +7,7 @@ import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-se
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
 import { LibraryModule } from './library/library.module';
-import { MediaModule } from './media/infraestructure/media.module';
+import { MediaModule } from './media/infrastructure/nest-js/media.module';
 import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD

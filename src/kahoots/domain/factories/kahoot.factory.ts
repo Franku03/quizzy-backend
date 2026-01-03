@@ -14,7 +14,7 @@ import { TimeLimitSeconds } from "src/core/domain/shared-value-objects/value-obj
 import { Points } from "src/core/domain/shared-value-objects/value-objects/value.object.points";
 
 // --- Domain Snapshots ---
-import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
+import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { OptionSnapshot } from "src/core/domain/snapshots/snapshot.option";
 
@@ -29,16 +29,16 @@ import { SlideTypeEnum } from "../value-objects/kahoot.slide.type";
 import { Option } from "../value-objects/kahoot.slide.option";
 import { KahootDetails } from "../value-objects/kahoot.details";
 import { KahootStyling } from "../value-objects/kahoot.styling";
-import { Slide, SlideProps } from "../entities/kahoot.slide";
-import { Kahoot, KahootProps } from "../aggregates/kahoot";
+import { Slide, SlideProps } from "../entities/slides/kahoot.slide";
+import { Kahoot } from "../aggregates/kahoot";
 import { SlideIdValue } from "../types/id-types";
 
 // --- Kahoot Entities ---
-import { SingleChoiceSlide } from "../entities/kahoot.slide.single-choice";
-import { MultipleChoiceSlide } from "../entities/kahoot.slide.multiple-choise";
-import { TrueFalseSlide } from "../entities/kahoot.slide.true-false";
-import { ShortAnswerSlide } from "../entities/kahoot.slide.short-answer";
-import { DisplaySlide } from "../entities/kahoot.slide.display-slide";
+import { SingleChoiceSlide } from "../entities/slides/kahoot.slide.single-choice";
+import { MultipleChoiceSlide } from "../entities/slides/kahoot.slide.multiple-choice";
+import { TrueFalseSlide } from "../entities/slides/kahoot.slide.true-false";
+import { ShortAnswerSlide } from "../entities/slides/kahoot.slide.short-answer";
+import { DisplaySlide } from "../entities/slides/kahoot.slide.display-slide";
 
 export interface OptionInput {
     text: string;
@@ -169,8 +169,6 @@ public static assembleStyling(themeId: string, imageId?: string): Either<ErrorDa
                         KahootStatus.create(input.status).chain(status => 
                             VisibilityStatus.create(input.visibility).chain(visibility => 
                                 PlayNumber.create(input.playCount).chain(playCount => {
-                                    console.log('DEPURACIÓN: Todo listo para el return final');
-                                    // Manejo seguro de fecha (DateISO puede lanzar throw)
                                     let createdAtVO: DateISO;
                                     try {
                                         createdAtVO = input.createdAt 

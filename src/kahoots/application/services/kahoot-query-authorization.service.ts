@@ -1,4 +1,4 @@
-// src/kahoots/application/services/query-validation.service.ts
+/*// src/kahoots/application/services/query-validation.service.ts
 import { Injectable, Inject } from '@nestjs/common';
 import { Either, ErrorData } from 'src/core/types';
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
@@ -53,4 +53,4 @@ export class QueryValidationService implements IKahootValidator<KahootHandlerRes
 
     return Either.makeRight(kahootResponse);
   }
-}
+}/*/

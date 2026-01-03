@@ -12,7 +12,7 @@ import { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { KahootFactory } from 'src/kahoots/domain/factories/kahoot.factory';
-import { KahootSnapshot } from 'src/core/domain/snapshots/snpapshot.kahoot';
+import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
 // El Mapper de Errores
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
