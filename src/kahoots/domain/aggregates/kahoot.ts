@@ -1,5 +1,5 @@
 import { Optional } from "src/core/types/optional";
-import { Slide } from "../entities/kahoot.slide";
+import { Slide } from "../entities/slides/kahoot.slide";
 import { KahootDetails } from "../value-objects/kahoot.details";
 import { PlayNumber } from "../value-objects/kahoot.play-number";
 import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
@@ -18,10 +18,10 @@ import { Points } from "../../../core/domain/shared-value-objects/value-objects/
 import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
-import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
+import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { SlideIdValue } from "../types/id-types"
-import { Either, ErrorData, ErrorLayer } from "src/core/types";
+import { Either, ErrorData } from "src/core/types";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 

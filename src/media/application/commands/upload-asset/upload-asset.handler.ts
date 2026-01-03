@@ -3,16 +3,16 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { Inject } from '@nestjs/common';
 import { UploadAssetCommand } from './upload-asset.command';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
-import type { IAssetMetadataDao } from '../../ports/asset-metadata.dao';
-import type { IAssetStorageService } from '../../ports/asset-storage.service';
+import type { IAssetMetadataDao } from '../../ports/i-asset-metadata.dao.interface';
+import type { IAssetStorageService } from '../../ports/i-asset-storage.interface';
 import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { AssetMetadataRecord } from '../../ports/asset-metadata-record.interface';
+import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interface';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
-import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependecy-tokkens/application-media.tokens';
+import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependency-tokens/application-media.tokens';
 import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
-import { UploadAssetResponse } from './upload-asset.response.dto';
+import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 
 @CommandHandler(UploadAssetCommand)
