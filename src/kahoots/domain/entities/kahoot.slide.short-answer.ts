@@ -1,87 +1,133 @@
+// --- Externals & Core ---
+import { Either, ErrorData } from "src/core/types";
+
+// --- Domain Models, Rules & Base ---
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { MAX_OPTION_CHARS_TYPEANSWER, SLIDE_POINTS_STD } from "../constants/kahoot.slide.rules";
 import { Slide, SlideProps } from "./kahoot.slide";
+import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type'; 
+
+// --- Strategies & Shared ---
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { TestKnowledgeEvaluationStrategy } from "../helpers/test-knowledge.strategy";
-import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type'; 
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 export class ShortAnswerSlide extends Slide { 
     
-    public constructor(props: SlideProps, id: SlideId) {
-        
+    private constructor(props: SlideProps, id: SlideId) {
+        super(props, id);
+    }
+
+    private getSlideContext(operation: string) {
+        return createDomainContext('ShortAnswerSlide', operation, {
+            domainObjectKind: 'Entity',
+            domainObjectId: this.id.value
+        });
+    }
+
+    public static create(props: SlideProps, id: SlideId): Either<ErrorData, ShortAnswerSlide> {
         props.slideType = new SlideType(SlideTypeEnum.SHORT_ANSWER); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
-        
-        super(props, id);
 
-        this.checkInitialInvariants();
+        return Slide.checkBaseInvariants(props, 'ShortAnswerSlide')
+            .chain(() => {
+                const instance = new ShortAnswerSlide(props, id);
+                return instance.checkInitialInvariants()
+                    .map(() => instance);
+            });
     }
     
-    protected checkInitialInvariants(): void {
+    protected checkInitialInvariants(): Either<ErrorData, void> {
+        const context = this.getSlideContext('checkInitialInvariants');
         const pointsOptional = this.properties.points; 
         
-        // Validación de Puntos (PRESENCIA Y VALOR VÁLIDO)
         if (!pointsOptional || !pointsOptional.hasValue()) { 
-            throw new Error("[Constructor] Slide ShortAnswer: Los puntos son obligatorios.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { points: ['REQUIRED'] }, "Points are mandatory for Short Answer slides."
+            ));
         }
         
         const pointValue = pointsOptional.getValue().value; 
         if (!SLIDE_POINTS_STD.includes(pointValue)) {
-            throw new Error(`[Constructor] Slide ShortAnswer: El valor de puntos (${pointValue}) no es permitido. Debe ser ${SLIDE_POINTS_STD.join(', ')}.`);
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, 
+                { points: ['INVALID_VALUE'] }, 
+                `Point value (${pointValue}) is not allowed. Must be: ${SLIDE_POINTS_STD.join(', ')}.`
+            ));
         }
         
-        // Validación de Descripción
         if (this.properties.description && this.properties.description.hasValue()) { 
-            throw new Error("[Constructor] Slide ShortAnswer: Slide de respuesta corta no deben tener descripción.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { description: ['NOT_ALLOWED'] }, "Short Answer slides do not support descriptions."
+            ));
         }
         
-        // Validación de Opciones
         const optionsOptional = this.properties.options;
-        const maxOption = 4
+        const maxOption = this.getMaxOptions();
+        
         if (optionsOptional && optionsOptional.hasValue()) { 
             const optionsArray = optionsOptional.getValue();
             
             if (optionsArray.length > maxOption) { 
-                throw new Error(`[Constructor] Slide ShortAnswer: No debe exceder ${maxOption} respuestas correctas.`);
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['LIMIT_EXCEEDED'] }, `Short Answer slides cannot exceed ${maxOption} correct answers.`
+                ));
             }
 
             const invalidOption = optionsArray.find(o => 
-                o.isWithinLengthLimit(MAX_OPTION_CHARS_TYPEANSWER) || 
-                o.hasText() || 
+                !o.isWithinLengthLimit(MAX_OPTION_CHARS_TYPEANSWER) || 
+                !o.hasText() || 
                 o.hasImage()
             );
 
             if (invalidOption) {
                 if (!invalidOption.isWithinLengthLimit(MAX_OPTION_CHARS_TYPEANSWER)) {
-                    throw new Error(`[Constructor] Slide ShortAnswer: Una respuesta no puede exceder ${MAX_OPTION_CHARS_TYPEANSWER} caracteres.`);
+                    return Either.makeLeft(DomainErrorFactory.validation(
+                        context, { options: ['TOO_LONG'] }, `A short answer cannot exceed ${MAX_OPTION_CHARS_TYPEANSWER} characters.`
+                    ));
                 }
-                throw new Error(`[Constructor] Slide ShortAnswer: Cada respuesta debe ser solo texto y no tener imagen.`);
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['INVALID_FORMAT'] }, "Each answer must be text-only and cannot contain an image."
+                ));
             }
 
             const incorrectOptionsCount = optionsArray.filter(o => !o.isCorrect).length;
             if (incorrectOptionsCount > 0) {
-                throw new Error("[Constructor] Slide ShortAnswer: Todas las opciones deben estar marcadas como correctas.");
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['MUST_BE_CORRECT'] }, "All options in a Short Answer slide must be marked as correct."
+                ));
             }
         }
+
+        return Either.makeRight(undefined);
     }
     
     public getMaxOptions(): number {
         return 4; 
     } 
     
-    public changeEvaluationStrategy(newStrategy: EvaluationStrategy): void {
+    public changeEvaluationStrategy(newStrategy: EvaluationStrategy): Either<ErrorData, void> {
         this.properties.evalStrategy = newStrategy;
+        return Either.makeRight(undefined);
     }
 
-    public validatePublishingInvariants(): void {
+    public validatePublishingInvariants(): Either<ErrorData, void> {
+        const context = this.getSlideContext('validatePublishing');
         const optionsArray = this.getOptionsList();
     
         if(!this.properties.question.hasValue()){
-             throw new Error("Slide ShortAnswer: Debe tener título.");
+             return Either.makeLeft(DomainErrorFactory.validation(
+                context, { question: ['REQUIRED'] }, "Short Answer slide must have a title."
+             ));
         }
         
         if (optionsArray.length < 1) { 
-            throw new Error(`Slide ShortAnswer: Debe tener entre 1 y ${this.getMaxOptions()} respuestas correctas.`);
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['TOO_FEW_OPTIONS'] }, `Short Answer slide must have between 1 and ${this.getMaxOptions()} correct answers.`
+            ));
         }
+
+        return Either.makeRight(undefined);
     }
 }

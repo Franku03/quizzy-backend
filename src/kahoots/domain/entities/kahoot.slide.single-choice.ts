@@ -1,71 +1,112 @@
+// --- Externals & Core ---
+import { Either, ErrorData } from "src/core/types";
+
+// --- Domain Models, Rules & Base ---
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { SLIDE_POINTS_STD } from "../constants/kahoot.slide.rules"; 
 import { Slide, SlideProps } from "./kahoot.slide";
+import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type'; 
+
+// --- Strategies & Shared ---
 import { EvaluationStrategy } from "../helpers/i-evalutaion.strategy";
 import { TestKnowledgeEvaluationStrategy } from "../helpers/test-knowledge.strategy";
-import { SlideType, SlideTypeEnum } from '../value-objects/kahoot.slide.type'; 
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 export class SingleChoiceSlide extends Slide { 
     
-    public constructor(props: SlideProps, id: SlideId) {
+    private constructor(props: SlideProps, id: SlideId) {
+        super(props, id);
+    }
 
+    private getSlideContext(operation: string) {
+        return createDomainContext('SingleChoiceSlide', operation, {
+            domainObjectKind: 'Entity',
+            domainObjectId: this.id.value
+        });
+    }
+
+    public static create(props: SlideProps, id: SlideId): Either<ErrorData, SingleChoiceSlide> {
         props.slideType = new SlideType(SlideTypeEnum.SINGLE); 
         props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
-        
-        super(props, id);
 
-        this.checkInitialInvariants();
+        return Slide.checkBaseInvariants(props, 'SingleChoiceSlide')
+            .chain(() => {
+                const instance = new SingleChoiceSlide(props, id);
+                return instance.checkInitialInvariants()
+                    .map(() => instance);
+            });
     }
     
-    protected checkInitialInvariants(): void {
+    protected checkInitialInvariants(): Either<ErrorData, void> {
+        const context = this.getSlideContext('checkInitialInvariants');
         const pointsOptional = this.properties.points; 
         
-        // Validación de Puntos: Obligatorio y dentro del rango SLIDE_POINTS_STD
         if (!pointsOptional || !pointsOptional.hasValue()) { 
-            throw new Error("[Constructor] Slide Single Choice: Los puntos son obligatorios.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { points: ['REQUIRED'] }, "Points are mandatory for Single Choice slides."
+            ));
         }
         
         const pointValue = pointsOptional.getValue().value; 
         if (!SLIDE_POINTS_STD.includes(pointValue)) {
-            throw new Error(`[Constructor] Slide Single Choice: El valor de puntos (${pointValue}) no es permitido. Debe ser ${SLIDE_POINTS_STD.join(', ')}.`);
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, 
+                { points: ['INVALID_VALUE'] }, 
+                `Point value (${pointValue}) is not allowed. Must be: ${SLIDE_POINTS_STD.join(', ')}.`
+            ));
         }
         
-        // Validación de Descripción: No debe tener descripción
         if (this.properties.description && this.properties.description.hasValue()) { 
-            throw new Error("[Constructor] Slide Single Choice: Las diapositivas de opción única no deben tener descripción.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { description: ['NOT_ALLOWED'] }, "Single Choice slides do not support descriptions."
+            ));
         }
 
-        // Límite superior (6)
         const optionsOptional = this.properties.options;
         if (optionsOptional && optionsOptional.hasValue()) { 
             const optionsArray = optionsOptional.getValue();
             if (optionsArray.length > 6) { 
-                throw new Error("[Constructor] Slide Single Choice: No puede exceder 6 opciones.");
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['LIMIT_EXCEEDED'] }, "Single Choice slides cannot exceed 6 options."
+                ));
             }
         }
+
+        return Either.makeRight(undefined);
     }
     
     public getMaxOptions(): number {
         return 6; 
     } 
     
-    public changeEvaluationStrategy(newStrategy: EvaluationStrategy): void {
+    public changeEvaluationStrategy(newStrategy: EvaluationStrategy): Either<ErrorData, void> {
         this.properties.evalStrategy = newStrategy;
+        return Either.makeRight(undefined);
     }
 
-    public validatePublishingInvariants(): void {
+    public validatePublishingInvariants(): Either<ErrorData, void> {
+        const context = this.getSlideContext('validatePublishing');
         const optionsArray = this.getOptionsList();
         const correctOptionsCount = optionsArray.filter(o => o.isCorrect).length;
         
         if(!this.properties.question.hasValue()){
-            throw new Error("Slide Single Choice: Debe tener título.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { question: ['REQUIRED'] }, "Single Choice slide must have a title."
+            ));
         }
         if (optionsArray.length < 2) { 
-            throw new Error("Slide Single Choice: Debe tener entre 2 y 6 opciones.");
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['TOO_FEW_OPTIONS'] }, "Single Choice slide must have between 2 and 6 options."
+            ));
         }
         
         if (correctOptionsCount < 1) { 
-            throw new Error("Slide Single Choice: Debe tener al menos una (1) opción correcta.");
-        } 
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['NO_CORRECT_OPTION'] }, "Single Choice slide must have at least one (1) correct option."
+            ));
+        }
+
+        return Either.makeRight(undefined);
     }
 }

@@ -3,11 +3,13 @@ import { IDomainErrorContext } from "../interface/context/i-error-domain.context
 
 export const createDomainContext = (
     domainObjectType: string,
-    operation: string,
+    operation?: string,
     params?: {
         domainObjectId?: string;
         actorId?: string;
-        intendedAction?: string;
+        domainObjectKind?: 'ValueObject' | 'Entity' | 'AggregateRoot' | 'DomainService';
+        rootAggregateName?: string;
+        rootAggregateId?: string;
         [key: string]: any;
     }
 ): IDomainErrorContext => {
@@ -16,7 +18,9 @@ export const createDomainContext = (
         domainObjectType,
         domainObjectId: params?.domainObjectId,
         actorId: params?.actorId,
-        intendedAction: params?.intendedAction || operation,
+        domainObjectKind: params?.domainObjectKind,
+        rootAggregateName: params?.rootAggregateName,
+        rootAggregateId: params?.rootAggregateId,
         ...params,
     };
 };
