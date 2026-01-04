@@ -16,7 +16,7 @@ import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
 import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens'; // Tu Token Symbol
 
 // Infraestructura & Dominio
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IKahootDao } from '../../ports/kahoot.dao.port';
 import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 

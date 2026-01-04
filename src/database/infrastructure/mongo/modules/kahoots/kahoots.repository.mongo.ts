@@ -18,6 +18,10 @@ import { KahootSnapshot } from 'src/core/domain/snapshots/snpapshot.kahoot';
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+
+@RepositoryMongo(RepositoryName.Kahoot)
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
   private readonly logger = new Logger(KahootRepositoryMongo.name);

@@ -8,7 +8,10 @@ import { ErrorData, Either, ErrorLayer } from 'src/core/types';
 import { AssetMetadataMongo } from '../../entities/media.schema';
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.AssetMetadataMongo)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
 

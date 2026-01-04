@@ -26,7 +26,10 @@ import { AttemptStatusEnum } from 'src/solo-attempts/domain/value-objects/attemp
 // Infrastructure Entity (Schema)
 import { AttemptMongo } from '../../entities/attempts.scheme';
 import { AttemptStatus } from 'src/solo-attempts/domain/value-objects/attempt.status';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
+@RepositoryMongo(RepositoryName.Attempt)
 @Injectable()
 export class SoloAttemptRepositoryMongo implements SoloAttemptRepository {
   constructor(

@@ -2,7 +2,7 @@
 
 import { QueryHandler } from "src/core/infrastructure/cqrs";
 import { GetThemeByIdQuery } from "./get-theme-by-id.query";
-import { DaoName } from "src/database/infrastructure/catalogs/dao.catalogue.enum";
+import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Inject } from "@nestjs/common";
 import { ASSET_URL_SERVICE } from "src/media/application/dependecy-tokkens/application-media.tokens";
 import type { IAssetUrlGenerator } from "src/media/application/ports/asset-url-generator.interface";

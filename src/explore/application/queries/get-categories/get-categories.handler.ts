@@ -6,7 +6,7 @@ import { GetCategoriesQuery } from './get-categories.query';
 import { CategoryReadModel } from '../../read-models/category.read-model';
 import type { IExploreDao } from '../ports/explore.dao.port';
 import { EXPLORE_ERROR_CODES } from '../explore.query.errors';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';

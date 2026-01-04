@@ -2,7 +2,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { IMediaStrategy } from '../../ports/i-media-strategy.interface';
 import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IAssetMetadataDao } from 'src/media/application/ports/asset-metadata.dao';
 
 @Injectable()

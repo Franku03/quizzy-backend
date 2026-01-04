@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AttemptEntity } from '../../entities/attempt.entity';
 import { SoloAttemptRepository } from 'src/solo-attempts/domain/ports/attempt.repository.port';
+import { RepositoryPostgres } from '../../decorators/repository-postgres.registry';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
+@RepositoryPostgres(RepositoryName.Attempt)
 @Injectable()
 export class SoloAttemptRepositoryPostgres /*implements SoloAttemptRepository*/ {
   constructor(

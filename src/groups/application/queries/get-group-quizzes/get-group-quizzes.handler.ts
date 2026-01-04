@@ -2,7 +2,7 @@ import { IQueryHandler } from "src/core/application/cqrs/query-handler.interface
 import { QueryHandler } from "src/core/infrastructure/cqrs/decorators/query-handler.decorator";
 import { GetGroupQuizzesQuery } from "./get-group-quizzes.query";
 import { Inject } from "@nestjs/common";
-import { DaoName } from "src/database/infrastructure/catalogs/dao.catalogue.enum";
+import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import type { IGroupsDao } from "../ports/groups.dao.port";
 import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";

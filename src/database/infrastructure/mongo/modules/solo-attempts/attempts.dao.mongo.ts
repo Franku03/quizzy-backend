@@ -13,7 +13,10 @@ import {
   QuestionResultReadModel 
 } from 'src/reports/application/queries/read-models/solo.attempt.report.read.model';
 import { NextSlideReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.SoloAttempt)
 @Injectable()
 export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
   // We inject the Mongoose models that represent our persistent aggregates.

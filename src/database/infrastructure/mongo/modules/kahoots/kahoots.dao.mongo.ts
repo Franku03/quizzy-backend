@@ -10,7 +10,10 @@ import { KahootHandlerResponse } from 'src/kahoots/application/response/kahoot.h
 import { KahootReadMapper } from './mappers/kahoot.hanlder.mapper';
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.Kahoot)
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
 

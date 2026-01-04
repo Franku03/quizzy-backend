@@ -8,7 +8,7 @@ import type { IAssetStorageService } from '../../ports/asset-storage.service';
 import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { AssetMetadataRecord } from '../../ports/asset-metadata-record.interface';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
 import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependecy-tokkens/application-media.tokens';
 import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';

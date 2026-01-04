@@ -5,7 +5,7 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { Inject } from '@nestjs/common';
 import { SubmitAnswerCommand } from './submit-answer.command';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
 
