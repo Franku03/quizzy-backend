@@ -22,6 +22,7 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 // --- Shared Errors & Context ---
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { IDomainErrorContext } from "src/core/errors/interface/context/i-error-domain.context";
 
 export interface SlideProps {
     position: number;
@@ -41,7 +42,7 @@ export abstract class Slide extends Entity<SlideProps, SlideId> {
         super(props, id);
     }
 
-    private getContext(operation: string) {
+    private getContext(operation: string): IDomainErrorContext {
         return createDomainContext(this.constructor.name, operation, {
             domainObjectKind: 'Entity',
             domainObjectId: this.id.value

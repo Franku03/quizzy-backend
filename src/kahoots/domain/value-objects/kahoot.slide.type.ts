@@ -8,6 +8,7 @@ import { MAX_OPTION_CHARS_TYPEANSWER, MAX_OPTION_TEXT_LENGTH } from "../constant
 // --- Shared Errors & Context ---
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { IDomainErrorContext } from "src/core/errors/interface/context/i-error-domain.context";
 
 export enum SlideTypeEnum {
     SINGLE = "SINGLE",
@@ -59,7 +60,7 @@ export class SlideType extends ValueObject<SlideTypeProps> {
 
     // --- Business Rules (Polymorphic checks) ---
 
-    private getContext(operation: string) {
+    private getContext(operation: string):IDomainErrorContext {
         return createDomainContext('SlideType', operation, {
             domainObjectKind: 'ValueObject'
         });

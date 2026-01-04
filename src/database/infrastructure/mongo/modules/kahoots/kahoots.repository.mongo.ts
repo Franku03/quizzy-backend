@@ -1,5 +1,5 @@
 // src/kahoots/infrastructure/persistence/mongo/kahoot.repository.mongo.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { KahootMongo } from '../../entities/kahoots.schema';
@@ -20,8 +20,6 @@ import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error
 
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
-  private readonly logger = new Logger(KahootRepositoryMongo.name);
-
   // Propiedades de contexto tipadas
   private readonly adapterContextBase: IDatabaseErrorContext = {
     adapterName: KahootRepositoryMongo.name,
@@ -41,14 +39,8 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
   // ========== MÉTODOS LEGACY (NO CAMBIAN - usan KahootId) ==========
 
-  public async saveKahoot(kahoot: Kahoot): Promise<void> {
-    this.logDeprecated('saveKahoot');
-    const result = await this.saveKahootEither(kahoot);
-    this.handleLegacyResult(result);
-  }
-
   public async findKahootById(id: KahootId): Promise<Optional<Kahoot>> {
-    this.logDeprecated('findKahootById');
+    console.warn('findKahootById is depprecated use either version');
     const result = await this.findKahootByIdEither(id.value);
 
     if (result.isLeft()) {
@@ -59,18 +51,6 @@ export class KahootRepositoryMongo implements IKahootRepository {
     return kahootOrNull !== null
       ? new Optional(kahootOrNull)
       : new Optional();
-  }
-
-  public async findAllKahoots(): Promise<Kahoot[]> {
-    this.logDeprecated('findAllKahoots');
-    const result = await this.findAllKahootsEither();
-    return this.handleLegacyResult(result);
-  }
-
-  public async deleteKahoot(id: KahootId): Promise<void> {
-    this.logDeprecated('deleteKahoot');
-    const result = await this.deleteKahootEither(id.value);
-    this.handleLegacyResult(result);
   }
 
   // ========== MÉTODOS CON EITHER (NUEVOS - usan string) ==========
@@ -137,7 +117,7 @@ export class KahootRepositoryMongo implements IKahootRepository {
         const snapshot = this.prepareSnapshot(doc);
         const res = KahootFactory.reconstructFromSnapshot(snapshot);
 
-        // Si falla la reconstrucción de un elemento, podrías decidir 
+        // Si falla la reconstrucción de un elemento,  decidir 
         // si lanzar el error o ignorar el elemento corrupto.
         if (res.isLeft()) return Either.makeLeft(res.getLeft());
 
@@ -181,13 +161,6 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
   // ========== MÉTODOS PRIVADOS ==========
 
-  private handleLegacyResult<E extends ErrorData, T>(result: Either<E, T>): T {
-    if (result.isLeft()) {
-      throw result.getLeft();
-    }
-    return result.getRight();
-  }
-
   private prepareSnapshot(document: any): KahootSnapshot {
     const snapshot = { ...document };
 
@@ -198,11 +171,4 @@ export class KahootRepositoryMongo implements IKahootRepository {
     return snapshot as KahootSnapshot;
   }
 
-  private logDeprecated(methodName: string): void {
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.warn(
-        `${methodName}() is deprecated. Use ${methodName}Either() instead.`
-      );
-    }
-  }
 }

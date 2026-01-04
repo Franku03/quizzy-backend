@@ -24,6 +24,7 @@ import { SlideIdValue } from "../types/id-types"
 import { Either, ErrorData } from "src/core/types";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { IDomainErrorContext } from "src/core/errors/interface/context/i-error-domain.context";
 
 interface UserId {
     readonly value: string;
@@ -46,7 +47,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         super(props, id);
     }
 
-    private getKahootContext(operation: string) {
+    private getContext(operation: string): IDomainErrorContext {
         return createDomainContext('Kahoot', operation, {
             domainObjectKind: 'AggregateRoot',
             domainObjectId: this.id.value
@@ -80,7 +81,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     private checkPublishingReadiness(): Either<ErrorData, void> {
-        const context = this.getKahootContext('checkPublishingReadiness');
+        const context = this.getContext('checkPublishingReadiness');
         let detailsResult: Either<ErrorData, KahootDetails>;
         if (this.properties.details.hasValue()) {
             detailsResult = Either.makeRight(this.properties.details.getValue());
@@ -119,7 +120,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     public changeStatus(newStatus: string): Either<ErrorData, void> {
-        const context = this.getKahootContext('changeStatus');
+        const context = this.getContext('changeStatus');
         switch (newStatus) {
             case KahootStatusEnum.DRAFT: 
                 this.draft(); 
@@ -143,7 +144,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     public changeVisibility(newVisibility: string): Either<ErrorData, void> {
-        const context = this.getKahootContext('changeVisibility');
+        const context = this.getContext('changeVisibility');
         switch (newVisibility) {
             case VisibilityStatusEnum.PUBLIC: this.makePublic(); break;
             case VisibilityStatusEnum.PRIVATE: this.hide(); break;
@@ -172,7 +173,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     public removeSlide(slideId: SlideId): Either<ErrorData, void> {
-        const context = this.getKahootContext('removeSlide');
+        const context = this.getContext('removeSlide');
         if (!this.properties.slides.delete(slideId.value)) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado para eliminar."
@@ -242,7 +243,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     // --- Evaluación (Throw por compatibilidad) ---
     public evaluateAnswer(submission: Submission): Result {
-        const context = this.getKahootContext('evaluateAnswer');
+        const context = this.getContext('evaluateAnswer');
         const slide = this.getSlideById(submission.getSlideId());
 
         if (!slide) throw DomainErrorFactory.validation(context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado.");
@@ -282,7 +283,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         id: SlideId, 
         action: (s: Slide) => Either<ErrorData, void>
     ): Either<ErrorData, void> {
-        const context = this.getKahootContext('delegateToSlide');
+        const context = this.getContext('delegateToSlide');
         const slide = this.getSlideById(id);
 
         if (!slide) {
