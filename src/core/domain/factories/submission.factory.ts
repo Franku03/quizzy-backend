@@ -26,31 +26,31 @@ export class SubmissionFactory {
     */
     public static buildDomainSubmission(
         slideId: SlideId,
-        slideInfo: SlideSnapshot, 
+        slideInfo: SlideSnapshot,
         timeElapsedMs: number,
         answerIndex: string[],
     ): Submission {
 
         const optionSnapshot = slideInfo.options;
 
-        if( !optionSnapshot )
+        if (!optionSnapshot)
             throw new Error("La Slide no contiene Opciones de Respuesta");
 
-        const optQuestionText = new Optional( slideInfo.questionText );
+        const optQuestionText = new Optional(slideInfo.questionText);
 
-        if( !slideInfo.pointsValue )
+        if (!slideInfo.pointsValue)
             throw new Error("La Slide no da puntos por respuesta");
 
-        const optPointsValue = new Optional( new Points( slideInfo.pointsValue ) );
+        const optPointsValue = new Optional(new Points(slideInfo.pointsValue));
 
-        const optTimeLimit = new Optional( new TimeLimitSeconds(slideInfo.timeLimitSeconds) );
+        const optTimeLimit = new Optional(new TimeLimitSeconds(slideInfo.timeLimitSeconds));
 
 
-        const answerTexts = optionSnapshot.filter( (opt, index) => {
+        const answerTexts = optionSnapshot.filter((opt, index) => {
 
             const strIndex = index.toString();
 
-            if( answerIndex.includes( strIndex ) )
+            if (answerIndex.includes(strIndex))
                 return opt;
 
         });
@@ -58,42 +58,30 @@ export class SubmissionFactory {
         // * La importacion del Option aqui existe solo para tipear el arreglo, TS exige que lo hagamos asi (de lo contrario es una arreglo de tipo never[])
         const options: Option[] = [];
 
-        for( const answer of answerTexts ){
+        for (const answer of answerTexts) {
+            const text = answer.optionText || "";
 
-            // let imageId: Optional<ImageId>;
-            const imageIdString = answer.optionImageId;
-            let text: string;
-
-
-            if( !answer.optionText ){
-
-                text = "";
-
-            }else{
-
-                text = answer.optionText;
-            }
-            
-            options.push( KahootFactory.buildOption(
-              {
-                text:text,
-                optionImage: imageIdString,
+            const optionResult = KahootFactory.buildOption({
+                text: text,
+                optionImage: answer.optionImageId,
                 isCorrect: answer.isCorrect,
-              }
-            ));
+            });
 
-
+            if (optionResult.isLeft()) {
+                //return Either.makeLeft(optionResult.getLeft());
+            }
+            options.push(optionResult.getRight());
         }
 
-        const optAnswerTexts = new Optional( options );
+        const optAnswerTexts = new Optional(options);
 
-        const answerIndexes = answerIndex.map( resIndex => {
+        const answerIndexes = answerIndex.map(resIndex => {
             return +resIndex;
         })
 
-        const optAnswerIndexes = new Optional( answerIndexes );
+        const optAnswerIndexes = new Optional(answerIndexes);
 
-        const timeElapsed = new ResponseTime( timeElapsedMs );
+        const timeElapsed = new ResponseTime(timeElapsedMs);
 
         return new Submission(
             slideId,
@@ -107,5 +95,5 @@ export class SubmissionFactory {
 
     }
 
-    
+
 }

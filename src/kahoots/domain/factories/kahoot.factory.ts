@@ -1,4 +1,3 @@
-// --- Core & Types ---
 import { Either, ErrorData } from "src/core/types";
 import { Optional } from "src/core/types/optional";
 
@@ -74,7 +73,6 @@ export interface KahootInput {
 }
 
 export class KahootFactory {
-
     private static readonly SlideCreatorsMap: Record<SlideTypeEnum, any> = {
         [SlideTypeEnum.SINGLE]: SingleChoiceSlide,
         [SlideTypeEnum.MULTIPLE]: MultipleChoiceSlide,
@@ -83,16 +81,19 @@ export class KahootFactory {
         [SlideTypeEnum.SLIDE]: DisplaySlide,
     };
 
-    private static resolveSlideCreator(type: SlideTypeEnum): Either<ErrorData, any> {
-        const creator = this.SlideCreatorsMap[type];
-        if (!creator) {
-            return Either.makeLeft(DomainErrorFactory.validation(
-                createDomainContext('KahootFactory', 'Factory'),
-                { slideType: ['UNKNOWN_TYPE'] },
-                `The slide type "${type}" is not registered.`
-            ));
-        }
-        return Either.makeRight(creator);
+    // --- Helpers de Construcción Interna ---
+
+    public static buildOption(input: OptionInput): Either<ErrorData, Option> {
+        return this.wrapOptional(input.optionImage, ImageId.create)
+            .chain(imgIdVO => Option.create(input.text, input.isCorrect, imgIdVO));
+    }
+
+    private static buildOptionFromSnapshot(snap: OptionSnapshot): Either<ErrorData, Option> {
+        const imgVO = snap.optionImageId 
+            ? new Optional(new ImageId(snap.optionImageId)) 
+            : new Optional<ImageId>();
+            
+        return Option.create(snap.optionText || "", snap.isCorrect, imgVO);
     }
 
     public static wrapOptional<T, R>(
@@ -100,83 +101,66 @@ export class KahootFactory {
         creator: (val: T) => Either<ErrorData, R>
     ): Either<ErrorData, Optional<R>> {
         if (value === undefined || value === null) {
-            return Either.makeRight<ErrorData, Optional<R>>(new Optional<R>(undefined));
+            return Either.makeRight(new Optional<R>(undefined));
         }
         return creator(value).map(res => new Optional(res));
     }
 
-    private static assembleSlideProps(
-        pos: number,
-        time: number,
-        pts: number | undefined,
-        ques: string | undefined,
-        img: string | undefined,
-        desc: string | undefined,
-        opts: Option[]
-    ): Either<ErrorData, SlideProps> {
-        return TimeLimitSeconds.create(time).chain((timeVO) =>
-            this.wrapOptional(pts, Points.create).chain((pointsVO) =>
-                this.wrapOptional(ques, Question.create).chain((quesVO) =>
-                    this.wrapOptional(img, ImageId.create).chain((imgVO) =>
-                        // Limpieza de string vacío para evitar colapsos en el VO Description
-                        this.wrapOptional(
-                            (desc && desc.trim().length > 0) ? desc : undefined, 
-                            Description.create
-                        ).map((descVO) => ({
-                            position: pos,
-                            timeLimit: timeVO,
-                            points: pointsVO,
-                            question: quesVO,
-                            slideImage: imgVO,
-                            description: descVO,
-                            options: opts.length > 0 ? new Optional(opts) : new Optional<Option[]>(undefined)
-                        } as unknown as SlideProps))
-                    )
+    // --- Orquestación de Slides ---
+
+    public static buildSlideFromInput(input: SlideInput, pos: number): Either<ErrorData, Slide> {
+        const options: Option[] = [];
+        if (input.options) {
+            for (const o of input.options) {
+                const optRes = this.buildOption(o);
+                if (optRes.isLeft()) return Either.makeLeft(optRes.getLeft());
+                options.push(optRes.getRight());
+            }
+        }
+
+        const descriptionToProcess = (input.slideType === SlideTypeEnum.SLIDE) ? input.description : undefined;
+
+        return SlideId.create(input.id).chain(sId =>
+            this.assembleSlideProps(pos, input.timeLimit, input.points, input.question, input.slideImage, descriptionToProcess, options)
+                .chain(props =>
+                    this.resolveSlideCreator(input.slideType as SlideTypeEnum)
+                        .chain(Creator => Creator.create(props, sId))
                 )
-            )
         );
     }
 
-    /*public static assembleStyling(themeId: string, imageId?: string): Either<ErrorData, KahootStyling> {
-        return ThemeId.create(themeId).chain(tId => {
-            // Limpieza de ImageId para evitar errores si viene como string vacío
-            const cleanImageId = (imageId && imageId.trim().length > 0) ? imageId : undefined;
-            
-            return this.wrapOptional(cleanImageId, ImageId.create).chain(imgVO => 
-                KahootStyling.create(imgVO, tId) 
-            );
-        });
-    }*/
+    private static buildSlideFromSnapshot(snap: SlideSnapshot, pos: number): Either<ErrorData, Slide> {
+        const options: Option[] = [];
+        if (snap.options) {
+            for (const o of snap.options) {
+                const optRes = this.buildOptionFromSnapshot(o);
+                if (optRes.isLeft()) return Either.makeLeft(optRes.getLeft());
+                options.push(optRes.getRight());
+            }
+        }
 
-public static assembleStyling(themeId: string, imageId?: string): Either<ErrorData, KahootStyling> {
-    return ThemeId.create(themeId).chain(tId => {
-        
-        // GESTIÓN DE LA FACTORY: 
-        // Si imageId es un string vacío, lo convertimos en undefined.
-        // Así wrapOptional sabrá que NO debe llamar a ImageId.create.
-        const cleanImageId = (imageId && imageId.trim().length > 0) ? imageId : undefined;
+        const descriptionToProcess = (snap.slideType === SlideTypeEnum.SLIDE) ? snap.descriptionText : undefined;
 
-        return this.wrapOptional(cleanImageId, ImageId.create).chain(imgVO => 
-            KahootStyling.create(imgVO, tId) 
+        return SlideId.create(snap.id).chain(sId =>
+            this.assembleSlideProps(pos, snap.timeLimitSeconds, snap.pointsValue, snap.questionText, snap.slideImageId, descriptionToProcess, options)
+                .chain(props =>
+                    this.resolveSlideCreator(snap.slideType)
+                        .chain(Creator => Creator.create(props, sId))
+                )
         );
-    });
-}
+    }
+
+    // --- Métodos de Ensamblaje Principal ---
+
     public static createFromInput(input: KahootInput): Either<ErrorData, Kahoot> {
-        return this.processSlides(input.slides, (s, p) => this.buildSlideFromInput(s, p)).chain(slidesMap => 
-            this.assembleStyling(input.themeId, input.imageId).chain(styling => 
-                KahootId.create(input.id).chain(kId => 
-                    UserId.create(input.authorId).chain(authorId => 
-                        KahootStatus.create(input.status).chain(status => 
-                            VisibilityStatus.create(input.visibility).chain(visibility => 
+        return this.processSlides(input.slides, (s, p) => this.buildSlideFromInput(s, p)).chain(slidesMap =>
+            this.assembleStyling(input.themeId, input.imageId).chain(styling =>
+                KahootId.create(input.id).chain(kId =>
+                    UserId.create(input.authorId).chain(authorId =>
+                        KahootStatus.create(input.status).chain(status =>
+                            VisibilityStatus.create(input.visibility).chain(visibility =>
                                 PlayNumber.create(input.playCount).chain(playCount => {
-                                    let createdAtVO: DateISO;
-                                    try {
-                                        createdAtVO = input.createdAt 
-                                            ? DateISO.createFrom(input.createdAt) 
-                                            : DateISO.generate();
-                                    } catch (e) {
-                                        createdAtVO = DateISO.generate();
-                                    }
+                                    const createdAtVO = input.createdAt ? DateISO.createFrom(input.createdAt) : DateISO.generate();
                                     return Kahoot.create({
                                         author: authorId,
                                         createdAt: createdAtVO,
@@ -193,32 +177,6 @@ public static assembleStyling(themeId: string, imageId?: string): Either<ErrorDa
                     )
                 )
             )
-        );
-    }
-
-    public static buildSlideFromInput(input: SlideInput, pos: number): Either<ErrorData, Slide> {
-        const options: Option[] = [];
-        if (input.options) {
-            for (const o of input.options) {
-                const optRes = this.wrapOptional(o.optionImage, ImageId.create)
-                    .map(imgIdVO => new Option(o.text, o.isCorrect, imgIdVO));
-                if (optRes.isLeft()) return Either.makeLeft(optRes.getLeft());
-                options.push(optRes.getRight());
-            }
-        }
-
-        // Lógica de negocio: Solo permitimos descripción en slides de tipo informativo (SLIDE)
-        // Esto evita que intentemos crear VOs innecesarios para preguntas (SINGLE, MULTIPLE, etc)
-        const descriptionToProcess = (input.slideType === SlideTypeEnum.SLIDE) 
-            ? input.description 
-            : undefined;
-
-        return SlideId.create(input.id).chain(sId =>
-            this.assembleSlideProps(pos, input.timeLimit, input.points, input.question, input.slideImage, descriptionToProcess, options)
-                .chain(props =>
-                    this.resolveSlideCreator(input.slideType as SlideTypeEnum)
-                        .chain(Creator => Creator.create(props, sId))
-                )
         );
     }
 
@@ -249,22 +207,50 @@ public static assembleStyling(themeId: string, imageId?: string): Either<ErrorDa
         );
     }
 
-    private static buildSlideFromSnapshot(snap: SlideSnapshot, pos: number): Either<ErrorData, Slide> {
-        const options: Option[] = (snap.options || []).map((o: OptionSnapshot) =>
-            new Option(o.optionText || "", o.isCorrect, o.optionImageId ? new Optional(new ImageId(o.optionImageId)) : new Optional())
-        );
+    // --- Lógica de Soporte ---
 
-        const descriptionToProcess = (snap.slideType === SlideTypeEnum.SLIDE) 
-            ? snap.descriptionText 
-            : undefined;
-
-        return SlideId.create(snap.id).chain(sId =>
-            this.assembleSlideProps(pos, snap.timeLimitSeconds, snap.pointsValue, snap.questionText, snap.slideImageId, descriptionToProcess, options)
-                .chain(props =>
-                    this.resolveSlideCreator(snap.slideType)
-                        .chain(Creator => Creator.create(props, sId))
+    private static assembleSlideProps(
+        pos: number, time: number, pts: number | undefined, ques: string | undefined, 
+        img: string | undefined, desc: string | undefined, opts: Option[]
+    ): Either<ErrorData, SlideProps> {
+        return TimeLimitSeconds.create(time).chain(timeVO =>
+            this.wrapOptional(pts, Points.create).chain(pointsVO =>
+                this.wrapOptional(ques, Question.create).chain(quesVO =>
+                    this.wrapOptional(img, ImageId.create).chain(imgVO =>
+                        this.wrapOptional((desc?.trim()) ? desc : undefined, Description.create).map(descVO => ({
+                            position: pos,
+                            timeLimit: timeVO,
+                            points: pointsVO,
+                            question: quesVO,
+                            slideImage: imgVO,
+                            description: descVO,
+                            options: opts.length > 0 ? new Optional(opts) : new Optional<Option[]>(undefined)
+                        } as unknown as SlideProps))
+                    )
                 )
+            )
         );
+    }
+
+    public static assembleStyling(themeId: string, imageId?: string): Either<ErrorData, KahootStyling> {
+        return ThemeId.create(themeId).chain(tId => {
+            const cleanImageId = (imageId?.trim()) ? imageId : undefined;
+            return this.wrapOptional(cleanImageId, ImageId.create).chain(imgVO =>
+                KahootStyling.create(imgVO, tId)
+            );
+        });
+    }
+
+    private static resolveSlideCreator(type: SlideTypeEnum): Either<ErrorData, any> {
+        const creator = this.SlideCreatorsMap[type];
+        if (!creator) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                createDomainContext('KahootFactory', 'Factory'),
+                { slideType: ['UNKNOWN_TYPE'] },
+                `The slide type "${type}" is not registered.`
+            ));
+        }
+        return Either.makeRight(creator);
     }
 
     public static processSlides<T>(
@@ -284,26 +270,10 @@ public static assembleStyling(themeId: string, imageId?: string): Either<ErrorDa
 
     public static assembleDetails(t?: string, d?: string, c?: string): Optional<KahootDetails> {
         if (!t && !d && !c) return new Optional<KahootDetails>();
-        
-        const cleanTitle = (t && t.trim().length > 0) ? t : undefined;
-        const cleanDesc = (d && d.trim().length > 0) ? d : undefined;
-        const cleanCat = (c && c.trim().length > 0) ? c : undefined;
-
         return new Optional(new KahootDetails(
-            new Optional(cleanTitle),
-            new Optional(cleanDesc),
-            new Optional(cleanCat)
+            new Optional(t?.trim() || undefined),
+            new Optional(d?.trim() || undefined),
+            new Optional(c?.trim() || undefined)
         ));
-    }
-
-    public static buildOption(optionInput: OptionInput): Option {
-        const imageIdOptional: Optional<ImageId> = this.buildOptionalVO(
-            optionInput.optionImage ? new ImageId(optionInput.optionImage) : undefined
-        );
-        return new Option(optionInput.text, optionInput.isCorrect, imageIdOptional);
-    }
-
-    private static buildOptionalVO<T>(value: T | undefined): Optional<T> {
-        return new Optional(value);
     }
 }
