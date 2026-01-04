@@ -14,7 +14,7 @@ export interface OptionSnapshotWithoutAnswers {
 
 export interface SlideSnapshotWithoutAnswers {
     id: string;
-    position: number;
+    questionIndex: number;
     slideType: SlideTypeEnum; 
     timeLimitSeconds: number; 
     //Opcionales

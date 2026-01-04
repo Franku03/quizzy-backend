@@ -16,10 +16,13 @@ import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/facto
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
 import { CreateSessionResponse } from "../../response-dtos/create-session.response.dto";
+import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { Either } from '../../../../core/types/either';
+
 
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
+import { KahootSnapshot } from '../../../../core/domain/snapshots/snapshot.kahoot';
 
 
 @CommandHandler( CreateSessionCommand )
@@ -37,7 +40,8 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
 
         @Inject( CryptoGeneratePinService )
         private readonly sessionPinGenerator: IGeneratePinService,
-
+    
+        private readonly mediaService: MediaEnrichmentService,
     ){}
 
     async execute(command: CreateSessionCommand): Promise<Either<Error,CreateSessionResponse>> {
@@ -76,7 +80,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
 
             }
 
-            // TODO: mover esta validación a un método dentro de kahoot
+            // TODO: mover esta validación aL ASPECT cuando esté implementado
             // Obtenemos el IDuser del host y verificamos que el kahoot le corresponda en caso de ser privado, y que el kahoot no esté en draft
             const hostIdString = command.hostId
 
@@ -107,7 +111,17 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 kahoot,
             });
 
-            return Either.makeRight({ sessionPin: pin, sessionId: session.idToString(), qrToken: qrToken }); 
+            const kahootSnapshot = kahoot.getSnapshot();
+
+            const enrichedSylingMedia = await this.mediaService.enrichStyling( kahootSnapshot.styling );
+
+            return Either.makeRight({ 
+                sessionPin: pin, 
+                qrToken: qrToken,
+                quizTitle: kahootSnapshot.details?.title || 'Untitled Quiz',
+                coverImageUrl: enrichedSylingMedia.imageId || '',
+                theme: enrichedSylingMedia.theme || { id: '', url: '', name: ''},
+            }); 
 
         } catch (error) {
 

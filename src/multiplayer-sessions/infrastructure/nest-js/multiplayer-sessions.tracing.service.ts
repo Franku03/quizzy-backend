@@ -6,7 +6,7 @@ interface ConnectedClients {
 
     [id: string]: {
         socket: SessionSocket,
-        nickname: string,
+        nickname?: string,
         roomPin: string
         role: SessionRoles,
     }; 
@@ -28,7 +28,6 @@ export class MultiplayerSessionsTracingService {
 
     registerClient( client: SessionSocket ){
 
-        const nickname = client.handshake.headers.nickname as string;
 
         const roomPin = client.handshake.headers.pin as string;
 
@@ -40,15 +39,23 @@ export class MultiplayerSessionsTracingService {
             socket: client,
             roomPin: roomPin,
             role: role,
-            nickname: nickname,
         };
 
     } 
 
+    registerClientNickname( client: SessionSocket ){
+
+        const room = this.getRoom( client.data.roomPin );
+
+        const clientInRoom = room[ client.id ];
+        clientInRoom.nickname = client.data.nickname;
+
+    }
+
 
     removeClient( roomPin: string, clientId: string){
 
-        const room = this.availableRooms.get( roomPin );
+        const room = this.getRoom( roomPin );
 
         // IMPORTANTE: Si no encontramos sala para este cliente, 
         // significa que nunca se registró correctamente o ya se borró.
@@ -107,7 +114,7 @@ export class MultiplayerSessionsTracingService {
         if(!room)
             return this.roomDoesNotExist( roomPin );
 
-        return room;;
+        return room;
     }
 
     private roomDoesNotExist( arg: any ): never {

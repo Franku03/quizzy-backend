@@ -1,9 +1,10 @@
 import { Socket } from "socket.io";
 
 import { 
-  GameStateUpdateResponse, 
   HostEndGameResponse, 
+  HostLobbyUpdateResponse, 
   PlayerEndGameResponse, 
+  PlayerStateUpdateResponse, 
   QuestionResultsHostResponse, 
   QuestionResultsPlayerResponse, 
   QuestionStartedResponse 
@@ -21,8 +22,8 @@ export interface ServerToClientEvents {
    // Eventos exitosos
   [ServerEvents.HOST_CONNECTED_SUCCESS]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
   [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
-  [ServerEvents.GAME_STATE_UPDATE]: (payload: GameStateUpdateResponse) => void;
-  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: { status: 'CONNECTED TO SESSION AS PLAYER' }) => void;  
+  [ServerEvents.HOST_LOBBY_UPDATE]: (payload: HostLobbyUpdateResponse) => void;
+  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerStateUpdateResponse ) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 
   [ServerEvents.PLAYER_ANSWER_CONFIRMATION]:(payload: { status: 'ANSWER SUCCESFULLY SUBMITTED' }) => void; 
   [ServerEvents.HOST_RESULTS]:(payload: QuestionResultsHostResponse ) => void;
