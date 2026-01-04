@@ -2,8 +2,8 @@
 import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { IAssetMetadataDao } from 'src/media/application/ports/asset-metadata.dao';
-import { AssetMetadataRecord } from 'src/media/application/ports/asset-metadata-record.interface';
+import { IAssetMetadataDao } from 'src/media/application/ports/i-asset-metadata.dao.interface';
+import { AssetMetadataRecord } from 'src/media/application/ports/i-asset-metadata-record.interface';
 import { ErrorData, Either, ErrorLayer } from 'src/core/types';
 import { AssetMetadataMongo } from '../../entities/media.schema';
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
@@ -91,6 +91,22 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
 
     try {
       const doc = await this.model.findOne({ publicId }).exec();
+      return Either.makeRight(doc ? this.toRecord(doc) : null);
+    } catch (error) {
+      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async findByAssetId(id: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'findByPublicId',
+      entityId: id,
+    };
+
+    try {
+      const doc = await this.model.findOne({ assetId: id }).exec();
       return Either.makeRight(doc ? this.toRecord(doc) : null);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);

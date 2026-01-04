@@ -4,11 +4,9 @@ import { ICommandHandler } from "src/core/application/cqrs";
 
 import { PlayerFactory } from "src/multiplayer-sessions/domain/factories/player.factory";
 
-import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
-import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
 
@@ -20,7 +18,6 @@ import { GameStateUpdateResponse } from "../../response-dtos/game-state-update.r
 import { COMMON_ERRORS } from "../common.errors";
 
 
-
 @CommandHandler( PlayerJoinCommand )
 export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
@@ -30,9 +27,6 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
         @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
         private readonly usersDao: IUserDao,
-
-        @Inject( UuidGenerator )
-        private readonly IdGenerator: IdGenerator<string>,
     ){}
 
     async execute(command: PlayerJoinCommand): Promise<Either<Error, GameStateUpdateResponse>> {
@@ -64,6 +58,7 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
             session.joinPlayer( player );
 
             const res = mapJoinToStateUpdate(player, session, kahoot);
+
 
             return Either.makeRight( res ); 
 

@@ -12,7 +12,7 @@ import { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { KahootFactory } from 'src/kahoots/domain/factories/kahoot.factory';
-import { KahootSnapshot } from 'src/core/domain/snapshots/snpapshot.kahoot';
+import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
 // El Mapper de Errores
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
@@ -54,14 +54,14 @@ export class KahootRepositoryMongo implements IKahootRepository {
   public async findKahootById(id: KahootId): Promise<Optional<Kahoot>> {
     this.logDeprecated('findKahootById');
     const result = await this.findKahootByIdEither(id.value);
-    
+
     if (result.isLeft()) {
       throw result.getLeft();
     }
-    
+
     const kahootOrNull = result.getRight();
-    return kahootOrNull !== null 
-      ? new Optional(kahootOrNull) 
+    return kahootOrNull !== null
+      ? new Optional(kahootOrNull)
       : new Optional();
   }
 
@@ -119,8 +119,7 @@ export class KahootRepositoryMongo implements IKahootRepository {
       }
 
       const snapshot = this.prepareSnapshot(document);
-      const kahoot = KahootFactory.reconstructFromSnapshot(snapshot);
-      return Either.makeRight<ErrorData, Kahoot | null>(kahoot);
+      return KahootFactory.reconstructFromSnapshot(snapshot);
 
     } catch (error) {
       return Either.makeLeft(this.mongoErrorMapper.toErrorData(error, context));
@@ -135,17 +134,25 @@ export class KahootRepositoryMongo implements IKahootRepository {
 
     try {
       const documents = await this.kahootModel.find().lean().exec();
-      const kahoots = documents.map(doc => {
+
+      const kahoots: Kahoot[] = [];
+
+      for (const doc of documents) {
         const snapshot = this.prepareSnapshot(doc);
-        return KahootFactory.reconstructFromSnapshot(snapshot);
-      });
+        const res = KahootFactory.reconstructFromSnapshot(snapshot);
+
+        // Si falla la reconstrucción de un elemento, podrías decidir 
+        // si lanzar el error o ignorar el elemento corrupto.
+        if (res.isLeft()) return Either.makeLeft(res.getLeft());
+
+        kahoots.push(res.getRight());
+      }
 
       return Either.makeRight(kahoots);
     } catch (error) {
       return Either.makeLeft(this.mongoErrorMapper.toErrorData(error, context));
     }
   }
-
   public async deleteKahootEither(id: string): Promise<Either<ErrorData, void>> {
     const context: IDatabaseErrorContext = {
       ...this.adapterContextBase,

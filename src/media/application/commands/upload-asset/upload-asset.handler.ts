@@ -3,16 +3,17 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { Inject } from '@nestjs/common';
 import { UploadAssetCommand } from './upload-asset.command';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
-import type { IAssetMetadataDao } from '../../ports/asset-metadata.dao';
-import type { IAssetStorageService } from '../../ports/asset-storage.service';
+import type { IAssetMetadataDao } from '../../ports/i-asset-metadata.dao.interface';
+import type { IAssetStorageService } from '../../ports/i-asset-storage.interface';
 import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { AssetMetadataRecord } from '../../ports/asset-metadata-record.interface';
+import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interface';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
-import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependecy-tokkens/application-media.tokens';
+import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependency-tokens/application-media.tokens';
 import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
-import { UploadAssetResponse } from './upload-asset.response.dto';
+import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
+import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
@@ -28,68 +29,69 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
       return Either.makeLeft(new ErrorData("VALIDATION_FAILED", "File buffer is empty", ErrorLayer.APPLICATION));
     }
 
-    try {
-      // PASO 1: Deduplicación
-      const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
-      const duplicateResult = await this.metadataDao.findByContentHash(contentHash);
-      if (duplicateResult.isLeft()) return Either.makeLeft(duplicateResult.getLeft());
+    const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
 
-      const existing = duplicateResult.getRight();
-      if (existing) {
-        await this.metadataDao.incrementReferenceCount(existing.publicId);
-        return Either.makeRight({
-          assetId: existing.assetId,
-          mimeType: existing.mimeType,
-          size: existing.size,
-          format: existing.format,
-          category: existing.category,
-        });
-      }
+    // Definimos el pipe especificando que al final queremos un UploadAssetResponse
+    return pipeAsync(
+      // 1. Buscar duplicado
+      this.metadataDao.findByContentHash(contentHash),
 
-      // PASO 2: Proceso de subida
-      const assetId = await this.idGenerator.generateId();
-      const uploadResult = await this.assetStorageService.upload(
-        command.fileBuffer,
-        command.mimeType,
-        command.originalName,
-        `kahoot_images/${assetId}`
-      );
+      // 2. Switcher: Si existe devuelve DTO, si no, objeto inicial
+      k => k.chainAsync(async existing => 
+        existing 
+          ? (await this.metadataDao.incrementReferenceCount(existing.publicId)).map(() => this.mapToResponse(existing))
+          : Either.makeRight({ isNew: true, assetId: await this.idGenerator.generateId() } as any)
+      ),
 
-      if (uploadResult.isLeft()) return Either.makeLeft(uploadResult.getLeft());
-      const storageResult = uploadResult.getRight();
+      // 3. Subida Física (Unless ya sea DTO)
+      k => k.chainUnlessAsync(
+        val => !(val as any).isNew,
+        async (data: any) => (await this.assetStorageService.upload(
+          command.fileBuffer, command.mimeType, command.originalName, `kahoot_images/${data.assetId}`
+        )).map(storage => ({ ...data, storage }))
+      ),
 
-      // PASO 3: Persistencia
-      const record: AssetMetadataRecord = {
-        assetId,
-        publicId: storageResult.publicId,
-        provider: storageResult.provider,
-        originalName: command.originalName,
-        mimeType: storageResult.mimeType,
-        size: storageResult.size,
-        contentHash,
-        referenceCount: 1,
-        format: storageResult.format,
-        category: MimeTypeHelper.getCategory(command.mimeType),
-        uploadedAt: new Date(),
-      };
+      // 4. Persistencia y Transformación Final
+      k => k.chainAsync(async (data: any) => {
+        // Si no es nuevo, ya es un DTO, lo devolvemos tal cual para cerrar el tipo
+        if (!data.isNew) return Either.makeRight(data as UploadAssetResponse);
+        
+        const record = this.mapToRecord(data.assetId, data.storage, command, contentHash);
+        const saveResult = await this.metadataDao.insert(record);
+        
+        if (saveResult.isLeft()) {
+          await this.assetStorageService.delete(data.storage.publicId, data.storage.provider);
+          return Either.makeLeft(saveResult.getLeft());
+        }
+        
+        return Either.makeRight(this.mapToResponse(record));
+      })
+    );
+  }
 
-      const saveResult = await this.metadataDao.insert(record);
-      if (saveResult.isLeft()) {
-        await this.assetStorageService.delete(record.publicId, record.provider);
-        return Either.makeLeft(saveResult.getLeft());
-      }
+  private mapToResponse(data: any): UploadAssetResponse {
+    return {
+      assetId: data.assetId,
+      mimeType: data.mimeType,
+      size: data.size,
+      format: data.format,
+      category: data.category || MimeTypeHelper.getCategory(data.mimeType),
+    };
+  }
 
-      // PASO 4: Respuesta
-      return Either.makeRight({
-        assetId: record.assetId,
-        mimeType: record.mimeType,
-        size: record.size,
-        format: record.format,
-        category: record.category,
-      });
-
-    } catch (error) {
-      return Either.makeLeft(new ErrorData("APPLICATION_UNEXPECTED_ERROR", error.message, ErrorLayer.APPLICATION));
-    }
+  private mapToRecord(assetId: string, storage: any, command: UploadAssetCommand, hash: string): AssetMetadataRecord {
+    return {
+      assetId,
+      publicId: storage.publicId,
+      provider: storage.provider,
+      originalName: command.originalName,
+      mimeType: storage.mimeType,
+      size: storage.size,
+      contentHash: hash,
+      referenceCount: 1,
+      format: storage.format,
+      category: MimeTypeHelper.getCategory(command.mimeType),
+      uploadedAt: new Date(),
+    };
   }
 }

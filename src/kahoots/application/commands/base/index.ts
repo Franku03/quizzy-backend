@@ -1,3 +1,3 @@
-export * from './base-kahootcommand';
-export * from './slidecommand';
-export * from './optioncommand';
+export * from './base-kahoot.command';
+export * from './base-kahoot-slide.command';
+export * from './base-kahoot-option.command';

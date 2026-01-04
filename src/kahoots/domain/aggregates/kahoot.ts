@@ -1,5 +1,5 @@
 import { Optional } from "src/core/types/optional";
-import { Slide } from "../entities/kahoot.slide";
+import { Slide } from "../entities/slides/kahoot.slide";
 import { KahootDetails } from "../value-objects/kahoot.details";
 import { PlayNumber } from "../value-objects/kahoot.play-number";
 import { SlideId } from "../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id";
@@ -18,9 +18,12 @@ import { Points } from "../../../core/domain/shared-value-objects/value-objects/
 import { SlideType } from "../value-objects/kahoot.slide.type";
 import { KahootStyling } from "../value-objects/kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
-import { KahootSnapshot } from "src/core/domain/snapshots/snpapshot.kahoot";
+import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 import { SlideIdValue } from "../types/id-types"
+import { Either, ErrorData } from "src/core/types";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 
 interface UserId {
     readonly value: string;
@@ -39,325 +42,299 @@ export interface KahootProps {
 
 export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
-    public constructor(props: KahootProps, id: KahootId) {
-        
-        // Maneja la opcionalidad de la colección y los detalles en el constructor
-        
-
-        // 1. Invariantes Transaccionales (Mínimo necesario para existir, incluso en Draft)
-        // Solo la información esencial y el autor son mandatorios.
-        if (!props.author || !props.status || !props.visibility  || !props.styling) {
-            throw new Error("El Kahoot requiere autor, estado, visibilidad, styling y conteo inicial.");
-        }
-        
+    private constructor(props: KahootProps, id: KahootId) {
         super(props, id);
+    }
 
+    private getKahootContext(operation: string) {
+        return createDomainContext('Kahoot', operation, {
+            domainObjectKind: 'AggregateRoot',
+            domainObjectId: this.id.value
+        });
+    }
+
+    // --- Factory Method ---
+    public static create(props: KahootProps, id: KahootId): Either<ErrorData, Kahoot> {
+        const domainContext = createDomainContext('Kahoot', 'createAggregate', {
+            domainObjectKind: 'AggregateRoot'
+        });
+
+        if (!props.author || !props.status || !props.visibility || !props.styling) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                domainContext,
+                { generic: ['REQUIRED_DATA_MISSING'] },
+                "Faltan atributos mandatorios para crear el Kahoot (Author, Status, Visibility o Styling)."
+            ));
+        }
+
+        const kahoot = new Kahoot(props, id);
+        return kahoot.checkInvariants().map(() => kahoot);
+    }
+
+    // --- Validación de Invariantes ---
+    protected checkInvariants(): Either<ErrorData, void> {
         if (this.properties.status.value === KahootStatusEnum.PUBLISH) {
-            this.checkPublishingReadiness();
+            return this.checkPublishingReadiness();
         }
+        return Either.makeRight(undefined);
     }
 
-    /* =====================================================================================
-                Comportamientos del Kahoot (TODO LO QUE NO TIENE REALCION CON EL SLIDE)
-    =====================================================================================*/
-    
-
-    //Se encarga de verificar que el Kahoot cumple con los requisitos necesarios antes de permitir ciertos cambios de estado, como la publicación o el cambio de visibilidad.
-    protected checkInvariants(): void {
-        if (this.properties.status.value === KahootStatusEnum.PUBLISH) {
-            this.checkPublishingReadiness();
+    private checkPublishingReadiness(): Either<ErrorData, void> {
+        const context = this.getKahootContext('checkPublishingReadiness');
+        let detailsResult: Either<ErrorData, KahootDetails>;
+        if (this.properties.details.hasValue()) {
+            detailsResult = Either.makeRight(this.properties.details.getValue());
+        } else {
+            detailsResult = Either.makeLeft(DomainErrorFactory.validation(
+                context, { details: ['MISSING'] }, "Details are required for publishing."
+            ));
         }
+
+        return detailsResult
+            .chain(details => details.isValidDetails()) 
+            .chain(() => {
+                if (this.properties.slides.size === 0) {
+                    return Either.makeLeft(DomainErrorFactory.validation(
+                        context, { slides: ['EMPTY_KAHOOT'] }, "El Kahoot no tiene slides."
+                    ));
+                }
+
+                for (const slide of this.properties.slides.values()) {
+                    const slideResult = slide.isPublishingCompliant();
+                    if (slideResult.isLeft()) return slideResult;
+                }
+
+                return Either.makeRight(undefined);
+            });
     }
 
-    private checkPublishingReadiness(): void {
-        // Regla 1: Debe tener detalles.
-        if (!this.properties.details.hasValue()) { 
-            throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
-        }
-
-        if (!this.properties.details.getValue().isValidDetails) { 
-            throw new Error("No se puede publicar: El Kahoot debe tener detalles (título y descripción).");
-        }
-        
-        // Regla 2: Debe tener al menos un slide.
-        if (this.properties.slides.size === 0) {
-            throw new Error("No se puede publicar: El Kahoot debe contener al menos un slide.");
-        }
-        
-        // Regla 3: Todos los slides deben ser válidos
-        for (const slide of this.properties.slides.values()) {
-            slide.isPublishingCompliant(); 
-        }
+    // --- Comportamientos de Estado (Life Cycle) ---
+    public publish(): Either<ErrorData, void> {
+        this.properties.status = new KahootStatus(KahootStatusEnum.PUBLISH);
+        return this.checkInvariants();
     }
 
-    //Se encarga de manejar la publicación del Kahoot, asegurándose de que cumple con los requisitos necesarios antes de cambiar su estado a publicado.
-    public publish(): void {
-        this.properties.status = new KahootStatus(KahootStatusEnum.PUBLISH); 
-    }
-    
     public draft(): void {
-        this.properties.status = new KahootStatus(KahootStatusEnum.DRAFT); 
+        this.properties.status = new KahootStatus(KahootStatusEnum.DRAFT);
     }
 
-    public changeStatus(newStatus: string): void {
+    public changeStatus(newStatus: string): Either<ErrorData, void> {
+        const context = this.getKahootContext('changeStatus');
         switch (newStatus) {
-            case KahootStatusEnum.DRAFT:
-                this.draft();
-                break;
-            case KahootStatusEnum.PUBLISH:
-                this.publish();
-                break;
-            default:
-                throw new Error(`Estado de Kahoot no válido: ${newStatus}. Solo se permite DRAFT o PUBLISH.`);
+            case KahootStatusEnum.DRAFT: 
+                this.draft(); 
+                return Either.makeRight(undefined);
+            case KahootStatusEnum.PUBLISH: 
+                return this.publish();
+            default: 
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { status: ['INVALID_STATUS'] }, "Estado de Kahoot inválido."
+                ));
         }
     }
 
-    public changeVisibility(newVisibility:string): void {
-        switch (newVisibility) {
-            case VisibilityStatusEnum.PUBLIC:
-                this.makePublic();
-                break;
-            case VisibilityStatusEnum.PRIVATE:
-                this.hide();
-                break;
-            default:
-                throw new Error(`Estado de visibilidad de Kahoot no válido: ${newVisibility}. Solo se permite PUBLIC o PRIVATE.`);
-        }
-    }
-
-    //Se encarga de la visibilidad del Kahoot, permitiendo cambiar entre público y privado.
+    // --- Comportamientos de Visibilidad ---
     public makePublic(): void {
-        this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PUBLIC); 
+        this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PUBLIC);
     }
 
     public hide(): void {
         this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PRIVATE);
     }
 
-    public isPrivate(): boolean {
-        return this.properties.visibility.value === VisibilityStatusEnum.PRIVATE
+    public changeVisibility(newVisibility: string): Either<ErrorData, void> {
+        const context = this.getKahootContext('changeVisibility');
+        switch (newVisibility) {
+            case VisibilityStatusEnum.PUBLIC: this.makePublic(); break;
+            case VisibilityStatusEnum.PRIVATE: this.hide(); break;
+            default: 
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { visibility: ['INVALID_VISIBILITY'] }, "Visibilidad no válida."
+                ));
+        }
+        return Either.makeRight(undefined);
     }
 
-    //Se encarga de cambair el estilo del Kahoot.
+    // --- Actualización de Atributos ---
     public updateStyling(newStyling: KahootStyling): void {
         this.properties.styling = newStyling;
     }
 
-    //Se encarga de cambiar los detalles del Kahoot.
-    public updateDetails(newDetails?: KahootDetails): void {
-        // Reemplaza la referencia Optional<T> con la nueva instancia.
+    public updateDetails(newDetails?: KahootDetails): Either<ErrorData, void> {
         this.properties.details = new Optional(newDetails);
-    }
-    public replaceSlides(slides: Map<SlideIdValue, Slide>): void {
-        this.properties.slides = slides;
-        this.checkInvariants(); 
-            
+        return this.checkInvariants();
     }
 
-    public hasHowManySlides(): number{
-        return this.properties.slides.size;
-    }
-    public isDraft():boolean{
-        return this.properties.status.value === KahootStatusEnum.DRAFT
-    }
-    //En ninguno de los metodos anteriores es necesario llamar a checkInvariants ya que no afectan las reglas de negocio relacionadas con la publicacion.
-    //Ya que cada vo individual se encarga de validar sus propias reglas de negocio.
-    //El check invariants son reglas muy especificas relacionadas con la publicacion del kahoot.
-    //Considerando q los atributos q antes podian ser opcionales ya no no pueden serlo al ser draft.
-    //Mucho mas aun con el slide.
-
-    /* =====================================================================================
-                        Comportamientos relacionados con los Slides
-    =====================================================================================*/
-
-    //Todos los metodos aqui presentes delegan su llamada a la entidad Slide correspondiente.
-
-    private getSlideById(slideId: SlideId): Slide | null {
-
-        return this.properties.slides.get(slideId.value) || null;
+    // --- Gestión de Colección de Slides ---
+    public addSlide(slide: Slide): Either<ErrorData, void> {
+        this.properties.slides.set(slide.idString, slide);
+        return this.checkInvariants();
     }
 
-    public getSlideSnapshotById(slideId: SlideId): SlideSnapshot | null {
-        const slide = this.getSlideById(slideId)
-        if(slide) return slide.getSnapshot()
-        return null
-    }
-
-    public getNextSlideSnapshotByIndex(currentIndex: number = -1): SlideSnapshot | null {
-        const slidesMap = this.properties.slides;
-
-        if (slidesMap.size === 0) {
-            return null;
-        }
-
-        const sortedSlides = this.getSortedSlides();
-        
-        const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
-        const nextSlide = sortedSlides[nextIndex];
-
-        if (!nextSlide) {
-            return null;
-        }
-        return nextSlide.getSnapshot();
-    }
-
-    public getNextSlideSnapshotById(currentSlideId: SlideId | null): SlideSnapshot | null {
-        const slidesMap = this.properties.slides;
-
-        if (slidesMap.size === 0) {
-            return null;
-        }
-
-        const sortedSlides = this.getSortedSlides();
-
-        let currentIndex = -1;
-
-        if (currentSlideId) {
-            currentIndex = sortedSlides.findIndex(slide => slide.id.equals(currentSlideId));
-            if (currentIndex === -1) {
-                return null; 
-            }
-        }
-        
-        const nextIndex = currentIndex + 1;
-        if (nextIndex >= sortedSlides.length) {
-            return null; 
-        }
-
-        const nextSlide = sortedSlides[nextIndex];
-        return nextSlide.getSnapshot();
-    }
-
-    public addSlide(slide: Slide): void {
-        this.properties.slides.set(slide.id.value, slide);
-    }
-
-    public removeSlide(slideId: SlideId): void {
+    public removeSlide(slideId: SlideId): Either<ErrorData, void> {
+        const context = this.getKahootContext('removeSlide');
         if (!this.properties.slides.delete(slideId.value)) {
-            throw new Error(`No se encontró el slide con ID ${slideId.value}.`);
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado para eliminar."
+            ));
         }
+        this.reorderSlidesPositions(); 
+        return this.checkInvariants();
     }
 
-    public reorderSlide(slideId: SlideId, newPosition: number): void {
-        const slideToMove = this.getSlideById(slideId);
-        if (!slideToMove) {
-            throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        }
-        slideToMove.changePosition(newPosition);     
-        this.checkInvariants();
+    public replaceSlides(slides: Map<SlideIdValue, Slide>): Either<ErrorData, void> {
+        this.properties.slides = slides;
+        return this.checkInvariants();
     }
 
-    public updateSlideQuestion(slideId: SlideId, newQuestion: Optional<Question>): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateQuestion(newQuestion);
-        this.checkInvariants();
+    // --- Delegación a Slides (Arreglado para evitar error de Type 'void') ---
+    public reorderSlide(id: SlideId, newPos: number): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.changePosition(newPos));
     }
 
-
-    public changeEvaluationStrategy(slideId: SlideId, newStrategy: EvaluationStrategy): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.changeEvaluationStrategy(newStrategy);
+    public updateSlideQuestion(id: SlideId, q: Optional<Question>): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => {
+            s.updateQuestion(q);
+            return Either.makeRight(undefined);
+        });
     }
 
+    public updateSlideType(id: SlideId, t: SlideType): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.updateSlideType(t));
+    }
 
+    public updateSlideTimeLimit(id: SlideId, t: TimeLimitSeconds): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => {
+            s.updateTimeLimit(t);
+            return Either.makeRight(undefined);
+        });
+    }
+
+    public updateSlidePoints(id: SlideId, p: Optional<Points>): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => {
+            s.updatePoints(p);
+            return Either.makeRight(undefined);
+        });
+    }
+
+    public updateSlideImage(id: SlideId, i: Optional<ImageId>): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => {
+            s.updateSlideImage(i);
+            return Either.makeRight(undefined);
+        });
+    }
+
+    public changeEvaluationStrategy(id: SlideId, st: EvaluationStrategy): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.changeEvaluationStrategy(st));
+    }
+
+    public addSlideOption(id: SlideId, opt: Option): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.addOption(opt));
+    }
+
+    public updateSlideOption(id: SlideId, opt: Option, idx: number): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.updateOption(idx, opt));
+    }
+
+    public removeSlideOptionByIndex(id: SlideId, idx: number): Either<ErrorData, void> {
+        return this.delegateToSlide(id, s => s.removeOptionByIndex(idx));
+    }
+
+    // --- Evaluación (Throw por compatibilidad) ---
     public evaluateAnswer(submission: Submission): Result {
-        const slideId = submission.getSlideId();
-        const slide = this.getSlideById(slideId);
-        if (!slide) {
-            throw new Error(`No se puede evaluar: Slide ID ${slideId.value} no encontrado.`);
-        }
-        if(this.isDraft()){
-            throw new Error(`No se puede evaluar: Kahoot ID ${this.id} en draft.`);
-        }
+        const context = this.getKahootContext('evaluateAnswer');
+        const slide = this.getSlideById(submission.getSlideId());
+
+        if (!slide) throw DomainErrorFactory.validation(context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado.");
+        if (this.isDraft()) throw DomainErrorFactory.validation(context, { status: ['IS_DRAFT'] }, "Evaluación prohibida en modo DRAFT.");
+
         return slide.evaluateAnswer(submission);
     }
 
-    public addSlideOption(slideId: SlideId, newOption: Option): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.addOption(newOption); 
-        this.checkInvariants();
+    // --- Consultas y Navegación ---
+    public getSlideSnapshotById(id: SlideId): SlideSnapshot | null {
+        return this.getSlideById(id)?.getSnapshot() || null;
     }
 
-    public removeSlideOptionByIndex(slideId: SlideId, indexToDelete: number): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);     
-        slide.removeOptionByIndex(indexToDelete);
-        this.checkInvariants();
+    public getNextSlideSnapshotById(currentId: SlideId | null): SlideSnapshot | null {
+        const sorted = this.getSortedSlides();
+        if (sorted.length === 0) return null;
+        const index = currentId ? sorted.findIndex(s => s.id.equals(currentId)) : -1;
+        return sorted[index + 1]?.getSnapshot() || null;
     }
 
-    public updateSlideOption(slideId: SlideId, newOption: Option, indexToUpdate: number): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);     
-        slide.updateOption(indexToUpdate, newOption);
-        this.checkInvariants();
+    public getNextSlideSnapshotByIndex(currentIndex: number = -1): SlideSnapshot | null {
+        if (this.properties.slides.size === 0) return null;
+
+        const sortedSlides = this.getSortedSlides();
+        const nextIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+        const nextSlide = sortedSlides[nextIndex];
+
+        return nextSlide ? nextSlide.getSnapshot() : null;
     }
 
-    public updateSlideTimeLimit(slideId: SlideId, newTimeLimit: TimeLimitSeconds): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateTimeLimit(newTimeLimit);
-        this.checkInvariants();
+    // --- Helpers Internos ---
+    private getSlideById(slideId: SlideId): Slide | null {
+        return this.properties.slides.get(slideId.value) || null;
     }
 
+    private delegateToSlide(
+        id: SlideId, 
+        action: (s: Slide) => Either<ErrorData, void>
+    ): Either<ErrorData, void> {
+        const context = this.getKahootContext('delegateToSlide');
+        const slide = this.getSlideById(id);
 
-    public updateSlideImage(slideId: SlideId, newImage: Optional<ImageId>): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateSlideImage(newImage);
-        this.checkInvariants();
+        if (!slide) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { slideId: ['NOT_FOUND'] }, "Slide ID does not exist."
+            ));
+        }
+        
+        return action(slide).chain(() => this.checkInvariants());
     }
-
-    public updateSlidePoints(slideId: SlideId, newPoints: Optional<Points>): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updatePoints(newPoints);
-        this.checkInvariants();
-    }
-
-    public updateSlideType(slideId: SlideId, newSlideType: SlideType): void {
-        const slide = this.getSlideById(slideId);
-        if (!slide) throw new Error(`Slide ID ${slideId.value} no encontrado.`);
-        slide.updateSlideType(newSlideType);
-        this.checkInvariants();
+    
+    private reorderSlidesPositions(): void {
+        this.getSortedSlides().forEach((slide, index) => {
+            slide.changePosition(index);
+        });
     }
 
     private getSortedSlides(): Slide[] {
-        return Array.from(this.properties.slides.values()).sort(
-            (a, b) => a.position - b.position
-        );
+        return Array.from(this.properties.slides.values()).sort((a, b) => a.position - b.position);
     }
 
+    // --- Snapshots ---
     public getSnapshot(): KahootSnapshot {
-        
-        const slidesArray = Array.from(this.properties.slides.values());
-        const slideSnapshots = slidesArray.map(slide => slide.getSnapshot()); 
-
-        return {
+        return KahootSnapshot.fromRaw({
             id: this.id.value,
             authorId: this.properties.author.value,
-            createdAt: this.properties.createdAt.value, 
+            createdAt: this.properties.createdAt.value,
             visibility: this.properties.visibility.value,
             status: this.properties.status.value,
             playCount: this.properties.playCount.count,
             styling: this.properties.styling.getSnapshot(),
-            
             details: this.properties.details.hasValue() 
                 ? this.properties.details.getValue().getSnapshot() 
                 : undefined,
-            slides: slideSnapshots.length > 0 ? slideSnapshots : undefined,
-        }
+            slides: this.getSortedSlides().map(s => s.getSnapshot()),
+        });
     }
 
+    // --- Getters y Checkers ---
     public get idString(): string { return this.id.value; }
-    public get authorId(): string { return this.properties.author.value; } 
-    public get createdAt(): DateISO { return this.properties.createdAt; } 
-    public get styling(): KahootStyling { return this.properties.styling; } 
-    public get visibility(): VisibilityStatus { return this.properties.visibility; } 
+    public get authorId(): string { return this.properties.author.value; }
+    public get createdAt(): DateISO { return this.properties.createdAt; }
     public get status(): KahootStatus { return this.properties.status; }
-    public get slides(): Map<SlideIdValue, Slide> { return this.properties.slides; } 
-    public get playCount(): PlayNumber { return this.properties.playCount; } 
+    public get visibility(): VisibilityStatus { return this.properties.visibility; }
+    public get styling(): KahootStyling { return this.properties.styling; }
     public get details(): Optional<KahootDetails> { return this.properties.details; }
+    public get slides(): Map<string, Slide> { return this.properties.slides; }
+    public get playCount(): PlayNumber { return this.properties.playCount; }
+
+    public isDraft(): boolean { return this.properties.status.value === KahootStatusEnum.DRAFT; }
+    public isPrivate(): boolean { return this.properties.visibility.value === VisibilityStatusEnum.PRIVATE; }
+    public hasHowManySlides(): number { return this.properties.slides.size; }
 }
+
+

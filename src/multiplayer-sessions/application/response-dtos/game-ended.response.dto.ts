@@ -11,6 +11,7 @@ export interface HostEndGameResponse {
 
 // Payload para el JUGADOR (Su resultado final)
 export interface PlayerEndGameResponse {
+    state: SessionStateType,
     rank: number;          // "Quedaste en el puesto 15"
     totalScore: number;    // "Hiciste 12,000 puntos"
     isPodium: boolean;     // Para mostrar un diseño dorado/especial si quedó en el top 3

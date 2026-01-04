@@ -1,5 +1,5 @@
 import { IsBoolean, IsOptional, IsString } from "class-validator";
-import { cleanNullToUndefined } from "./helper.request.dto.";
+import { cleanNullToUndefined } from "./helper.request.dto";
 import { Transform } from "class-transformer";
 
 export class OptionInputDTO {

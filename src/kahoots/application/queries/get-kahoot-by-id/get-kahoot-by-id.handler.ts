@@ -1,24 +1,25 @@
 // src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.handler.ts
-
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
 import { GetKahootByIdQuery } from './get-kahoot-by-id.query';
 
 // Core & Types
-import { Either, ErrorData, ErrorLayer } from 'src/core/types';
-import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
-import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
+import { Either, ErrorData } from 'src/core/types';
+import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
+import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
 
-// Response & Media (PUERTOS)
-import { KahootHandlerResponse } from '../../response/kahoot.handler.response';
-import type { IMediaEnricher } from '../../ports/i-media-enricher.interface';
-import { KAHOOT_MEDIA_ENRICHER } from '../../dependency-tokkens/application-kahoot.tokens'; // Tu Token Symbol
+// Response & Media
+import { KahootHandlerResponseDto } from '../../dtos/kahoot.handler.response.dto';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
-// Infraestructura & Dominio
+// Infraestructura
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
-import type { IKahootDao } from '../../ports/kahoot.dao.port';
-import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
+import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
+
+//Mapper
+import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
 @QueryHandler(GetKahootByIdQuery)
 export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery> {
@@ -26,57 +27,25 @@ export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery> {
   constructor(
     @Inject(DaoName.Kahoot)
     private readonly kahootDao: IKahootDao,
-  
-    @Inject(KAHOOT_MEDIA_ENRICHER)
-    private readonly mediaEnricher: IMediaEnricher<KahootHandlerResponse>,
+
+    @Inject(MAPPER_TOKEN)
+    private readonly mapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
+
+    private readonly mediaService: MediaEnrichmentService,
   ) { }
 
-  async execute(query: GetKahootByIdQuery): Promise<Either<ErrorData, KahootHandlerResponse>> {
-    const errorContext = createDomainContext('Kahoot', 'getKahootById', {
-      domainObjectId: query.kahootId,
-      actorId: query.userId,
-      intendedAction: 'read', 
-    });
+  async execute(query: GetKahootByIdQuery): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
 
-    try {
-      // 1. Obtener datos del DAO (Lectura optimizada)
-      const result = await this.kahootDao.getKahootById(query.kahootId);
-      
-      if (result.isLeft()) return Either.makeLeft(result.getLeft());
+    return pipeAsync(
+      // 1. Infraestructura: Obtener Snapshot Raw del DAO
+      this.kahootDao.getKahootById(query.kahootId),
 
-      const kahoot = result.getRight(); 
+      // 2. Enriquecimiento: Snapshot (ID) -> Snapshot (URL)
+      // Usamos el operador '!' asumiendo tu regla de "no es null"
+      res => res.mapAsync(snapshot => this.mediaService.enrichKahoot(snapshot!)),
 
-      // 2. Manejar "No encontrado"
-      if (!kahoot) {
-        return Either.makeLeft(DomainErrorFactory.notFound(errorContext));
-      }
-
-      // 3. Validar permisos de lectura (Lógica de Query)
-      const isPublic = kahoot.visibility === VisibilityStatusEnum.PUBLIC;
-      const isOwner = kahoot.authorId === query.userId;
-
-      if (!isPublic && !isOwner) {
-        return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext));
-      }
-
-      const enrichedResponse = await this.mediaEnricher.enrich(kahoot);
-      
-      return Either.makeRight(enrichedResponse);
-
-    } catch (error) {
-      return Either.makeLeft(this.handleError(error, errorContext));
-    }
-  }
-
-  private handleError(error: any, context: any): ErrorData {
-    if (error instanceof ErrorData) return error;
-
-    return new ErrorData(
-      "APPLICATION_UNEXPECTED_ERROR",
-      `Unexpected error in Kahoot query: ${error instanceof Error ? error.message : String(error)}`,
-      ErrorLayer.APPLICATION,
-      context,
-      error as Error
+      // 3. Mapeo: Snapshot -> DTO Response
+      res => res.map(snapshot => this.mapper.map(snapshot!))
     );
   }
 }
