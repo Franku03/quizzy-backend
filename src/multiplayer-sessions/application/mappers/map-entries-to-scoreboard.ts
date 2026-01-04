@@ -43,6 +43,8 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
 
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
 
+    const state = session.getSessionStateType();
+
     const progress = {
         current: session.getCurrentSlideIndex(), // No restamos 1 porque realmente nos interesa tener el valor del indice actual
         total: session.getTotalOfSlides(),
@@ -78,7 +80,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
             });
 
             playerData.set( entry.getPlayerId().value , {
-    
+                state: state,
                 isCorrect: playerAnswer.isCorrect(),
                 pointsEarned: playerAnswer.getEarnedScore(),
                 totalScore: entry.getScore(),
@@ -109,7 +111,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
 
         type: HostNextPhaseType.QUESTION_RESULTS,
         hostData: {
-            state: session.getSessionStateType(),
+            state: state,
             correctAnswerId: correctAnswerId,
             leaderboard: leaderboard,
             stats: stats,

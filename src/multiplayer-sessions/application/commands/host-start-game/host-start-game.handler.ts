@@ -36,17 +36,15 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
 
 
             const { session, kahoot } = sessionWrapper
-
-            // TODO: ESTOY MANDANDO LOBBY
-            // Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta, y obtenemos directamente los datos de la respuesta a dar
-            const res = mapSnapshotsToQuestionResponse( session, kahoot );
-            const currentSlideSnapshot = res.data.currentSlideData;
-
+            
             // Iniciamos la partida
             session.startSession(); // Pasa a estado question automaticamente
 
+            // Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta, y obtenemos directamente los datos de la respuesta a dar
+            const res = mapSnapshotsToQuestionResponse( session, kahoot );
+
             // Creamos la tabla de resultados para la primera slide
-            session.startSlideResults( new SlideId( currentSlideSnapshot.id ) );
+            session.startSlideResults( new SlideId( res.data.currentSlideData.id ) );
 
             return Either.makeRight( res );
    

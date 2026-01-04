@@ -5,6 +5,7 @@ import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/r
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { 
@@ -30,6 +31,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
     DaoFactoryModule.forFeature(DaoName.User), 
+    MediaModule,
     CqrsModule,
   ],
   providers: [
@@ -48,6 +50,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     PlayerSubmitAnswerHandler,
     HostNextPhaseHandler,
     SaveSessionHandler,
+
   ],
   controllers: [MultiplayerSessionsController],
 })

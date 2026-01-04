@@ -26,7 +26,7 @@ export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kah
 
     const currentSlideSnapshotClean: SlideSnapshotWithoutAnswers = {
         id: currentSlideSnapshot.id,
-        position: currentSlideSnapshot.position,    
+        questionIndex: currentSlideSnapshot.position,    
         slideType: currentSlideSnapshot.slideType as SlideTypeEnum, 
         timeLimitSeconds: currentSlideSnapshot.timeLimitSeconds, 
         //Opcionales
@@ -53,7 +53,7 @@ export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kah
         type: HostNextPhaseType.QUESTION_STARTED,
         data: {
             state: session.getSessionStateType(),
-            questionIndex: session.getCurrentSlideIndex(),
+            // questionIndex: session.getCurrentSlideIndex(),
             currentSlideData: currentSlideSnapshotClean
         }
     };

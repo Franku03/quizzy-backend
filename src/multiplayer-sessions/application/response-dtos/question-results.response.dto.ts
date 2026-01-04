@@ -24,6 +24,7 @@ export interface QuestionResultsHostResponse {
 }
 
 export interface QuestionResultsPlayerResponse {
+    state: SessionStateType,
     isCorrect: boolean,
     pointsEarned: number,
     totalScore: number,

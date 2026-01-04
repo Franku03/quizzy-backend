@@ -41,7 +41,6 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
             const { session, kahoot } = sessionWrapper
 
-
             // Buscamos el usuario que se quiere unir (si es que existe), de no ser asi lo unimos a la partida como invitado
             const result = await this.usersDao.getUserById(command.userId);
  
@@ -58,7 +57,6 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
             session.joinPlayer( player );
 
             const res = mapJoinToStateUpdate(player, session, kahoot);
-
 
             return Either.makeRight( res ); 
 

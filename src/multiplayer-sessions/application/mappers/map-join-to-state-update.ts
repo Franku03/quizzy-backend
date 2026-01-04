@@ -8,7 +8,7 @@ export const mapJoinToStateUpdate = ( player: Player, session: MultiplayerSessio
 
     // Construimos la response del game_state_update
 
-    const hostId = session.getHostId().value;
+    // const hostId = session.getHostId().value;
     const state = session.getSessionStateType();
     const players = session.getPlayers().map( player => ({
         
@@ -19,11 +19,12 @@ export const mapJoinToStateUpdate = ( player: Player, session: MultiplayerSessio
 
     const kahootDetails = kahoot.details.getValue();
 
-    const quizTitle = kahootDetails.title.hasValue() ? kahootDetails.title.getValue() : undefined;
+    // TODO: MOVER ESTO A CREATE SESSION
+    // const quizTitle = kahootDetails.title.hasValue() ? kahootDetails.title.getValue() : undefined;
 
-    const kahootImageId = kahoot.styling.imageId.hasValue() ? kahoot.styling.imageId.getValue().value : undefined;
+    // const kahootImageId = kahoot.styling.imageId.hasValue() ? kahoot.styling.imageId.getValue().value : undefined;
 
-    const kahootThemeId = kahoot.styling.themeName;
+    // const kahootThemeId = kahoot.styling.themeName;
 
 
     // TODO: Hacer condiciones de qué devolver en el estado si el jugador que se une se está reconectando a la partida
@@ -31,11 +32,25 @@ export const mapJoinToStateUpdate = ( player: Player, session: MultiplayerSessio
     // ? const currentSlideData = kahoot.getNextSlideSnapshotByIndex()!; // Aqui todavia no devolvemos info del slide
 
     return {
-        hostId: hostId, 
-        state: state,
-        players: players,
-        quizTitle: quizTitle, // No siempre hara falta pasar esto en un GameStateUpdate
-        quizMediaURLs: { imageURL: kahootImageId, themeURL: kahootThemeId } // No siempre hara falta pasar esto en un GameStateUpdte
+
+        hostLobbyUpdate: {
+
+            state: state,
+            players: players,
+            numberOfPlayers: players.length,
+
+        },
+
+        playerStateUpdate: {
+
+            connected: true,
+            state: state,
+            nickname: player.getPlayerNickname(),
+            score: player.getScore(),
+
+        }
+        // quizTitle: quizTitle, // No siempre hara falta pasar esto en un GameStateUpdate
+        // quizMediaURLs: { imageURL: kahootImageId, themeURL: kahootThemeId } // No siempre hara falta pasar esto en un GameStateUpdte
         // ? currentSlideData: currentSlideData,
     }; 
 

@@ -11,6 +11,7 @@ export const mapPayloadToPlayer = ( fullResponse: QuestionResultsResponse, playe
     if (!specificData) {
         // Devolvemos un objeto "vacío" o seguro para evitar que el front explote
         return {
+            state: fullResponse.hostData.state,
             isCorrect: false,
             pointsEarned: 0,
             totalScore: 0, // O buscar su score en otro lado si fuera crítico

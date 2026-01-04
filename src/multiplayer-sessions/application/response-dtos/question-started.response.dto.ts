@@ -6,7 +6,7 @@ export interface QuestionStartedResponse {
     type: HostNextPhaseType.QUESTION_STARTED,
     data: {
         state: SessionStateType,
-        questionIndex: number,
+        // questionIndex: number,
         currentSlideData: SlideSnapshotWithoutAnswers,
     }
 }

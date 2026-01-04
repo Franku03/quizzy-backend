@@ -25,11 +25,12 @@ import {
 } from 'src/multiplayer-sessions/application/response-dtos';
 
 
-import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
 import { mapPayloadToPlayer } from 'src/multiplayer-sessions/application/helpers/map-payload-to-player.helper';
+import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
+import { register } from 'module';
 
 
 
@@ -52,12 +53,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
 
-      const { pin , role, jwt, nickname, } = client.handshake.headers 
-      
+      const { pin , role, jwt } = client.handshake.headers 
+
       try {
         // ! Verificar que el pin de la partida asociada exista
 
-        if( !pin || !role || !jwt || !nickname )
+        if( !pin || !role || !jwt )
           throw new WsException("Hacen falta datos en el header para realizar la conexión");
 
 
@@ -89,14 +90,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.role = role as SessionRoles;
 
-        client.data.nickname = nickname as string;
-
         client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
         console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
   
-        this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
+        // this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
         
       } catch (error) {
         
@@ -157,7 +156,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     // ? Eventos del jugador
     @SubscribeMessage( PlayerUserEvents.PLAYER_JOIN )
-    async handlePlayerJoin( client: SessionSocket ){
+    async handlePlayerJoin( client: SessionSocket, payload: PlayerJoinDto ){
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
 
         if( !client.rooms.has( client.data.roomPin ))
@@ -165,15 +164,30 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
- 
 
         const res: Either<Error, GameStateUpdateResponse> = 
-          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, client.data.nickname, client.data.roomPin ) );
+          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
         if( res.isRight() ){
 
-          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { status: 'CONNECTED TO SESSION AS PLAYER' });
-          this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
+          const result = res.getRight();
+
+          // Guardamos el nickname registrado en el dominio en el socket para futuros usos
+          client.data.nickname = result.playerStateUpdate.nickname;
+          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, result.playerStateUpdate );
+
+          // Emitimos la respuesta de actualización de lobby solo al Host
+          const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+          for (const socket of sockets) {
+              if ( socket.data.role === SessionRoles.HOST ) {
+                  socket.emit(ServerEvents.HOST_LOBBY_UPDATE, result.hostLobbyUpdate);
+                  break;
+              }
+          }
+          
+          // actualizamos la info del nuevo jugador registrado en el servicio de tracing          
+          this.tracingWsService.registerClientNickname( client );
+          this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
 
         } else {
 
