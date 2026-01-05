@@ -22,7 +22,6 @@ import { Either } from '../../../../core/types/either';
 
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
-import { KahootSnapshot } from '../../../../core/domain/snapshots/snapshot.kahoot';
 
 
 @CommandHandler( CreateSessionCommand )
@@ -105,22 +104,26 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 pin
             )
 
+
+            const kahootSnapshot = kahoot.getSnapshot();
+
+            const enrichedSessionStyling = await this.mediaService.enrichStyling( kahootSnapshot.styling );
+
+            console.log( enrichedSessionStyling );
+
             // Guardamos la sesion en el repositorio de sesiones activas y obtenemos el token QR
             const qrToken = await this.sessionRepository.saveSession({
                 session,
                 kahoot,
+                sessionStyling: enrichedSessionStyling
             });
-
-            const kahootSnapshot = kahoot.getSnapshot();
-
-            const enrichedSylingMedia = await this.mediaService.enrichStyling( kahootSnapshot.styling );
 
             return Either.makeRight({ 
                 sessionPin: pin, 
                 qrToken: qrToken,
                 quizTitle: kahootSnapshot.details?.title || 'Untitled Quiz',
-                coverImageUrl: enrichedSylingMedia.imageId || '',
-                theme: enrichedSylingMedia.theme || { id: '', url: '', name: ''},
+                coverImageUrl: enrichedSessionStyling.imageId || '',
+                theme: enrichedSessionStyling.theme || { id: '', url: '', name: ''},
             }); 
 
         } catch (error) {

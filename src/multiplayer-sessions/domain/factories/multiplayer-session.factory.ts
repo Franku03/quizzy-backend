@@ -52,7 +52,12 @@ export class MultiplayerSessionFactory {
 
         const ranking = Scoreboard.create();
 
-        const initialSessionProgress = SessionProgress.create( kahootInfo.firstSlideId , kahootInfo.slidesNumber, 0 );
+        const initialSessionProgress = SessionProgress.create( 
+            kahootInfo.firstSlideId , 
+            new Optional(), // no tiene slide previa al inicio
+            kahootInfo.slidesNumber, 
+            0 
+        );
 
         const hollowPlayerMap = new Map<PlayerIdValue, Player>();
 
@@ -62,6 +67,9 @@ export class MultiplayerSessionFactory {
 
         const hollowCompletedAt = new Optional<DateISO>(); // Creamos optional vacio, luego lo cambiaremos por uno que tenga info, la unica razon para el optional es para no trabajar directamente con null en el agregado
 
+        const hollowCurrentQuestionStartTime = new Date();
+
+        Date.now();
 
         return new MultiplayerSession({
             hostId: hostId,
@@ -69,6 +77,7 @@ export class MultiplayerSessionFactory {
             sessionPin: sessionPin,
             startedAt: startedAt,
             completedAt: hollowCompletedAt, 
+            currentQuestionStartTime: hollowCurrentQuestionStartTime, // Por defecto 0
             sessionState: initialGameState,
             ranking: ranking,
             progress: initialSessionProgress,

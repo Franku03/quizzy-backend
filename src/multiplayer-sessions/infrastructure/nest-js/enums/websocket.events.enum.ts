@@ -26,6 +26,7 @@ export enum ServerEvents {
     HOST_LOBBY_UPDATE = "host_lobby_update",
     PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",
     QUESTION_STARTED = "question_started",
+    HOST_ANSWERS_UPDATE = "host_answers_update",
     HOST_RESULTS = "host_results",
     PLAYER_RESULTS = "player_results",
     HOST_GAME_END = "host_game_end",

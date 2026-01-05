@@ -17,6 +17,10 @@ export class FeedbackGenerator {
         "¡Estás en el TOP 3! 🏆", "¡Vas ganando!", "¡Estás cerca de la victoria!"
     ];
 
+    public static noAnswerMessages = [
+        "Esperando a la siguiente ronda...", "¡Quedaste afuera 😭!", "No desesperes, ¡en la siguiente remontarás!"
+    ];
+
     /**
      * Genera un mensaje basado en el contexto del jugador
      */

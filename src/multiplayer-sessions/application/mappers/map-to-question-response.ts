@@ -9,12 +9,13 @@ import { QuestionStartedResponse } from "../response-dtos/question-started.respo
 
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.type";
+import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
-export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionStartedResponse => {
+export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot: Kahoot, mediaService: MediaEnrichmentService): Promise<QuestionStartedResponse> => {
     
     const currentSlideId = session.getCurrentSlideInSession(); 
 
-    const currentSlideSnapshot: SlideSnapshot | null = kahoot.getSlideSnapshotById( currentSlideId );
+    let currentSlideSnapshot: SlideSnapshot | null = kahoot.getSlideSnapshotById( currentSlideId );
     
     // No debería ocurrir dado que el session se basa en un kahoot existente que de paso nos aseguramos que no esté en DRAFT
     // dejo la protección por si acaso y porque TS la exige
@@ -23,6 +24,12 @@ export const mapSnapshotsToQuestionResponse = ( session: MultiplayerSession, kah
 
     if( !currentSlideSnapshot.options )
         throw new Error(COMMON_ERRORS.NO_OPTIONS)
+
+    console.log('\n\nCurrent slide snapshot in mapToQuestionResponse: ', currentSlideSnapshot );
+
+    currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
+
+    console.log('\n\nCurrent slide snapshot enriched in mapToQuestionResponse: ', currentSlideSnapshot );
 
     const currentSlideSnapshotClean: SlideSnapshotWithoutAnswers = {
         id: currentSlideSnapshot.id,
