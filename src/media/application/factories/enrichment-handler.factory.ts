@@ -6,6 +6,7 @@ import { IHasMediaAssets } from "src/core/domain/abstractions/media.assets.inter
 import { IThemeable } from "src/core/domain/abstractions/themeable.interface";
 import { IUrlConfigurable } from "../ports/i-url-configurable.interface";
 import { MediaEnrichmentHandler } from "../handlers/media-enrichment.handler"; 
+
 @Injectable()
 export class EnrichmentHandlerFactory {
   constructor(
@@ -20,15 +21,5 @@ export class EnrichmentHandlerFactory {
 
   public createThemeHandler<T extends IThemeable & IHasMediaAssets>(): ThemeEnrichmentHandler<T> {
     return this.themeHandlerRef as unknown as ThemeEnrichmentHandler<T>;
-  }
-
-  public createFullEnrichmentChain<T extends IHasMediaAssets & IThemeable>(
-    urlMap: Map<string, string>
-  ): MediaEnrichmentHandler<T> {
-    const urlHandler = this.createUrlHandler<T>(urlMap) as unknown as MediaEnrichmentHandler<T>;
-    const themeHandler = this.createThemeHandler<T>();
-
-    urlHandler.setNext(themeHandler);
-    return urlHandler;
   }
 }
