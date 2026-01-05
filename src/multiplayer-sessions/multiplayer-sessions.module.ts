@@ -16,6 +16,7 @@ import {
   PlayerJoinHandler, 
   PlayerSubmitAnswerHandler, 
   SaveSessionHandler, 
+  SyncStateHandler, 
   VerifyConnectionAvailabilityHandler,
   VerifyHostHandler,
   VerifyPinHandler
@@ -56,6 +57,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     VerifyConnectionAvailabilityHandler,
     VerifyHostHandler,
     VerifyPinHandler,
+    SyncStateHandler,
 
   ],
   controllers: [MultiplayerSessionsController],

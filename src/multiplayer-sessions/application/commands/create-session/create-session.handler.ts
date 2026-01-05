@@ -109,6 +109,8 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
 
             const enrichedSessionStyling = await this.mediaService.enrichStyling( kahootSnapshot.styling );
 
+            console.log( enrichedSessionStyling );
+
             // Guardamos la sesion en el repositorio de sesiones activas y obtenemos el token QR
             const qrToken = await this.sessionRepository.saveSession({
                 session,

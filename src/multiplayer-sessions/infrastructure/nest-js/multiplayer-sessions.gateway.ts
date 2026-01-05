@@ -104,8 +104,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         // Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
         client.join( pin );
 
-        this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
-
         // Guardamos la data de los clientes en su propio socket
         client.data.roomPin = pin as string;
 
@@ -113,8 +111,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
-   
-  
         // this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
 
         // aqui llamamos a syncState para las reconexiones
@@ -129,6 +125,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             client.disconnect(true);
             return;
         }
+
+        this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de TTraza
+
 
         console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
@@ -497,7 +496,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         
         // 4. LIMPIEZA ADICIONAL (Opcional)
         // Limpiamos la sala del servicio de traza
-        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString() }`)
+        this.tracingWsService.removeRoom( roomPin );
+        
+        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString() }`);
     
     }
 
