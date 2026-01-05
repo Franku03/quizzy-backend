@@ -6,7 +6,7 @@ import { Either } from "src/core/types";
 // Type definition for the class constructor of an Authorizer
 // This allows us to type the Strategy parameter in the Authorize decorator factory
 // as a class that can be instantiated to produce an IAuthorizer instance.
-type AuthorizerClass = new () => IAuthorizer<any, any>;
+type AuthorizerClass = new () => IAuthorizer<any, any, any>;
 
 
 // Authorization Decorator Factory
@@ -86,8 +86,9 @@ export function Authorize(
           return authResult;
         }
         
-        // If it's a Right, we can optionally extract a resource from it
+        // If it's a Right, we can optionally extract the TResource from it (IF IT HAS IT ONLY)
         // and attach it to the command for further processing down the line
+        // This step couples the handler logic to the authorization strategy so only use if necessary
         const resource = authResult.getRight();
         if (resource !== undefined && resource !== null) {
           command.validatedResource = resource;
