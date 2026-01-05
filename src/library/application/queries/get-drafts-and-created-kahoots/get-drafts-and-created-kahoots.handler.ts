@@ -9,6 +9,9 @@ import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-hand
 import { pipeAsync } from '../../../../core/errors/helpers/pipe-async';
 import { ErrorData } from 'src/core/types';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 
 @QueryHandler(GetDraftsAndCreatedKahootsQuery)
 export class GetDraftsAndCreatedKahootsHandler
@@ -17,8 +20,10 @@ export class GetDraftsAndCreatedKahootsHandler
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,
     private readonly mediaService: MediaEnrichmentService,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  @Log()
   async execute(
     query: GetDraftsAndCreatedKahootsQuery,
   ): Promise<Either<ErrorData, LibraryReadModel>> {

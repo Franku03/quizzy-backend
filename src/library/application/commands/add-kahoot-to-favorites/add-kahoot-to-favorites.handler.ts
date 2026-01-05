@@ -9,6 +9,9 @@ import { ICommandHandler } from 'src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { User } from 'src/users/domain/aggregates/user';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 
 @CommandHandler(AddKahootToFavoritesCommand)
 export class AddKahootToFavoritesHandler
@@ -21,8 +24,10 @@ export class AddKahootToFavoritesHandler
 
   constructor(
     @Inject(RepositoryName.User) private readonly userRepo: IUserRepository,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  @Log()
   async execute(
     query: AddKahootToFavoritesCommand,
   ): Promise<Optional<ErrorData>> {

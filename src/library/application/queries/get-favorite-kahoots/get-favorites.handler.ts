@@ -9,14 +9,19 @@ import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-hand
 import { ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
 
 @QueryHandler(GetFavoritesQuery)
 export class GetFavoritesHandler implements IQueryHandler<GetFavoritesQuery> {
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,
     private readonly mediaService: MediaEnrichmentService,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) {}
 
+  @Log()
   async execute(
     query: GetFavoritesQuery,
   ): Promise<Either<ErrorData, LibraryReadModel>> {
