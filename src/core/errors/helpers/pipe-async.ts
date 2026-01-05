@@ -1,4 +1,4 @@
-import { Either } from "src/core/types";
+import { Either } from 'src/core/types';
 
 export const pipeAsync = async <L, R>(
   initialValue: Either<L, unknown> | Promise<Either<L, unknown>>,

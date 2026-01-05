@@ -11,6 +11,7 @@ import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factor
 import { AttemptReportReadModel } from "src/reports/application/queries/read-models/solo.attempt.report.read.model";
 import { AttemptResumeReadModel } from "src/solo-attempts/application/queries/read-models/resume.attempt.read.model";
 import { PaginatedKahootListReadModel, KahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
+import { LibraryReadModel } from "src/library/application/queries/read-model/library.read.model";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -150,6 +151,15 @@ export class MediaEnrichmentService {
     ]);
 
     return { urlMap, theme: themeResult.isRight() ? themeResult.getRight() : undefined };
+  }
+
+  public async enrinchLibraryReadModel(libraryReadModel: LibraryReadModel) {
+    const urlMap = await this.resolveUrlMap(
+      libraryReadModel.getMediaAssetIds(),
+    );
+    return this.handlerFactory
+      .createUrlHandler<LibraryReadModel>(urlMap)
+      .handle(libraryReadModel);
   }
 
   private async resolveUrlMap(ids: string[]): Promise<Map<string, string>> {
