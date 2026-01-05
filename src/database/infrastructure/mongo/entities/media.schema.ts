@@ -1,11 +1,17 @@
 // src/media/infrastructure/entities/media.schema.ts
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
+import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
 
-@Schema({ 
-  collection: 'asset_metadata',
+// Database Collection Name
+const COLLECTION_NAME: string = 'asset_metadata';
+
+@DbMongoDocument(COLLECTION_NAME)
+@Schema({
+  collection: COLLECTION_NAME,
   timestamps: true,
-  versionKey: false
+  versionKey: false,
 })
 export class AssetMetadataMongo extends Document {
   @Prop({ required: true, unique: true, index: true })
@@ -45,4 +51,7 @@ export class AssetMetadataMongo extends Document {
   uploadedAt: Date;
 }
 
-export const AssetMetadataMongoSchema = SchemaFactory.createForClass(AssetMetadataMongo);
+export const AssetMetadataMongoSchema =
+  SchemaFactory.createForClass(AssetMetadataMongo);
+
+DbMongoSchema(COLLECTION_NAME)(AssetMetadataMongoSchema);

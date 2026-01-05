@@ -1,9 +1,15 @@
+// --- Externals & Core ---
+import { Either, ErrorData } from "src/core/types";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { Optional } from "src/core/types/optional";
-import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../constants/kahoot.rules";
+
+// --- Domain Snapshots & Rules ---
 import { KahootDetailsSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.details";
+import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../constants/kahoot.rules";
 
-
+// --- Shared Errors & Context ---
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 interface KahootDetailsProps {
     readonly title: Optional<string>;
@@ -18,34 +24,64 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
         description: Optional<string>, 
         category: Optional<string>
     ) {
-        if(!title.hasValue() && !description.hasValue() && !category.hasValue()) {
-             throw new Error(`Debe tener titulo, descripcion o categoria.`);
-        }
-        if (title.hasValue()) {
-            const currentTitle = title.getValue(); 
-            if (currentTitle.length > MAX_TITLE_LENGTH) {
-                throw new Error(`El título no puede exceder los ${MAX_TITLE_LENGTH} caracteres.`);
-            }
-        }
-        if (description.hasValue()) {
-            const currentDesc = description.getValue();
-            if (currentDesc.length > MAX_DESCRIPTION_LENGTH) {
-                throw new Error(`La descripción no puede exceder los ${MAX_DESCRIPTION_LENGTH} caracteres.`);
-            }
-        }
         super({ title, description, category });
     }
 
-    public isValidDetails() {
-        if(!this.properties.title.hasValue() && !this.properties.description.hasValue())
-            throw new Error("Kahoot Debe tener titulo y descipcion para ser publicado")
+    public static create(
+        title: Optional<string>, 
+        description: Optional<string>, 
+        category: Optional<string>
+    ): Either<ErrorData, KahootDetails> {
+        
+        const context = createDomainContext('KahootDetails', 'validateDetails', {
+            domainObjectKind: 'ValueObject'
+        });
 
+        if(!title.hasValue() && !description.hasValue() && !category.hasValue()) {
+             return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { generic: ['MISSING_DATA'] },
+                'At least a title, description, or category must be provided.'
+             ));
+        }
+
+        if (title.hasValue() && title.getValue().length > MAX_TITLE_LENGTH) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { title: ['TOO_LONG'] },
+                `Title cannot exceed ${MAX_TITLE_LENGTH} characters.`
+            ));
+        }
+
+        if (description.hasValue() && description.getValue().length > MAX_DESCRIPTION_LENGTH) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { description: ['TOO_LONG'] },
+                `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters.`
+            ));
+        }
+
+        return Either.makeRight(new KahootDetails(title, description, category));
+    }
+
+    public isValidDetails(): Either<ErrorData, boolean> {
+        const context = createDomainContext('KahootDetails', 'checkPublicationReadiness', {
+            domainObjectKind: 'ValueObject'
+        });
+
+        if(!this.properties.title.hasValue() || !this.properties.description.hasValue()) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { publication: ['INCOMPLETE_DETAILS'] },
+                "A title and description are required to publish the Kahoot."
+            ));
+        }
+        return Either.makeRight(true);
     }
     
     public get title(): Optional<string> { return this.properties.title; }
     public get description(): Optional<string> { return this.properties.description; }
     public get category(): Optional<string> { return this.properties.category; }
-
 
     public getSnapshot(): KahootDetailsSnapshot {
         return {

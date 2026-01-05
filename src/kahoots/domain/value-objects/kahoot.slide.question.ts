@@ -1,6 +1,13 @@
+// --- Externals & Core ---
+import { Either, ErrorData } from "src/core/types";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
-import { Optional } from "src/core/types/optional";
+
+// --- Domain Models & Rules ---
 import { MAX_QUESTION_LENGTH } from "../constants/kahoot.slide.rules";
+
+// --- Shared Errors & Context ---
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 interface QuestionProps {
     readonly value: string;
@@ -9,18 +16,33 @@ interface QuestionProps {
 export class Question extends ValueObject<QuestionProps> {
 
     public constructor(value: string) {
+        super({ value });
+    }
 
-        if (value.length === 0) {
-            throw new Error("El texto de la pregunta no puede estar vacío.");
+    public static create(value: string): Either<ErrorData, Question> {
+        // Ajustamos el contexto al estándar legal (Nombre, Operación, Kind)
+        const context = createDomainContext('Question', 'validateQuestion', {
+            domainObjectKind: 'ValueObject'
+        });
+
+        if (!value || value.trim().length === 0) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { value: ['EMPTY_QUESTION'] },
+                "Question text cannot be empty."
+            ));
         }
 
         if (value.length > MAX_QUESTION_LENGTH) {
-            throw new Error(`La pregunta no puede exceder los ${MAX_QUESTION_LENGTH} caracteres.`);
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { value: ['TOO_LONG'] },
+                `Question text cannot exceed ${MAX_QUESTION_LENGTH} characters.`
+            ));
         }
 
-        super({ value });
+        return Either.makeRight(new Question(value));
     }
     
-    public get value(): string {return this.properties.value;}
-    
+    public get value(): string { return this.properties.value; }
 }

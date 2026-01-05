@@ -1,59 +1,92 @@
-// src/core/types/ErrorData.ts
-
+import { randomUUID } from "crypto";
 import { ErrorLayer } from "./error.enum";
+import { IErrorContext } from "./interface/context/i-error-context.interface";
 
 export class ErrorData extends Error {
-    // Declaramos explícitamente stackTrace para evitar el error de tipado
     public readonly stackTrace?: string;
-
     public readonly errorId: string;
     public readonly code: string;
-    //public readonly message: string; // Heredada y seteada por super()
     public readonly layer: ErrorLayer;
     public readonly timestamp: Date;
-    public readonly details?: Record<string, any>;
+    public readonly details?: IErrorContext;
     public readonly innerError?: Error;
 
     constructor(
         code: string,
         message: string,
         layer: ErrorLayer,
-        details?: Record<string, any>,
+        details?: IErrorContext,
         innerError?: Error
     ) {
-        // Llama al constructor base. Esto inicializa this.message y captura this.stack.
         super(message);
-
-        // Asignar el nombre del error.
         this.name = 'ErrorData';
-
-        // Inicialización de propiedades:
-        this.errorId = this.generateUniqueId();
+        this.errorId = randomUUID();
         this.code = code;
         this.layer = layer;
         this.timestamp = new Date();
         this.details = details;
         this.innerError = innerError;
 
-        // 1. Corregido: La propiedad debe ser 'stackTrace' (la que declaramos)
-        // 2. Usamos el 'stack' nativo de JS/TS para obtener la pila de llamadas
-
-        // Si hay un error interno y tiene una pila, la usamos.
         if (innerError && innerError.stack) {
             this.stackTrace = innerError.stack;
         } else {
-            // Si no hay innerError, usamos la pila de llamadas capturada por 'super(message)' (this.stack).
             this.stackTrace = this.stack;
         }
     }
 
-    // Método dummy para generar un ID único (debe ser reemplazado por un UUID real).
-    private generateUniqueId(): string {
-        return Math.random().toString(36).substring(2, 9);
+
+public setContext(newDetails: Record<string, any>): this {
+    const currentDetails = this.details || {};
+    const mergedDetails = { ...currentDetails };
+
+    // Definimos el peso de las capas para comparar jerarquía
+    const layerPriority: Record<string, number> = {
+        'DOMAIN': 1,
+        'APPLICATION': 2,
+        'INFRASTRUCTURE': 3
+    };
+
+    for (const key in newDetails) {
+        const newValue = newDetails[key];
+        if (newValue === undefined || newValue === null) continue;
+
+        if (key === 'operation') {
+            // REGLA DE ORO:
+            // Solo permitimos que el Filter (INFRA) o el Decorador (APP) 
+            // cambien la operación si la capa del error es INFERIOR.
+            // Una vez que el error llega a APPLICATION, la operación se vuelve SAGRADA.
+            
+            const isAtApplicationOrHigher = layerPriority[this.layer] >= layerPriority['APPLICATION'];
+            const alreadyHasOperation = !!mergedDetails[key];
+
+            if (isAtApplicationOrHigher && alreadyHasOperation) {
+                // Si el error ya está en nivel APP y ya tiene nombre, 
+                // NO dejamos que nadie (ni el Filter) lo cambie.
+                continue;
+            }
+            
+            mergedDetails[key] = newValue;
+            continue;
+        }
+
+        // Protección de campos de identidad del dominio
+        const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
+        if (protectedFields.includes(key) && mergedDetails[key]) continue;
+
+        mergedDetails[key] = newValue;
     }
 
+    // Prefijo de mensaje (Kahoot -> ...)
+    if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
+        // @ts-ignore
+        this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
+    }
+
+    (this.details as any) = mergedDetails;
+    return this;
+}
     public toLogString(): string {
-        const SEPARATOR_RED_DARK = '\x1b[31m==================================================\x1b[0m';
+        const SEPARATOR_RED_DARK = '\x1b[31m======================================================================\x1b[0m';
         const CYAN = '\x1b[36m';
         const RED = '\x1b[91m';
         const BOLD = '\x1b[1m';
@@ -64,7 +97,6 @@ export class ErrorData extends Error {
         const RESET = '\x1b[0m';
 
         const lines: string[] = [];
-
         let headerColor = BLUE;
         let headerLabel = 'FALLO DE SISTEMA';
 
@@ -95,10 +127,10 @@ export class ErrorData extends Error {
         lines.push(headerLine);
         lines.push(SEPARATOR_RED_DARK);
 
-        lines.push(`${CYAN}Layer:       ${headerColor}${this.layer}${RESET}`);
-        lines.push(`${CYAN}Code:        ${RED}${this.code}${RESET}`);
-        lines.push(`${CYAN}Timestamp:   ${this.timestamp.toISOString()}${RESET}`);
-        lines.push(`${CYAN}Message:     ${this.message}${RESET}`);
+        lines.push(`${CYAN}Layer:        ${headerColor}${this.layer}${RESET}`);
+        lines.push(`${CYAN}Code:         ${RED}${this.code}${RESET}`);
+        lines.push(`${CYAN}Timestamp:    ${this.timestamp.toISOString()}${RESET}`);
+        lines.push(`${CYAN}Message:      ${this.message}${RESET}`);
 
         if (this.details && Object.keys(this.details).length > 0) {
             lines.push(`\n${SEPARATOR_RED_DARK}`);
@@ -111,8 +143,8 @@ export class ErrorData extends Error {
             lines.push(`\n${SEPARATOR_RED_DARK}`);
             lines.push(`${CYAN}${BOLD}--------------- ERROR INTERNO ----------------${RESET}`);
             lines.push(SEPARATOR_RED_DARK);
-            lines.push(`${CYAN}Name:        ${this.innerError.name}`);
-            lines.push(`${CYAN}Message:     ${this.innerError.message}${RESET}`);
+            lines.push(`${CYAN}Name:         ${this.innerError.name}`);
+            lines.push(`${CYAN}Message:      ${this.innerError.message}${RESET}`);
         }
 
         if (this.stackTrace) {

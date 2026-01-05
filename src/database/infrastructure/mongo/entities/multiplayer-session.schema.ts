@@ -1,6 +1,11 @@
 // multiplayer-session.schema.ts (Persistence Structure)
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
+import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
+
+// Database Collection Name
+const COLLECTION_NAME: string = 'multiplayer_sessions';
 
 // ---------------------------------------------------------
 // 2. Value Object Sub-Schemas
@@ -9,28 +14,28 @@ import { Document } from 'mongoose';
 const AnswerSelectedSchema = {
   isCorrect: { type: Boolean, required: true },
   answerContent: {
-    type: { 
-      type: String, 
-      required: true 
+    type: {
+      type: String,
+      required: true,
     },
-    value: { type: String, required: true }
-  }
+    value: { type: String, required: true },
+  },
 };
 
 const QuestionSnapshotSchema = {
   questionText: { type: String, required: true },
-  basePoints: { 
-    type: Number, 
+  basePoints: {
+    type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
-  timeLimit: { 
-    type: Number, 
+  timeLimit: {
+    type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
-  // correctAnswerIndices: { 
-  //   type: [Number], 
+  // correctAnswerIndices: {
+  //   type: [Number],
   //   required: true,
   //   validate: {
   //     validator: (arr: number[]) => arr.length > 0,
@@ -44,7 +49,7 @@ const ScoreboardEntrySchema = {
   nickname: { type: String, required: true },
   score: { type: Number, required: true, min: 0 },
   rank: { type: Number, required: true, min: 1 },
-  previousRank: { type: Number, required: true, min: 0 }
+  previousRank: { type: Number, required: true, min: 0 },
 };
 
 const PlayerSchema = {
@@ -52,28 +57,28 @@ const PlayerSchema = {
   nickname: { type: String, required: true },
   score: { type: Number, required: true, default: 0, min: 0 },
   isHost: { type: Boolean, required: true, default: false },
-  joinedAt: { type: Date, required: true, default: Date.now }
+  joinedAt: { type: Date, required: true, default: Date.now },
 };
 
 const SessionPlayerAnswerSchema = {
   playerId: { type: String, required: true },
   slideId: { type: String, required: true },
-  answerIndex: { 
-    type: [Number], 
+  answerIndex: {
+    type: [Number],
     required: true,
     validate: {
       validator: (arr: number[]) => arr.length > 0,
-      message: 'At least one answer index is required'
-    }
+      message: 'At least one answer index is required',
+    },
   },
   isAnswerCorrect: { type: Boolean, required: true },
   earnedScore: { type: Number, required: true, min: 0 },
   timeElapsed: { type: Number, required: true, min: 0 },
   submittedAt: { type: Date, required: true, default: Date.now },
-  answerContent: { 
-    type: [AnswerSelectedSchema], 
-    default: []
-  }
+  answerContent: {
+    type: [AnswerSelectedSchema],
+    default: [],
+  },
 };
 
 const SlideResultSchema = {
@@ -82,36 +87,37 @@ const SlideResultSchema = {
   questionSnapshot: { type: QuestionSnapshotSchema, required: true },
   submissions: { type: [SessionPlayerAnswerSchema], default: [] },
   // startedAt: { type: Date, required: true },
-  endedAt: { type: Date, default: null }
+  endedAt: { type: Date, default: null },
 };
 
 const SessionProgressSchema = {
   currentSlideId: { type: String, default: null },
   currentQuestionStartTime: { type: Date, default: null },
-  slideOrder: { 
-    type: [String], 
-    default: []
+  slideOrder: {
+    type: [String],
+    default: [],
   },
-  currentSlideIndex: { 
-    type: Number, 
+  currentSlideIndex: {
+    type: Number,
     default: 0,
-    min: 0
+    min: 0,
   },
-  totalSlides: { type: Number, required: true, min: 1 }
+  totalSlides: { type: Number, required: true, min: 1 },
 };
 
 const TimeDetailsSchema = {
   startedAt: { type: Date, required: true },
   lastActivityAt: { type: Date, required: true },
-  completedAt: { type: Date, default: null }
+  completedAt: { type: Date, default: null },
 };
 
 // ---------------------------------------------------------
 // 3. Main Aggregate Schema
 // ---------------------------------------------------------
 
+@DbMongoDocument(COLLECTION_NAME)
 @Schema({
-  collection: 'multiplayer_sessions',
+  collection: COLLECTION_NAME,
   timestamps: false,
   toJSON: {
     virtuals: false,
@@ -119,13 +125,12 @@ const TimeDetailsSchema = {
       const { _id, __v, ...rest } = ret;
       return {
         id: _id?.toString(),
-        ...rest
+        ...rest,
       };
-    }
-  }
+    },
+  },
 })
 export class MultiplayerSessionMongo extends Document {
-  
   @Prop({ required: true, unique: true, index: true })
   declare sessionId: string;
 
@@ -135,19 +140,19 @@ export class MultiplayerSessionMongo extends Document {
   @Prop({ required: true, index: true })
   public kahootId: string;
 
-  @Prop({ 
-    required: true, 
-    unique: true, 
+  @Prop({
+    required: true,
+    unique: true,
     index: true,
-    match: /^\d{6,10}$/
+    match: /^\d{6,10}$/,
   })
   public sessionPin: string;
 
-  @Prop({ 
-    required: true, 
+  @Prop({
+    required: true,
     type: String,
     default: 'LOBBY',
-    index: true
+    index: true,
   })
   public state: string;
 
@@ -158,9 +163,9 @@ export class MultiplayerSessionMongo extends Document {
     completedAt: Date | null;
   };
 
-  @Prop({ 
-    type: SessionProgressSchema, 
-    required: true
+  @Prop({
+    type: SessionProgressSchema,
+    required: true,
   })
   public progress: {
     currentSlideId: string | null;
@@ -170,9 +175,9 @@ export class MultiplayerSessionMongo extends Document {
     totalSlides: number;
   };
 
-  @Prop({ 
-    type: [ScoreboardEntrySchema], 
-    default: []
+  @Prop({
+    type: [ScoreboardEntrySchema],
+    default: [],
   })
   public ranking: Array<{
     playerId: string;
@@ -182,9 +187,9 @@ export class MultiplayerSessionMongo extends Document {
     previousRank: number;
   }>;
 
-  @Prop({ 
-    type: [PlayerSchema], 
-    default: []
+  @Prop({
+    type: [PlayerSchema],
+    default: [],
   })
   public players: Array<{
     playerId: string;
@@ -194,9 +199,9 @@ export class MultiplayerSessionMongo extends Document {
     joinedAt: Date;
   }>;
 
-  @Prop({ 
-    type: [SlideResultSchema], 
-    default: []
+  @Prop({
+    type: [SlideResultSchema],
+    default: [],
   })
   public slideResults: Array<{
     slideId: string;
@@ -231,7 +236,9 @@ export class MultiplayerSessionMongo extends Document {
   public version: number;
 }
 
-export const MultiplayerSessionSchema = SchemaFactory.createForClass(MultiplayerSessionMongo);
+export const MultiplayerSessionSchema = SchemaFactory.createForClass(
+  MultiplayerSessionMongo,
+);
 
 // ---------------------------------------------------------
 // 4. Indexes
@@ -244,22 +251,26 @@ MultiplayerSessionSchema.index({ 'players.playerId': 1 });
 MultiplayerSessionSchema.index({ 'slideResults.submissions.playerId': 1 });
 MultiplayerSessionSchema.index({ 'ranking.score': -1 });
 
-MultiplayerSessionSchema.index({ 
-  'timeDetails.lastActivityAt': 1, 
-  state: 1 
+MultiplayerSessionSchema.index({
+  'timeDetails.lastActivityAt': 1,
+  state: 1,
 });
 
 // ---------------------------------------------------------
 // 5. Pre-save middleware
 // ---------------------------------------------------------
 
-MultiplayerSessionSchema.pre('save', function(next) {
+MultiplayerSessionSchema.pre('save', function (next) {
   const session = this as any;
-  
+
   if (session.isModified()) {
     session.timeDetails.lastActivityAt = new Date();
     session.version = (session.version || 1) + 1;
   }
-  
+
   next();
 });
+
+//-----
+
+DbMongoSchema(COLLECTION_NAME)(MultiplayerSessionSchema);

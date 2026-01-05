@@ -6,7 +6,7 @@ interface ConnectedClients {
 
     [id: string]: {
         socket: SessionSocket,
-        nickname: string,
+        nickname?: string,
         roomPin: string
         role: SessionRoles,
     }; 
@@ -19,7 +19,6 @@ export class MultiplayerSessionsTracingService {
 
     registerRoom( client: SessionSocket ){
 
-
         const roomPin = client.handshake.headers.pin as string;
 
         this.availableRooms.set( roomPin, {} );
@@ -29,11 +28,10 @@ export class MultiplayerSessionsTracingService {
 
     registerClient( client: SessionSocket ){
 
-        const nickname = client.handshake.headers.nickname as string;
 
-        const roomPin = client.handshake.headers.pin as string;
+        const roomPin = client.data.roomPin;
 
-        const role = client.handshake.headers.role as SessionRoles;
+        const role = client.data.role
 
         const room = this.getRoom( roomPin );
 
@@ -41,15 +39,23 @@ export class MultiplayerSessionsTracingService {
             socket: client,
             roomPin: roomPin,
             role: role,
-            nickname: nickname,
         };
 
     } 
 
+    registerClientNickname( client: SessionSocket ){
+
+        const room = this.getRoom( client.data.roomPin );
+
+        const clientInRoom = room[ client.id ];
+        clientInRoom.nickname = client.data.nickname;
+
+    }
+
 
     removeClient( roomPin: string, clientId: string){
 
-        const room = this.availableRooms.get( roomPin );
+        const room = this.getRoom( roomPin );
 
         // IMPORTANTE: Si no encontramos sala para este cliente, 
         // significa que nunca se registró correctamente o ya se borró.
@@ -60,7 +66,21 @@ export class MultiplayerSessionsTracingService {
         delete room[ clientId ];
     }
 
-    private getConnectedClients() {
+
+    removeRoom( roomPin: string ){
+
+        const roomExists = this.availableRooms.has( roomPin );
+
+        // IMPORTANTE: Si no encontramos sala para este cliente, significa que nunca se registró correctamente o ya se borró.
+        // Simplemente retornamos sin hacer nada (return), NO lanzamos error.
+        if(! roomExists )
+            return;
+
+        this.availableRooms.delete( roomPin );
+
+    }
+
+    private getAvailableRooms() {
 
         const listOfRooms = [ ...this.availableRooms ]
                                 .map( tuple => ({
@@ -75,9 +95,9 @@ export class MultiplayerSessionsTracingService {
 
     logConnectedClients(): void {
 
-        const connectedClients = this.getConnectedClients();
+        const availableRooms = this.getAvailableRooms();
 
-        connectedClients.forEach( room => {
+        availableRooms.forEach( room => {
             console.log( room );
         });
     
@@ -94,7 +114,7 @@ export class MultiplayerSessionsTracingService {
         if(!room)
             return this.roomDoesNotExist( roomPin );
 
-        return room;;
+        return room;
     }
 
     private roomDoesNotExist( arg: any ): never {

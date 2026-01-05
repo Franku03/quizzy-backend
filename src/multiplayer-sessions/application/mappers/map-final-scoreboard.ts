@@ -1,55 +1,30 @@
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 
-import { GameEndedResponse, PlayerEndGameResponse, } from "../response-dtos/game-ended.response.dto";
 import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
+import { GameEndedResponse, PlayerEndGameResponse, } from "../response-dtos/game-ended.response.dto";
+import { mapHostEndData, mapPlayerEndData } from "../helpers";
 
 
 export const mapFinalScoreboard = ( session: MultiplayerSession ): GameEndedResponse => {
-
     
-    const playerPodium = session.getTopThree().map( entry => ({
-            playerId: entry.getPlayerId().value,
-            nickname: entry.getNickname(),
-            score: entry.getScore(),            
-            rank: entry.getRank(),          
-            previousRank: entry.getPreviousRank(),  
-    }));
+    // Mappeamos la data para el host
+    const hostData = mapHostEndData( session );
 
+    // Ahora mappeamos la respuesta para cada jugador
     const entries = session.getPlayersRankingEntries();
-
     const playerData: Map<string, PlayerEndGameResponse> = new Map();
     
     entries.forEach( entry => {
 
-        const playerId = entry.getPlayerId()
-
-        const player = session.getPlayerById( playerId );
-
-        const rank = entry.getRank()
+        const mappedEntryData = mapPlayerEndData( session, entry );
         
-
-        playerData.set( entry.getPlayerId().value , {
-
-            rank: rank,         
-            totalScore: player.getScore(),   
-            isPodium: rank >= 1 && rank <= 3,    
-            isWinner: rank === 1,     
-            finalStreak: player.getStreak(),
-
-        });
+        playerData.set( entry.getPlayerId().value , mappedEntryData );
             
-
-
-    })
+    });
 
     const response: GameEndedResponse = {
         type: HostNextPhaseType.GAME_END,
-        hostData: {
-            state: session.getSessionStateType(),
-            finalPodium: playerPodium,
-            winner: playerPodium[0],
-            totalParticipants: session.getPlayers().length,
-        },
+        hostData: hostData,
         playerData: playerData
     };  
 

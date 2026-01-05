@@ -1,11 +1,14 @@
-// core/application/decorators/log.decorator.ts
+// core/application/aspects/logging/log.decorator.ts
+
+import { isErrorData } from "src/core/errors/type-guards.ts/error-data.type.guard";
+import { Either } from "src/core/types";
 
 // This decorator provides cross-cutting logging concerns for command and query handlers.
 // It logs the execution of methods including the function name, timestamp, use case,
 // and the result or any errors that occur. This helps with debugging and monitoring
 // the application's behavior in different environments.
 export function Log(loggerPropertyKey: string = 'logger') {
-    
+
   // The actual decorator function. This syntax is standard for typescript method decorators.
   // target: The prototype of the class
   // propertyKey: The name of the method being decorated
@@ -29,12 +32,21 @@ export function Log(loggerPropertyKey: string = 'logger') {
       // We retrieve the logger instance from the handler using the provided property key.
       // The logger should be injected into the handler through its constructor,
       // typically as a dependency that implements the ILogger interface.
+      // the reason we cannot inject it directly into the decorator is that decorators
+      // are applied at design time, before instances are created, so we access it
+      // from the instance (this) at runtime.
       const logger = (this as any)[loggerPropertyKey];
+
+      // We derive the operation name automatically from the class name to avoid generic names like "execute"
+      const operationName = target.constructor.name
+        .replace('Handler', '')
+        .replace('Query', '')
+        .replace('Command', '');
 
       // We also retrieve the use case description from the handler instance.
       // This use case string describes what business operation is being performed
       // and provides context for the log messages, making them more meaningful.
-      const useCase = (this as any).useCase;
+      const useCase = (this as any).useCase || operationName;
 
       // We record the start time to calculate how long the operation takes.
       // This duration metric is valuable for performance monitoring and can
@@ -43,7 +55,7 @@ export function Log(loggerPropertyKey: string = 'logger') {
 
       // We log the beginning of the operation with relevant context information.
       // This helps trace the execution flow when analyzing logs later.
-      logger?.log(`Starting ${propertyKey} execution`, {
+      logger?.log(`Starting ${operationName} execution`, {
         useCase,
         timestamp: new Date().toISOString(),
         handler: target.constructor.name,
@@ -59,8 +71,49 @@ export function Log(loggerPropertyKey: string = 'logger') {
         // time with the start time we recorded before the execution began.
         const duration = Date.now() - startTime;
 
+        if (Either.isEither(result)) {
+          if (result.isLeft()) {
+            const errorData = result.getLeft();
+
+            // Usamos tu Type Guard centralizado para asegurar el tipado de ErrorData
+            if (isErrorData(errorData)) {
+              // If the result is a Left (error), we log the error details.
+              // We pass an object with the error properties instead of the error object itself
+              // to prevent the logger from printing an unformatted stack trace, 
+              // as the ErrorData already handled its own detailed output.
+              logger?.errorResult(`Operation ${operationName} failed: ${errorData.message}`, {
+                errorCode: errorData.code,
+                errorId: errorData.errorId,
+                duration: `${duration}ms`,
+                handler: target.constructor.name,
+                useCase
+              });
+            } else {
+              // Fallback en caso de que el error no cumpla con la estructura de ErrorData
+              logger?.error(`Operation ${operationName} failed with an unknown error type`, {
+                error: String(errorData),
+                duration: `${duration}ms`,
+                handler: target.constructor.name,
+              });
+            }
+          } else {
+            // We log the successful completion of the operation along with its duration.
+            logger?.log(`Completed ${operationName} successfully`, {
+              useCase,
+              timestamp: new Date().toISOString(),
+              duration: `${duration}ms`,
+              handler: target.constructor.name,
+            });
+          }
+
+          // We return the original result to ensure the decorator doesn't change
+          // the behavior of the method beyond adding logging. The caller receives
+          // exactly what the original method would have returned.
+          return result;
+        }
+
         // We log the successful completion of the operation along with its duration.
-        logger?.log(`Completed ${propertyKey} successfully`, {
+        logger?.log(`Completed ${operationName} successfully`, {
           useCase,
           timestamp: new Date().toISOString(),
           duration: `${duration}ms`,
@@ -71,6 +124,7 @@ export function Log(loggerPropertyKey: string = 'logger') {
         // the behavior of the method beyond adding logging. The caller receives
         // exactly what the original method would have returned.
         return result;
+
       } catch (error) {
         // If an error occurs during execution, we calculate the duration up to
         // the point of failure and log the error with all available context.
@@ -80,7 +134,7 @@ export function Log(loggerPropertyKey: string = 'logger') {
         // We log the error with metadata that helps identify what went wrong
         // and under what conditions. This information is crucial for fixing
         // bugs and understanding failure patterns in production.
-        logger?.error(`Failed during ${propertyKey} execution`, error, {
+        logger?.error(`Failed during ${operationName} execution`, error, {
           useCase,
           timestamp: new Date().toISOString(),
           duration: `${duration}ms`,

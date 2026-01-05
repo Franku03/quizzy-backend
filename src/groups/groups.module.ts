@@ -11,7 +11,7 @@ import type { EventBus } from 'src/core/domain/ports/event-bus.port';
 import { SoloAttemptCompletedEvent } from 'src/core/domain/domain-events/attempt-completed-event';
 import { CqrsModule } from '@nestjs/cqrs';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
 import { ModifyGroupInformationHandler } from './application/commands/modify-group-information/modify-group-information.handler';
 import { GenerateInvitationHandler } from './application/commands/generate-invitation/generate-invitation.handler';

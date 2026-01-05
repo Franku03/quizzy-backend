@@ -1,8 +1,10 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
+import { Optional } from "src/core/types";
 
 interface SessionProgressProps {
     currentSlide: SlideId,
+    previousSlide: Optional<SlideId>, // * Este valor es opcional ya que al inicio de la partida no existe una slide previa
     totalSlides: number,
     slidesAnswered: number // * Tambien nos define el indice del slide actual donde se encuentra la partida
 }
@@ -16,7 +18,7 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
 
     }
 
-    public static create(currentSlide: SlideId, totalSlides: number, slidesAnswered: number ): SessionProgress {
+    public static create(currentSlide: SlideId, previousSlide: Optional<SlideId>, totalSlides: number, slidesAnswered: number ): SessionProgress {
 
         if( !Number.isInteger( totalSlides) || !Number.isInteger( slidesAnswered ))
             throw new Error('Ya se el numero de totalSlides o el numero de slidesAnswered dado no es un número entero');
@@ -27,7 +29,7 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
         if( slidesAnswered < 0 )
             throw new Error('El número de slides respondidas es menor a 0');
 
-        return new SessionProgress({ currentSlide, totalSlides, slidesAnswered });
+        return new SessionProgress({ currentSlide, previousSlide,totalSlides, slidesAnswered });
 
     }
 
@@ -38,6 +40,7 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
 
         return new SessionProgress({ 
             currentSlide: nextSlide,
+            previousSlide: new Optional( this.properties.currentSlide ),
             totalSlides: this.properties.totalSlides, 
             slidesAnswered: this.properties.slidesAnswered + 1 
         });
@@ -50,6 +53,7 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
         if(this.hasMoreSlidesLeft() ){
             return new SessionProgress({ 
                 currentSlide: this.properties.currentSlide,
+                previousSlide: this.properties.previousSlide,
                 totalSlides: this.properties.totalSlides, 
                 slidesAnswered: this.properties.slidesAnswered + 1 // * Esto es la parte importante, sumar la ultima slide respondida
             });
@@ -93,6 +97,14 @@ export class SessionProgress extends ValueObject<SessionProgressProps> {
 
     public getCurrentSlide(): SlideId {
         return this.properties.currentSlide;
+    }
+
+    public getPreviousSlide(): SlideId | undefined {
+
+        if( !this.properties.previousSlide.hasValue() )
+            return undefined;
+
+        return this.properties.previousSlide.getValue();
     }
 
 }

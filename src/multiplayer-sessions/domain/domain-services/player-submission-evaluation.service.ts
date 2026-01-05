@@ -22,6 +22,10 @@ export class PlayerSubmissionEvaluationService {
         // Creamos este Id temporal para buscar al jugador, y obtener su id ya en memoria
         const tempId = new PlayerId( playerIdValue );
 
+        // Verificamos que el jugador no haya respondido ya
+        if( session.hasPlayerAnsweredSlide( slideId, tempId) )
+            throw new Error("El jugador ya ha enviado una respuesta para esta pregunta.");
+
         const playerId = session.getPlayerById( tempId ).id;
 
         // ? Momento donde se evalua la respuesta

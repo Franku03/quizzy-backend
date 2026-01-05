@@ -13,9 +13,11 @@ import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
 import { SessionArchiverService, UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
 
-import { mapEntriesToResultsResponse, mapFinalScoreboard, mapSnapshotsToQuestionResponse } from "../../mappers";
+import { mapEntriesToResultsResponse, mapFinalScoreboard, mapToQuestionResponse } from "../../mappers";
 
+import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
@@ -31,6 +33,8 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
         @Inject(RepositoryName.MultiplayerSession)
         private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
+
+        private readonly mediaService: MediaEnrichmentService,
     ){
         this.updateProgressAndRankingService = new UpdateSessionProgressAndRankingService();
 
@@ -54,8 +58,8 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
             // 1) Lógica previa (Cálculo de puntajes)
             // Solo necesitamos calcular puntajes si estamos SALIENDO de una pregunta ( QUESTION -> RESULTS )
-            // obtenemos la slide actual ANTES de avanzar de fase en caso de que estemos en QUESTION y vayamos a RESULTS
-            const previousSlideInSessionId = session.getCurrentSlideInSession();
+            // // obtenemos la slide actual ANTES de avanzar de fase en caso de que estemos en QUESTION y vayamos a RESULTS
+            // // const previousSlideInSessionId = session.getCurrentSlideInSession();
 
             if( session.getSessionState().isQuestion() ){
 
@@ -70,13 +74,13 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
             switch ( transitionResult.state ) {
                 case StateTransitionsTypes.TRANSITION_TO_QUESTION:
                     {
-                        const response = mapSnapshotsToQuestionResponse( session, kahoot );
+                        const response = await mapToQuestionResponse( session, kahoot, this.mediaService );
                         return Either.makeRight( response );
                     }
 
                 case StateTransitionsTypes.TRANSITION_TO_RESULTS:
                     {
-                        const response = mapEntriesToResultsResponse( session, kahoot, previousSlideInSessionId );
+                        const response = mapEntriesToResultsResponse( session, kahoot );
                         return Either.makeRight( response );
                     }
 

@@ -14,18 +14,32 @@ import {
   HostNextPhaseCommand, 
   HostStartGameCommand, 
   PlayerJoinCommand, 
-  PlayerSubmitAnswerCommand 
+  PlayerSubmitAnswerCommand, 
+  SyncStateCommand, 
+  VerifyConnectionAvailabilityCommand, 
+  VerifyHostCommand, 
+  VerifyPinCommand
 } from 'src/multiplayer-sessions/application/commands';
 
 import { 
   HostNextPhaseType, 
   GameStateUpdateResponse, 
   HostNextPhaseResponse, 
-  QuestionStartedResponse 
+  QuestionStartedResponse, 
+  PlayerSubmitAnswerResponse,
+  SyncStateResponse,
+
+  HostLobbyUpdateResponse,
+  PlayerStateUpdateResponse,
+  SyncType,
+  QuestionResultsHostResponse,
+  QuestionResultsPlayerResponse,
+  HostEndGameResponse,
+  PlayerEndGameResponse
 } from 'src/multiplayer-sessions/application/response-dtos';
+import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 
 
-import { PlayerSubmitAnswerDto } from './dtos/player-submit-answer.dto';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
@@ -52,26 +66,34 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
 
-      const { pin , role, jwt, nickname, } = client.handshake.headers 
-      
+      const { pin , role, jwt } = client.handshake.headers 
+
       try {
-        // ! Verificar que el pin de la partida asociada exista
 
-        if( !pin || !role || !jwt || !nickname )
+        
+        if( !pin || !role || !jwt )
           throw new WsException("Hacen falta datos en el header para realizar la conexión");
-
+        
+        // TODO: Verificar uso del Either cuando haya refactoring de errores
+          await this.commandBus.execute( new VerifyPinCommand( pin as string ) );
 
         if ( role === SessionRoles.HOST ) {
   
-            // ! Validar que este usuario es realmente el dueño de la sesión 'pin'
-  
+            // TODO: Verificar uso del Either cuando haya refactoring de errores
+            await this.commandBus.execute( new VerifyHostCommand( pin as string, jwt as string ) );
+
+            // ! Usar servicio de traza para verificar que no haya otro host conectado a la misma sala
+
             this.tracingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
               
             client.emit( ServerEvents.HOST_CONNECTED_SUCCESS, { status: 'IN_LOBBY - CONNECTED TO SERVER' });
               
         } else if( role === SessionRoles.PLAYER ){
   
-          client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+          // TODO: Verificar uso del Either cuando haya refactoring de errores
+          await this.commandBus.execute( new VerifyConnectionAvailabilityCommand( pin as string, jwt as string ) );
+
+          // client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
             
         } else {
   
@@ -82,22 +104,34 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         // Gestionamos la union a la sala y al logger - Creo que un mismo usuario se puede a conectar a mas de una sala
         client.join( pin );
 
-        this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de Loggeo
-
         // Guardamos la data de los clientes en su propio socket
         client.data.roomPin = pin as string;
 
         client.data.role = role as SessionRoles;
 
-        client.data.nickname = nickname as string;
-
         client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
+        // this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
+
+        // aqui llamamos a syncState para las reconexiones
+        const syncResult = await this.syncClientState( client );
+
+
+        if (syncResult.isLeft()) {
+            // MANEJO CONTROLADO DEL ERROR
+            const error = syncResult.getLeft();
+            this.logger.error(`Fallo al sincronizar cliente ${client.id}: ${error.message}`);
+            
+            client.disconnect(true);
+            return;
+        }
+
+        this.tracingWsService.registerClient( client ); // Registramos Jugador en nuestro servicio de TTraza
+
+
         console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
         console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
-  
-        this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
-        
+
       } catch (error) {
         
         // Loggea el error para el servidor
@@ -135,13 +169,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     }
 
-    handleDisconnect( client: SessionSocket) {
+    handleDisconnect( client: SessionSocket ) {
 
       const roomPin = client.handshake.headers?.pin as string;
 
       client.disconnect(); // ? Algo dudoso, pero por si acaso
 
-      console.log('Cliente Desconectado', client.id );
+      this.logger.log('Cliente Desconectado', client.id );
+
       try {
 
         this.tracingWsService.removeClient( roomPin ,client.id );
@@ -155,9 +190,89 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     }
 
 
+    private async syncClientState( client: SessionSocket ): Promise<Either<Error, void>> {
+        try {
+
+            const res: Either<Error, SyncStateResponse >
+             = await this.commandBus.execute( new SyncStateCommand( client.data.roomPin , client.data.userId ) );
+
+            if( res.isLeft() ){
+
+              return Either.makeLeft( res.getLeft() );
+
+            } else {
+
+              const result = res.getRight();
+
+              switch( result.type ){
+
+                case( SyncType.HOST_LOBBY_UPDATE ):
+
+                  client.emit(ServerEvents.HOST_LOBBY_UPDATE, result.data as HostLobbyUpdateResponse);
+                  break;
+
+                case( SyncType.PLAYER_STATE_UPDATE ): {
+
+                  if( result.additionalData ){
+                    client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+                  } else {
+
+                    const { hostLobbyUpdate, playerStateUpdate } = result.data as GameStateUpdateResponse;
+                    client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerStateUpdate as PlayerStateUpdateResponse );
+                    
+                    const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+                    for (const socket of sockets) {
+                        if ( socket.data.role === SessionRoles.HOST ) {
+                            socket.emit(ServerEvents.HOST_LOBBY_UPDATE, hostLobbyUpdate as HostLobbyUpdateResponse);
+                            break;
+                        }
+                    }
+                  }
+
+                  break;
+
+                }
+
+                case( SyncType.HOST_RESULTS ):
+                  client.emit( ServerEvents.HOST_RESULTS, result.data as QuestionResultsHostResponse );
+                  break;
+
+                case( SyncType.PLAYER_RESULTS ):
+                  client.emit( ServerEvents.PLAYER_RESULTS, result.data as QuestionResultsPlayerResponse );
+                  break;
+
+                case( SyncType.QUESTION_STARTED ):
+                  client.emit( ServerEvents.QUESTION_STARTED, { ...result.data, ...result.additionalData } as QuestionStartedResponse );
+                  break;
+
+                case( SyncType.HOST_END_GAME ):
+                  client.emit( ServerEvents.HOST_GAME_END, result.data as HostEndGameResponse );
+                  break;                
+
+                case( SyncType.PLAYER_END_GAME ):
+                  client.emit( ServerEvents.PLAYER_GAME_END, result.data as PlayerEndGameResponse );
+                  break;
+
+
+              }
+
+              return Either.makeRight( undefined );
+
+            }
+              
+
+        } catch (error) {
+            // Capturamos cualquier error inesperado en el caso de uso
+            this.logger.error(`Error crítico al intentar sincronizar al usuario: ${error}`);
+            return Either.makeLeft(error instanceof Error ? error : new Error(String(error)));
+        }
+    }
+    
+
+
     // ? Eventos del jugador
     @SubscribeMessage( PlayerUserEvents.PLAYER_JOIN )
-    async handlePlayerJoin( client: SessionSocket ){
+    async handlePlayerJoin( client: SessionSocket, payload: PlayerJoinDto ){
       // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
 
         if( !client.rooms.has( client.data.roomPin ))
@@ -165,15 +280,30 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
- 
 
         const res: Either<Error, GameStateUpdateResponse> = 
-          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, client.data.nickname, client.data.roomPin ) );
+          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
         if( res.isRight() ){
 
-          this.wss.to( client.data.roomPin ).emit( ServerEvents.GAME_STATE_UPDATE, res.getRight() );
-          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { status: 'CONNECTED TO SESSION AS PLAYER' });
+          const result = res.getRight();
+
+          // Guardamos el nickname registrado en el dominio en el socket para futuros usos
+          client.data.nickname = result.playerStateUpdate.nickname;
+          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, result.playerStateUpdate );
+
+          // Emitimos la respuesta de actualización de lobby solo al Host
+          const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+          for (const socket of sockets) {
+              if ( socket.data.role === SessionRoles.HOST ) {
+                  socket.emit(ServerEvents.HOST_LOBBY_UPDATE, result.hostLobbyUpdate);
+                  break;
+              }
+          }
+          
+          // actualizamos la info del nuevo jugador registrado en el servicio de tracing          
+          this.tracingWsService.registerClientNickname( client );
+          this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
 
         } else {
 
@@ -197,7 +327,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new Error("El Host de la partida no puede enviar preguntas"));
  
 
-        const res: Either<Error, boolean> = 
+        const res: Either<Error, PlayerSubmitAnswerResponse> = 
           await this.commandBus.execute( new PlayerSubmitAnswerCommand( 
               payload.questionId,
               payload.answerId,
@@ -209,6 +339,16 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( res.isRight() ){
 
           client.emit( ServerEvents.PLAYER_ANSWER_CONFIRMATION, { status: 'ANSWER SUCCESFULLY SUBMITTED' });
+
+          // Emitimos la respuesta de actualización de lobby solo al Host
+          const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+          for (const socket of sockets) {
+              if ( socket.data.role === SessionRoles.HOST ) {
+                  socket.emit(ServerEvents.HOST_ANSWERS_UPDATE, res.getRight());
+                  break;
+              }
+          }
+          
 
         } else {
 
@@ -323,8 +463,44 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     }
 
-    private mapToPlayerPayload
+    @SubscribeMessage( HostUserEvents.HOST_END_SESSION )
+    async handleHostEndSession( client: SessionSocket ){
+
+      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+
+        // 1) SEGURIDAD: Verificar que quien ordena cerrar es el HOST
+        if( !(client.data.role === SessionRoles.HOST) )
+          this.handleError( client, new WsException("El cliente no es Host"));
+
+        if( !client.rooms.has( client.data.roomPin as string ))
+          this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"));
+
+        const roomPin = client.data.roomPin;
+
+        if (!roomPin) return;
+        
+        this.logger.log(`Host cerrando sesión y desconectando sala: ${roomPin}`);
+
+        // 2) NOTIFICACIÓN FINAL (Graceful Shutdown)
+        // Antes de cortar el cable, avisamos a los clientes para que el Frontend sepa que fue un cierre intencional y no un error de red.
+        // Así evitamos que el cliente intente reconectarse automáticamente.
+        this.wss.to(roomPin).emit(ServerEvents.SESSION_CLOSED, {
+            reason: ServerEvents.SESSION_CLOSED,
+            message:'El anfitrión ha finalizado la sesión.',
+        });
+
+        // 3) DESCONEXIÓN DE LA SALA
+        // Esto desconecta a TODOS los sockets en esa sala (Host incluido)
+        // El argumento 'true' fuerza el cierre del nivel bajo.
+        await this.wss.in(roomPin).disconnectSockets(true);
+        
+        // 4. LIMPIEZA ADICIONAL (Opcional)
+        // Limpiamos la sala del servicio de traza
+        this.tracingWsService.removeRoom( roomPin );
+        
+        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString() }`);
     
+    }
 
     // ? Este metodo solo sirve solo para cuando es llamado dentro de un metodo que esta decorado por un @SubscribeMessage()
     private handleError( client: SessionSocket, error: Error ): never {
