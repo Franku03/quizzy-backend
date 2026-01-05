@@ -29,9 +29,9 @@ export class MultiplayerSessionsTracingService {
     registerClient( client: SessionSocket ){
 
 
-        const roomPin = client.handshake.headers.pin as string;
+        const roomPin = client.data.roomPin;
 
-        const role = client.handshake.headers.role as SessionRoles;
+        const role = client.data.role
 
         const room = this.getRoom( roomPin );
 
@@ -80,7 +80,7 @@ export class MultiplayerSessionsTracingService {
 
     }
 
-    private getConnectedClients() {
+    private getAvailableRooms() {
 
         const listOfRooms = [ ...this.availableRooms ]
                                 .map( tuple => ({
@@ -95,9 +95,9 @@ export class MultiplayerSessionsTracingService {
 
     logConnectedClients(): void {
 
-        const connectedClients = this.getConnectedClients();
+        const availableRooms = this.getAvailableRooms();
 
-        connectedClients.forEach( room => {
+        availableRooms.forEach( room => {
             console.log( room );
         });
     

@@ -22,6 +22,7 @@ interface MultiplayerSessionProps {
     readonly sessionPin: SessionPin,
     readonly startedAt: DateISO,
     completedAt: Optional<DateISO>,
+    currentQuestionStartTime: Date, // Timestamp en milisegundos de cuando comenzó la pregunta actual (QUESTION)
     sessionState: SessionState,
     ranking: Scoreboard,
     progress: SessionProgress,
@@ -222,6 +223,11 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     // * LOGICA DE MANEJO DE ESTADOS DE LA SESSION
 
+    private startQuestion(): void {
+        // transicionamos el estado a QUESTION y seteamos el timer de inicio de pregunta
+        this.properties.sessionState = this.properties.sessionState.toQuestion();
+        this.properties.currentQuestionStartTime = new Date();
+    }
 
     public startSession(): void {
 
@@ -235,8 +241,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             throw new Error("No se puede empezar una partida desde un estado que no esa LOBBY");
 
         // Empezamos el juego pasando a la primera pregunta
-        this.properties.sessionState = this.properties.sessionState.toQuestion();
-
+        this.startQuestion();
     }
 
 
@@ -266,7 +271,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         }
 
         // Lógica de transicion
-        this.properties.sessionState = this.properties.sessionState.toQuestion();
+        this.startQuestion();
 
         return { state: StateTransitionsTypes.TRANSITION_TO_QUESTION };
     }
@@ -356,6 +361,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         
     }
 
+    public hasPlayerAnsweredSlide( slideId: SlideId, playerIdValue: PlayerId ): boolean { 
+        return this.getOnePlayerAnswerForASlide( slideId, playerIdValue ) !== undefined;
+    }
+
 
     // Calcula la distribución de respuestas para una slide específica.
     public calculateAnswerDistributionForASlide( slideId: SlideId, possibleOptionIds: string[] ): Record<string, number> {
@@ -403,6 +412,11 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
+    public getOnePlayerRankingEntry( playerId: PlayerId ): ScoreboardEntry {
+        return this.properties.ranking.getEntryFor( playerId );
+
+    }
+
 
     
     public getPlayersScores(): ([ PlayerId , number ])[] {
@@ -443,11 +457,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         
     }  
 
-    // public getTopFive(): ScoreboardEntry[] {
+    public getTopFive(): ScoreboardEntry[] {
 
-    //     return  this.properties.ranking.getTop( 5 ) ;
+        return  this.properties.ranking.getTop( 5 ) ;
         
-    // }
+    }  
+
 
     public getScoreboardEntryFor( playerId: PlayerId ): ScoreboardEntry {
 
@@ -513,7 +528,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     }
 
-    
+    public getPreviousSlideInSession(): SlideId | undefined{
+
+        return this.properties.progress.getPreviousSlide();
+
+    }
+
 
     // ? GETTERS NORMALES
 
@@ -543,6 +563,10 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
         return this.properties.completedAt.getValue();
 
+    }
+
+    public getCurrentQuestionStartTime(): Date {
+        return this.properties.currentQuestionStartTime;
     }
 
     public getHostId(): UserId {

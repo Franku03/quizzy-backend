@@ -13,10 +13,15 @@ import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.e
 import { PlayerScoreboardEntry } from "../response-dtos/types/player-scoreboard-entry.interface";
 import { FeedbackGenerator } from "../helpers/feedback-generator.helper";
 
-export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot, previousSlideId: SlideId): QuestionResultsResponse => {
+export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionResultsResponse => {
 
+    // Primero Obtenemos la slide previa en la sesión
+    const previousSlideId = session.getPreviousSlideInSession();    
 
-    // Primero mapeamos las respuestas correctas    
+    if( !previousSlideId )
+        throw new Error(COMMON_ERRORS.PREVIOUS_SLIDE_NOT_FOUND);
+
+    // Luego mapeamos las respuestas correctas de la slide previa   
     const currentSlideSnapshot: SlideSnapshot | null = kahoot.getSlideSnapshotById( previousSlideId );
 
     if( !currentSlideSnapshot )
@@ -38,7 +43,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
     });
 
     if( correctAnswerId.length === 0)
-        throw new Error(HOST_NEXT_PHASE_ERRORS.NO_VALID_OPTION);
+        throw new Error(COMMON_ERRORS.NO_VALID_OPTION);
     
 
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host

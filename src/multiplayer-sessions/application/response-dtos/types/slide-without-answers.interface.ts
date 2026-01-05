@@ -3,6 +3,7 @@ import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.typ
 export interface OptionSnapshotWithoutAnswers {
     index: string;
     text?: string;
+    mediaId?: string; // ID del asset asociado, es necesario pasarlo al front para que se pueda construir la submission y registrar la respuesta, la fabrica de options solo acepta Ids. no urls
     mediaURL?: string; 
 }
 

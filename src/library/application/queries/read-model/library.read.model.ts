@@ -1,3 +1,5 @@
+import { IHasMediaAssets } from 'src/core/domain/abstractions/media.assets.interface';
+
 export type Visibility = 'public' | 'private';
 export type Status = 'draft' | 'published';
 
@@ -11,7 +13,7 @@ export class KahootReadModel {
     public readonly id: string, // UUID del kahoot
     public readonly title: string | null, // opcional
     public readonly description: string | null, // opcional
-    public readonly coverImageId: string | null, // URL opcional
+    public coverImageId: string | null, // URL opcional
     public readonly visibility: Visibility,
     public readonly themeId: string, // UUID del tema
     public readonly author: AuthorReadModel,
@@ -31,11 +33,28 @@ export class PaginationInfo {
   ) {}
 }
 
-export class LibraryReadModel {
+export class LibraryReadModel implements IHasMediaAssets {
   constructor(
     public readonly data: KahootReadModel[],
     public readonly pagination: PaginationInfo,
   ) {}
+  getMediaAssetIds(): string[] {
+    const mediaIds: string[] = [];
+    this.data.forEach((kahoot: KahootReadModel) => {
+      if (kahoot.coverImageId) mediaIds.push(kahoot.coverImageId);
+    });
+    return mediaIds;
+  }
+  applyMediaUrls(urlMap: Map<string, string>): void {
+    this.data.forEach((kahoot: KahootReadModel) => {
+      if (kahoot.coverImageId && urlMap.has(kahoot.coverImageId)){
+        const url = urlMap.get(kahoot.coverImageId);
+        if (url) kahoot.coverImageId = url;
+      } else {
+        kahoot.coverImageId = null;
+      }
+    });
+  }
 
   toJson() {
     return {

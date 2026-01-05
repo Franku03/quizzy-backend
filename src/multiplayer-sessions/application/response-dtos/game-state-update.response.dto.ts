@@ -24,9 +24,9 @@ export interface PlayerStateUpdateResponse {
     state: SessionStateType,
     nickname: string,
     score: number,
-    quizTitle?: string, // No siempre hara falta pasar esto en un GameStateUpdate
-    quizMediaURLs?: KahootStyling, // No siempre hara falta pasar esto en un GameStateUpdte
-    currentSlideData?: SlideSnapshotWithoutAnswers, // Esto solo lo devolvemos para cuando un jugador que se reconecta
+    // quizTitle?: string, // No siempre hara falta pasar esto en un GameStateUpdate
+    // quizMediaURLs?: KahootStyling, // No siempre hara falta pasar esto en un GameStateUpdte
+    // currentSlideData?: SlideSnapshotWithoutAnswers, // Esto solo lo devolvemos para cuando un jugador que se reconecta
 
 }
 

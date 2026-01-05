@@ -3,10 +3,12 @@ import { MultiplayerSession } from "../aggregates/multiplayer-session";
 
 import { Either } from '../../../core/types/either';
 import { ErrorData } from "src/core/types";
+import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 
 export interface ActiveSessionContext { 
     session: MultiplayerSession, 
     kahoot: Kahoot,
+    sessionStyling: KahootStylingSnapshot
 }
 
 // repositorio para las operaciones de tiempo real (búsqueda por PIN, gestión de estado volátil).
