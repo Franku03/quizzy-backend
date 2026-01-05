@@ -12,16 +12,32 @@ export class KahootListReadModel implements IHasMediaAssets {
     public readonly createdAt: Date,
     // This field will start as an ID and become a URL
     public coverImageId: string | null, 
-    public readonly themeId: string
+    public themeId: string
   ) {}
 
   getMediaAssetIds(): string[] {
-    return this.coverImageId ? [this.coverImageId] : [];
+    const ids: string[] = [];
+    
+    if (this.coverImageId) {
+      ids.push(this.coverImageId);
+    }
+    
+    if (this.themeId) {
+      ids.push(this.themeId);
+    }
+
+    return ids;
   }
 
   applyMediaUrls(urlMap: Map<string, string>): void {
+    // 1. Replace Cover Image
     if (this.coverImageId && urlMap.has(this.coverImageId)) {
       this.coverImageId = urlMap.get(this.coverImageId)!;
+    }
+
+    // 2. Replace Theme ID with Theme URL
+    if (this.themeId && urlMap.has(this.themeId)) {
+      this.themeId = urlMap.get(this.themeId)!;
     }
   }
 }
