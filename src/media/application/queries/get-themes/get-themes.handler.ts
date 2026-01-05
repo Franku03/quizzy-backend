@@ -24,7 +24,7 @@ export class GetThemesHandler implements IQueryHandler<GetThemesQuery> {
 
   async execute(query: GetThemesQuery): Promise<Either<ErrorData, ThemeResponse[]>> {
     
-    return pipeAsync(
+    return pipeAsync<ErrorData, ThemeResponse[]>(
       // 1. Extracción: Obtenemos los records del DAO
       this.metadataDao.findThemes(query),
 

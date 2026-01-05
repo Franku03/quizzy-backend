@@ -73,7 +73,7 @@ export interface KahootInput {
 }
 
 export class KahootFactory {
-    private static readonly SlideCreatorsMap: Record<SlideTypeEnum, any> = {
+    private static readonly SlideCreatorsMap: Record<SlideTypeEnum, unknown> = {
         [SlideTypeEnum.SINGLE]: SingleChoiceSlide,
         [SlideTypeEnum.MULTIPLE]: MultipleChoiceSlide,
         [SlideTypeEnum.TRUE_FALSE]: TrueFalseSlide,

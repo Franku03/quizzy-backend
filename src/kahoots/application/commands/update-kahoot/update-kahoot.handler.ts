@@ -58,15 +58,15 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   async execute(command: UpdateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
     const appContext = createKahootAppContext('updateKahoot', command.id, command.userId);
 
-    return pipeAsync(
+    return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. Infraestructura: Recuperación
       this.kahootRepository.findKahootByIdEither(command.id),
 
-      // 2. Dominio: Lógica de Negocio (Igual que antes)
-      k => k.chainAsync(kahoot => this.applyUpdates(kahoot, command)),
-
-      // 3. Aplicación: Contexto de error
-      k => k.mapLeft(err => err.setContext(appContext)),
+      // 2. Dominio: Lógica de Negocio (Igual que antes) 
+      k => k.chain(kahoot => this.applyUpdates(kahoot, command)
+      
+      //3. Manejo de Errores de Dominio (Agregar contexto adicional)
+      .mapLeft(err => err.setContext(appContext))),
 
       // 4. Infraestructura: Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
@@ -74,8 +74,6 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
       // 5. Aplicación: Side Effects
       k => k.tapChainAsync(kahoot => this.runSideEffects(kahoot)),
 
-      // [CAMBIO DE FLUJO] Inversión para enriquecimiento:
-      
       // 6. Obtener Snapshot Raw
       k => k.map(kahoot => kahoot.getSnapshot()),
 
@@ -87,40 +85,34 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
     );
   }
 
-  // --- MÉTODOS PRIVADOS SIN CAMBIOS ---
+  // --- MÉTODOS PRIVADOS  ---
 
-  private async applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Promise<Either<ErrorData, Kahoot>> {
-    const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
+  private applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Either<ErrorData, Kahoot> {
+    // Todo el flujo es una sola cadena de .chain()
+    return this.processSlidesMap(command.slides || [])
+      .chain(slidesMap => KahootStatus.create(command.status)
+        .chain(status => VisibilityStatus.create(command.visibility)
+          .chain(visibility => KahootFactory.assembleStyling(command.themeId, command.imageId)
+            .chain(styling => {
+              
+              // 1. Aplicamos cambios al agregado
+              kahoot.replaceSlides(slidesMap);
+              kahoot.updateStyling(styling);
+              kahoot.changeStatus(status.value);
+              kahoot.changeVisibility(visibility.value);
 
-    // Procesamiento de Styling (Asíncrono)
-    const stylingRes = await KahootFactory.assembleStyling(command.themeId, command.imageId);
-    if (stylingRes.isLeft()) return Either.makeLeft(stylingRes.getLeft());
-    kahoot.updateStyling(stylingRes.getRight());
+              // 2. Aplicamos detalles (OptionalVO)
+              const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
+              if (detailsVO.hasValue()) {
+                const detailsRes = kahoot.updateDetails(detailsVO.getValue());
+                if (detailsRes.isLeft()) return detailsRes as any;
+              }
 
-    // Procesamiento de Slides (Asíncrono)
-    const slidesRes = await this.processSlidesMap(command.slides || []);
-    if (slidesRes.isLeft()) return Either.makeLeft(slidesRes.getLeft());
-    kahoot.replaceSlides(slidesRes.getRight());
-
-    // Validaciones Síncronas
-    const initialSyncRes = KahootStatus.create(command.status)
-      .chain(status => VisibilityStatus.create(command.visibility)
-        .chain(visibility => {
-          kahoot.changeStatus(status.value);
-          kahoot.changeVisibility(visibility.value);
-
-          if (detailsVO.hasValue()) {
-            const updateRes = kahoot.updateDetails(detailsVO.getValue());
-            if (updateRes.isLeft()) return updateRes as any;
-          }
-
-          return Either.makeRight(undefined);
-        })
+              return Either.makeRight(kahoot);
+            })
+          )
+        )
       );
-
-    if (initialSyncRes.isLeft()) return Either.makeLeft(initialSyncRes.getLeft());
-
-    return Either.makeRight(kahoot);
   }
 
   private async runSideEffects(kahoot: Kahoot): Promise<Either<ErrorData, Kahoot>> {
@@ -128,14 +120,13 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
     return Either.makeRight(kahoot);
   }
 
-  private async processSlidesMap(rawSlides: KahootSlideCommand[]): Promise<Either<ErrorData, Map<string, any>>> {
-    const slidesInput: SlideInput[] = await Promise.all(
-      rawSlides.map(async (s) => ({
-        ...s,
-        id: s.id || await this.idGenerator.generateId(),
-        options: s.options?.map(o => ({ ...o })) || []
-      }))
-    );
+  private processSlidesMap(rawSlides: KahootSlideCommand[]): Either<ErrorData, Map<string, any>> {
+    // Generación de IDs síncrona
+    const slidesInput: SlideInput[] = rawSlides.map((s) => ({
+      ...s,
+      id: s.id || this.idGenerator.generateId(),
+      options: s.options?.map(o => ({ ...o })) || []
+    }));
 
     return KahootFactory.processSlides(slidesInput, (s: SlideInput, p: number) =>
       KahootFactory.buildSlideFromInput(s, p)

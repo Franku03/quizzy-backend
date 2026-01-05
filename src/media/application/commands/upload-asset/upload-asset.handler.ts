@@ -32,7 +32,7 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
 
     // Definimos el pipe especificando que al final queremos un UploadAssetResponse
-    return pipeAsync(
+    return pipeAsync<ErrorData, UploadAssetResponse>(
       // 1. Buscar duplicado
       this.metadataDao.findByContentHash(contentHash),
 

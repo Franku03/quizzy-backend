@@ -45,12 +45,12 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
   ) { }
 
   async execute(command: CreateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
-    const kahootId = await this.idGenerator.generateId();
-    const slidesWithIds = await this.processSlidesWithIds(command.slides || []);
+    const kahootId = this.idGenerator.generateId();
+    const slidesWithIds = this.processSlidesWithIds(command.slides || []);
 
     const appContext = createKahootAppContext('createKahoot', kahootId, command.userId);
 
-    return pipeAsync(
+    return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. Crear el Agregado
       KahootFactory.createFromInput({ 
         ...command, 
@@ -59,21 +59,18 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
         slides: slidesWithIds, 
         createdAt: new Date().toISOString(), 
         playCount: 0 
-      }),
-
-      // 2. Manejo de Errores de Dominio
-      k => k.mapLeft(err => err.setContext(appContext)),
+      })
+      // 2. Manejo de Errores de Dominio (Agregar contexto adicional)
+      .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia (Guardar el estado original con IDs)
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
-
-      // [PUNTO CRITICO] Inversión de pasos para enriquecimiento:
       
       // 4. Extraer Snapshot (Raw Data con IDs)
       k => k.map(kahoot => kahoot.getSnapshot()),
 
       // 5. Enriquecer Snapshot (Sustituir IDs por URLs y expandir Theme)
-      //    Nota: Esto muta el snapshot o devuelve uno nuevo, dependiendo de tu implementación
+      //    Nota: Esto muta el snapshot 
       k => k.mapAsync(snapshot => this.mediaService.enrichKahoot(snapshot)),
 
       // 6. Mappear a DTO (Usando el snapshot ya enriquecido con URLs)
@@ -81,26 +78,26 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
     );
   }
 
-  private async processSlidesWithIds(rawSlides: KahootSlideCommand[]): Promise<SlideInput[]> {
-    return Promise.all(
-      rawSlides.map(async (slide) => {
-        const slideId = await this.idGenerator.generateId();
-        return {
-          id: slideId,
-          position: slide.position,
-          slideType: slide.slideType,
-          timeLimit: slide.timeLimit,
-          question: slide.question,
-          slideImage: slide.slideImage, // Aquí entra el ID
-          points: slide.points,
-          description: slide.description,
-          options: slide.options?.map(opt => ({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-            optionImage: opt.optionImage // Aquí entra el ID
-          }))
-        };
-      })
-    );
+  // --- METODOS PRIVADOS ---
+
+  private processSlidesWithIds(rawSlides: KahootSlideCommand[]): SlideInput[] {
+    return rawSlides.map((slide) => {
+      const slideId = this.idGenerator.generateId();
+      return {
+        id: slideId,
+        position: slide.position,
+        slideType: slide.slideType,
+        timeLimit: slide.timeLimit,
+        question: slide.question,
+        slideImage: slide.slideImage,
+        points: slide.points,
+        description: slide.description,
+        options: slide.options?.map(opt => ({
+          text: opt.text,
+          isCorrect: opt.isCorrect,
+          optionImage: opt.optionImage 
+        }))
+      };
+    });
   }
 }

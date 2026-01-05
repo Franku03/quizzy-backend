@@ -1,3 +1,3 @@
 export interface IdGenerator<T> {
-    generateId (): Promise<T>
+    generateId (): T
 }

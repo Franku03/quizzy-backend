@@ -29,14 +29,11 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand>
 async execute(command: DeleteKahootCommand): Promise<Either<ErrorData, void>> {
     // El Aspect ya validó que el recurso existe y el usuario tiene permiso.
     
-    return pipeAsync(
+    return pipeAsync<ErrorData, void>(
       // 1. Persistencia: Borrado físico o lógico
       this.kahootRepository.deleteKahootEither(command.id),
 
-      // 2. Aplicación: Contexto mínimo por si falla la base de datos (Infra)
-      k => k.mapLeft(err => err.setContext(createKahootAppContext('deleteKahoot', command.id))),
-
-      // 3. Side Effect: Limpieza asíncrona
+      // 2. Side Effect: Limpieza asíncrona
       k => k.tapChainAsync(async () => {
         await this.attemptCleanup
           .cleanupById(new KahootId(command.id))
