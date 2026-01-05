@@ -59,6 +59,7 @@ export class UserMapper {
         userPreferences: preferences,
         lastUsernameUpdate,
         favorites,
+        deviceTokens: raw.deviceTokens || [],
       },
       id
     );
@@ -75,6 +76,8 @@ export class UserMapper {
       lastUsernameUpdate: user.lastUsernameUpdate 
         ? new Date(user.lastUsernameUpdate.value) 
         : undefined,
+
+      deviceTokens: user.deviceTokens,
 
       profile: {
         name: user.userProfileDetails.name,

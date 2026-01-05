@@ -22,7 +22,13 @@ export class AddKahootToFavoritesHandler
       const userUUID: UserId = new UserId(query.userId);
       const kahootUUID: KahootId = new KahootId(query.kahootId);
       // hidratamos el objeto de dominio
-      const user = await this.userRepo.findUserById(userUUID);
+      const userOptional = await this.userRepo.findById(userUUID);
+      
+      // 2. Verificamos si la caja tiene algo (.hasValue)
+      if (!userOptional.hasValue()) {
+          return new Optional<Error>(new Error('User not found'));
+      }
+      const user = userOptional.getValue();
       if (!user) return new Optional<Error>(new Error('User not found'));
       // añadimos el kahoot
       user?.addFavorite(kahootUUID);

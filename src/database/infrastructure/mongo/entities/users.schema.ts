@@ -78,6 +78,9 @@ export class UserMongo extends Document {
 
   @Prop({ type: [String], default: [] })
   public favoriteKahoots: string[];
+
+  @Prop({ type: [String], default: [] })
+  public deviceTokens: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserMongo);
