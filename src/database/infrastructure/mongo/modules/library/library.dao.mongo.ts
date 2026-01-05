@@ -17,7 +17,10 @@ import { Model } from 'mongoose';
 import { UserMongo } from '../../entities/users.schema';
 import { AttemptMongo } from '../../entities/attempts.scheme';
 import { AttemptStatusEnum } from 'src/solo-attempts/domain/value-objects/attempt.status.enum';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.Library)
 @Injectable()
 export class LibraryDaoMongo implements ILibraryDao {
   constructor(

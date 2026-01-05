@@ -81,4 +81,17 @@ export class PinoLogger implements ILogger {
 
     this.logger.error(errorMetadata, message);
   }
+
+  errorResult(message: string, metadata?: Record<string, any>): void {
+    // This method handles controlled application errors (Domain/Application results).
+    // Unlike the standard error method, it does not expect an exception object,
+    // avoiding unnecessary stack traces and keeping logs clean for business-rule violations.
+    // The metadata provides the necessary context for auditing and troubleshooting.
+    if (metadata) {
+      this.logger.error(metadata, message);
+    } else {
+      this.logger.error(message);
+    }
+  }
+
 }

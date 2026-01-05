@@ -5,7 +5,10 @@ import { IUserDao } from 'src/users/application/queries/ports/users.dao.port';
 import { UserMongo } from '../../entities/users.schema';
 import { Optional } from 'src/core/types/optional';
 import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.User)
 @Injectable()
 export class UserDaoMongo implements IUserDao {
   

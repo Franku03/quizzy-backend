@@ -1,34 +1,78 @@
-// src/media/infrastructure/persistence/mongo/asset-metadata.mongo-dao.ts
-import { Model } from 'mongoose';
+// src/database/infrastructure/mongo/modules/media/media.dao.mongo.ts
+// --- NestJS & Mongoose ---
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+
+// --- Core Logic & Types ---
+import { ErrorData, Either, ErrorLayer } from 'src/core/types';
+import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+
+// --- Application Ports ---
 import { IAssetMetadataDao } from 'src/media/application/ports/i-asset-metadata.dao.interface';
 import { AssetMetadataRecord } from 'src/media/application/ports/i-asset-metadata-record.interface';
-import { ErrorData, Either, ErrorLayer } from 'src/core/types';
-import { AssetMetadataMongo } from '../../entities/media.schema';
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
-import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 
+// --- Infrastructure: Enums & Decorators ---
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+
+// --- Infrastructure: Entities & Constants ---
+import { AssetMetadataMongo } from '../../entities/media.schema';
+import { ASSET_MONGO_BASE } from './constants/asset-mongo-constants';
+
+// --- Infrastructure: Mappers & Errors ---
+import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
+
+/**
+ * Interfaz que representa el POJO devuelto por .lean().
+ * Mapea exactamente los campos obligatorios del Schema.
+ */
+export interface IAssetMetadataDocument {
+  assetId: string;
+  publicId: string;
+  provider: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  contentHash: string;
+  referenceCount: number;
+  format: string;
+  category: string;
+  theme: boolean;
+  uploadedAt: Date;
+}
+
+@DaoMongo(DaoName.AssetMetadataMongo)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
-
-  private readonly adapterContextBase: IDatabaseErrorContext = {
-    adapterName: AssetMetadataMongoDao.name,
-    portName: 'IAssetMetadataDao',
-    module: 'media',
-    databaseType: 'mongodb',
-    collectionOrTable: 'asset_metadata',
-    operation: '',
-  } as const;
-
-  private readonly mongoErrorMapper: MongoErrorMapper = new MongoErrorMapper();
+  private readonly mongoErrorMapper = new MongoErrorMapper();
+  private readonly contextBase = ASSET_MONGO_BASE;
+  private readonly adapterName = AssetMetadataMongoDao.name;
+  private readonly portName = 'IAssetMetadataDao';
 
   constructor(
     @InjectModel(AssetMetadataMongo.name)
     private readonly model: Model<AssetMetadataMongo>,
-  ) { }
+  ) {}
 
-  private toRecord(doc: AssetMetadataMongo): AssetMetadataRecord {
+  /**
+   * Genera el contexto de error inyectando la identidad del DAO y el registro afectado.
+   */
+  private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
+    return createDatabaseContext(
+      this.contextBase,
+      this.adapterName,
+      this.portName,
+      operation,
+      entityId,
+      extra
+    );
+  }
+
+  /**
+   * Mapea el documento plano de MongoDB al Record de la capa de aplicación.
+   */
+  private toRecord(doc: IAssetMetadataDocument): AssetMetadataRecord {
     return {
       assetId: doc.assetId,
       publicId: doc.publicId,
@@ -45,276 +89,151 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
     };
   }
 
-  private fromRecord(record: AssetMetadataRecord): Partial<AssetMetadataMongo> {
-    return {
-      assetId: record.assetId,
-      publicId: record.publicId,
-      provider: record.provider,
-      originalName: record.originalName,
-      mimeType: record.mimeType,
-      size: record.size,
-      contentHash: record.contentHash,
-      referenceCount: record.referenceCount,
-      format: record.format,
-      category: record.category,
-      theme: record.theme,
-      uploadedAt: record.uploadedAt,
-    };
-  }
+  // --- MÉTODOS DE ESCRITURA ---
 
   async insert(record: AssetMetadataRecord): Promise<Either<ErrorData, void>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'insert',
-      entityId: record.publicId,
-    };
-
-    try {
-      const data = this.fromRecord(record);
-      await this.model.create(data);
-      return Either.makeRight(undefined);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findByPublicId(publicId: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findByPublicId',
-      entityId: publicId,
-    };
-
-    try {
-      const doc = await this.model.findOne({ publicId }).exec();
-      return Either.makeRight(doc ? this.toRecord(doc) : null);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findByAssetId(id: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findByPublicId',
-      entityId: id,
-    };
-
-    try {
-      const doc = await this.model.findOne({ assetId: id }).exec();
-      return Either.makeRight(doc ? this.toRecord(doc) : null);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findByContentHash(contentHash: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findByContentHash',
-      entityId: contentHash,
-    };
-
-    try {
-      const doc = await this.model.findOne({ contentHash }).exec();
-      return Either.makeRight(doc ? this.toRecord(doc) : null);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findByIds(assetIds: string[]): Promise<Either<ErrorData, AssetMetadataRecord[]>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findByIds',
-    };
-
-    try {
-      const docs = await this.model.find({
-        assetId: { $in: assetIds }
-      }).exec();
-
-      const records = docs.map(doc => this.toRecord(doc));
-      return Either.makeRight(records);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findThemeById(assetId: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findTheme',
-      entityId: assetId,
-    };
-
-    try {
-      // Buscamos estrictamente por el UUID de assetId y que sea un tema
-      const doc = await this.model.findOne({
-        assetId: assetId,
-        theme: true
-      }).exec();
-
-      return Either.makeRight(doc ? this.toRecord(doc) : null);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
-  }
-
-  async findThemes(options?: {
-    category?: string;
-    format?: string;
-    mimeType?: string;
-    limit?: number;
-    offset?: number;
-    sortBy?: 'uploadedAt' | 'size' | 'originalName';
-    sortOrder?: 'asc' | 'desc';
-  }): Promise<Either<ErrorData, AssetMetadataRecord[]>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'findThemes',
-    };
-
-    try {
-      // Construir query base
-      const query: any = { theme: true };
-
-      // Aplicar filtros opcionales
-      if (options?.category) query.category = options.category;
-      if (options?.format) query.format = options.format;
-      if (options?.mimeType) query.mimeType = options.mimeType;
-
-      // Construir consulta
-      let dbQuery = this.model.find(query);
-
-      // Aplicar sorting (por defecto: uploadedAt descendente)
-      const sortBy = options?.sortBy || 'uploadedAt';
-      const sortOrder = options?.sortOrder === 'asc' ? 1 : -1;
-      dbQuery = dbQuery.sort({ [sortBy]: sortOrder });
-
-      // Aplicar paginación
-      if (options?.offset && options.offset > 0) {
-        dbQuery = dbQuery.skip(options.offset);
-      }
-
-      if (options?.limit && options.limit > 0) {
-        dbQuery = dbQuery.limit(options.limit);
-      }
-
-      // Ejecutar consulta
-      const docs = await dbQuery.exec();
-      const records = docs.map(doc => this.toRecord(doc));
-
-      return Either.makeRight(records);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
+    const ctx = this.getCtx('insert', record.publicId);
+    const result = await Either.tryCatch(
+      this.model.create(record),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map(() => undefined);
   }
 
   async incrementReferenceCount(publicId: string): Promise<Either<ErrorData, void>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'incrementReferenceCount',
-      entityId: publicId,
-    };
-
-    try {
-      const result = await this.model.findOneAndUpdate(
+    const ctx = this.getCtx('incrementReferenceCount', publicId);
+    const result = await Either.tryCatch(
+      this.model.findOneAndUpdate(
         { publicId },
         { $inc: { referenceCount: 1 } },
         { new: true }
-      );
+      ).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
 
-      if (!result) {
-        const notFoundError = new ErrorData(
-          "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' not found.`,
-          ErrorLayer.INFRASTRUCTURE,
-          fullContext
-        );
-        return Either.makeLeft(notFoundError);
-      }
-
-      return Either.makeRight(undefined);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
+    return result.chain((doc) => 
+      doc ? Either.makeRight(undefined) 
+          : Either.makeLeft(new ErrorData("RESOURCE_NOT_FOUND", `Asset ${publicId} not found`, ErrorLayer.INFRASTRUCTURE, ctx))
+    );
   }
 
   async decrementReferenceCount(publicId: string): Promise<Either<ErrorData, void>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'decrementReferenceCount',
-      entityId: publicId,
-    };
+    const ctx = this.getCtx('decrementReferenceCount', publicId);
+    
+    // 1. Buscar y validar
+    const findResult = await Either.tryCatch(
+      this.model.findOne({ publicId }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
 
-    try {
-      const asset = await this.model.findOne({ publicId });
+    if (findResult.isLeft()) return Either.makeLeft(findResult.getLeft());
+    const asset = findResult.getRight();
 
-      if (!asset) {
-        const notFoundError = new ErrorData(
-          "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' not found.`,
-          ErrorLayer.INFRASTRUCTURE,
-          fullContext
-        );
-        return Either.makeLeft(notFoundError);
-      }
-
-      if (asset.referenceCount <= 0) {
-        const validationError = new ErrorData(
-          "REFERENCE_COUNT_INVALID",
-          'Cannot decrement reference count below zero.',
-          ErrorLayer.INFRASTRUCTURE,
-          { ...fullContext, currentValue: asset.referenceCount }
-        );
-        return Either.makeLeft(validationError);
-      }
-
-      await this.model.updateOne(
-        { publicId },
-        { $inc: { referenceCount: -1 } }
-      );
-
-      return Either.makeRight(undefined);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
+    if (!asset) {
+      return Either.makeLeft(new ErrorData("RESOURCE_NOT_FOUND", `Asset ${publicId} not found`, ErrorLayer.INFRASTRUCTURE, ctx));
     }
+
+    if (asset.referenceCount <= 0) {
+      return Either.makeLeft(new ErrorData(
+        "REFERENCE_COUNT_INVALID", 
+        "Cannot decrement below zero", 
+        ErrorLayer.INFRASTRUCTURE, 
+        { ...ctx, currentValue: asset.referenceCount }
+      ));
+    }
+
+    // 2. Ejecutar actualización
+    const updateResult = await Either.tryCatch(
+      this.model.updateOne({ publicId }, { $inc: { referenceCount: -1 } }).exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+
+    return updateResult.map(() => undefined);
   }
 
   async deleteByPublicId(publicId: string): Promise<Either<ErrorData, void>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'deleteByPublicId',
-      entityId: publicId,
-    };
+    const ctx = this.getCtx('deleteByPublicId', publicId);
+    const result = await Either.tryCatch(
+      this.model.findOneAndDelete({ publicId }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
 
-    try {
-      const result = await this.model.findOneAndDelete({ publicId });
+    return result.chain((doc) => 
+      doc ? Either.makeRight(undefined) 
+          : Either.makeLeft(new ErrorData("RESOURCE_NOT_FOUND", `Asset ${publicId} not found`, ErrorLayer.INFRASTRUCTURE, ctx))
+    );
+  }
 
-      if (!result) {
-        const notFoundError = new ErrorData(
-          "RESOURCE_NOT_FOUND",
-          `Asset metadata with publicId '${publicId}' not found.`,
-          ErrorLayer.INFRASTRUCTURE,
-          fullContext
-        );
-        return Either.makeLeft(notFoundError);
-      }
+  // --- MÉTODOS DE LECTURA ---
 
-      return Either.makeRight(undefined);
-    } catch (error) {
-      const errorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft(errorData);
-    }
+  async findByPublicId(publicId: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const ctx = this.getCtx('findByPublicId', publicId);
+    const result = await Either.tryCatch(
+      this.model.findOne({ publicId }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map((doc) => (doc ? this.toRecord(doc) : null));
+  }
+
+  async findByAssetId(id: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const ctx = this.getCtx('findByAssetId', id);
+    const result = await Either.tryCatch(
+      this.model.findOne({ assetId: id }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map((doc) => (doc ? this.toRecord(doc) : null));
+  }
+
+  async findByContentHash(contentHash: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const ctx = this.getCtx('findByContentHash', contentHash);
+    const result = await Either.tryCatch(
+      this.model.findOne({ contentHash }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map((doc) => (doc ? this.toRecord(doc) : null));
+  }
+
+  async findByIds(assetIds: string[]): Promise<Either<ErrorData, AssetMetadataRecord[]>> {
+    const ctx = this.getCtx('findByIds');
+    const result = await Either.tryCatch(
+      this.model.find({ assetId: { $in: assetIds } }).lean<IAssetMetadataDocument[]>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map((docs) => docs.map((doc) => this.toRecord(doc)));
+  }
+
+  async findThemeById(assetId: string): Promise<Either<ErrorData, AssetMetadataRecord | null>> {
+    const ctx = this.getCtx('findThemeById', assetId);
+    const result = await Either.tryCatch(
+      this.model.findOne({ assetId, theme: true }).lean<IAssetMetadataDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map((doc) => (doc ? this.toRecord(doc) : null));
+  }
+
+  async findThemes(options?: { category?: string; format?: string; mimeType?: string; limit?: number; offset?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }): Promise<Either<ErrorData, AssetMetadataRecord[]>> {
+    const ctx = this.getCtx('findThemes');
+    const result = await Either.tryCatch(
+      this.buildThemesQuery(options).lean<IAssetMetadataDocument[]>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+    return result.map(docs => docs.map(doc => this.toRecord(doc)));
+  }
+
+  private buildThemesQuery(options?: { category?: string; format?: string; mimeType?: string; limit?: number; offset?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }) {
+    const filter: Record<string, unknown> = { theme: true };
+    if (options?.category) filter.category = options.category;
+    if (options?.format) filter.format = options.format;
+    if (options?.mimeType) filter.mimeType = options.mimeType;
+
+    const dbQuery = this.model.find(filter);
+    const sortBy = options?.sortBy || 'uploadedAt';
+    const sortOrder = options?.sortOrder === 'asc' ? 1 : -1;
+    
+    dbQuery.sort({ [sortBy]: sortOrder });
+    if (options?.offset) dbQuery.skip(options.offset);
+    if (options?.limit) dbQuery.limit(options.limit);
+
+    return dbQuery;
   }
 }

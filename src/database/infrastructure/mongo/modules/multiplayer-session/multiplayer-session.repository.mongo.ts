@@ -5,8 +5,10 @@ import { Model } from 'mongoose';
 import { MultiplayerSession } from 'src/multiplayer-sessions/domain/aggregates/multiplayer-session';
 import { MultiplayerSessionMongo } from '../../entities/multiplayer-session.schema';
 import { IMultiplayerSessionHistoryRepository } from 'src/multiplayer-sessions/domain/ports';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
-
+@RepositoryMongo(RepositoryName.MultiplayerSession)
 @Injectable()
 export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSessionHistoryRepository {
   constructor(

@@ -8,7 +8,7 @@ import { GetUserByNameQuery } from './get-user-by-name.query';
 import { Optional } from '../../../../core/types/optional';
 import { UserReadModel } from '../read-model/user.read.model';
 import { Inject } from '@nestjs/common';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
 @QueryHandler(GetUserByNameQuery)
 export class GetUserByNameHandler implements IQueryHandler<GetUserByNameQuery> {

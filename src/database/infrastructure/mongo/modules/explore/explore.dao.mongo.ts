@@ -9,7 +9,10 @@ import { KahootMongo } from '../../entities/kahoots.schema';
 import { CategoryReadModel} from 'src/explore/application/read-models/category.read-model';
 import { KahootListReadModel } from 'src/explore/application/read-models/kahoot-list.read-model';
 import { PaginatedKahootListReadModel } from 'src/explore/application/read-models/kahoot-list.read-model';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.Explore)
 @Injectable()
 export class ExploreMongoDao implements IExploreDao {
   constructor(

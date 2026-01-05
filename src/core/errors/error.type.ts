@@ -1,4 +1,6 @@
+import { randomUUID } from "crypto";
 import { ErrorLayer } from "./error.enum";
+import { IErrorContext } from "./interface/context/i-error-context.interface";
 
 export class ErrorData extends Error {
     public readonly stackTrace?: string;
@@ -6,19 +8,19 @@ export class ErrorData extends Error {
     public readonly code: string;
     public readonly layer: ErrorLayer;
     public readonly timestamp: Date;
-    public readonly details?: Record<string, any>;
+    public readonly details?: IErrorContext;
     public readonly innerError?: Error;
 
     constructor(
         code: string,
         message: string,
         layer: ErrorLayer,
-        details?: Record<string, any>,
+        details?: IErrorContext,
         innerError?: Error
     ) {
         super(message);
         this.name = 'ErrorData';
-        this.errorId = this.generateUniqueId();
+        this.errorId = randomUUID();
         this.code = code;
         this.layer = layer;
         this.timestamp = new Date();
@@ -32,34 +34,59 @@ export class ErrorData extends Error {
         }
     }
 
-    private generateUniqueId(): string {
-        return Math.random().toString(36).substring(2, 9);
-    }
-  
-    public setContext(newDetails: Record<string, any>): this {
-        const currentDetails = this.details || {};
-        const mergedDetails = { ...currentDetails };
-        const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
 
-        if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
-            // @ts-ignore
-            this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
-        }
+public setContext(newDetails: Record<string, any>): this {
+    const currentDetails = this.details || {};
+    const mergedDetails = { ...currentDetails };
 
-        for (const key in newDetails) {
-            const newValue = newDetails[key];
-            if (newValue !== undefined && newValue !== null) {
-                if (protectedFields.includes(key) && mergedDetails[key]) continue;
-                mergedDetails[key] = newValue;
+    // Definimos el peso de las capas para comparar jerarquía
+    const layerPriority: Record<string, number> = {
+        'DOMAIN': 1,
+        'APPLICATION': 2,
+        'INFRASTRUCTURE': 3
+    };
+
+    for (const key in newDetails) {
+        const newValue = newDetails[key];
+        if (newValue === undefined || newValue === null) continue;
+
+        if (key === 'operation') {
+            // REGLA DE ORO:
+            // Solo permitimos que el Filter (INFRA) o el Decorador (APP) 
+            // cambien la operación si la capa del error es INFERIOR.
+            // Una vez que el error llega a APPLICATION, la operación se vuelve SAGRADA.
+            
+            const isAtApplicationOrHigher = layerPriority[this.layer] >= layerPriority['APPLICATION'];
+            const alreadyHasOperation = !!mergedDetails[key];
+
+            if (isAtApplicationOrHigher && alreadyHasOperation) {
+                // Si el error ya está en nivel APP y ya tiene nombre, 
+                // NO dejamos que nadie (ni el Filter) lo cambie.
+                continue;
             }
+            
+            mergedDetails[key] = newValue;
+            continue;
         }
 
-        (this.details as any) = mergedDetails;
-        return this;
+        // Protección de campos de identidad del dominio
+        const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
+        if (protectedFields.includes(key) && mergedDetails[key]) continue;
+
+        mergedDetails[key] = newValue;
     }
 
+    // Prefijo de mensaje (Kahoot -> ...)
+    if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
+        // @ts-ignore
+        this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
+    }
+
+    (this.details as any) = mergedDetails;
+    return this;
+}
     public toLogString(): string {
-        const SEPARATOR_RED_DARK = '\x1b[31m==================================================\x1b[0m';
+        const SEPARATOR_RED_DARK = '\x1b[31m======================================================================\x1b[0m';
         const CYAN = '\x1b[36m';
         const RED = '\x1b[91m';
         const BOLD = '\x1b[1m';

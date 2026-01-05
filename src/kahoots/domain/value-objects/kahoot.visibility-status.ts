@@ -30,7 +30,7 @@ export class VisibilityStatus extends ValueObject<VisibilityStatusProps> {
         if (!Object.values(VisibilityStatusEnum).includes(status as VisibilityStatusEnum)) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
-                { status: ['INVALID_VISIBILITY'] },
+                { visibility_status: ['INVALID_VISIBILITY'] },
                 `The visibility value '${status}' is not valid.`
             ));
         }

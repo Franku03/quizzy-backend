@@ -6,6 +6,10 @@ import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.sc
 import { Group } from 'src/groups/domain/aggregates/group';
 import { GroupMapper } from 'src/groups/infrastructure/mappers/group.mapper';
 import { Optional } from 'src/core/types/optional';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+
+@RepositoryMongo(RepositoryName.Group)
 @Injectable()
 export class GroupRepositoryMongo implements IGroupRepository {
     constructor(

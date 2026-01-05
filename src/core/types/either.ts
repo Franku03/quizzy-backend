@@ -105,6 +105,18 @@ export class Either<TLeft, TRight> {
         return Either.makeRight(result);
     }
 
+    //** Para desaperecer try-catch */
+    static async tryCatch<L, R>(
+        promise: Promise<R>,
+        onError: (error: unknown) => L
+    ): Promise<Either<L, R>> {
+        try {
+            const data = await promise;
+            return Either.makeRight<L, R>(data);
+        } catch (error) {
+            return Either.makeLeft<L, R>(onError(error));
+        }
+    }
     // --- Utilidades de Tipado ---
 
     /** Type Guard para verificar si un objeto es una instancia de Either */

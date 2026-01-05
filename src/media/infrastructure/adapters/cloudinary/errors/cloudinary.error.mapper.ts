@@ -1,6 +1,6 @@
 // src/media/infrastructure/cloudinary/cloudinary-error.mapper.ts
 import { ErrorData, ErrorLayer } from 'src/core/types';
-import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
+import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-external-service.context';
 import { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 
 export class CloudinaryErrorMapper implements IErrorMapper<IExternalServiceErrorContext> {

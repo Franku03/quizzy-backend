@@ -10,8 +10,10 @@ import { UserMapper } from 'src/users/infrastructure/mappers/user.mapper';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { UserEmail } from 'src/users/domain/value-objects/user.email';
 import { UserName } from 'src/users/domain/value-objects/user.user-name';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
-
+@RepositoryMongo(RepositoryName.User)
 @Injectable()
 export class UserRepositoryMongo implements IUserRepository {
 

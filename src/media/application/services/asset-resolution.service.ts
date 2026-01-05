@@ -6,7 +6,7 @@ import { AssetMetadataRecord } from "../ports/i-asset-metadata-record.interface"
 import type { IAssetMetadataDao } from "../ports/i-asset-metadata.dao.interface";
 import type { IAssetUrlGenerator } from "../ports/i-asset-url-generator.interface";
 import { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
-import { DaoName } from "src/database/infrastructure/catalogs/dao.catalogue.enum";
+import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 
 @Injectable()
 export class AssetResolutionService implements IImageUrlEnricher {

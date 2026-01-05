@@ -1,17 +1,4 @@
-import { UserRepositoryMongo } from '../mongo/modules/users/users.repository.mongo';
-import { Type } from '@nestjs/common';
-import { KahootRepositoryMongo } from '../mongo/modules/kahoots/kahoots.repository.mongo';
-import { KahootRepositoryPostgres } from '../postgres/modules/kahoots/kahoots.repository.postgres';
-import { SoloAttemptRepositoryMongo } from '../mongo/modules/solo-attempts/attempts.repository.mongo';
-import { SoloAttemptRepositoryPostgres } from '../postgres/modules/attempts/attempts.repository.postgres';
-import { GroupRepositoryMongo } from '../mongo/modules/groups/groups.repository.mongo';
-import { MultiplayerSessionHistoryMongoRepository } from '../mongo/modules/multiplayer-session/multiplayer-session.repository.mongo';
-
-export type RepositoryRegistryItem = {
-  typeorm: Type<any> | null;
-  mongoose: Type<any> | null;
-};
-
+// Enum para Repositories
 export enum RepositoryName {
   User = 'UserRepository',
   Kahoot = 'KahootRepository',
@@ -20,28 +7,10 @@ export enum RepositoryName {
   MultiplayerSession = 'MultiplayerSessionRepository',
 }
 
-export const REPOSITORY_REGISTRY: Record<
-  RepositoryName,
-  RepositoryRegistryItem
-> = {
-  [RepositoryName.User]: {
-    typeorm: null,
-    mongoose: UserRepositoryMongo,
-  },
-  [RepositoryName.Kahoot]: {
-    typeorm: KahootRepositoryPostgres,
-    mongoose: KahootRepositoryMongo,
-  },
-  [RepositoryName.Group]: {
-    typeorm: null,
-    mongoose: GroupRepositoryMongo,
-  },
-  [RepositoryName.Attempt]: {
-    typeorm: SoloAttemptRepositoryPostgres,
-    mongoose: SoloAttemptRepositoryMongo,
-  },
-  [RepositoryName.MultiplayerSession]: {
-    typeorm: SoloAttemptRepositoryPostgres,
-    mongoose: MultiplayerSessionHistoryMongoRepository,
-  },
+export const REPOSITORY_OVERRIDE_ENV_MAP: Record<RepositoryName, string> = {
+  [RepositoryName.User]: 'DB_USER_REPO_TYPE',
+  [RepositoryName.Kahoot]: 'DB_KAHOOT_REPO_TYPE',
+  [RepositoryName.Attempt]: 'DB_ATTEMPT_REPO_TYPE',
+  [RepositoryName.Group]: 'DB_GROUP_REPO_TYPE',
+  [RepositoryName.MultiplayerSession]: 'DB_MULTIPLAYERSESSION_REPO_TYPE',
 };

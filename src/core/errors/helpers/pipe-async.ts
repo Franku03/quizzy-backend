@@ -1,21 +1,29 @@
 import { Either } from "src/core/types";
 
 export const pipeAsync = async <L, R>(
-  initialValue: Either<L, R> | Promise<Either<L, R>>,
-  ...steps: Array<(value: Either<L, any>) => any | Promise<any>>
-): Promise<Either<L, any>> => {
+  initialValue: Either<L, unknown> | Promise<Either<L, unknown>>,
+  ...steps: Array<(value: Either<L, any>) => unknown | Promise<unknown>>
+): Promise<Either<L, R>> => {
   
-  let result: Either<L, any> = await initialValue;
+  // Resolvemos el valor inicial (puede ser un aggregate o un snapshot inicial)
+  let result = await initialValue;
 
   for (const step of steps) {
+    // [EL BREAK]: Si ya tenemos un error, paramos el "tren"
+    if (result.isLeft()) break;
+
+    // Ejecutamos el siguiente paso de la tubería
     const next = await step(result);
 
-    if (Either.isEither(next)) {
-      result = next as Either<L, any>;
+    // Si el paso nos devuelve un Either, lo adoptamos (posible nuevo error o transformación)
+    if (Either.isEither<L, unknown>(next)) {
+      result = next;
     } else {
-      result = Either.makeRight(next);
+      // Si devuelve un valor plano, lo envolvemos en el carril de Éxito
+      result = Either.makeRight<L, unknown>(next);
     }
   }
 
-  return result;
+  // Hacemos el casting final al tipo esperado R (ej: KahootHandlerResponseDto)
+  return result as Either<L, R>;
 };

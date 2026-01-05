@@ -34,10 +34,10 @@ export interface KahootProps {
     author: UserId;
     createdAt: DateISO;
     styling: KahootStyling;
-    details: Optional<KahootDetails>; 
+    details: Optional<KahootDetails>;
     visibility: VisibilityStatus;
     status: KahootStatus;
-    slides: Map<SlideIdValue, Slide>; 
+    slides: Map<SlideIdValue, Slide>;
     playCount: PlayNumber; //first time es 0
 }
 
@@ -92,7 +92,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         }
 
         return detailsResult
-            .chain(details => details.isValidDetails()) 
+            .chain(details => details.isValidDetails())
             .chain(() => {
                 if (this.properties.slides.size === 0) {
                     return Either.makeLeft(DomainErrorFactory.validation(
@@ -122,12 +122,12 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     public changeStatus(newStatus: string): Either<ErrorData, void> {
         const context = this.getContext('changeStatus');
         switch (newStatus) {
-            case KahootStatusEnum.DRAFT: 
-                this.draft(); 
+            case KahootStatusEnum.DRAFT:
+                this.draft();
                 return Either.makeRight(undefined);
-            case KahootStatusEnum.PUBLISH: 
+            case KahootStatusEnum.PUBLISH:
                 return this.publish();
-            default: 
+            default:
                 return Either.makeLeft(DomainErrorFactory.validation(
                     context, { status: ['INVALID_STATUS'] }, "Estado de Kahoot inválido."
                 ));
@@ -148,7 +148,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         switch (newVisibility) {
             case VisibilityStatusEnum.PUBLIC: this.makePublic(); break;
             case VisibilityStatusEnum.PRIVATE: this.hide(); break;
-            default: 
+            default:
                 return Either.makeLeft(DomainErrorFactory.validation(
                     context, { visibility: ['INVALID_VISIBILITY'] }, "Visibilidad no válida."
                 ));
@@ -157,8 +157,9 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     // --- Actualización de Atributos ---
-    public updateStyling(newStyling: KahootStyling): void {
+    public updateStyling(newStyling: KahootStyling): Either<ErrorData, void> {
         this.properties.styling = newStyling;
+        return Either.makeRight<ErrorData, void>(undefined);
     }
 
     public updateDetails(newDetails?: KahootDetails): Either<ErrorData, void> {
@@ -179,7 +180,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
                 context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado para eliminar."
             ));
         }
-        this.reorderSlidesPositions(); 
+        this.reorderSlidesPositions();
         return this.checkInvariants();
     }
 
@@ -280,7 +281,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     private delegateToSlide(
-        id: SlideId, 
+        id: SlideId,
         action: (s: Slide) => Either<ErrorData, void>
     ): Either<ErrorData, void> {
         const context = this.getContext('delegateToSlide');
@@ -291,10 +292,10 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
                 context, { slideId: ['NOT_FOUND'] }, "Slide ID does not exist."
             ));
         }
-        
+
         return action(slide).chain(() => this.checkInvariants());
     }
-    
+
     private reorderSlidesPositions(): void {
         this.getSortedSlides().forEach((slide, index) => {
             slide.changePosition(index);
@@ -315,8 +316,8 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             status: this.properties.status.value,
             playCount: this.properties.playCount.count,
             styling: this.properties.styling.getSnapshot(),
-            details: this.properties.details.hasValue() 
-                ? this.properties.details.getValue().getSnapshot() 
+            details: this.properties.details.hasValue()
+                ? this.properties.details.getValue().getSnapshot()
                 : undefined,
             slides: this.getSortedSlides().map(s => s.getSnapshot()),
         });

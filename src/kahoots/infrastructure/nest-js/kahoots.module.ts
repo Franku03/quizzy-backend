@@ -5,7 +5,7 @@ import { KahootController } from './kahoots.controller';
 // Capas de Datos
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 
 // Handlers
@@ -22,7 +22,6 @@ import { UpdateKahootRequestMapper } from '../adapters/mappers/update-kahoot.req
 
 // Otros Servicios e Infraestructura
 import { AttemptCleanupService } from '../../application/services/attempt-clear.service';
-import { KahootAuthorizationService } from '../../application/services/kahoot-athorization.service';
 import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
 @Module({
@@ -53,7 +52,6 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
     // --- Servicios de Aplicación y Apoyo ---
     AttemptCleanupService,
-    KahootAuthorizationService,
   ],
   exports: [],
 })
