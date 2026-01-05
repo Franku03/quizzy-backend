@@ -74,7 +74,7 @@ export function Authorize(
       const strategy = new Strategy();
       
       // Ejecutamos la lógica de autorización. 
-      // Soportamos tanto Promise<void> como Promise<Either<ErrorData, void>>
+      // Soportamos tanto Promise<void> 
       const authResult = await strategy.authorize(command, context);
 
       // Si el resultado es un Either y es Left (fallo), cortocircuitamos el "tren" ROP

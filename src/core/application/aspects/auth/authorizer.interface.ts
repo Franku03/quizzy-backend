@@ -8,5 +8,5 @@ import { Either, ErrorData } from "src/core/types";
 // command and query handler might require. The correct strategy will be given to the 
 // auth decorator on each handler.
 export interface IAuthorizer<TCommand, TContext, TResource = void> {
-  authorize(command: TCommand, context: TContext, resource?: TResource): Promise<void> | Promise<Either<ErrorData, TResource>> ;
+  authorize(command: TCommand, context: TContext): Promise<void> | Promise<Either<ErrorData, TResource>> ;
 }
