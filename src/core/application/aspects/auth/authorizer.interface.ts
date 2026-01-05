@@ -7,6 +7,7 @@ import { Either, ErrorData } from "src/core/types";
 // This is a strategy pattern for implementing the different authorization logic each 
 // command and query handler might require. The correct strategy will be given to the 
 // auth decorator on each handler.
-export interface IAuthorizer<TCommand, TContext, TResource = void> {
-  authorize(command: TCommand, context: TContext, resource?: TResource): Promise<void> | Promise<Either<ErrorData, TResource>> ;
+// return type is flexible to support different types of authorization strategies.
+export interface IAuthorizer<TCommand, TContext> {
+  authorize(command: TCommand, context: TContext): Promise<void> | Promise<Either<ErrorData, void>>;
 }
