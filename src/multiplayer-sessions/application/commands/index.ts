@@ -6,6 +6,10 @@ export * from './host-start-game/host-start-game.command';
 export * from './player-join/player-join.command';
 export * from './player-submit-answer/player-submit-answer.command';
 export * from './save-session/save-session.command';
+export * from './verify-pin/verify-pin.command';
+export * from './verify-host/verify-host.command';
+export * from './verify-connection-availability/verify-connection-availability.command';
+export * from './sync-state/sync-state.command';
 
 // HANDLERS
 export * from './create-session/create-session.handler'
@@ -15,6 +19,10 @@ export * from './host-start-game/host-start-game.handler';
 export * from './player-join/player-join.handler';
 export * from './player-submit-answer/player-submit-answer.handler';
 export * from './save-session/save-session.handler';
+export * from './verify-pin/verify-pin.handler';
+export * from './verify-host/verify-host.handler';
+export * from './verify-connection-availability/verify-connection-availability.handler';
+export * from './sync-state/sync-state.handler';
 
 // ERRORS
 export * from './create-session/create-session.errors'

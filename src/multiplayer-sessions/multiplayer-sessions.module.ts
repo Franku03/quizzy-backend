@@ -15,7 +15,10 @@ import {
   HostStartGameHandler, 
   PlayerJoinHandler, 
   PlayerSubmitAnswerHandler, 
-  SaveSessionHandler 
+  SaveSessionHandler, 
+  VerifyConnectionAvailabilityHandler,
+  VerifyHostHandler,
+  VerifyPinHandler
 } from './application/commands';
 
 import { InMemoryActiveSessionRepository } from './infrastructure/repositories/in-memory.session.repository';
@@ -50,6 +53,9 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     PlayerSubmitAnswerHandler,
     HostNextPhaseHandler,
     SaveSessionHandler,
+    VerifyConnectionAvailabilityHandler,
+    VerifyHostHandler,
+    VerifyPinHandler,
 
   ],
   controllers: [MultiplayerSessionsController],

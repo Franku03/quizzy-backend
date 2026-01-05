@@ -14,23 +14,36 @@ import {
   HostNextPhaseCommand, 
   HostStartGameCommand, 
   PlayerJoinCommand, 
-  PlayerSubmitAnswerCommand 
+  PlayerSubmitAnswerCommand, 
+  SyncStateCommand, 
+  VerifyConnectionAvailabilityCommand, 
+  VerifyHostCommand, 
+  VerifyPinCommand
 } from 'src/multiplayer-sessions/application/commands';
 
 import { 
   HostNextPhaseType, 
   GameStateUpdateResponse, 
   HostNextPhaseResponse, 
-  QuestionStartedResponse 
+  QuestionStartedResponse, 
+  PlayerSubmitAnswerResponse,
+  SyncStateResponse,
+
+  HostLobbyUpdateResponse,
+  PlayerStateUpdateResponse,
+  SyncType,
+  QuestionResultsHostResponse,
+  QuestionResultsPlayerResponse,
+  HostEndGameResponse,
+  PlayerEndGameResponse
 } from 'src/multiplayer-sessions/application/response-dtos';
+import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 
 
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
 import { mapPayloadToPlayer } from 'src/multiplayer-sessions/application/helpers/map-payload-to-player.helper';
-import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
-import { register } from 'module';
 
 
 
@@ -56,23 +69,31 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       const { pin , role, jwt } = client.handshake.headers 
 
       try {
-        // ! Verificar que el pin de la partida asociada exista
 
+        
         if( !pin || !role || !jwt )
           throw new WsException("Hacen falta datos en el header para realizar la conexión");
-
+        
+        // TODO: Verificar uso del Either cuando haya refactoring de errores
+          await this.commandBus.execute( new VerifyPinCommand( pin as string ) );
 
         if ( role === SessionRoles.HOST ) {
   
-            // ! Validar que este usuario es realmente el dueño de la sesión 'pin'
-  
+            // TODO: Verificar uso del Either cuando haya refactoring de errores
+            await this.commandBus.execute( new VerifyHostCommand( pin as string, jwt as string ) );
+
+            // ! Usar servicio de traza para verificar que no haya otro host conectado a la misma sala
+
             this.tracingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
               
             client.emit( ServerEvents.HOST_CONNECTED_SUCCESS, { status: 'IN_LOBBY - CONNECTED TO SERVER' });
               
         } else if( role === SessionRoles.PLAYER ){
   
-          client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+          // TODO: Verificar uso del Either cuando haya refactoring de errores
+          await this.commandBus.execute( new VerifyConnectionAvailabilityCommand( pin as string, jwt as string ) );
+
+          // client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
             
         } else {
   
@@ -92,11 +113,26 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
         
-        console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
-        console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
+   
   
         // this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
-        
+
+        // aqui llamamos a syncState para las reconexiones
+        const syncResult = await this.syncClientState( client );
+
+
+        if (syncResult.isLeft()) {
+            // MANEJO CONTROLADO DEL ERROR
+            const error = syncResult.getLeft();
+            this.logger.error(`Fallo al sincronizar cliente ${client.id}: ${error.message}`);
+            
+            client.disconnect(true);
+            return;
+        }
+
+        console.log(`${client.data.role} conectado a la sala ${pin}`); // Para pruebas iniciales
+        console.log('Cliente conectado:', client.id ); // Para pruebas iniciales
+
       } catch (error) {
         
         // Loggea el error para el servidor
@@ -134,13 +170,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     }
 
-    handleDisconnect( client: SessionSocket) {
+    handleDisconnect( client: SessionSocket ) {
 
       const roomPin = client.handshake.headers?.pin as string;
 
       client.disconnect(); // ? Algo dudoso, pero por si acaso
 
-      console.log('Cliente Desconectado', client.id );
+      this.logger.log('Cliente Desconectado', client.id );
+
       try {
 
         this.tracingWsService.removeClient( roomPin ,client.id );
@@ -152,6 +189,86 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       }
       
     }
+
+
+    private async syncClientState( client: SessionSocket ): Promise<Either<Error, void>> {
+        try {
+
+            const res: Either<Error, SyncStateResponse >
+             = await this.commandBus.execute( new SyncStateCommand( client.data.roomPin , client.data.userId ) );
+
+            if( res.isLeft() ){
+
+              return Either.makeLeft( res.getLeft() );
+
+            } else {
+
+              const result = res.getRight();
+
+              switch( result.type ){
+
+                case( SyncType.HOST_LOBBY_UPDATE ):
+
+                  client.emit(ServerEvents.HOST_LOBBY_UPDATE, result.data as HostLobbyUpdateResponse);
+                  break;
+
+                case( SyncType.PLAYER_STATE_UPDATE ): {
+
+                  if( result.additionalData ){
+                    client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+                  } else {
+
+                    const { hostLobbyUpdate, playerStateUpdate } = result.data as GameStateUpdateResponse;
+                    client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerStateUpdate as PlayerStateUpdateResponse );
+                    
+                    const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+                    for (const socket of sockets) {
+                        if ( socket.data.role === SessionRoles.HOST ) {
+                            socket.emit(ServerEvents.HOST_LOBBY_UPDATE, hostLobbyUpdate as HostLobbyUpdateResponse);
+                            break;
+                        }
+                    }
+                  }
+
+                  break;
+
+                }
+
+                case( SyncType.HOST_RESULTS ):
+                  client.emit( ServerEvents.HOST_RESULTS, result.data as QuestionResultsHostResponse );
+                  break;
+
+                case( SyncType.PLAYER_RESULTS ):
+                  client.emit( ServerEvents.PLAYER_RESULTS, result.data as QuestionResultsPlayerResponse );
+                  break;
+
+                case( SyncType.QUESTION_STARTED ):
+                  client.emit( ServerEvents.QUESTION_STARTED, { ...result.data, ...result.additionalData } as QuestionStartedResponse );
+                  break;
+
+                case( SyncType.HOST_END_GAME ):
+                  client.emit( ServerEvents.HOST_GAME_END, result.data as HostEndGameResponse );
+                  break;                
+
+                case( SyncType.PLAYER_END_GAME ):
+                  client.emit( ServerEvents.PLAYER_GAME_END, result.data as PlayerEndGameResponse );
+                  break;
+
+
+              }
+
+              return Either.makeRight( undefined );
+
+            }
+              
+
+        } catch (error) {
+            // Capturamos cualquier error inesperado en el caso de uso
+            this.logger.error(`Error crítico al intentar sincronizar al usuario: ${error}`);
+            return Either.makeLeft(error instanceof Error ? error : new Error(String(error)));
+        }
+    }
+    
 
 
     // ? Eventos del jugador
@@ -211,7 +328,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new Error("El Host de la partida no puede enviar preguntas"));
  
 
-        const res: Either<Error, boolean> = 
+        const res: Either<Error, PlayerSubmitAnswerResponse> = 
           await this.commandBus.execute( new PlayerSubmitAnswerCommand( 
               payload.questionId,
               payload.answerId,
@@ -223,6 +340,16 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( res.isRight() ){
 
           client.emit( ServerEvents.PLAYER_ANSWER_CONFIRMATION, { status: 'ANSWER SUCCESFULLY SUBMITTED' });
+
+          // Emitimos la respuesta de actualización de lobby solo al Host
+          const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
+          for (const socket of sockets) {
+              if ( socket.data.role === SessionRoles.HOST ) {
+                  socket.emit(ServerEvents.HOST_ANSWERS_UPDATE, res.getRight());
+                  break;
+              }
+          }
+          
 
         } else {
 
@@ -370,7 +497,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         
         // 4. LIMPIEZA ADICIONAL (Opcional)
         // Limpiamos la sala del servicio de traza
-        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString }`)
+        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString() }`)
     
     }
 

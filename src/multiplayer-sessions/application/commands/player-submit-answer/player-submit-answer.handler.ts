@@ -6,6 +6,7 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { PlayerSubmitAnswerCommand } from "./player-submit-answer.command";
+import { PlayerSubmitAnswerResponse } from "../../response-dtos";
 import { COMMON_ERRORS } from "../common.errors";
 import { PLAYER_SUBMIT_ERRORS } from "./player-submit-answer.errors";
 
@@ -30,7 +31,7 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
         this.playerSubmissionEvaluationService = new PlayerSubmissionEvaluationService()
     }
 
-    async execute(command: PlayerSubmitAnswerCommand): Promise<Either<Error, boolean >> {
+    async execute(command: PlayerSubmitAnswerCommand): Promise<Either<Error, PlayerSubmitAnswerResponse>> {
 
 
         try {
@@ -41,12 +42,12 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
                 return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
 
             const { session, kahoot } = sessionWrapper
+            
 
             const slideId = new SlideId( command.questionId );
 
             const slideSnapshot = kahoot.getSlideSnapshotById( slideId );
 
-            
             if( !slideSnapshot )
                 return Either.makeLeft( new Error(PLAYER_SUBMIT_ERRORS.SLIDE_NOT_FOUND) );
 
@@ -65,7 +66,9 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
                 slideId
             );
 
-            return Either.makeRight( true );
+            return Either.makeRight( { 
+                numberOfSubmissions: session.getNumberOfAnswersForASlide( slideId )
+            });
    
         } catch (error) {
 

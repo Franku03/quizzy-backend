@@ -8,11 +8,12 @@ import { QuestionStartedResponse } from "../../response-dtos/question-started.re
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
+import { mapToQuestionResponse } from "../../mappers";
 
-import { Either } from '../../../../core/types/either';
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
+import { Either } from '../../../../core/types/either';
 
-import { mapSnapshotsToQuestionResponse } from "../../mappers/map-snapshots-to-response";
 
 
 
@@ -22,6 +23,8 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
     constructor(
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
+
+        private readonly mediaService: MediaEnrichmentService,
     ){}
 
     async execute(command: HostStartGameCommand): Promise<Either<Error, QuestionStartedResponse>> {
@@ -41,7 +44,7 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
             session.startSession(); // Pasa a estado question automaticamente
 
             // Mapeamos la slide actual (la primera) a formato de opciones sin mostrar la respuesta correcta, y obtenemos directamente los datos de la respuesta a dar
-            const res = mapSnapshotsToQuestionResponse( session, kahoot );
+            const res = await mapToQuestionResponse( session, kahoot, this.mediaService );
 
             // Creamos la tabla de resultados para la primera slide
             session.startSlideResults( new SlideId( res.data.currentSlideData.id ) );
