@@ -38,7 +38,7 @@ export interface KahootProps {
     visibility: VisibilityStatus;
     status: KahootStatus;
     slides: Map<SlideIdValue, Slide>;
-    playCount: PlayNumber; //first time es 0
+    playCount: PlayNumber; 
 }
 
 export class Kahoot extends AggregateRoot<KahootProps, KahootId> {

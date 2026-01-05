@@ -34,7 +34,8 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
         const appContext = createApplicationContext(operationName, { 
             actorId: userId, 
-            resourceTargetId: finalId 
+            resourceTargetId: finalId,
+            resourceType: 'Kahoot'
         });
 
         const fetchMethod = context.getKahootById?.bind(context) 
@@ -54,14 +55,24 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         return result.chain(resource => {
             if (!resource) return Either.makeLeft(AppErrorFactory.notFound(appContext));
 
+            // Normalización de datos (Soportando Agregado o Snapshot)
             const authorId = resource instanceof Kahoot ? resource.authorId : resource.authorId;
             const visibility = resource instanceof Kahoot ? resource.visibility : resource.visibility;
 
             const isOwner = authorId === userId;
-            const isPublic = visibility === VisibilityStatusEnum.PUBLIC;
-            const isRead = operationName.toLowerCase().match(/get|read/);
+            
+            // Mejoramos el Match: Buscamos palabras que EMPIECEN con Get, Read o Find
+            // Esto evita falsos positivos en medio de otras palabras.
+            const isReadOperation = /^(get|read|find|list)/i.test(operationName);
+            
+            const isPublic = visibility.toUpperCase() === VisibilityStatusEnum.PUBLIC;
 
-            if (isRead ? (isPublic || isOwner) : isOwner) {
+            // REGLA: 
+            // Si es lectura: Pasa si es Público O si soy el dueño.
+            // Si es escritura: SOLO pasa si soy el dueño.
+            const hasAccess = isReadOperation ? (isPublic || isOwner) : isOwner;
+
+            if (hasAccess) {
                 return Either.makeRight(resource);
             }
 

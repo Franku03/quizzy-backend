@@ -25,7 +25,11 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
     if( !currentSlideSnapshot.options )
         throw new Error(COMMON_ERRORS.NO_OPTIONS)
 
+    console.log('\n\nCurrent slide snapshot in mapToQuestionResponse: ', currentSlideSnapshot );
+
     currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
+
+    console.log('\n\nCurrent slide snapshot enriched in mapToQuestionResponse: ', currentSlideSnapshot );
 
     const currentSlideSnapshotClean: SlideSnapshotWithoutAnswers = {
         id: currentSlideSnapshot.id,
