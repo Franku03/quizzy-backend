@@ -9,6 +9,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 // This handler processes the query to fetch featured kahoots for the platform.
 // Featured kahoots are selected based on a ranking algorithm that balances
@@ -22,6 +23,7 @@ export class GetFeaturedKahootsHandler implements IQueryHandler<GetFeaturedKahoo
     @Inject(DaoName.Explore)
     private readonly exploreDao: IExploreDao,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
@@ -35,7 +37,11 @@ export class GetFeaturedKahootsHandler implements IQueryHandler<GetFeaturedKahoo
 
       // Fetch featured kahoots using the DAO method
       // Default to 10 if no limit is provided
-      return await this.exploreDao.getFeaturedKahoots(query.limit || 10);
+      const kahoots = await this.exploreDao.getFeaturedKahoots(query.limit || 10);
+      // before returning, we enrich media URLs
+      const enrichedKahoots = await this.mediaService.enrichKahootList(kahoots)
+      return enrichedKahoots;
+
     } catch (error) {
       // Re-throw with domain-specific error code for consistent error handling
       // at the controller level

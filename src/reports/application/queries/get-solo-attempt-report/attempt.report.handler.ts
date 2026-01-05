@@ -13,6 +13,7 @@ import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/st
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 @QueryHandler(GetDetailedReportQuery)
 export class GetDetailedReportHandler implements IQueryHandler<GetDetailedReportQuery> {
@@ -23,6 +24,7 @@ export class GetDetailedReportHandler implements IQueryHandler<GetDetailedReport
   constructor(
     @Inject(DaoName.SoloAttempt) private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
@@ -38,7 +40,11 @@ export class GetDetailedReportHandler implements IQueryHandler<GetDetailedReport
     if (!optionalReport.hasValue()) {
       throw new Error(ATTEMPT_ERROR_CODES.COMPLETED_ATTEMPT_NOT_FOUND);
     }
-    return optionalReport.getValue();
+    const report = optionalReport.getValue();
 
+    // before returning, we enrich media URLs
+    const enrichedReport = await this.mediaService.enrichAttemptReport(report);
+
+    return enrichedReport;
   }
 }

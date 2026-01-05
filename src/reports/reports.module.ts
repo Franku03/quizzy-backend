@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ReportsController } from './infrastructure/nest-js/reports.controller';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
 // Handlers
 import { GetDetailedReportHandler } from './application/queries/get-solo-attempt-report/attempt.report.handler';
@@ -10,6 +11,7 @@ import { GetDetailedReportHandler } from './application/queries/get-solo-attempt
   controllers: [ReportsController],
   imports: [
     DaoFactoryModule.forFeature(DaoName.SoloAttempt), // Carga de un DAO (para queries de CQRS)
+    MediaModule,
   ],
   providers: [
     // handlers

@@ -5,13 +5,8 @@ import { DaoMongoRegistry } from '../mongo/registries/dao-mongo.registry';
 import { DaoPostgresRegistry } from '../postgres/registries/dao-postgres.registry';
 import { DAO_OVERRIDE_ENV_MAP, DaoName } from '../catalogs/dao.catalog.enum';
 import { DaoConstructor } from '../class-constructors/dao.constructor';
-import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
-@Module({
-  imports: [
-      MediaModule
-    ],
-})
+@Module({})
 export class DaoFactoryModule {
   static forFeature(daoKey: DaoName): DynamicModule {
     const globalType = process.env.DB_GLOBAL_TYPE;

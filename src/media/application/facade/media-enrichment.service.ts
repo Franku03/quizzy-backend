@@ -6,6 +6,10 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
 import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factory";
+import { AttemptReportReadModel } from "src/reports/application/queries/read-models/solo.attempt.report.read.model";
+import { AttemptResumeReadModel } from "src/solo-attempts/application/queries/read-models/resume.attempt.read.model";
+import { PaginatedKahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
+import { KahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -23,6 +27,94 @@ export class MediaEnrichmentService {
   public async enrichMediaUrlsById(assetIds: string[]): Promise<Map<string, string>> {
     const result = await this.resolveUrlMap(assetIds);
     return result;
+  }
+
+
+  public async enrichAttemptReport(report: AttemptReportReadModel): Promise<AttemptReportReadModel> {
+    // 1. Get IDs directly from the parent
+    // (The parent internally asks all its children for their IDs)
+    const assetIds = report.getMediaAssetIds();
+
+    // 2. Resolve URLs in batch
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    // 3. Create the Handler for the Parent
+    return this.handlerFactory
+      .createUrlHandler<AttemptReportReadModel>(urlMap)
+      .handle(report);
+  }
+
+
+  public async enrichAttemptResume(resume: AttemptResumeReadModel): Promise<AttemptResumeReadModel> {
+    // 1. Get IDs (The Resume model safely handles the null check internally)
+    const assetIds = resume.getMediaAssetIds();
+
+    // Optimization: If there are no IDs (e.g. game is finished or slide has no images), skip the rest
+    // and return the original object directly
+    if (assetIds.length === 0) {
+      return resume;
+    }
+
+    // 2. Resolve URLs in batch
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    // 3. Apply changes via the Factory
+    return this.handlerFactory
+      .createUrlHandler<AttemptResumeReadModel>(urlMap)
+      .handle(resume);
+  }
+
+
+  public async enrichPaginatedKahootList(list: PaginatedKahootListReadModel): Promise<PaginatedKahootListReadModel> {
+    // 1. Aggregate IDs (Parent delegates to children)
+    const assetIds = list.getMediaAssetIds();
+
+    if (assetIds.length === 0) {
+      return list;
+    }
+
+    // 2. Resolve URLs (Batch request for the whole page)
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    // 3. Apply via Factory
+    return this.handlerFactory
+      .createUrlHandler<PaginatedKahootListReadModel>(urlMap)
+      .handle(list);
+  }
+
+  /**
+   * Enriches a raw array of Kahoot List items efficiently.
+   * Collects all IDs first to perform a single batch request for URLs.
+   */
+  public async enrichKahootList(items: KahootListReadModel[]): Promise<KahootListReadModel[]> {
+    // Early exit if no items
+    if (items.length === 0) {
+      return items;
+    }
+
+    // 1. Batch Collection: Gather unique IDs from ALL items in the array
+    const allIds = new Set<string>();
+    items.forEach(item => {
+      // Each item already knows how to give us its IDs
+      item.getMediaAssetIds().forEach(id => allIds.add(id));
+    });
+
+    if (allIds.size === 0) {
+      return items;
+    }
+
+    // 2. Single Network Request: Resolve all URLs at once
+    const urlMap = await this.resolveUrlMap(Array.from(allIds));
+
+    // 3. Create Handler
+    const handler = this.handlerFactory.createUrlHandler<KahootListReadModel>(urlMap);
+
+    // 4. Apply to all items
+    items.forEach(item => {
+      handler.handle(item);
+    });
+
+    return items;
   }
 
   public async enrichKahoot(kahoot: KahootSnapshot): Promise<KahootSnapshot> {

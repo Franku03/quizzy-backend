@@ -13,7 +13,6 @@ import {
   QuestionResultReadModel 
 } from 'src/reports/application/queries/read-models/solo.attempt.report.read.model';
 import { NextSlideReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
-import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
@@ -27,7 +26,6 @@ export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
     private readonly attemptModel: Model<AttemptMongo>,
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
-    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   

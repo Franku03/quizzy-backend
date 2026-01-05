@@ -8,6 +8,7 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 // Domain Imports
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
@@ -46,6 +47,7 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
   ) {
     this.evaluationService = new SoloAttemptEvaluationService();
   }
@@ -130,7 +132,9 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
     // and therefore can react accordingly.
     let nextSlide: OutputSlide | null;
     if (nextSlideSnapshot) {
-        nextSlide = SlideSnapshotMapper.toOutputSlide(nextSlideSnapshot);
+        // we enrich media URLs before sending to client
+        const enrichedSlide = await this.mediaService.enrichSlide(nextSlideSnapshot);
+        nextSlide = SlideSnapshotMapper.toOutputSlide(enrichedSlide);
     }
     else {
         nextSlide = null;

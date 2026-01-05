@@ -13,6 +13,7 @@ import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/st
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 @QueryHandler(GetAttemptStatusQuery)
 export class GetAttemptStatusHandler
@@ -24,6 +25,7 @@ export class GetAttemptStatusHandler
     @Inject(DaoName.SoloAttempt)
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
@@ -45,7 +47,9 @@ export class GetAttemptStatusHandler
 
     // If found, we return the attempt resume context
     const attempt = attemptOptional.getValue();
+    // before returning, we enrich media URLs
+    const enrichedAttempt = await this.mediaService.enrichAttemptResume(attempt);
 
-    return attempt;
+    return enrichedAttempt;
   }
 }
