@@ -1,44 +1,47 @@
-import { DynamicModule, Module, Type } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityFactoryModule } from './entity.factory.module';
-import { DAO_REGISTRY, DaoName } from '../catalogs/dao.catalogue.enum';
-import { CqrsModule } from '@nestjs/cqrs';
+import { DaoMongoRegistry } from '../mongo/registries/dao-mongo.registry';
+import { DaoPostgresRegistry } from '../postgres/registries/dao-postgres.registry';
+import { DAO_OVERRIDE_ENV_MAP, DaoName } from '../catalogs/dao.catalog.enum';
+import { DaoConstructor } from '../class-constructors/dao.constructor';
 
 @Module({})
 export class DaoFactoryModule {
-  static forFeature(daoName: DaoName): DynamicModule {
-    const dbType = process.env.DB_TYPE;
-
-    if (!dbType || !['postgres', 'mongo'].includes(dbType)) {
-      throw new Error(`DB_TYPE inválido: ${dbType}`);
+  static forFeature(daoKey: DaoName): DynamicModule {
+    const globalType = process.env.DB_GLOBAL_TYPE;
+    if (!globalType || !['postgres', 'mongo'].includes(globalType)) {
+      throw new Error(`DB_GLOBAL_TYPE inválido: ${globalType}`);
     }
 
-    const registryItem = DAO_REGISTRY[daoName];
-    const RepoClass: Type<any> | null =
-      dbType === 'postgres' ? registryItem.typeorm : registryItem.mongoose;
+    const overrideEnv = DAO_OVERRIDE_ENV_MAP[daoKey];
+    const overrideType = process.env[overrideEnv] ?? globalType;
 
-    if (!RepoClass) this.handleMissingRepositoryError(dbType);
-
-    if (!RepoClass) {
-      throw new Error(`No hay implementación de ${dbType} para ${daoName}`);
+    let DaoClass: DaoConstructor | undefined;
+    if (overrideType === 'postgres') {
+      DaoClass = DaoPostgresRegistry.get(daoKey);
+    } else {
+      DaoClass = DaoMongoRegistry.get(daoKey);
     }
+
+    if (!DaoClass) this.handleMissingDaoError(overrideType, daoKey);
 
     return {
       module: DaoFactoryModule,
-      imports: [ConfigModule, EntityFactoryModule.forRoot(), CqrsModule], // Se carga todo el modelo para resolver las dependencias de cualqueir dao
+      imports: [ConfigModule, EntityFactoryModule.forFeature(overrideType)],
       providers: [
         {
-          provide: daoName,
-          useClass: RepoClass, // Nest crea la instancia y resuelve dependencias
+          provide: daoKey,
+          useClass: DaoClass!,
         },
       ],
-      exports: [daoName],
+      exports: [daoKey],
     };
   }
 
-  private static handleMissingRepositoryError(DbType: string) {
+  private static handleMissingDaoError(dbType: string, daoKey: string) {
     throw new Error(
-      `⚠️ Se intentó cargar una entidad de ${DbType} que no fue declarada en el catalogo de entities. Revisar ENTITY_REGISTRY`,
+      `⚠️ No se encontró implementación de ${dbType} para el DAO ${daoKey}. Verifica los registries.`,
     );
   }
 }

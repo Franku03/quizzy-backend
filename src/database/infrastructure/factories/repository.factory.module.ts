@@ -1,48 +1,50 @@
-import { DynamicModule, Module, Type } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EntityFactoryModule } from './entity.factory.module';
 import {
-  REPOSITORY_REGISTRY,
+  REPOSITORY_OVERRIDE_ENV_MAP,
   RepositoryName,
 } from '../catalogs/repository.catalog.enum';
+import { RepositoryConstructor } from '../class-constructors/repository.constructor';
+import { RepositoryPostgresRegistry } from '../postgres/registries/repository-postgres.registry';
+import { RepositoryMongoRegistry } from '../mongo/registries/repository-mongo.registry';
 
 @Module({})
 export class RepositoryFactoryModule {
-  static forFeature(repositoryName: RepositoryName): DynamicModule {
-    const dbType = process.env.DB_TYPE;
-
-    if (!dbType || !['postgres', 'mongo'].includes(dbType)) {
-      throw new Error(`DB_TYPE inválido: ${dbType}`);
+  static forFeature(repoKey: RepositoryName): DynamicModule {
+    const globalType = process.env.DB_GLOBAL_TYPE;
+    if (!globalType || !['postgres', 'mongo'].includes(globalType)) {
+      throw new Error(`DB_GLOBAL_TYPE inválido: ${globalType}`);
     }
 
-    const registryItem = REPOSITORY_REGISTRY[repositoryName];
-    const RepoClass: Type<any> | null =
-      dbType === 'postgres' ? registryItem.typeorm : registryItem.mongoose;
+    const overrideEnv = REPOSITORY_OVERRIDE_ENV_MAP[repoKey];
+    const overrideType = process.env[overrideEnv] ?? globalType;
 
-    if (!RepoClass) this.handleMissingRepositoryError(dbType);
-
-    if (!RepoClass) {
-      throw new Error(
-        `No hay implementación de ${dbType} para ${repositoryName}`,
-      );
+    let RepoClass: RepositoryConstructor | undefined;
+    if (overrideType === 'postgres') {
+      RepoClass = RepositoryPostgresRegistry.get(repoKey);
+    } else {
+      RepoClass = RepositoryMongoRegistry.get(repoKey);
     }
+
+    if (!RepoClass) this.handleMissingRepositoryError(overrideType, repoKey);
 
     return {
       module: RepositoryFactoryModule,
-      imports: [ConfigModule, EntityFactoryModule.forRoot()], // Se carga todo el modelo para resolver las dependencias de cualqueir repo
+      imports: [ConfigModule, EntityFactoryModule.forFeature(overrideType)],
       providers: [
         {
-          provide: repositoryName,
-          useClass: RepoClass, // Nest crea la instancia y resuelve dependencias
+          provide: repoKey,
+          useClass: RepoClass!,
         },
       ],
-      exports: [repositoryName],
+      exports: [repoKey],
     };
   }
 
-  private static handleMissingRepositoryError(DbType: string) {
+  private static handleMissingRepositoryError(dbType: string, repoKey: string) {
     throw new Error(
-      `⚠️ Se intentó cargar una entidad de ${DbType} que no fue declarada en el catalogo de entities. Revisar ENTITY_REGISTRY`,
+      `⚠️ No se encontró implementación de ${dbType} para el Repository ${repoKey}. Verifica los registries.`,
     );
   }
 }

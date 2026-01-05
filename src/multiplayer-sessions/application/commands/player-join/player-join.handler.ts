@@ -4,7 +4,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 
 import { PlayerFactory } from "src/multiplayer-sessions/domain/factories/player.factory";
 
-import { DaoName } from "src/database/infrastructure/catalogs/dao.catalogue.enum";
+import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";

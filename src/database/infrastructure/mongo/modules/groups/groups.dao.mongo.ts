@@ -11,7 +11,10 @@ import { KahootLeaderboardReadModel } from 'src/groups/application/queries/read-
 import { KahootMongo } from '../../entities/kahoots.schema';
 import { AttemptMongo } from '../../entities/attempts.scheme';
 import { GroupQuizAssignmentReadModel, UserResultModel } from 'src/groups/application/queries/read-model/group.quiz.assignment.model';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.Group)
 @Injectable()
 export class GroupDaoMongo implements IGroupsDao {
     constructor(

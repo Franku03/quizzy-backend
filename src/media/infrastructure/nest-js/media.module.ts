@@ -15,7 +15,7 @@ import { MEDIA_TOKENS } from '../../application/dependency-tokens/application-me
 import { MediaController } from './media.controller';
 import { CoreModule } from 'src/core/core.module';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { CloudinaryStorageAdapter } from '../adapters/cloudinary/cloudinary.storage.adapter';
 import { CloudinaryUrlGeneratorAdapter } from '../adapters/cloudinary/cloudinary.url-generator.adapter';
 import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.service';

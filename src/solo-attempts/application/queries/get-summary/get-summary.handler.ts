@@ -5,7 +5,7 @@ import { Inject } from '@nestjs/common';
 import { GetAttemptSummaryQuery } from './get-summary.query';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';
 import { AttemptSummaryReadModel } from '../read-models/summary.attempt.read.model';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';

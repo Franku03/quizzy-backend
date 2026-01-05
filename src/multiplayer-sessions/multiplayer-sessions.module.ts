@@ -4,8 +4,8 @@ import { MultiplayerSessionsController, MultiplayerSessionsGateway, MultiplayerS
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
 import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { 

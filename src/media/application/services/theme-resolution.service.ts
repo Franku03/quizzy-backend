@@ -7,7 +7,7 @@ import { AssetMetadataRecord } from "../ports/i-asset-metadata-record.interface"
 import type { IAssetMetadataDao } from "../ports/i-asset-metadata.dao.interface";
 import type { IAssetUrlGenerator } from "../ports/i-asset-url-generator.interface";
 import { IThemeEnricher } from "../ports/i-theme-enricher.interface";
-import { DaoName } from "src/database/infrastructure/catalogs/dao.catalogue.enum";
+import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 
 
 @Injectable()

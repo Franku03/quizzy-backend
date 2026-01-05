@@ -21,6 +21,8 @@ import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singl
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
 
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
@@ -35,7 +37,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     private readonly eventBus: EventBus,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     @Inject(UuidGenerator) private readonly uuidGenerator: IdGenerator<string>,
-  
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
@@ -105,13 +107,18 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     // We retrieve the snapshot of the first slide to send it back to the client immediately.
     // Passing -1 or no argument instructs the method to fetch the first index (0).
     const firstSlideSnapshot = kahoot.getNextSlideSnapshotByIndex();
+    let enrichedSlide: SlideSnapshot;
 
     if (!firstSlideSnapshot) {
       throw new Error(ATTEMPT_ERROR_CODES.NO_SLIDES);
     }
+    else{
+      // we enrich media URLs before sending to client
+      enrichedSlide = await this.mediaService.enrichSlide(firstSlideSnapshot);
+    }
     
     // We construct the output object matching the output response requirement.
-    const outputSlide = SlideSnapshotMapper.toOutputSlide(firstSlideSnapshot);
+    const outputSlide = SlideSnapshotMapper.toOutputSlide(enrichedSlide);
 
     return {
       attemptId: attempt.attemptId.value,

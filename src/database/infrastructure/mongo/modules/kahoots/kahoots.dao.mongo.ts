@@ -1,18 +1,32 @@
 // src/kahoots/infrastructure/persistence/mongo/kahoot.mongo-dao.ts
+// --- NestJS & Mongoose ---
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
+// --- Core Logic & Types ---
 import { ErrorData, Either } from 'src/core/types';
-import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
-import { IKahootDocument, KahootMongo } from '../../entities/kahoots.schema';
-
-import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
-import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+
+// --- Domain Models & Snapshots ---
+import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
+
+// --- Application Ports ---
+import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
+
+// --- Infrastructure: Enums & Decorators ---
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+
+// --- Infrastructure: Entities & Constants ---
+import { IKahootDocument, KahootMongo } from '../../entities/kahoots.schema';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
+// --- Infrastructure: Mappers & Errors ---
+import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
+import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
+
+@DaoMongo(DaoName.Kahoot)
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
   private readonly mongoErrorMapper = new MongoErrorMapper();

@@ -1,15 +1,27 @@
 // src/database/infrastructure/mongo/modules/media/media.dao.mongo.ts
-
-import { Model } from 'mongoose';
+// --- NestJS & Mongoose ---
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+
+// --- Core Logic & Types ---
+import { ErrorData, Either, ErrorLayer } from 'src/core/types';
+import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+
+// --- Application Ports ---
 import { IAssetMetadataDao } from 'src/media/application/ports/i-asset-metadata.dao.interface';
 import { AssetMetadataRecord } from 'src/media/application/ports/i-asset-metadata-record.interface';
-import { ErrorData, Either, ErrorLayer } from 'src/core/types';
+
+// --- Infrastructure: Enums & Decorators ---
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+
+// --- Infrastructure: Entities & Constants ---
 import { AssetMetadataMongo } from '../../entities/media.schema';
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
-import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 import { ASSET_MONGO_BASE } from './constants/asset-mongo-constants';
+
+// --- Infrastructure: Mappers & Errors ---
+import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 
 /**
  * Interfaz que representa el POJO devuelto por .lean().
@@ -30,6 +42,7 @@ export interface IAssetMetadataDocument {
   uploadedAt: Date;
 }
 
+@DaoMongo(DaoName.AssetMetadataMongo)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
   private readonly mongoErrorMapper = new MongoErrorMapper();

@@ -1,5 +1,3 @@
-// src/media/application/services/media-enrichment.service.ts
-
 import { Injectable, Inject } from "@nestjs/common";
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
@@ -10,6 +8,9 @@ import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
 import type { IThemeEnricher } from "../ports/i-theme-enricher.interface";
 import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factory";
+import { AttemptReportReadModel } from "src/reports/application/queries/read-models/solo.attempt.report.read.model";
+import { AttemptResumeReadModel } from "src/solo-attempts/application/queries/read-models/resume.attempt.read.model";
+import { PaginatedKahootListReadModel, KahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -21,7 +22,77 @@ export class MediaEnrichmentService {
     private readonly themeEnricher: IThemeEnricher,
 
     private readonly handlerFactory: EnrichmentHandlerFactory
-  ) { }
+  ) {}
+
+  public async enrichMediaUrlById(assetId: string): Promise<string | undefined> {
+    const map = await this.resolveUrlMap([assetId]);
+    return map.get(assetId);
+  }
+
+  public async enrichMediaUrlsById(assetIds: string[]): Promise<Map<string, string>> {
+    return this.resolveUrlMap(assetIds);
+  }
+
+  public async enrichAttemptReport(report: AttemptReportReadModel): Promise<AttemptReportReadModel> {
+    const assetIds = report.getMediaAssetIds();
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    return this.handlerFactory
+      .createUrlHandler<AttemptReportReadModel>(urlMap)
+      .handle(report);
+  }
+
+  public async enrichAttemptResume(resume: AttemptResumeReadModel): Promise<AttemptResumeReadModel> {
+    const assetIds = resume.getMediaAssetIds();
+
+    if (assetIds.length === 0) {
+      return resume;
+    }
+
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    return this.handlerFactory
+      .createUrlHandler<AttemptResumeReadModel>(urlMap)
+      .handle(resume);
+  }
+
+  public async enrichPaginatedKahootList(list: PaginatedKahootListReadModel): Promise<PaginatedKahootListReadModel> {
+    const assetIds = list.getMediaAssetIds();
+
+    if (assetIds.length === 0) {
+      return list;
+    }
+
+    const urlMap = await this.resolveUrlMap(assetIds);
+
+    return this.handlerFactory
+      .createUrlHandler<PaginatedKahootListReadModel>(urlMap)
+      .handle(list);
+  }
+
+  public async enrichKahootList(items: KahootListReadModel[]): Promise<KahootListReadModel[]> {
+    if (items.length === 0) {
+      return items;
+    }
+
+    const allIds = new Set<string>();
+    items.forEach(item => {
+      item.getMediaAssetIds().forEach(id => allIds.add(id));
+    });
+
+    if (allIds.size === 0) {
+      return items;
+    }
+
+    const urlMap = await this.resolveUrlMap(Array.from(allIds));
+    const handler = this.handlerFactory.createUrlHandler<KahootListReadModel>(urlMap);
+
+    items.forEach(item => {
+      handler.handle(item);
+    });
+
+    return items;
+  }
 
   public async enrichKahoot(kahoot: KahootSnapshot): Promise<KahootSnapshot> {
     const { urlMap, theme } = await this.resolveMetadataBatch(kahoot);

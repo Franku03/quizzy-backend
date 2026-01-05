@@ -20,6 +20,10 @@ import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+
+@RepositoryMongo(RepositoryName.Kahoot)
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
   private readonly mongoErrorMapper = new MongoErrorMapper();

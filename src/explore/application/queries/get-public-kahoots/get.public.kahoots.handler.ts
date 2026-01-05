@@ -6,10 +6,11 @@ import { GetPublicKahootsQuery } from './get.public.kahoots.query';
 import { PaginatedKahootListReadModel } from '../../read-models/kahoot-list.read-model';
 import type { IExploreDao } from '../ports/explore.dao.port';
 import { EXPLORE_ERROR_CODES } from '../explore.query.errors';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 // This handler processes the query to fetch public kahoots with pagination and filtering.
 // It serves the GET /explore endpoint by retrieving published, public kahoots based on
@@ -22,6 +23,7 @@ export class GetPublicKahootsHandler implements IQueryHandler<GetPublicKahootsQu
     @Inject(DaoName.Explore)
     private readonly exploreDao: IExploreDao,
     @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
@@ -45,7 +47,7 @@ export class GetPublicKahootsHandler implements IQueryHandler<GetPublicKahootsQu
     // when querying the database.
     try {
       // Delegate to the DAO to fetch public kahoots with the specified parameters
-      return await this.exploreDao.getPublicKahoots({
+      const kahoots = await this.exploreDao.getPublicKahoots({
         searchTerm: query.searchTerm,
         categories: query.categories,
         page: page, 
@@ -53,6 +55,9 @@ export class GetPublicKahootsHandler implements IQueryHandler<GetPublicKahootsQu
         orderBy: query.orderBy,
         order: query.order,
       });
+      // before returning, we enrich media URLs
+      const enrichedKahoots = await this.mediaService.enrichPaginatedKahootList(kahoots);
+      return enrichedKahoots;
     } catch (error) {
       // If the DAO throws an error related to invalid parameters, we re-throw it
       // with a specific error code for proper handling at the controller level
