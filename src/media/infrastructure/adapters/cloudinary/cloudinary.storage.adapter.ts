@@ -3,7 +3,7 @@ import * as cloudinary from 'cloudinary';
 import { UploadApiResponse} from 'cloudinary';
 import { IAssetStorageService } from 'src/media/application/ports/i-asset-storage.interface';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
-import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-extenral-service.context';
+import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-external-service.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import { ERROR_MAPPER, CLOUDINARY_CONFIG } from 'src/media/application/dependency-tokens/application-media.tokens';
 

@@ -9,11 +9,11 @@ import {
   Logger,
 } from '@nestjs/common';
 
-// Importamos la estructura de ErrorData
-import { ErrorData, ErrorLayer } from 'src/core/types'; 
+import { ErrorData, ErrorLayer } from 'src/core/types';
 import { ErrorMappingService } from '../services/global-error-mapping.service';
-import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface'; 
+import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface';
 import { isErrorData } from 'src/core/errors/type-guards.ts/error-data.type.guard';
+import { IErrorContext } from 'src/core/errors/interface/context/i-error-context.interface';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -22,60 +22,65 @@ export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     @Inject(ErrorMappingService)
     private readonly errorMappingService: ErrorMappingService,
-  ) {}
+  ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
     const request = ctx.getRequest();
 
-    let clientResponse: IErrorResponse;
+    /**
+     * 1. Creamos el contexto de infraestructura.
+     * Aunque IErrorContext no declare 'path' o 'method', el index signature 
+     * [key: string]: any permite que TS acepte este objeto sin chillar.
+     */
+    const infraContext: IErrorContext = {
+      path: request.url,
+      method: request.method,
+      actorId: request.user?.id || request.user?.userId || 'anonymous',
+      operation: 'HTTP_REQUEST', // Solo se usará si el ErrorData no trae una operación propia
+    };
 
-    // 1. MANEJO DE ErrorData (Tu estándar ROP)
+    let errorToProcess: ErrorData;
+
+    // --- ESCENARIO 1: ErrorData (ROP / Dominio / UseCases) ---
     if (isErrorData(exception)) {
-      clientResponse = this.errorMappingService.toClientResponse(exception);
-      // IMPRESIÓN LINDA: Aquí es donde controlas la consola
-      this.logger.error(exception.toLogString());
+      // setContext protege la 'operation' original si ya existe (ej. 'CreateKahoot')
+      errorToProcess = exception //.setContext(infraContext);
     } 
-    
-    // 2. MANEJO DE EXCEPCIONES NATIVAS (Pipes, Guards, 404s)
+
+    // --- ESCENARIO 2: HttpException (Nest nativo, ej. ValidationPipe) ---
     else if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const responseBody = exception.getResponse() as any;
 
-      clientResponse = {
-        status: status,
-        code: responseBody.error || `HTTP_ERROR_${status}`,
-        message: responseBody.message || exception.message,
-        details: responseBody.details || (responseBody.message ? { message: responseBody.message } : undefined),
-        errorId: `NEST-${Math.random().toString(36).substring(7)}`,
-      };
-
-      // Logueamos los 500 nativos, los 400 no suelen necesitar stack trace
-      if (status >= 500) {
-        this.logger.error(`HttpException ${status}: ${JSON.stringify(responseBody)}`);
-      }
+      errorToProcess = new ErrorData(
+        responseBody.error || `HTTP_ERROR_${status}`,
+        responseBody.message || exception.message,
+        status >= 500 ? ErrorLayer.INFRASTRUCTURE : ErrorLayer.APPLICATION,
+        { ...infraContext, ...responseBody.details },
+        exception
+      );
     } 
-    
-    // 3. FALLBACK: Errores de Runtime (Ej: TypeError, ReferenceError)
+
+    // --- ESCENARIO 3: Errores de Runtime (Crashes, bugs de código) ---
     else {
-      const unexpectedErrorData = new ErrorData(
+      errorToProcess = new ErrorData(
         'APPLICATION_UNEXPECTED_ERROR',
         (exception as Error)?.message || 'Internal Server Error',
         ErrorLayer.APPLICATION,
-        { path: request.url, method: request.method },
+        infraContext,
         exception as Error
       );
-
-      clientResponse = this.errorMappingService.toClientResponse(unexpectedErrorData);
-      
-      // IMPORTANTE: Loguear el error inesperado con stack trace para debug
-      this.logger.error(unexpectedErrorData.toLogString());
     }
 
-    // 4. RESPUESTA ÚNICA
-    response
-      .status(clientResponse.status)
-      .json(clientResponse);
+    // 2. LOGGING: Consola completa para el desarrollador (Con colores y stack trace)
+    this.logger.error(errorToProcess.toLogString());
+
+    // 3. MAPPING: Sanitizamos la respuesta para el cliente (Borra credenciales si es 500)
+    const clientResponse: IErrorResponse = this.errorMappingService.toClientResponse(errorToProcess);
+
+    // 4. RESPUESTA HTTP
+    response.status(clientResponse.status).json(clientResponse);
   }
 }

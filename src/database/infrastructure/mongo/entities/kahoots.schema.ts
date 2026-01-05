@@ -1,6 +1,20 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
+// Esta interfaz representa el objeto plano que devuelve .lean()
+export interface IKahootDocument {
+  id: string;
+  authorId: string;
+  details: KahootDetailsSnapshot | null;
+  visibility: string;
+  status: string;
+  playCount: number;
+  styling: KahootStylingSnapshot;
+  slides: SlideSnapshot[] | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- I. SUB-ESQUEMAS (Clases de Mongoose, fuente única de verdad) ---
 
 // 1. Esquema para las Opciones de la Pregunta

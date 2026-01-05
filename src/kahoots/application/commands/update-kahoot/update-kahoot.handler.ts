@@ -1,6 +1,6 @@
 // src/kahoots/application/commands/update-kahoot/update-kahoot.handler.ts
 
-// --- Externals & Core ---
+// --- Nest & CQRS ---
 import { Inject } from '@nestjs/common';
 import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
@@ -10,6 +10,13 @@ import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
 
+// --- Aspects & Decorators ---
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { KahootOwnershipAuthorizer, IKahootOwnershipRequest } from 'src/core/application/aspects/auth/strategies/kahootOwnership.strategy';
+
 // --- Domain Models & VOs ---
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
@@ -17,6 +24,7 @@ import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot
 import { KahootStatus } from 'src/kahoots/domain/value-objects/kahoot.status';
 import { VisibilityStatus } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 import { KahootFactory, SlideInput } from 'src/kahoots/domain/factories/kahoot.factory';
+import { Slide } from 'src/kahoots/domain/entities/slides/kahoot.slide';
 
 // --- Domain Ports & Repositories ---
 import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
@@ -43,93 +51,76 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   constructor(
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
-    
     @Inject(MAPPER_TOKEN)
     private readonly kahootMapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
-
     private readonly mediaService: MediaEnrichmentService,
-
     private readonly attemptCleanup: AttemptCleanupService,
-    
     @Inject(ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) { }
 
-  async execute(command: UpdateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
-    const appContext = createKahootAppContext('updateKahoot', command.id, command.userId);
+  @Log()
+  @Authorize(KahootOwnershipAuthorizer, 'kahootRepository') 
+  async execute(
+    command: UpdateKahootCommand & IKahootOwnershipRequest
+  ): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
 
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
-      // 1. Infraestructura: Recuperación
-      this.kahootRepository.findKahootByIdEither(command.id),
+      // 1. RECURSO YA VALIDADO: Iniciamos el tren directamente con el Agregado inyectado
+      Either.makeRight(command.validatedResource as Kahoot),
 
-      // 2. Dominio: Lógica de Negocio (Igual que antes) 
-      k => k.chain(kahoot => this.applyUpdates(kahoot, command)
-      
-      //3. Manejo de Errores de Dominio (Agregar contexto adicional)
-      .mapLeft(err => err.setContext(appContext))),
+      // 2. Lógica de Dominio (Mutación controlada por performance)
+      k => k.chain(kahoot => this.applyUpdates(kahoot, command)),
 
-      // 4. Infraestructura: Persistencia
+      // 3. Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
 
-      // 5. Aplicación: Side Effects
+      // 4. Efectos secundarios (Cleanup)
       k => k.tapChainAsync(kahoot => this.runSideEffects(kahoot)),
 
-      // 6. Obtener Snapshot Raw
+      // 5. Transformación Final (Snapshot -> Enriquecer -> DTO)
       k => k.map(kahoot => kahoot.getSnapshot()),
-
-      // 7. Enriquecer Snapshot (URLs & Theme)
       k => k.mapAsync(snapshot => this.mediaService.enrichKahoot(snapshot)),
-
-      // 8. Transformar a DTO
-      k => k.map(enrichedSnapshot => this.kahootMapper.map(enrichedSnapshot))
+      k => k.map(enriched => this.kahootMapper.map(enriched))
     );
   }
 
-  // --- MÉTODOS PRIVADOS  ---
-
   private applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Either<ErrorData, Kahoot> {
-    // Todo el flujo es una sola cadena de .chain()
+    // Railway puro: si uno falla, el resto no se ejecuta.
     return this.processSlidesMap(command.slides || [])
-      .chain(slidesMap => KahootStatus.create(command.status)
-        .chain(status => VisibilityStatus.create(command.visibility)
-          .chain(visibility => KahootFactory.assembleStyling(command.themeId, command.imageId)
-            .chain(styling => {
-              
-              // 1. Aplicamos cambios al agregado
-              kahoot.replaceSlides(slidesMap);
-              kahoot.updateStyling(styling);
-              kahoot.changeStatus(status.value);
-              kahoot.changeVisibility(visibility.value);
-
-              // 2. Aplicamos detalles (OptionalVO)
-              const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
-              if (detailsVO.hasValue()) {
-                const detailsRes = kahoot.updateDetails(detailsVO.getValue());
-                if (detailsRes.isLeft()) return detailsRes as any;
-              }
-
-              return Either.makeRight(kahoot);
-            })
-          )
-        )
-      );
+      .chain(slidesMap => kahoot.replaceSlides(slidesMap)) 
+      .chain(() => KahootFactory.assembleStyling(command.themeId, command.imageId))
+      .chain(styling => kahoot.updateStyling(styling))
+      .chain(() => VisibilityStatus.create(command.visibility))
+      .chain(visibility => {
+        kahoot.changeVisibility(visibility.value);
+        const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
+        return detailsVO.hasValue()
+          ? kahoot.updateDetails(detailsVO.getValue()).map(() => kahoot)
+          : Either.makeRight(kahoot);
+      })
+      .chain(() => KahootStatus.create(command.status))
+      .chain(status => kahoot.changeStatus(status.value))
+      .map(() => kahoot);
   }
 
-  private async runSideEffects(kahoot: Kahoot): Promise<Either<ErrorData, Kahoot>> {
-    await this.attemptCleanup.cleanupById(new KahootId(kahoot.id.value)).catch(() => null);
-    return Either.makeRight(kahoot);
-  }
-
-  private processSlidesMap(rawSlides: KahootSlideCommand[]): Either<ErrorData, Map<string, any>> {
-    // Generación de IDs síncrona
+  private processSlidesMap(rawSlides: KahootSlideCommand[]): Either<ErrorData, Map<string, Slide>> {
     const slidesInput: SlideInput[] = rawSlides.map((s) => ({
       ...s,
       id: s.id || this.idGenerator.generateId(),
       options: s.options?.map(o => ({ ...o })) || []
     }));
 
+    // El Factory construye objetos 'Slide', por eso el Map es de <string, Slide>
     return KahootFactory.processSlides(slidesInput, (s: SlideInput, p: number) =>
       KahootFactory.buildSlideFromInput(s, p)
     );
+  }
+
+  private async runSideEffects(kahoot: Kahoot): Promise<Either<ErrorData, Kahoot>> {
+    this.attemptCleanup.cleanupById(new KahootId(kahoot.id.value))
+      .catch(err => this.logger.error(`Error cleaning up attempts for ${kahoot.id.value}`, err));
+    return Either.makeRight(kahoot);
   }
 }

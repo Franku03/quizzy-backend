@@ -1,15 +1,25 @@
 // src/kahoots/infrastructure/persistence/mongo/mappers/kahoot-read.mapper.ts
 import { Injectable } from '@nestjs/common';
-import { KahootMongo } from '../../../entities/kahoots.schema';
-
-// Import los Snapshots (las clases)
+import { 
+  IKahootDocument, 
+  SlideSnapshot, 
+  OptionSnapshot 
+} from '../../../entities/kahoots.schema';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.type';
+import { IMapper } from 'src/core/application/mapper/i-mapper.interface';
 
 @Injectable()
-export class KahootReadMapper {
+export class KahootReadMapper implements IMapper<IKahootDocument, KahootSnapshot> {
 
-  mapDocumentToSnapshot(document: KahootMongo): KahootSnapshot {
+  // ==========================================
+  // IMPLEMENTACIÓN DE IMapper
+  // ==========================================
+
+  /**
+   * Transforma un documento de MongoDB (IKahootDocument) en un Snapshot de dominio.
+   */
+  public map(document: IKahootDocument): KahootSnapshot {
     return KahootSnapshot.fromRaw({
       id: document.id,
       authorId: document.authorId,
@@ -29,15 +39,23 @@ export class KahootReadMapper {
         imageId: document.styling.imageId ?? undefined,
       },
 
+      // Usamos el helper privado con el tipado correcto de tu Schema
       slides: document.slides ? this.mapSlidesData(document.slides) : [],
     });
   }
 
-  private mapSlidesData(slides: any[]): any[] {
+  // ==========================================
+  // MÉTODOS PRIVADOS DE APOYO
+  // ==========================================
+
+  /**
+   * Mapea el array de slides usando la clase SlideSnapshot del esquema.
+   */
+  private mapSlidesData(slides: SlideSnapshot[]): any[] {
     return slides.map((slide) => ({
       id: slide.id,
       position: slide.position,
-      slideType: slide.slideType as SlideTypeEnum, 
+      slideType: slide.slideType as SlideTypeEnum,
       timeLimitSeconds: slide.timeLimitSeconds,
       questionText: slide.questionText ?? undefined,
       slideImageId: slide.slideImageId ?? undefined,
@@ -47,7 +65,10 @@ export class KahootReadMapper {
     }));
   }
 
-  private mapOptionsData(options: any[] | null | undefined): any[] {
+  /**
+   * Mapea las opciones usando la clase OptionSnapshot del esquema.
+   */
+  private mapOptionsData(options: OptionSnapshot[] | null | undefined): any[] {
     if (!options || options.length === 0) return [];
 
     return options.map((option) => ({

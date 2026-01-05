@@ -17,6 +17,4 @@ export interface IDomainErrorContext extends IErrorContext {
     
     // NEGOCIO: El ID del Agregado (El UUID del Kahoot)
     rootAggregateId?: string;
-
-    actorId?: string; 
 }

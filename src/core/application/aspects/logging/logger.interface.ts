@@ -13,4 +13,7 @@ export interface ILogger {
   // Logs an error message. Used when something goes wrong during execution.
   // The error object contains details about what failed and why.
   error(message: string, error?: any, metadata?: Record<string, any>): void;
+
+  // EL FUTURO: Para errores de negocio/aplicación controlados (sin Stack Trace sucio)
+  errorResult(message: string, metadata?: Record<string, any>): void;
 }

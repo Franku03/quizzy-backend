@@ -3,59 +3,87 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { ErrorData, Either } from 'src/core/types'; 
-// Asegúrate de que este puerto esté actualizado (ver punto 2 abajo)
+import { ErrorData, Either } from 'src/core/types';
 import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
-import { KahootMongo } from '../../entities/kahoots.schema';
+import { IKahootDocument, KahootMongo } from '../../entities/kahoots.schema';
 
-// [CORRECCIÓN 1] Importamos el Snapshot, no el HandlerResponse
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
-import { KahootReadMapper } from './mappers/kahoot.handler.mapper'; 
+import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
-import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
-
-  private readonly adapterContextBase: IDatabaseErrorContext = {
-    adapterName: KahootDaoMongo.name,
-    portName: 'IKahootDao',
-    module: 'kahoots',
-    databaseType: 'mongodb',
-    collectionOrTable: 'kahoots',
-    operation: '', 
-  } as const;
-
-  private readonly mongoErrorMapper: MongoErrorMapper = new MongoErrorMapper();
-  private readonly kahootReadMapper: KahootReadMapper = new KahootReadMapper();
+  private readonly mongoErrorMapper = new MongoErrorMapper();
+  private readonly kahootReadMapper = new KahootReadMapper();
+  private readonly contextBase = KAHOOT_MONGO_BASE;
+  private readonly adapterName = KahootDaoMongo.name;
+  private readonly portName = 'IKahootDao';
 
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
-  ) { }
+  ) {}
+
+  // ==========================================
+  // HELPERS PRIVADOS
+  // ==========================================
+
+  /**
+   * Genera el contexto de error inyectando la identidad del DAO.
+   */
+  private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
+    return createDatabaseContext(
+      this.contextBase,
+      this.adapterName,
+      this.portName,
+      operation,
+      entityId,
+      extra
+    );
+  }
+
+  // ==========================================
+  // IMPLEMENTACIÓN DE MÉTODOS (IKahootDao)
+  // ==========================================
 
   async getKahootById(id: string): Promise<Either<ErrorData, KahootSnapshot | null>> {
-    const fullContext: IDatabaseErrorContext = {
-      ...this.adapterContextBase,
-      operation: 'getKahootById',
-      entityId: id
-    };
+    const ctx = this.getCtx('getKahootById', id);
 
-    try {
-      const document = await this.kahootModel
-        .findOne({ id })
-        .exec();
-        
-      if (!document) {
-        return Either.makeRight<ErrorData, KahootSnapshot | null>(null);
-      }
+    const result = await Either.tryCatch(
+      this.kahootModel.findOne({ id }).lean<IKahootDocument>().exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
 
-      const readModel = this.kahootReadMapper.mapDocumentToSnapshot(document);
-      return Either.makeRight<ErrorData, KahootSnapshot | null>(readModel);
+    // Ahora usamos .map() del contrato IMapper
+    return result.map(doc => doc ? this.kahootReadMapper.map(doc) : null);
+  }
 
-    } catch (error) {
-      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(error, fullContext);
-      return Either.makeLeft<ErrorData, KahootSnapshot | null>(errorData);
+  async getKahootValidationDataByKahootId(id: string): Promise<Either<ErrorData, { userId: string, visibility: string } | null>> {
+    const ctx = this.getCtx('getKahootValidationDataByKahootId', id);
+
+    // Definimos una interfaz local para el select específico si no queremos traer todo el IKahootDocument
+    interface ValidationData {
+      authorId: string;
+      visibility: string;
     }
+
+    const result = await Either.tryCatch(
+      this.kahootModel
+        .findOne({ id })
+        .select('authorId visibility')
+        .lean<ValidationData>() 
+        .exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+
+    return result.map(doc => {
+      if (!doc) return null;
+      return {
+        userId: doc.authorId,
+        visibility: doc.visibility
+      };
+    });
   }
 }

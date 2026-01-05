@@ -13,6 +13,11 @@ import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
 import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
 
+// --- Aspects & Decorators ---
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+
 // --- Domain & Factory ---
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootFactory, SlideInput } from '../../../domain/factories/kahoot.factory';
@@ -42,8 +47,11 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
     private readonly idGenerator: IdGenerator<string>,
 
     private readonly mediaService: MediaEnrichmentService,
+
+    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
   ) { }
 
+  @Log() 
   async execute(command: CreateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
     const kahootId = this.idGenerator.generateId();
     const slidesWithIds = this.processSlidesWithIds(command.slides || []);

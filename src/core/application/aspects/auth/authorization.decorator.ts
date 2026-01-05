@@ -1,11 +1,13 @@
 // application/decorators/Authorize.ts
 
 import { IAuthorizer } from "./authorizer.interface";
+import { Either } from "src/core/types";
 
 // Type definition for the class constructor of an Authorizer
 // This allows us to type the Strategy parameter in the Authorize decorator factory
 // as a class that can be instantiated to produce an IAuthorizer instance.
-type AuthorizerClass = new () => IAuthorizer<any, any>;
+// MODIFICACIÓN: Se añade <any, any, any> para permitir que el tercer parámetro (TResource) sea cualquier cosa.
+type AuthorizerClass = new () => IAuthorizer<any, any, any>;
 
 
 // Authorization Decorator Factory
@@ -13,7 +15,11 @@ type AuthorizerClass = new () => IAuthorizer<any, any>;
 // It extracts the command/query and the necessary context from the handler instance,
 // then invokes the strategy's authorize method before proceeding to the original method.
 
-export function Authorize(Strategy: AuthorizerClass, contextPropertyKey: string) {
+export function Authorize(
+  Strategy: AuthorizerClass, 
+  contextPropertyKey: string,
+  operationName?: string, 
+) {
   // The actual decorator function. This syntax is standard for typescript method decorators.
   // target: The prototype of the class
   // propertyKey: The name of the method being decorated
@@ -54,8 +60,37 @@ export function Authorize(Strategy: AuthorizerClass, contextPropertyKey: string)
       // state-related bugs if the strategy maintains any internal state.
       // By passing the class and instantiating it within the decorator, 
       // we ensure a fresh instance per invocation.
+      // Lógica de autoderivación
+      const finalOperationName = operationName || 
+          target.constructor.name
+            .replace('Handler', '')
+            .replace('Query', '')
+            .replace('Command', '');
+
+      // Inyectamos el nombre en el comando para que el Authorizer lo use
+      command.operationName = finalOperationName;
+      
+
       const strategy = new Strategy();
-      await strategy.authorize(command, context);
+      
+      // Ejecutamos la lógica de autorización. 
+      // Soportamos tanto Promise<void> como Promise<Either<ErrorData, void>>
+      const authResult = await strategy.authorize(command, context);
+
+      // Si el resultado es un Either y es Left (fallo), cortocircuitamos el "tren" ROP
+      // devolviendo el error antes de ejecutar el método original (Handler).
+      if (Either.isEither(authResult)) {
+        if (authResult.isLeft()) {
+          return authResult;
+        }
+        
+        // --- INYECCIÓN DEL RECURSO (Optimización de Fetch) ---
+        // Si el resultado es Right y contiene un recurso, lo inyectamos en el comando
+        const resource = authResult.getRight();
+        if (resource !== undefined && resource !== null) {
+          command.validatedResource = resource;
+        }
+      }
 
       // Finally, if the action is authorized, we proceed to the original method
       return originalMethod.apply(this, args);

@@ -10,55 +10,37 @@ import type { IAssetMetadataDao } from "src/media/application/ports/i-asset-meta
 import { IQueryHandler } from "src/core/application/cqrs/query-handler.interface";
 import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { ThemeResponse } from "../../dtos/theme.response.dto";
+import { Log } from "src/core/application/aspects/logging/log.decorator";
+import { pipeAsync } from "src/core/errors/helpers/pipe-async";
+import { AssetMetadataRecord } from "../../ports/i-asset-metadata-record.interface";
 
 @QueryHandler(GetThemeByIdQuery)
 export class GetThemeByIdHandler implements IQueryHandler<GetThemeByIdQuery> {
   
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
-    private readonly metadataDao: IAssetMetadataDao,
-    @Inject(ASSET_URL_GENERATOR)
-    private readonly urlService: IAssetUrlGenerator,
+    @Inject(DaoName.AssetMetadataMongo) private readonly metadataDao: IAssetMetadataDao,
+    @Inject(ASSET_URL_GENERATOR) private readonly urlService: IAssetUrlGenerator,
   ) {}
 
+  @Log()
   async execute(query: GetThemeByIdQuery): Promise<Either<ErrorData, ThemeResponse>> {
-    try {
-      // 1. Buscar en DAO por assetId (tu implementación limpia)
-      const result = await this.metadataDao.findThemeById(query.assetId);
-      
-      if (result.isLeft()) return Either.makeLeft(result.getLeft());
-      
-      const record = result.getRight();
-      if (!record) {
-        return Either.makeLeft(new ErrorData(
-          "THEME_NOT_FOUND",
-          `Theme with assetId ${query.assetId} not found`,
-          ErrorLayer.APPLICATION
-        ));
-      }
+    return pipeAsync<ErrorData, ThemeResponse>(
+      this.metadataDao.findThemeById(query.assetId),
+      result => result.map(record => this.mapToEnrichedResponse(record))
+    );
+  }
 
-      // 2. ENRIQUECIMIENTO (Generar URL única)
-      const urlMap = this.urlService.generateUrl(record.publicId);
-
-      // 3. MAPEO A RESPONSE
-      const response: ThemeResponse = {
-        assetId: record.assetId,
-        url: urlMap || '',
-        name: record.originalName,
-        category: record.category,
-        format: record.format,
-        size: record.size,
-        mimeType: record.mimeType,
-      };
-
-      return Either.makeRight(response);
-
-    } catch (error) {
-      return Either.makeLeft(new ErrorData(
-        "APPLICATION_UNEXPECTED_ERROR",
-        `Error retrieving theme ${query.assetId}: ${error instanceof Error ? error.message : String(error)}`,
-        ErrorLayer.APPLICATION
-      ));
-    }
+  private mapToEnrichedResponse(record: AssetMetadataRecord): ThemeResponse {
+    const url = this.urlService.generateUrl(record.publicId);
+    
+    return {
+      assetId: record.assetId,
+      url: url || '',
+      name: record.originalName,
+      category: record.category,
+      format: record.format,
+      size: record.size,
+      mimeType: record.mimeType,
+    };
   }
 }

@@ -4,4 +4,5 @@ import { Either, ErrorData } from 'src/core/types';
 
 export interface IKahootDao {
   getKahootById(id: string): Promise<Either<ErrorData, KahootSnapshot | null>>;
+  getKahootValidationDataByKahootId(id: string): Promise<Either<ErrorData, {userId: string, visibility: string} | null>>; 
 }

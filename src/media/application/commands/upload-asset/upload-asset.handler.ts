@@ -14,6 +14,8 @@ import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependency-tokens/a
 import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
@@ -23,75 +25,66 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     @Inject(CRYPTO_SERVICE) private readonly cryptoService: ICryptoService,
     @Inject(ID_GENERATOR) private readonly idGenerator: IdGenerator<string>,
   ) { }
-
+  
+  @Log()
   async execute(command: UploadAssetCommand): Promise<Either<ErrorData, UploadAssetResponse>> {
-    if (!command.fileBuffer || command.fileBuffer.length === 0) {
-      return Either.makeLeft(new ErrorData("VALIDATION_FAILED", "File buffer is empty", ErrorLayer.APPLICATION));
+    const contentHash = this.cryptoService.calculateSha256(command.fileBuffer || Buffer.alloc(0));
+
+    // 1. DEDUPLICACIÓN: Si ya existe, incrementamos referencia y retornamos
+    const existingAsset = await this.metadataDao.findByContentHash(contentHash);
+    if (existingAsset.isRight() && existingAsset.getRight()) {
+      return this.handleExistingAsset(existingAsset.getRight()!);
     }
 
-    const contentHash = this.cryptoService.calculateSha256(command.fileBuffer);
-
-    // Definimos el pipe especificando que al final queremos un UploadAssetResponse
+    // 2. FLUJO NUEVO: Generar ID y procesar
+    const assetId = await this.idGenerator.generateId();
+    
     return pipeAsync<ErrorData, UploadAssetResponse>(
-      // 1. Buscar duplicado
-      this.metadataDao.findByContentHash(contentHash),
-
-      // 2. Switcher: Si existe devuelve DTO, si no, objeto inicial
-      k => k.chainAsync(async existing => 
-        existing 
-          ? (await this.metadataDao.incrementReferenceCount(existing.publicId)).map(() => this.mapToResponse(existing))
-          : Either.makeRight({ isNew: true, assetId: await this.idGenerator.generateId() } as any)
+      this.assetStorageService.upload(
+        command.fileBuffer, 
+        command.mimeType, 
+        command.originalName, 
+        `kahoot_images/${assetId}`
       ),
 
-      // 3. Subida Física (Unless ya sea DTO)
-      k => k.chainUnlessAsync(
-        val => !(val as any).isNew,
-        async (data: any) => (await this.assetStorageService.upload(
-          command.fileBuffer, command.mimeType, command.originalName, `kahoot_images/${data.assetId}`
-        )).map(storage => ({ ...data, storage }))
-      ),
-
-      // 4. Persistencia y Transformación Final
-      k => k.chainAsync(async (data: any) => {
-        // Si no es nuevo, ya es un DTO, lo devolvemos tal cual para cerrar el tipo
-        if (!data.isNew) return Either.makeRight(data as UploadAssetResponse);
-        
-        const record = this.mapToRecord(data.assetId, data.storage, command, contentHash);
+      res => res.chainAsync(async (storage) => {
+        const record = this.mapToRecord(assetId, storage, command, contentHash);
         const saveResult = await this.metadataDao.insert(record);
         
         if (saveResult.isLeft()) {
-          await this.assetStorageService.delete(data.storage.publicId, data.storage.provider);
+          // Compensación manual si falla la DB
+          await this.assetStorageService.delete(storage.publicId, storage.provider);
           return Either.makeLeft(saveResult.getLeft());
         }
-        
+
         return Either.makeRight(this.mapToResponse(record));
       })
     );
   }
 
-  private mapToResponse(data: any): UploadAssetResponse {
-    return {
-      assetId: data.assetId,
-      mimeType: data.mimeType,
-      size: data.size,
-      format: data.format,
-      category: data.category || MimeTypeHelper.getCategory(data.mimeType),
+  private async handleExistingAsset(asset: AssetMetadataRecord): Promise<Either<ErrorData, UploadAssetResponse>> {
+    const incrementResult = await this.metadataDao.incrementReferenceCount(asset.publicId);
+    return incrementResult.map(() => this.mapToResponse(asset));
+  }
+
+  private mapToResponse(data: AssetMetadataRecord): UploadAssetResponse {
+    return { 
+      assetId: data.assetId, mimeType: data.mimeType, size: data.size, 
+      format: data.format, category: data.category 
     };
   }
 
-  private mapToRecord(assetId: string, storage: any, command: UploadAssetCommand, hash: string): AssetMetadataRecord {
+  private mapToRecord(
+    assetId: string, 
+    storage: { publicId: string; provider: string; mimeType: string; size: number; format: string }, 
+    cmd: UploadAssetCommand, 
+    hash: string
+  ): AssetMetadataRecord {
     return {
-      assetId,
-      publicId: storage.publicId,
-      provider: storage.provider,
-      originalName: command.originalName,
-      mimeType: storage.mimeType,
-      size: storage.size,
-      contentHash: hash,
-      referenceCount: 1,
-      format: storage.format,
-      category: MimeTypeHelper.getCategory(command.mimeType),
-      uploadedAt: new Date(),
+      assetId, publicId: storage.publicId, provider: storage.provider, originalName: cmd.originalName,
+      mimeType: storage.mimeType, size: storage.size, contentHash: hash, referenceCount: 1,
+      format: storage.format, category: MimeTypeHelper.getCategory(cmd.mimeType), 
+      theme: false, uploadedAt: new Date(),
     };
   }
 }

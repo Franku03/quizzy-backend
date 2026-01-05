@@ -1,10 +1,14 @@
 // src/media/application/services/media-enrichment.service.ts
+
 import { Injectable, Inject } from "@nestjs/common";
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { KahootStylingSnapshot } from "src/core/domain/snapshots/snapshot.kahoot.styling";
 import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
+import { Either, ErrorData } from "src/core/types";
+
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
+import type { IThemeEnricher } from "../ports/i-theme-enricher.interface";
 import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factory";
 
 @Injectable()
@@ -12,33 +16,28 @@ export class MediaEnrichmentService {
   constructor(
     @Inject(MEDIA_TOKENS.IMAGE_URL_ENRICHER)
     private readonly imageService: IImageUrlEnricher,
+
+    @Inject(MEDIA_TOKENS.THEME_ENRICHER)
+    private readonly themeEnricher: IThemeEnricher,
+
     private readonly handlerFactory: EnrichmentHandlerFactory
   ) { }
 
-  public async enrichMediaUrlById(assetId: string): Promise<string | undefined> {
-    const map = await this.resolveUrlMap([assetId]);
-    return map.get(assetId);
-  }
-
-  public async enrichMediaUrlsById(assetIds: string[]): Promise<Map<string, string>> {
-    const result = await this.resolveUrlMap(assetIds);
-    return result;
-  }
-
   public async enrichKahoot(kahoot: KahootSnapshot): Promise<KahootSnapshot> {
-    // 1. Resolvemos todos los IDs de golpe (Batching eficiente)
-    const assetIds = kahoot.getMediaAssetIds();
-    const urlMap = await this.resolveUrlMap(assetIds);
+    const { urlMap, theme } = await this.resolveMetadataBatch(kahoot);
 
-    // 2. Enriquecer Styling (Chain: URL -> Theme)
-    kahoot.styling = await this.enrichStylingWithMap(kahoot.styling, urlMap);
+    if (kahoot.styling) {
+      if (theme) kahoot.styling.theme = theme;
+      
+      this.handlerFactory
+        .createUrlHandler<KahootStylingSnapshot>(urlMap)
+        .handle(kahoot.styling);
+    }
 
-    // 3. Enriquecer Slides (Solo URL)
     if (kahoot.slides?.length) {
       const slideUrlHandler = this.handlerFactory.createUrlHandler<SlideSnapshot>(urlMap);
 
-      // Procesamos en paralelo para máxima velocidad
-      kahoot.slides = await Promise.all(
+      await Promise.all(
         kahoot.slides.map(slide => slideUrlHandler.handle(slide))
       );
     }
@@ -52,35 +51,39 @@ export class MediaEnrichmentService {
   }
 
   public async enrichStyling(styling: KahootStylingSnapshot): Promise<KahootStylingSnapshot> {
-    const urlMap = await this.resolveUrlMap(styling.getMediaAssetIds());
-    return this.enrichStylingWithMap(styling, urlMap);
+    const { urlMap, theme } = await this.resolveMetadataBatchForStyling(styling);
+    if (theme) styling.theme = theme;
+    return this.handlerFactory.createUrlHandler<KahootStylingSnapshot>(urlMap).handle(styling);
   }
 
-  private async enrichStylingWithMap(
-    styling: KahootStylingSnapshot,
-    urlMap: Map<string, string>
-  ): Promise<KahootStylingSnapshot> {
-    // Creamos los eslabones de la cadena
-    const urlHandler = this.handlerFactory.createUrlHandler<KahootStylingSnapshot>(urlMap);
-    const themeHandler = this.handlerFactory.createThemeHandler<KahootStylingSnapshot>();
+  private async resolveMetadataBatch(kahoot: KahootSnapshot) {
+    const [urlMap, themeResult] = await Promise.all([
+      this.resolveUrlMap(kahoot.getMediaAssetIds()),
+      kahoot.styling?.themeId 
+        ? this.themeEnricher.enrichTheme(kahoot.styling.themeId) 
+        : Promise.resolve(Either.makeRight<ErrorData, any>(null))
+    ]);
 
-    // Configuramos la cadena: URL primero, luego el Tema
-    urlHandler.setNext(themeHandler);
+    return {
+      urlMap,
+      theme: themeResult.isRight() ? themeResult.getRight() : undefined
+    };
+  }
 
-    // Ejecutamos la cadena completa
-    return urlHandler.handle(styling);
+  private async resolveMetadataBatchForStyling(styling: KahootStylingSnapshot) {
+    const [urlMap, themeResult] = await Promise.all([
+      this.resolveUrlMap(styling.getMediaAssetIds()),
+      styling.themeId 
+        ? this.themeEnricher.enrichTheme(styling.themeId) 
+        : Promise.resolve(Either.makeRight<ErrorData, any>(null))
+    ]);
+
+    return { urlMap, theme: themeResult.isRight() ? themeResult.getRight() : undefined };
   }
 
   private async resolveUrlMap(ids: string[]): Promise<Map<string, string>> {
     if (ids.length === 0) return new Map();
-
     const resultEither = await this.imageService.resolveUrlsBatch(ids);
-
-    if (resultEither.isLeft()) {
-      //Da igual si falla, creo yo preferi dar esto asi xd
-      return new Map();
-    }
-
-    return resultEither.getRight()!;
+    return resultEither.isRight() ? resultEither.getRight()! : new Map();
   }
 }
