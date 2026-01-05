@@ -29,6 +29,9 @@ export function Log(loggerPropertyKey: string = 'logger') {
       // We retrieve the logger instance from the handler using the provided property key.
       // The logger should be injected into the handler through its constructor,
       // typically as a dependency that implements the ILogger interface.
+      // the reason we cannot inject it directly into the decorator is that decorators
+      // are applied at design time, before instances are created, so we access it
+      // from the instance (this) at runtime.
       const logger = (this as any)[loggerPropertyKey];
 
       // We also retrieve the use case description from the handler instance.
