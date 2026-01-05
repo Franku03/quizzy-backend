@@ -6,6 +6,7 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
 import type { IImageUrlEnricher } from "../ports/i-image-url-enricher.interface";
 import { EnrichmentHandlerFactory } from "../factories/enrichment-handler.factory";
+import { LibraryReadModel } from "src/library/application/queries/read-model/library.read.model";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -59,6 +60,15 @@ export class MediaEnrichmentService {
     
     // Ejecutamos la cadena completa
     return urlHandler.handle(styling);
+  }
+
+  public async enrinchLibraryReadModel(libraryReadModel: LibraryReadModel) {
+    const urlMap = await this.resolveUrlMap(
+      libraryReadModel.getMediaAssetIds(),
+    );
+    return this.handlerFactory
+      .createUrlHandler<LibraryReadModel>(urlMap)
+      .handle(libraryReadModel);
   }
 
   private async resolveUrlMap(ids: string[]): Promise<Map<string, string>> {

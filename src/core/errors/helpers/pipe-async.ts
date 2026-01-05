@@ -1,10 +1,10 @@
-import { Either } from "src/core/types";
+import { Either } from 'src/core/types';
 
 export const pipeAsync = async <L, R>(
-  initialValue: Either<L, R> | Promise<Either<L, R>>,
+  initialValue: Either<L, any> | Promise<Either<L, any>>,
   ...steps: Array<(value: Either<L, any>) => any | Promise<any>>
-): Promise<Either<L, any>> => {
-  
+): Promise<Either<L, R>> => {
+
   let result: Either<L, any> = await initialValue;
 
   for (const step of steps) {
@@ -17,5 +17,5 @@ export const pipeAsync = async <L, R>(
     }
   }
 
-  return result;
+  return result as Either<L, R>;
 };

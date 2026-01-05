@@ -6,16 +6,30 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetFavoritesQuery } from './get-favorites.query';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
+import { ErrorData } from 'src/core/types';
+import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 @QueryHandler(GetFavoritesQuery)
 export class GetFavoritesHandler implements IQueryHandler<GetFavoritesQuery> {
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,
+    private readonly mediaService: MediaEnrichmentService,
   ) {}
 
   async execute(
     query: GetFavoritesQuery,
-  ): Promise<Either<Error, LibraryReadModel>> {
-    return await this.libraryDao.GetFavorites(query);
+  ): Promise<Either<ErrorData, LibraryReadModel>> {
+    return pipeAsync(
+      // Cargar libreria
+      this.libraryDao.GetFavorites(query),
+      // Enriquecemos los ImageUrlId para convertirlos en Urls
+      (res) =>
+        res.mapAsync((libraryModel) =>
+          this.mediaService.enrinchLibraryReadModel(
+            libraryModel as LibraryReadModel,
+          ),
+        ),
+    );
   }
 }

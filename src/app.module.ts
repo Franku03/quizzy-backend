@@ -6,7 +6,7 @@ import { DatabaseDriverModule } from './database/infrastructure/database.driver.
 import { MultiplayerSessionsModule } from './multiplayer-sessions/multiplayer-sessions.module';
 import { SoloAttemptsModule } from './solo-attempts/solo-attempts.module';
 import { CoreModule } from './core/core.module';
-import { LibraryModule } from './library/library.module';
+import { LibraryModule } from './library/infrastructure/nestjs/library.module';
 import { MediaModule } from './media/infrastructure/nest-js/media.module';
 import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';

@@ -4,9 +4,6 @@ import {
   Delete,
   Get,
   HttpCode,
-  HttpException,
-  HttpStatus,
-  InternalServerErrorException,
   Param,
   Post,
   Query,
@@ -28,6 +25,7 @@ import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard'
 import { GetUserId } from '../../../common/decorators/get-user-id-decorator';
 import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
+import { ErrorData } from 'src/core/types';
 
 // TODO: agregar autenticacion
 @Controller('library')
@@ -45,7 +43,7 @@ export class LibraryController {
     @Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
-    const response: Either<Error, LibraryReadModel> =
+    const response: Either<ErrorData, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
           paginationDto,
@@ -53,7 +51,7 @@ export class LibraryController {
           GetDraftsAndCreatedKahootsQuery,
         ),
       );
-    if (response.isLeft()) this.handleGenericErrors(response.getLeft());
+    if (response.isLeft()) throw response.getLeft();
     return response.getRight().toJson();
   }
 
@@ -64,11 +62,11 @@ export class LibraryController {
   async getFavorites(@Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
-    const response: Either<Error, LibraryReadModel> =
+    const response: Either<ErrorData, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(paginationDto, userId, GetFavoritesQuery),
       );
-    if (response.isLeft()) this.handleGenericErrors(response.getLeft());
+    if (response.isLeft()) throw response.getLeft();
     return response.getRight().toJson();
   }
 
@@ -79,29 +77,29 @@ export class LibraryController {
   async addKahootTofavorites(@Param('kahootId') kahootId: string,
     @GetUserId() userId: string,
   ) {
-    const kahootExistanceOptional: Optional<Error> =
+    const kahootExistanceOptional: Optional<ErrorData> =
       await this.queryBus.execute(
         new CheckIfCanBeSavedToFavoritesQuery(kahootId),
       );
-    if (kahootExistanceOptional.hasValue()) this.handleNotFoundError();
-    const res: Optional<Error> = await this.commandBus.execute(
+    if (kahootExistanceOptional.hasValue())
+      throw kahootExistanceOptional.getValue();
+    const res: Optional<ErrorData> = await this.commandBus.execute(
       new AddKahootToFavoritesCommand(userId, kahootId),
     );
-    if (res.hasValue()) this.handleAddKahootToFavoritesError(res.getValue());
+    if (res.hasValue()) throw res.getValue();
   }
 
-  // command (CQRS) H7.4
+  // command (CQRS) H7.4 - TODO: Mejorar manejo de errores de comandos
   @HttpCode(204)
   @UseGuards(MockAuthGuard)
   @Delete('favorites/:kahootId')
   async deleteKahootFromfavorites(@Param('kahootId') kahootId: string,
     @GetUserId() userId: string,
   ) {
-    const res: Optional<Error> = await this.commandBus.execute(
+    const res: Optional<ErrorData> = await this.commandBus.execute(
       new RemoveKahootFromFavoritesCommand(userId, kahootId),
     );
-    if (res.hasValue())
-      this.handleRemoveKahootFromFavoritesError(res.getValue());
+    if (res.hasValue()) throw res.getValue();
   }
 
   // Query (CQRS) H7.5
@@ -111,7 +109,7 @@ export class LibraryController {
   async getInProgressKahoots(@Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
-    const response: Either<Error, LibraryReadModel> =
+    const response: Either<ErrorData, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
           paginationDto,
@@ -119,7 +117,7 @@ export class LibraryController {
           GetInProgressKahootsQuery,
         ),
       );
-    if (response.isLeft()) this.handleGenericErrors(response.getLeft());
+    if (response.isLeft()) throw response.getLeft();
     return response.getRight().toJson();
   }
 
@@ -130,7 +128,7 @@ export class LibraryController {
   async getCompletedKahoots(@Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
-    const response: Either<Error, LibraryReadModel> =
+    const response: Either<ErrorData, LibraryReadModel> =
       await this.queryBus.execute(
         PaginationMapper.toQuery(
           paginationDto,
@@ -138,25 +136,16 @@ export class LibraryController {
           GetCompletedKahootsQuery,
         ),
       );
-    if (response.isLeft()) this.handleGenericErrors(response.getLeft());
+    if (response.isLeft()) throw response.getLeft();
     return response.getRight().toJson();
   }
 
-  private handleGenericErrors(error: Error) {
-    throw new InternalServerErrorException(error);
-  }
-
-  private handleNotFoundError() {
+  /*
+  private handleError(errorData: ErrorData) {
     throw new HttpException(
-      'No se pudo encontrar el kahoot solicitado',
-      HttpStatus.NOT_FOUND,
+      `${errorData.layer}: ${errorData.message}`, // capa de error + mensaje
+      Number(errorData.code), //codigo http
     );
   }
-  private handleAddKahootToFavoritesError(error: Error) {
-    throw new InternalServerErrorException(error); // TODO: Lanzar errores desde el respositorio
-  }
-
-  private handleRemoveKahootFromFavoritesError(error: Error) {
-    throw new InternalServerErrorException(error); // TODO: Lanzar errores desde el respositorio
-  }
+  */
 }

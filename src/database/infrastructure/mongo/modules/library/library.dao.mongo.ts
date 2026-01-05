@@ -20,9 +20,25 @@ import { AttemptStatusEnum } from 'src/solo-attempts/domain/value-objects/attemp
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+// Manejo de Errores
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import { ErrorData, ErrorLayer } from 'src/core/types';
+import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
+
 @DaoMongo(DaoName.Library)
 @Injectable()
 export class LibraryDaoMongo implements ILibraryDao {
+  private readonly adapterContextBase: IDatabaseErrorContext = {
+    adapterName: LibraryDaoMongo.name,
+    portName: 'ILibraryDao',
+    module: 'library',
+    databaseType: 'mongodb',
+    collectionOrTable: 'users (kahoots and attempts)',
+    operation: '',
+  } as const;
+
+  private readonly mongoErrorMapper: MongoErrorMapper = new MongoErrorMapper();
+
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
@@ -86,8 +102,23 @@ export class LibraryDaoMongo implements ILibraryDao {
 
   async getDraftsAndCreatedKahootsFrom(
     query: GetDraftsAndCreatedKahootsQuery,
-  ): Promise<Either<Error, LibraryReadModel>> {
+  ): Promise<Either<ErrorData, LibraryReadModel>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'getDraftsAndCreatedKahootsFromUser',
+      entityId: query.userId,
+    };
     try {
+      const userExists = await this.userExists(query.userId);
+      if (!userExists)
+        return Either.makeLeft<ErrorData, LibraryReadModel>(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `User with id ${query.userId} not found`,
+          ),
+        );
       const { filters, sort, skip, limit } = this.buildQueryStructure(query);
       const [kahoots, totalCount] = await Promise.all([
         this.kahootModel
@@ -108,22 +139,46 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<Error, LibraryReadModel>(library);
+      return Either.makeRight<ErrorData, LibraryReadModel>(library);
     } catch (err) {
-      return Either.makeLeft<Error, LibraryReadModel>(err as Error);
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
+        err,
+        fullContext,
+      );
+      return Either.makeLeft<ErrorData, LibraryReadModel>(errorData);
     }
   }
 
   async GetFavorites(
     query: GetFavoritesQuery,
-  ): Promise<Either<Error, LibraryReadModel>> {
+  ): Promise<Either<ErrorData, LibraryReadModel>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'GetFavorites',
+      entityId: query.userId,
+    };
     try {
+      const userExists = await this.userExists(query.userId);
+      if (!userExists)
+        return Either.makeLeft<ErrorData, LibraryReadModel>(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `User with id ${query.userId} not found`,
+          ),
+        );
       const { userId, limit, page } = query;
       // 1. Buscar usuario
       const user = await this.userModel.findOne({ userId }).exec();
       if (!user) {
-        return Either.makeLeft<Error, LibraryReadModel>(
-          new Error('User not found'),
+        return Either.makeLeft<ErrorData, LibraryReadModel>(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `User with id ${query.userId} not found`,
+          ),
         );
       }
       // 2. Obtener IDs de kahoots favoritos
@@ -131,7 +186,7 @@ export class LibraryDaoMongo implements ILibraryDao {
       if (favoriteIds.length === 0) {
         const emptyPagination = new PaginationInfo(page, limit, 0, 0);
         const emptyLibrary = new LibraryReadModel([], emptyPagination);
-        return Either.makeRight<Error, LibraryReadModel>(emptyLibrary);
+        return Either.makeRight<ErrorData, LibraryReadModel>(emptyLibrary);
       }
       // 3. Paginación
       const skip = (page - 1) * limit;
@@ -156,33 +211,68 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<Error, LibraryReadModel>(library);
+      return Either.makeRight<ErrorData, LibraryReadModel>(library);
     } catch (err) {
-      return Either.makeLeft<Error, LibraryReadModel>(err as Error);
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
+        err,
+        fullContext,
+      );
+      return Either.makeLeft<ErrorData, LibraryReadModel>(errorData);
     }
   }
 
   async checkIfCanBeAddedToFavorites(
     kahootId: string,
-  ): Promise<Optional<Error>> {
+  ): Promise<Optional<ErrorData>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'CheckIfKahootCanBeAddedToFavorites',
+      entityId: kahootId,
+    };
     try {
       const kahoot = await this.kahootModel.findOne({ id: kahootId }).exec();
       if (!kahoot) {
         // Si no existe, devolvemos un Optional con un Error
-        return new Optional(new Error('Kahoot not found'));
+        return new Optional(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `Kahoot with id ${kahootId} not Found`,
+          ),
+        );
       }
       // Si existe, devolvemos un Optional vacío (sin error)
       return new Optional();
     } catch (err) {
       // Si ocurre un error en la consulta, devolvemos el error dentro del Optional
-      return new Optional(err as Error);
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
+        err,
+        fullContext,
+      );
+      return new Optional(errorData);
     }
   }
 
   async getCompletedKahoots(
     query: GetCompletedKahootsQuery,
-  ): Promise<Either<Error, LibraryReadModel>> {
+  ): Promise<Either<ErrorData, LibraryReadModel>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'getCompletedKahoots',
+      entityId: query.userId,
+    };
     try {
+      const userExists = await this.userExists(query.userId);
+      if (!userExists)
+        return Either.makeLeft<ErrorData, LibraryReadModel>(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `User with id ${query.userId} not found`,
+          ),
+        );
       const { userId, limit, page } = query;
       // 1. Filtros para intentos completados
       const filters: {
@@ -218,16 +308,35 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<Error, LibraryReadModel>(library);
+      return Either.makeRight<ErrorData, LibraryReadModel>(library);
     } catch (err) {
-      return Either.makeLeft<Error, LibraryReadModel>(err as Error);
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
+        err,
+        fullContext,
+      );
+      return Either.makeLeft<ErrorData, LibraryReadModel>(errorData);
     }
   }
 
   async getInProgressKahoots(
     query: GetInProgressKahootsQuery,
-  ): Promise<Either<Error, LibraryReadModel>> {
+  ): Promise<Either<ErrorData, LibraryReadModel>> {
+    const fullContext: IDatabaseErrorContext = {
+      ...this.adapterContextBase,
+      operation: 'getCompletedKahoots',
+      entityId: query.userId,
+    };
     try {
+      const userExists = await this.userExists(query.userId);
+      if (!userExists)
+        return Either.makeLeft<ErrorData, LibraryReadModel>(
+          this.handleError(
+            ErrorLayer.APPLICATION,
+            fullContext,
+            '404',
+            `User with id ${query.userId} not found`,
+          ),
+        );
       const { userId, limit, page } = query;
       // 1. Filtros para intentos en progreso
       const filters = {
@@ -263,9 +372,30 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<Error, LibraryReadModel>(library);
+      return Either.makeRight<ErrorData, LibraryReadModel>(library);
     } catch (err) {
-      return Either.makeLeft<Error, LibraryReadModel>(err as Error);
+      const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
+        err,
+        fullContext,
+      );
+      return Either.makeLeft<ErrorData, LibraryReadModel>(errorData);
     }
+  }
+
+  private handleError(
+    layer: ErrorLayer,
+    context: IDatabaseErrorContext,
+    code: string,
+    errorMessage: string,
+  ): ErrorData {
+    return new ErrorData(code, errorMessage, layer, {
+      ...context,
+    });
+  }
+
+  async userExists(userId: string): Promise<boolean> {
+    // Si tu esquema tiene la propiedad "userId"
+    const exists = await this.userModel.exists({ userId });
+    return !!exists;
   }
 }

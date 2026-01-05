@@ -5,6 +5,7 @@ import { CheckIfCanBeSavedToFavoritesQuery } from './check-if-can-be-saved-to-fa
 import { Optional } from 'src/core/types/optional';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
+import { ErrorData } from 'src/core/types';
 
 @QueryHandler(CheckIfCanBeSavedToFavoritesQuery)
 export class CheckIfCanBeSavedToFavoritesHandler
@@ -16,7 +17,7 @@ export class CheckIfCanBeSavedToFavoritesHandler
 
   async execute(
     query: CheckIfCanBeSavedToFavoritesQuery,
-  ): Promise<Optional<Error>> {
+  ): Promise<Optional<ErrorData>> {
     return await this.libraryDao.checkIfCanBeAddedToFavorites(query.kahootId);
   }
 }
