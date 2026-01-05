@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ReportsController } from './infrastructure/nest-js/reports.controller';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
 // Handlers
 import { GetDetailedReportHandler } from './application/queries/get-solo-attempt-report/attempt.report.handler';

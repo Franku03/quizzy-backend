@@ -3,7 +3,12 @@ import { User } from 'src/users/domain/aggregates/user';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { UserEmail } from 'src/users/domain/value-objects/user.email';
 import { UserName } from 'src/users/domain/value-objects/user.user-name';
+import { Injectable } from '@nestjs/common';
+import { RepositoryPostgres } from '../../decorators/repository-postgres.registry';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
+@RepositoryPostgres(RepositoryName.User)
+@Injectable()
 export class UserRepositoryPostgres implements IUserRepository {
   async save(user: User): Promise<void> { throw new Error('Postgres no soportado'); }
   async findUserById(id: UserId): Promise<User | null> { throw new Error('Postgres no soportado'); }

@@ -3,7 +3,7 @@ import { Inject } from '@nestjs/common';
 import { GetUserByIdQuery } from './get-user-by-id.query';
 import { UserReadModel } from '../read-model/user.read.model';
 import type { IUserDao } from '../ports/users.dao.port';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { Either } from 'src/core/types/either';
 
 @QueryHandler(GetUserByIdQuery)

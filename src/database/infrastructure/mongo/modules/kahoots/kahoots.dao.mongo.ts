@@ -13,7 +13,10 @@ import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootReadMapper } from './mappers/kahoot.handler.mapper'; 
 import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoMongo(DaoName.Kahoot)
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
 

@@ -14,7 +14,7 @@ import { KahootHandlerResponseDto } from '../../dtos/kahoot.handler.response.dto
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 // Infraestructura
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
 
 //Mapper

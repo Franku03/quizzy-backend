@@ -5,7 +5,10 @@ import { UserEntity } from '../../entities/users.entity';
 import { Repository } from 'typeorm';
 import { Optional } from 'src/core/types/optional';
 import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
+import { DaoPostgres } from '../../decorators/dao-postgres.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
+@DaoPostgres(DaoName.User)
 @Injectable()
 export class UserDaoPostgres implements IUserDao {
   constructor(
@@ -18,19 +21,19 @@ export class UserDaoPostgres implements IUserDao {
     if (!user) return new Optional<UserReadModel>();
 
     return new Optional<UserReadModel>(
-        new UserReadModel('id-fake', 'email-fake', user.name)
-    ); 
+      new UserReadModel('id-fake', 'email-fake', user.name),
+    );
   }
 
   // 👇 AGREGAMOS ESTE MÉTODO FALTANTE
   async getUserById(id: string): Promise<Optional<UserReadModel>> {
     // Implementación temporal para que compile (ya que estás usando Mongo)
     const user = await this.userRepo.findOne({ where: { id } });
-    
+
     if (!user) return new Optional<UserReadModel>();
 
     return new Optional<UserReadModel>(
-        new UserReadModel(user.id, 'email-fake', 'name-fake') // Ajusta según tu Entity real
+      new UserReadModel(user.id, 'email-fake', 'name-fake'), // Ajusta según tu Entity real
     );
   }
 }

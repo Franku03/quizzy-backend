@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ExploreController } from './infrastructure/nestjs/explore.controller';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
 // Handlers
 import { GetPublicKahootsHandler } from './application/queries/get-public-kahoots/get.public.kahoots.handler';

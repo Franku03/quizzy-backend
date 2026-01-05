@@ -3,7 +3,7 @@ import type { IGroupsDao } from '../ports/groups.dao.port';
 import { GetGroupsByUserQuery } from './get-group-by-user.query';
 import { GroupReadModel } from '../read-model/group.read.model';
 import { Inject } from '@nestjs/common';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { GROUP_ERRORS } from '../../commands/group.errors';
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';

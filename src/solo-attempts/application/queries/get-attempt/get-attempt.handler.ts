@@ -3,7 +3,7 @@
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { Inject } from '@nestjs/common';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetAttemptStatusQuery } from './get-attempt.query';
 import { AttemptResumeReadModel } from '../read-models/resume.attempt.read.model';
 import type { ISoloAttemptQueryDao } from '../ports/attempts.dao.port';

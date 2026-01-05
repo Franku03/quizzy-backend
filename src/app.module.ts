@@ -12,7 +12,6 @@ import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,10 +26,10 @@ import { GroupsModule } from './groups/groups.module'; // De HEAD
     SoloAttemptsModule,
     LibraryModule,
     GroupsModule, // Agregado
-    MediaModule,  // Agregado
+    MediaModule, // Agregado
     ExploreModule,
   ],
 })
 export class AppModule {
-  constructor() { }
+  constructor() {}
 }

@@ -7,19 +7,43 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
+import { DAO_OVERRIDE_ENV_MAP } from './catalogs/dao.catalog.enum';
+import { REPOSITORY_OVERRIDE_ENV_MAP } from './catalogs/repository.catalog.enum';
 
 type ModuleImport = Type<any> | DynamicModule;
 
 @Module({})
 export class DatabaseDriverModule {
   static forRoot(): DynamicModule {
-    const dbType = process.env.DB_TYPE;
+    const globalType = process.env.DB_GLOBAL_TYPE;
+    if (!globalType || !['postgres', 'mongo'].includes(globalType)) {
+      throw new InternalServerErrorException(
+        `⚠️ DB_GLOBAL_TYPE inválido: ${globalType}`,
+      );
+    }
 
     const imports: ModuleImport[] = [ConfigModule];
     const exports: ModuleImport[] = [];
 
-    // Lógica condicional para TypeOrm
-    if (dbType === 'postgres') {
+    const dbsToLoad = new Set<string>();
+
+    // Siempre cargar el globalType
+    dbsToLoad.add(globalType);
+
+    // Revisar overrides y agregarlos
+    Object.values({
+      ...DAO_OVERRIDE_ENV_MAP,
+      ...REPOSITORY_OVERRIDE_ENV_MAP,
+    }).forEach((envVar) => {
+      const override = process.env[envVar];
+      if (override && ['postgres', 'mongo'].includes(override)) {
+        dbsToLoad.add(override);
+      }
+    });
+
+    // dbsToLoad siempre tiene al menos el globalType
+
+    if (dbsToLoad.has('postgres')) {
       imports.push(
         TypeOrmModule.forRootAsync({
           imports: [ConfigModule],
@@ -36,36 +60,24 @@ export class DatabaseDriverModule {
           }),
         }),
       );
-      // Exportamos el módulo base para que otros módulos puedan usar TypeOrm (e.g., inyectar Repositorios)
       exports.push(TypeOrmModule);
       console.log('✅ Base de datos configurada: PostgreSQL (TypeORM)');
+    }
 
-      // Lógica condicional para Mongoose
-    } else if (dbType === 'mongo') {
-
-      // Para construir conexion con BD de MongoAtlas en la nube
-      if( process.env.MONGO_CNN ){
-
+    if (dbsToLoad.has('mongo')) {
+      if (process.env.MONGO_CNN) {
         imports.push(
-          MongooseModule.forRootAsync( {
+          MongooseModule.forRootAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
             useFactory: (config: ConfigService) => {
-
               const dbName = config.get<string>('DB_NAME');
-  
-              // Ponemos la URL directo de Atlas
               const uri = config.get<string>('MONGO_CNN');
-  
               return { uri, dbName };
-            },  
-
-          })
-        )
-
+            },
+          }),
+        );
       } else {
-
-        // Para construir conexion con BD de docker
         imports.push(
           MongooseModule.forRootAsync({
             imports: [ConfigModule],
@@ -76,35 +88,20 @@ export class DatabaseDriverModule {
               const host = config.get<string>('MONGO_HOST');
               const port = config.get<string>('MONGO_PORT');
               const dbName = config.get<string>('DB_NAME');
-  
-              // Construcción de la URI
               const uri = `mongodb://${user}:${pass}@${host}:${port}/${dbName}?authSource=admin`;
-  
               return { uri, dbName };
             },
           }),
         );
-        
       }
-
-
-      // Exportamos el módulo base para que otros módulos puedan usar Mongoose (e.g., inyectar Modelos)
       exports.push(MongooseModule);
       console.log('✅ Base de datos configurada: MongoDB (Mongoose)');
-    } else {
-      console.warn(
-        '⚠️ DB_TYPE no está definido o es inválido. No se ha cargado ningún driver de base de datos.',
-      );
-      throw new InternalServerErrorException(
-        '⚠️ DB_TYPE no está definido o es inválido. No se ha cargado ningún driver de base de datos.',
-      );
     }
 
-    // Retornamos el módulo dinámico
     return {
       module: DatabaseDriverModule,
-      imports: imports,
-      exports: exports,
+      imports,
+      exports,
       global: true,
     };
   }

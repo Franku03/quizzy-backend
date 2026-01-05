@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LibraryController } from './infrastructure/nestjs/library.controller';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetDraftsAndCreatedKahootsHandler } from './application/queries/get-drafts-and-created-kahoots/get-drafts-and-created-kahoots.handler';
 import { GetFavoritesHandler } from './application/queries/get-favorite-kahoots/get-favorites.handler';
 import { CheckIfCanBeSavedToFavoritesHandler } from './application/queries/check-if-can-be-saved-to-favorites/check-if-can-be-saved-to-favorites.handler';

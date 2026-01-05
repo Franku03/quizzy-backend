@@ -5,7 +5,7 @@ import { KahootController } from './kahoots.controller';
 // Capas de Datos
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalogue.enum';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 
 // Handlers
