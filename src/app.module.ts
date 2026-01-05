@@ -11,6 +11,7 @@ import { MediaModule } from './media/infraestructure/media.module';
 import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD
+import { WellKnownController } from './shared/infrastructure/controllers/well-known.controller';
 
 
 @Module({
@@ -30,6 +31,7 @@ import { GroupsModule } from './groups/groups.module'; // De HEAD
     MediaModule,  // Agregado
     ExploreModule,
   ],
+  controllers: [WellKnownController],
 })
 export class AppModule {
   constructor() { }
