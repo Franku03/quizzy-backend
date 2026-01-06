@@ -12,6 +12,7 @@ import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @QueryHandler(GetInProgressKahootsQuery)
 export class GetInProgressKahootsHandler
@@ -20,7 +21,7 @@ export class GetInProgressKahootsHandler
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,
     private readonly mediaService: MediaEnrichmentService,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}
 
   @Log()

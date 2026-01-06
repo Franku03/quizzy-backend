@@ -9,13 +9,11 @@ import { ICommandHandler } from 'src/core/application/cqrs/command-handler.inter
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 import { createKahootAppContext } from '../context/base-kahoot-context';
-import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 // --- Aspects & Decorators ---
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 
 // --- Domain & Factory ---
@@ -40,15 +38,15 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
   
-    @Inject(MAPPER_TOKEN)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.RESPONSE_MAPPER)
     private readonly kahootMapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
 
-    @Inject(ID_GENERATOR)
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
 
     private readonly mediaService: MediaEnrichmentService,
 
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
   @Log() 

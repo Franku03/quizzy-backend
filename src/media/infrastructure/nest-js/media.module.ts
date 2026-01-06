@@ -11,6 +11,8 @@ import { EnrichmentHandlerFactory } from '../../application/factories/enrichment
 import { AssetResolutionService } from '../../application/services/asset-resolution.service';
 import { ThemeResolutionService } from '../../application/services/theme-resolution.service';
 import { MEDIA_TOKENS } from '../../application/dependency-tokens/application-media.tokens';
+import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enrichemnt.handler';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 import { MediaController } from './media.controller';
 import { CoreModule } from 'src/core/core.module';
@@ -18,13 +20,14 @@ import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-acc
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { CloudinaryStorageAdapter } from '../adapters/cloudinary/cloudinary.storage.adapter';
 import { CloudinaryUrlGeneratorAdapter } from '../adapters/cloudinary/cloudinary.url-generator.adapter';
-import { NodeCryptoService } from 'src/core/infrastructure/adapters/node-crypto.service';
+import { NodeCryptoService } from 'src/core/infrastructure/adapters/nodecryptoservice/node-crypto.service';
 import { CloudinaryErrorMapper } from '../adapters/cloudinary/errors/cloudinary.error.mapper';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
 // Handlers
 import { UrlEnrichmentHandler } from '../../application/handlers/url-enrichment.handler';
-import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enrichemnt.handler';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+
 
 @Module({
     controllers: [MediaController],
@@ -40,7 +43,6 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
         GetThemesHandler,
         MediaEnrichmentService,
         EnrichmentHandlerFactory,
-        // Registro de Handlers con SCOPE TRANSIENT (10/10 SOLID)
         {
             provide: UrlEnrichmentHandler,
             useClass: UrlEnrichmentHandler,
@@ -64,7 +66,7 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
             useClass: CloudinaryUrlGeneratorAdapter
         },
         {
-            provide: MEDIA_TOKENS.ERROR_MAPPER,
+            provide: ERROR_TOKENS.MAPPERS.CLOUDINARY,
             useClass: CloudinaryErrorMapper
         },
         {
@@ -72,7 +74,7 @@ import { ThemeEnrichmentHandler } from 'src/media/application/handlers/theme-enr
             useClass: CloudinaryStorageAdapter
         },
         {
-            provide: MEDIA_TOKENS.CRYPTO_SERVICE,
+            provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
             useClass: NodeCryptoService
         },
         {

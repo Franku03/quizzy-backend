@@ -1,6 +1,6 @@
 // src/kahoots/infrastructure/persistence/mongo/kahoot.mongo-dao.ts
 // --- NestJS & Mongoose ---
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
@@ -23,14 +23,15 @@ import { IKahootDocument, KahootMongo } from '../../entities/kahoots.schema';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
 // --- Infrastructure: Mappers & Errors ---
-import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 
 @DaoMongo(DaoName.Kahoot)
 @Injectable()
 export class KahootDaoMongo implements IKahootDao {
-  private readonly mongoErrorMapper = new MongoErrorMapper();
-  private readonly kahootReadMapper = new KahootReadMapper();
   private readonly contextBase = KAHOOT_MONGO_BASE;
   private readonly adapterName = KahootDaoMongo.name;
   private readonly portName = 'IKahootDao';
@@ -38,8 +39,11 @@ export class KahootDaoMongo implements IKahootDao {
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
+    @Inject(ERROR_TOKENS.MAPPERS.MONGO)
+    private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_READ)
+    private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
   ) {}
-
   // ==========================================
   // HELPERS PRIVADOS
   // ==========================================

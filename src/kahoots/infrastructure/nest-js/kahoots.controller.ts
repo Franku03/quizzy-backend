@@ -10,27 +10,41 @@ import {
   Delete,
   Get,
   UseGuards,
+  Inject, 
 } from '@nestjs/common';
 
-import { CreateKahootDTO, UpdateKahootDTO } from '../dtos'; 
-import { KahootHandlerResponseDto } from 'src/kahoots/application/dtos/kahoot.handler.response.dto';
+// Core & Types
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+
+// Comandos y Consultas
+import { CreateKahootCommand, UpdateKahootCommand } from 'src/kahoots/application/commands';
 import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kahoot/delete-kahoot.command';
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
+
+// DTOs e Inputs de Mappers
+import { CreateKahootDTO, UpdateKahootDTO } from '../dtos'; 
+import { KahootHandlerResponseDto } from 'src/kahoots/application/dtos/kahoot.handler.response.dto';
+import { CreateKahootInput } from '../adapters/mappers/create-kahoot.request.mapper';
+import { ReplaceKahootInput } from '../adapters/mappers/update-kahoot.request.mapper';
+
+// Helpers & Guards
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
-import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
-
-// Importamos los nuevos mappers
-import { CreateKahootRequestMapper } from '../adapters/mappers/create-kahoot.request.mapper';
-import { UpdateKahootRequestMapper } from '../adapters/mappers/update-kahoot.request.mapper';
 
 @Controller('kahoots')
 export class KahootController {
   
   constructor(
     private readonly executor: CommandQueryExecutorService,
-    private readonly createMapper: CreateKahootRequestMapper,
-    private readonly updateMapper: UpdateKahootRequestMapper,
+
+    // Inyección por Tokens para desacoplar de la implementación concreta
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.CREATE_KAHOOT_REQUEST)
+    private readonly createMapper: IMapper<CreateKahootInput, CreateKahootCommand>,
+    
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.UPDATE_KAHOOT_REQUEST)
+    private readonly updateMapper: IMapper<ReplaceKahootInput, UpdateKahootCommand>,
   ) {}
 
   @Post()

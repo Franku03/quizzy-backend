@@ -1,29 +1,37 @@
+// src/media/application/commands/upload-asset/upload-asset.handler.ts
+
+import { Inject } from '@nestjs/common';
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
 import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-handler.decorator';
-import { Inject } from '@nestjs/common';
-import { UploadAssetCommand } from './upload-asset.command';
-import { Either, ErrorData, ErrorLayer } from 'src/core/types';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+
+// Tipos Core
+import { Either, ErrorData } from 'src/core/types';
+import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+
+// Interfaces de Puertos
 import type { IAssetMetadataDao } from '../../ports/i-asset-metadata.dao.interface';
 import type { IAssetStorageService } from '../../ports/i-asset-storage.interface';
 import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
 import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+
+import { UploadAssetCommand } from './upload-asset.command';
 import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interface';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
-import { ASSET_STORAGE_SERVICE, CRYPTO_SERVICE } from '../../dependency-tokens/application-media.tokens';
-import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
+import {  MEDIA_TOKENS } from '../../dependency-tokens/application-media.tokens';
 import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
-import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import { Log } from 'src/core/application/aspects/logging/log.decorator';
-
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
   constructor(
     @Inject(DaoName.AssetMetadataMongo) private readonly metadataDao: IAssetMetadataDao,
-    @Inject(ASSET_STORAGE_SERVICE) private readonly assetStorageService: IAssetStorageService,
-    @Inject(CRYPTO_SERVICE) private readonly cryptoService: ICryptoService,
-    @Inject(ID_GENERATOR) private readonly idGenerator: IdGenerator<string>,
+    @Inject(MEDIA_TOKENS.ASSET_STORAGE_SERVICE) private readonly assetStorageService: IAssetStorageService,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE) 
+    private readonly cryptoService: ICryptoService,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR) 
+    private readonly idGenerator: IdGenerator<string>,
   ) { }
   
   @Log()

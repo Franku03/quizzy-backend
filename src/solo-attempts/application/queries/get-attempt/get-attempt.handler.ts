@@ -12,24 +12,24 @@ import { Authorize } from 'src/core/application/aspects/auth/authorization.decor
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @QueryHandler(GetAttemptStatusQuery)
 export class GetAttemptStatusHandler
-  implements IQueryHandler<GetAttemptStatusQuery>
-{
+  implements IQueryHandler<GetAttemptStatusQuery> {
   private readonly useCase: string = 'User retrieves the status of a solo attempt';
 
   constructor(
     @Inject(DaoName.SoloAttempt)
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
+    private readonly logger: ILogger,
     private readonly mediaService: MediaEnrichmentService,
-  ) {}
+  ) { }
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
-  @Log() 
+  @Log()
   // We check that the user requesting the attempt status owns the attempt
   @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(

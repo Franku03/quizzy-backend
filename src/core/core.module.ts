@@ -1,40 +1,66 @@
 import { Global, Module } from '@nestjs/common';
+
+// Tokens
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
+
+// Implementaciones
 import { InMemoryEventBus } from './infrastructure/event-buses/memory-event-bus';
 import { UuidGenerator } from './infrastructure/adapters/idgenerator/uuid-generator';
-import { ErrorMappingService } from './infrastructure/services/global-error-mapping.service';
+import { PinoLogger } from './infrastructure/loggers/pino.logger';
+import { NodeCryptoService } from './infrastructure/adapters/nodecryptoservice/node-crypto.service';
+
+// Servicios y CQRS
 import { CoreController } from './nest-js/core.controller';
 import { CommandBus } from './infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
 import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
-import { ID_GENERATOR } from './application/ports/crypto/core-application.tokens';
 import { CommandQueryExecutorService } from './infrastructure/services/command-query-executor.service';
-import { PinoLogger } from './infrastructure/loggers/pino.logger';
-import { LOGGER_TOKEN } from './application/aspects/logging/logger.token';
+import { ErrorMappingService } from './infrastructure/services/global-error-mapping.service';
+
 @Global()
 @Module({
   controllers: [CoreController],
   providers: [
     CommandQueryExecutorService,
-    { provide: ID_GENERATOR, useClass: UuidGenerator },
     CqrsBootstrapService,
     CommandBus,
     QueryBus,
-    { provide: EVENT_BUS_TOKEN, useClass: InMemoryEventBus },
     ErrorMappingService,
-     {
-      provide: LOGGER_TOKEN,
+
+    // ID Generator centralizado
+    { 
+      provide: APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR, 
+      useClass: UuidGenerator 
+    },
+
+    // Event Bus (Se mantiene normal/original)
+    { 
+      provide: EVENT_BUS_TOKEN, 
+      useClass: InMemoryEventBus 
+    },
+
+    // Logger centralizado
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.LOGGER,
       useClass: PinoLogger,
+    },
+
+    // Crypto Service (Agregado para resolver el error)
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
+      useClass: NodeCryptoService,
     },
   ],
   exports: [
     CommandBus,
     QueryBus,
-    EVENT_BUS_TOKEN,
-    ID_GENERATOR,
     ErrorMappingService,
     CommandQueryExecutorService,
-    LOGGER_TOKEN,
-  ]
+    EVENT_BUS_TOKEN,
+    APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR,
+    APPLICATION_CORE_TOKENS.UTILS.LOGGER,
+    APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
+  ],
 })
 export class CoreModule {}

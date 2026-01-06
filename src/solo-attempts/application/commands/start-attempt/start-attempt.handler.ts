@@ -20,9 +20,9 @@ import type { IdGenerator } from 'src/core/application/idgenerator/id.generator'
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(StartSoloAttemptCommand)
 export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttemptCommand> {
@@ -35,18 +35,19 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     private readonly kahootRepository: IKahootRepository,
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
+    private readonly logger: ILogger,
     @Inject(UuidGenerator) private readonly uuidGenerator: IdGenerator<string>,
     private readonly mediaService: MediaEnrichmentService,
-  ) {}
+  ) { }
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
-  @Log() 
+  @Log()
   async execute(command: StartSoloAttemptCommand): Promise<any> {
     // We instantiate the Value Objects to ensure structural validity of IDs
     const kahootId = new KahootId(command.kahootId);
     const playerId = new UserId(command.userId);
-    
+
     // We Fetch the Kahoot Aggregate to ensure it exists
     const kahootIdString = kahootId.value;
     const kahootEither = await this.kahootRepository.findKahootByIdEither(kahootIdString);
@@ -59,7 +60,7 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     }
 
     // We must verify if the Kahoot is playable. Drafts cannot be played.
-    if (kahoot.isDraft()){
+    if (kahoot.isDraft()) {
       throw new Error(ATTEMPT_ERROR_CODES.DRAFT_KAHOOT);
     }
 
@@ -112,11 +113,11 @@ export class StartSoloAttemptHandler implements ICommandHandler<StartSoloAttempt
     if (!firstSlideSnapshot) {
       throw new Error(ATTEMPT_ERROR_CODES.NO_SLIDES);
     }
-    else{
+    else {
       // we enrich media URLs before sending to client
       enrichedSlide = await this.mediaService.enrichSlide(firstSlideSnapshot);
     }
-    
+
     // We construct the output object matching the output response requirement.
     const outputSlide = SlideSnapshotMapper.toOutputSlide(enrichedSlide);
 
