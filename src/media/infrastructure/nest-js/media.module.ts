@@ -90,7 +90,6 @@ import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-
         },
     ],
     exports: [
-        DaoFactoryModule,
         MediaEnrichmentService,
     ]
 })
