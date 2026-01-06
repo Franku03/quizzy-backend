@@ -8,6 +8,14 @@ import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 
+// REGLA: Interfaz para normalizar el acceso a datos sin importar si es Agregado o Snapshot.
+interface IKahootAuthData {
+    authorId: string;
+    visibility: string;
+    status: string;
+}
+
+// REGLA: Definición de tipos para soportar búsqueda tanto en DAO (lectura) como en Repositorio (dominio).
 type KahootFetcher = 
     Partial<Pick<IKahootDao, 'getKahootById'>> & 
     Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
@@ -29,6 +37,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         context: KahootFetcher 
     ): Promise<Either<ErrorData, KahootSnapshot | Kahoot>> {
         
+        // REGLA: Normalización del ID y creación de metadatos de error.
         const finalId = (request.kahootId || request.id) as string;
         const { userId, operationName } = request;
 
@@ -38,6 +47,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
             resourceType: 'Kahoot'
         });
 
+        // REGLA: Selección del método de obtención según lo que haya inyectado el Handler.
         const fetchMethod = context.getKahootById?.bind(context) 
                          || context.findKahootByIdEither?.bind(context);
 
@@ -53,29 +63,33 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         const result = await fetchMethod(finalId);
 
         return result.chain(resource => {
+            // REGLA: Si el fetcher no encuentra nada, error 404 vía Factory.
             if (!resource) return Either.makeLeft(AppErrorFactory.notFound(appContext));
 
-            // Normalización de datos (Soportando Agregado o Snapshot)
-            const authorId = resource instanceof Kahoot ? resource.authorId : resource.authorId;
-            const visibility = resource instanceof Kahoot ? resource.visibility : resource.visibility;
+            // REGLA: Duck Typing para extraer datos de validación.
+            const data = resource as unknown as IKahootAuthData;
+            
+            const authorId = data.authorId;
+            const visibility = (data.visibility || '').toUpperCase();
+            const status = (data.status || '').toUpperCase();
 
             const isOwner = authorId === userId;
-            
-            // Mejoramos el Match: Buscamos palabras que EMPIECEN con Get, Read o Find
-            // Esto evita falsos positivos en medio de otras palabras.
             const isReadOperation = /^(get|read|find|list)/i.test(operationName);
-            
-            const isPublic = visibility.toUpperCase() === VisibilityStatusEnum.PUBLIC;
+            const isPublic = visibility === VisibilityStatusEnum.PUBLIC;
 
-            // REGLA: 
-            // Si es lectura: Pasa si es Público O si soy el dueño.
-            // Si es escritura: SOLO pasa si soy el dueño.
+            // REGLA: Si es DRAFT, se prohíbe el acceso a cualquier actor que no sea el autor (Forbidden).
+            if (status === 'DRAFT' && !isOwner) {
+                return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot access a draft Kahoot"));
+            }
+
+            // REGLA: Lógica de acceso general. Lectura (Público o Dueño) | Escritura (Solo Dueño).
             const hasAccess = isReadOperation ? (isPublic || isOwner) : isOwner;
 
             if (hasAccess) {
                 return Either.makeRight(resource);
             }
 
+            // REGLA: Si no cumple las condiciones de identidad, error 401 vía Factory.
             return Either.makeLeft(AppErrorFactory.unauthorized(appContext));
         });
     }
