@@ -5,7 +5,7 @@ import { UserEmail } from '../../domain/value-objects/user.email';
 import { UserName } from '../../domain/value-objects/user.user-name';
 import { UserProfileDetails } from '../../domain/value-objects/user.profile-details';
 import { HashedPassword } from '../../domain/value-objects/user.hashed-password';
-import { UserPreferences, UIThemeEnum } from '../../domain/value-objects/user.user-preferences';
+import { UserPreferences } from '../../domain/value-objects/user.user-preferences';
 import { UserType } from '../../domain/value-objects/user.type';
 import { UserSubscriptionStatus } from '../../domain/value-objects/user.user-subscription-status';
 import { SubscriptionState } from '../../domain/value-objects/user.subscription-state';
@@ -20,7 +20,7 @@ export class UserMapper {
     const email = new UserEmail(raw.email);
     const username = new UserName(raw.username);
     const passwordHash = new HashedPassword(raw.passwordHash); 
-    const type = raw.type as UserType;
+    const type = raw.type as UserType; // Ojo: Asegúrate que UserType tenga un método fromValue o casting seguro
     const favorites = UserFavorites.fromPrimitives(raw.favoriteKahoots || []);
 
     const profile = new UserProfileDetails(
@@ -29,6 +29,7 @@ export class UserMapper {
       raw.profile.avatarUrl
     );
     
+    // Manejo seguro de fechas
     const subscriptionExpiresIso = new Date(raw.subscription.expiresAt).toISOString().split('T')[0];
     const subscription = new UserSubscriptionStatus(
       raw.subscription.state as SubscriptionState,
@@ -55,6 +56,8 @@ export class UserMapper {
         userPreferences: preferences,
         lastUsernameUpdate,
         favorites: favorites,
+        // 👇 AQUÍ AGREGAMOS LOS TOKENS (Requisito Sergi)
+        deviceTokens: raw.deviceTokens || [], 
       },
       id
     );
@@ -66,11 +69,14 @@ export class UserMapper {
       email: user.email.value,
       username: user.username.value,
       passwordHash: user.passwordHash.value,
-      type: user.type,
+      type: user.type, // Asegúrate que esto retorne el string/valor primitivo, no el objeto VO
 
       lastUsernameUpdate: user.lastUsernameUpdate 
         ? new Date(user.lastUsernameUpdate.value) 
         : undefined,
+
+      // 👇 AQUÍ GUARDAMOS LOS TOKENS (Requisito Sergi)
+      deviceTokens: user.deviceTokens, 
 
       profile: {
         name: user.userProfileDetails.name,
@@ -79,8 +85,8 @@ export class UserMapper {
       },
 
       subscription: {
-        state: user.subscriptionStatus.state,
-        plan: user.subscriptionStatus.plan,
+        state: user.subscriptionStatus.state, // Asegúrate que sea primitivo
+        plan: user.subscriptionStatus.plan,   // Asegúrate que sea primitivo
         expiresAt: new Date(user.subscriptionStatus.expiresAt.value),
       },
 

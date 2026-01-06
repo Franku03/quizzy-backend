@@ -54,13 +54,16 @@ export class RemoveKahootFromFavoritesHandler
     //Manejo de Infraestructura (bases de datos)
     try {
       // hidratamos el objeto de dominio
-      user = await this.userRepo.findUserById(userUUID);
-      if (!user)
+
+      const userOptional = await this.userRepo.findById(userUUID);
+      if (!userOptional.hasValue()) {
         return this.handleError(
           '404',
           'User not found',
           ErrorLayer.INFRASTRUCTURE,
-        );
+        ); 
+      }
+      user = userOptional.getValue();
       // removemos el kahoot
       user?.removeFavorite(kahootUUID);
       // guardamos el usuario
