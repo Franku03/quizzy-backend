@@ -4,7 +4,7 @@ import './database/infrastructure/postgres/modules/adapters-postgres.imports';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 
 import { AllExceptionsFilter } from './core/infrastructure/filters/all-exceptions.filter';
 import { ErrorMappingService } from './core/infrastructure/services/global-error-mapping.service';
@@ -12,14 +12,19 @@ import { ErrorMappingService } from './core/infrastructure/services/global-error
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // 1. HABILITA CORS (CRÍTICO para Render)
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
+  // 2. Global prefix
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: '.well-known/assetlinks.json', method: RequestMethod.GET }],
+  });
 
+  // 3. Global pipes (Maneja fallos de validación de entrada antes de llegar al handler)
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -27,6 +32,8 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  //  4. REGISTRO GLOBAL DEL FILTRO DE EXCEPCIONES
 
   const errorMappingService = app.get(ErrorMappingService);
   app.useGlobalFilters(new AllExceptionsFilter(errorMappingService));
@@ -57,7 +64,7 @@ function printQuizzyBanner(port: string | number, dbType: string) {
   const dbIcon = dbType === 'mongo' ? '🍃' : '🐘';
 
   const header = `${green}[Quizzy]${reset} ${gray}- ${reset}${timestamp}    ${green}LOG ${reset}${yellow}[Bootstrap]${reset}`;
-  
+
   const line = `${green}================================================================${reset}`;
 
   console.log(`${header} ${line}`);
