@@ -13,14 +13,20 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @CommandHandler(ModifyGroupInformationCommand)
 export class ModifyGroupInformationHandler implements ICommandHandler<ModifyGroupInformationCommand> {
+    private readonly useCase: string = 'User modifies group information';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(command: ModifyGroupInformationCommand): Promise<Either<ErrorData, ModifyGroupResponse>> {
         const errorContext = createDomainContext('Group', 'modifyGroupInformation', {
             domainObjectId: command.groupId,

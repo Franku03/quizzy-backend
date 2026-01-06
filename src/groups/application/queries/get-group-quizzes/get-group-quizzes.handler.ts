@@ -12,14 +12,20 @@ import { GroupQuizAssignmentReadModel } from "../read-model/group.quiz.assignmen
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetGroupQuizzesQuery)
 export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuery> {
+    private readonly useCase: string = 'User retrieves the list of quizzes assigned to a group';
     constructor(
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(query: GetGroupQuizzesQuery): Promise<Either<ErrorData, GroupQuizAssignmentReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupQuizzes', {
             domainObjectId: query.groupId,

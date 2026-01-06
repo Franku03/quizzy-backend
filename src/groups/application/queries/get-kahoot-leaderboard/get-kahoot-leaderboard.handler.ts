@@ -12,14 +12,20 @@ import { KahootLeaderboardReadModel } from "../read-model/kahoot.leaderboard.mod
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetKahootLeaderboardQuery)
 export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeaderboardQuery> {
+    private readonly useCase: string = 'User retrieves the leaderboard of a specific kahoot in a group';
     constructor(
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(query: GetKahootLeaderboardQuery): Promise<Either<ErrorData, KahootLeaderboardReadModel>> {
         const errorContext = createDomainContext('Group', 'getKahootLeaderboard', {
             domainObjectId: query.groupId,

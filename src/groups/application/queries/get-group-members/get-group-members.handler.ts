@@ -10,13 +10,19 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import { GROUP_ERRORS } from "src/groups/application/commands/group.errors";
 import { GroupMemberReadModel } from "../read-model/group.member.read.model";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @QueryHandler(GetGroupMembersQuery)
 export class GetGroupMembersHandler implements IQueryHandler<GetGroupMembersQuery> {
+    private readonly useCase: string = 'User retrieves the list of members in a group';
     constructor(
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(query: GetGroupMembersQuery): Promise<Either<ErrorData, GroupMemberReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupMembers', {
             domainObjectId: query.groupId,

@@ -12,15 +12,21 @@ import type { IGroupsDao } from '../ports/groups.dao.port';
 import type { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 
 @QueryHandler(GetGroupLeaderboardQuery)
 export class GetGroupLeaderboardHandler implements IQueryHandler<GetGroupLeaderboardQuery> {
+    private readonly useCase: string = 'User retrieves the leaderboard of a group';
     constructor(
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(query: GetGroupLeaderboardQuery): Promise<Either<ErrorData, GroupLeaderboardReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupLeaderboard', {
             domainObjectId: query.groupId,

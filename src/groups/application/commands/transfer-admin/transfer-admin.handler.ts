@@ -13,18 +13,24 @@ import type { IUserRepository } from "src/users/domain/ports/IUserRepository";
 import { GroupMemberRole } from "src/groups/domain/value-objects/group.member.role";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 
 
 @CommandHandler(TransferAdminCommand)
 export class TransferAdminHandler implements ICommandHandler<TransferAdminCommand> {
+    private readonly useCase: string = 'Admin transfers admin role to another member';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject(RepositoryName.User)
         private readonly userRepository: IUserRepository,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(command: TransferAdminCommand): Promise<Either<ErrorData, TransferAdminResponse>> {
         const errorContext = createDomainContext('Group', 'transferAdmin', {
             domainObjectId: command.groupId,

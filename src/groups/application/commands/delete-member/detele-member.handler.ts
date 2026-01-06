@@ -14,17 +14,22 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 @CommandHandler(DeleteMemberCommand)
 export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand> {
+    private readonly useCase: string = 'Admin removes a member from a group';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject(EVENT_BUS_TOKEN)
         private readonly eventBus: EventBus,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
-
+    @Log()
     async execute(command: DeleteMemberCommand): Promise<Either<ErrorData, void>> {
         const errorContext = createDomainContext('Group', 'deleteMember', {
             domainObjectId: command.groupId,

@@ -13,17 +13,23 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 
 @CommandHandler(GenerateInvitationCommand)
 export class GenerateInvitationHandler implements ICommandHandler<GenerateInvitationCommand> {
+    private readonly useCase: string = 'Admin generates an invitation link for a group';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject('ITokenGenerator')
         private readonly tokenGenerator: ITokenGenerator,
+        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(command: GenerateInvitationCommand): Promise<Either<ErrorData, InvitationResponse>> {
         const errorContext = createDomainContext('Group', 'generateInvitation', {
             domainObjectId: command.groupId,
