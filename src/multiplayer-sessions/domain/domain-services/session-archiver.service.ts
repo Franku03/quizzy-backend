@@ -15,7 +15,7 @@ export class SessionArchiverService {
         // TODO: Hacer mapeo de monadas Either desde la respuesta del saveSession
         await this.historyRepo.archiveSession(session);
         
-        // Liberamos el recurso de memoria y tambien el pin del txt
+        // Liberamos el recurso de memoria
         await this.activeRepo.delete( session.getSessionPin() );
     }
 }

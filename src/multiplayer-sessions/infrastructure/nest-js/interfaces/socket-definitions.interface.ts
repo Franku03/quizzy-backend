@@ -34,6 +34,8 @@ export interface ServerToClientEvents {
   [ServerEvents.HOST_GAME_END]:(payload: HostEndGameResponse ) => void; 
   [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void;
   [ServerEvents.PLAYER_LEFT_SESSION]:(payload: { userId: string, nickname: string, message: string}) => void; 
+  [ServerEvents.HOST_LEFT_SESSION]:(payload: { message: string }) => void; 
+  [ServerEvents.HOST_RETURNED_TO_SESSION]:(payload: { message: string }) => void; 
   [ServerEvents.SESSION_CLOSED]:(payload: SessionClosed ) => void; 
 
 

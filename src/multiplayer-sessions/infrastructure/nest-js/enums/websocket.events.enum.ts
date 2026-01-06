@@ -30,7 +30,9 @@ export enum ServerEvents {
     PLAYER_CONNECTED_TO_SERVER = "player_connected_to_server",
     PLAYER_ANSWER_CONFIRMATION = "player_answer_confirmation",
     PLAYER_LEFT_SESSION = "player_left_session",
-    
+    HOST_LEFT_SESSION = "host_left_session",
+    HOST_RETURNED_TO_SESSION = "host_returned_to_session",
+
     // Eventos provenientes de aplicación
     HOST_LOBBY_UPDATE = "host_lobby_update",
     PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",

@@ -1,11 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { FileSystemPinRepository } from "../adapters/file-system.pin.repository";
 
-import type { ActiveSessionContext, IActiveMultiplayerSessionRepository, IPinRepository,  } from "src/multiplayer-sessions/domain/ports";
+import type { ActiveSessionContext, IActiveMultiplayerSessionRepository,  } from "src/multiplayer-sessions/domain/ports";
 
 import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
-import { ThemeObject } from "src/core/types/theme.object";
 
 type sessionPin = string
 
@@ -45,9 +43,6 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
     private readonly QR_TTL = 10 * 60 * 1000;
 
     constructor(
-        @Inject( FileSystemPinRepository )
-        private readonly pinRepo: IPinRepository,
-
         @Inject( UuidGenerator )
         private readonly IdGenerator: IdGenerator<string>,
     ) {
@@ -119,10 +114,6 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
         // Al hacer delete, se rompe la referencia fuerte.
         // Si nadie más usa esa Session, el GC la eliminará en la próxima pasada.
         this.activeSessions.delete( pin );
-
-        // TODO: Mover esto fuera para permitir jugar más kahoots bajo el mismo pin
-        // Eliminamos el pin del txt para liberarlo
-        this.pinRepo.releasePin( pin );
 
     }
 

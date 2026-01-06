@@ -11,6 +11,7 @@ import type { SessionSocket  } from './interfaces/socket-definitions.interface';
 
 
 import { 
+  DeleteSessionCommand,
   HostNextPhaseCommand, 
   HostStartGameCommand, 
   PlayerJoinCommand, 
@@ -118,13 +119,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
         // 5) dejamos en espera la confirmación de sincronización
+        const confirmationTime = Number(process.env.CLIENT_CONFIRMATION_TIME) || 60000; // 1 min default
         const timeout = setTimeout(() => {
           if (this.readyTimeouts.has(client.id)) {
             this.logger.warn(`Socket ${client.id} nunca envió CLIENT_READY. Desconectando...`);
             client.disconnect(true);
             this.readyTimeouts.delete(client.id);
           }
-        }, 60000); 
+        }, confirmationTime ); 
 
         this.readyTimeouts.set(client.id, timeout);
 
@@ -180,11 +182,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         this.logger.debug(`Limpiado readyTimeout para socket ${client.id} por desconexión temprana.`);
       }
 
-      // Desconexión de Host
-      if (role === SessionRoles.HOST) {
+      // Desconexión de Host y periodo de gracia para ccerrar sala y desconectar jugadores
+      if (role === SessionRoles.HOST && this.tracingWsService.roomExist( roomPin )) {
 
-        this.logger.log(`Host se desconectó de la sala ${roomPin}. Iniciando periodo de gracia de`);
-        
+        this.logger.warn(`Host se desconectó de la sala ${roomPin}. Iniciando periodo de gracia esperando de reconexion`);
+
+        // Notificamos a los jugadores
+        this.wss.to( roomPin ).emit( ServerEvents.HOST_LEFT_SESSION, { message: "El host ha abandonado la sesión por favor espere" } );
+
         const gracePeriod = Number(process.env.GRACE_PERIOD_TIME) || 120000; // 2 min default
 
         // Empezamos el timeout de espera del host, si no vuelve cerramos la sesión por completo
@@ -228,15 +233,20 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       }
 
-      this.logger.log(`Cliente Desconectado: [${client.id}: ${ client.data.role }]`);
-
       if (roomPin) {
           try {
-            this.tracingWsService.removeClient(roomPin, client.id);
+            if( role === SessionRoles.HOST ){
+              this.tracingWsService.removeHost( roomPin );
+            }else{
+              this.tracingWsService.removeClient( roomPin, client.id );
+            }
           } catch (error) {
             this.logger.warn(`Error al remover cliente [${client.id}: ${ client.data.role }]: ${error.message}`);
           }
       }
+
+
+      this.logger.log(`Cliente Desconectado: [${client.id}: ${ client.data.role }]`);
       
     }
 
@@ -354,6 +364,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.logger.log(`Host reconectado a sala ${client.data.roomPin}. Cancelando cierre de sala.`);
           clearTimeout(pendingTimer);
           this.hostDisconnectionTimers.delete(client.data.roomPin);
+          //Notificamos a los jugadores
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.HOST_RETURNED_TO_SESSION, { message: "El host ha recuperado la conexión con la sesión" } );
         }
       }
 
@@ -595,7 +607,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     
     }
 
-    // Método privado para gestionar cierres de sesión de manera segura
+    // --------------------------------------------------------------------------
+    // * Método privado para gestionar cierres de sesión de manera segura o procedimientos de envio de eventos
+    // --------------------------------------------------------------------------
     private async closeSession( roomPin: string ){
 
         this.logger.log(`Host cerrando sesión y desconectando sala: ${roomPin}`);
@@ -617,9 +631,17 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         // Limpiamos la sala del servicio de traza
         // Revisamos si la sesión quedo en memoria tras acabar la sesión pues este cierre pudo darse por una desconexión, lo que puede implicar un leak de memoria
         this.tracingWsService.removeRoom( roomPin );
-        // TODO: Implementar caso de uso para borrar la sesión
 
-        this.logger.log(`Sala con pin: ${ roomPin }, cerrada y eliminada exitosamente el ${ new Date().toString() }`);
+        const res: Either<Error, boolean > = await this.commandBus.execute( new DeleteSessionCommand( roomPin ) );
+
+        if( res.isRight() ){
+          if( res.getRight() )
+            this.logger.log(`Session con pin: ${ roomPin }, ELIMINADA exitosamente`)
+        }else{
+          this.logger.error(`Error crítico al intentar sincronizar al usuario: ${ res.getLeft().message }`)
+        }
+
+        this.logger.log(`Sala con pin: ${ roomPin }, CERRADA exitosamente el ${ new Date().toString() }`);
 
     }
 

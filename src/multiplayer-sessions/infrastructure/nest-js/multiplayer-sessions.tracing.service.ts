@@ -7,10 +7,15 @@ interface ConnectedClients {
     [id: string]: {
 
         socket: SessionSocket,
-        nickname?: string,
-        userId?: string,
         roomPin: string
         role: SessionRoles, 
+
+        // Para el Jugador
+        nickname?: string,
+        
+        // Para el Host
+        userId?: string,
+        socketId?: string,
 
     } | undefined
 
@@ -20,6 +25,11 @@ interface ConnectedClients {
 export class MultiplayerSessionsTracingService {
 
     private availableRooms: Map<string, ConnectedClients> = new Map<string, ConnectedClients>();
+
+
+    // --------------------------------------------------------------------------
+    // * Métodos de registro para trazabiblidad
+    // --------------------------------------------------------------------------
 
     registerRoom( client: SessionSocket ){
 
@@ -44,7 +54,8 @@ export class MultiplayerSessionsTracingService {
                 socket: client,
                 roomPin: roomPin,
                 role: role,  
-                userId: client.data.userId  
+                userId: client.data.userId,
+                socketId: client.id as string 
             }
 
         } else {
@@ -71,6 +82,10 @@ export class MultiplayerSessionsTracingService {
 
     }
 
+    // --------------------------------------------------------------------------
+    // * Métodos de eliminación de registros
+    // --------------------------------------------------------------------------
+
 
     removeClient( roomPin: string, clientId: string){
 
@@ -86,7 +101,7 @@ export class MultiplayerSessionsTracingService {
     }
 
 
-    removeHost( roomPin: string, clientId: string) {
+    removeHost( roomPin: string ) {
 
         const room = this.getRoom( roomPin );
 
@@ -104,12 +119,16 @@ export class MultiplayerSessionsTracingService {
 
         // IMPORTANTE: Si no encontramos sala para este cliente, significa que nunca se registró correctamente o ya se borró.
         // Simplemente retornamos sin hacer nada (return), NO lanzamos error.
-        if(! roomExists )
+        if( !roomExists )
             return;
 
         this.availableRooms.delete( roomPin );
 
     }
+
+    // --------------------------------------------------------------------------
+    // * Métodos de comprobación de existencia de registros
+    // --------------------------------------------------------------------------
 
     roomHasHost( roomPin: string ): boolean {
         const room = this.getRoom( roomPin );
@@ -117,6 +136,12 @@ export class MultiplayerSessionsTracingService {
         const hostClient = room["host"];
 
         return hostClient !== undefined;
+    }
+
+    roomExist( roomPin: string ): boolean {
+
+        return this.availableRooms.has( roomPin );
+
     }
 
     getRoomHostSocketId( roomPin: string ): string | undefined {
@@ -128,6 +153,10 @@ export class MultiplayerSessionsTracingService {
         return undefined;
     }
 
+    
+    // --------------------------------------------------------------------------
+    // * Métodos de loggeo
+    // --------------------------------------------------------------------------
 
     logConnectedClients(): void {
 
@@ -139,6 +168,10 @@ export class MultiplayerSessionsTracingService {
     
 
     }
+
+    // --------------------------------------------------------------------------
+    // ? Métodos Privados
+    // --------------------------------------------------------------------------
 
     private getAvailableRooms() {
 
