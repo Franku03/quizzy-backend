@@ -13,7 +13,7 @@ import {
 
 import { SessionClosed } from "../dtos/session-closed.response.dto";
 import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
-import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from '../enums/websocket.events.enum';
+import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents, ClientEvents } from '../enums/websocket.events.enum';
 
 import { SessionRoles } from "../enums/session-roles.enum";
 
@@ -32,18 +32,24 @@ export interface ServerToClientEvents {
   [ServerEvents.HOST_RESULTS]:(payload: QuestionResultsHostResponse ) => void;
   [ServerEvents.PLAYER_RESULTS]:(payload: QuestionResultsPlayerResponse ) => void;
   [ServerEvents.HOST_GAME_END]:(payload: HostEndGameResponse ) => void; 
-  [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void; 
+  [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void;
+  [ServerEvents.PLAYER_LEFT_SESSION]:(payload: { userId: string, nickname: string, message: string}) => void; 
   [ServerEvents.SESSION_CLOSED]:(payload: SessionClosed ) => void; 
 
 
    // Errores
   [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
   [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
+  [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
+
   // ... más eventos que el servidor emite
 }
 
 // Eventos que los Clientes envían al Servidor
 export interface ClientToServerEvents {
+
+  [ClientEvents.CLIENT_READY]: () => void;
+
   [PlayerUserEvents.PLAYER_JOIN]: (payload: {}) => void;
   [PlayerUserEvents.PLAYER_SUBMIT_ANSWER]: (payload: PlayerSubmitAnswerDto ) => void;
 

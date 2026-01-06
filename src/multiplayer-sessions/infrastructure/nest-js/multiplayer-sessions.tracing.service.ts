@@ -5,11 +5,15 @@ import { SessionSocket } from './interfaces/socket-definitions.interface';
 interface ConnectedClients {
 
     [id: string]: {
+
         socket: SessionSocket,
         nickname?: string,
+        userId?: string,
         roomPin: string
-        role: SessionRoles,
-    }; 
+        role: SessionRoles, 
+
+    } | undefined
+
 }
 
 @Injectable()
@@ -23,8 +27,7 @@ export class MultiplayerSessionsTracingService {
 
         this.availableRooms.set( roomPin, {} );
 
-    } 
-
+    }
 
     registerClient( client: SessionSocket ){
 
@@ -35,11 +38,25 @@ export class MultiplayerSessionsTracingService {
 
         const room = this.getRoom( roomPin );
 
-        room[ client.id ] = {
-            socket: client,
-            roomPin: roomPin,
-            role: role,
-        };
+        if( role === SessionRoles.HOST ){
+
+            room["host"] = {
+                socket: client,
+                roomPin: roomPin,
+                role: role,  
+                userId: client.data.userId  
+            }
+
+        } else {
+
+            room[ client.id as string ] = {
+                socket: client,
+                roomPin: roomPin,
+                role: role,  
+            };
+
+
+        }
 
     } 
 
@@ -48,7 +65,9 @@ export class MultiplayerSessionsTracingService {
         const room = this.getRoom( client.data.roomPin );
 
         const clientInRoom = room[ client.id ];
-        clientInRoom.nickname = client.data.nickname;
+
+        if( clientInRoom )
+            clientInRoom.nickname = client.data.nickname;
 
     }
 
@@ -67,6 +86,18 @@ export class MultiplayerSessionsTracingService {
     }
 
 
+    removeHost( roomPin: string, clientId: string) {
+
+        const room = this.getRoom( roomPin );
+
+        if(!room)
+            return;
+
+        delete room["host"];
+    }
+
+
+
     removeRoom( roomPin: string ){
 
         const roomExists = this.availableRooms.has( roomPin );
@@ -77,6 +108,35 @@ export class MultiplayerSessionsTracingService {
             return;
 
         this.availableRooms.delete( roomPin );
+
+    }
+
+    roomHasHost( roomPin: string ): boolean {
+        const room = this.getRoom( roomPin );
+
+        const hostClient = room["host"];
+
+        return hostClient !== undefined;
+    }
+
+    getRoomHostSocketId( roomPin: string ): string | undefined {
+        const room = this.getRoom( roomPin );
+
+        if( this.roomHasHost( roomPin ) )
+            return room["host"]?.socket.id;
+
+        return undefined;
+    }
+
+
+    logConnectedClients(): void {
+
+        const availableRooms = this.getAvailableRooms();
+
+        availableRooms.forEach( room => {
+            console.log( room );
+        });
+    
 
     }
 
@@ -93,21 +153,6 @@ export class MultiplayerSessionsTracingService {
         return listOfRooms; 
     }
 
-    logConnectedClients(): void {
-
-        const availableRooms = this.getAvailableRooms();
-
-        availableRooms.forEach( room => {
-            console.log( room );
-        });
-    
-
-    }
-
-    // getUserFullNameBySocketId( socketId: string ){
-    //     return this.connectedClients[ socketId ]
-    // }
-
     private getRoom( roomPin: string ): ConnectedClients  {
         const room = this.availableRooms.get( roomPin );
 
@@ -116,6 +161,8 @@ export class MultiplayerSessionsTracingService {
 
         return room;
     }
+
+
 
     private roomDoesNotExist( arg: any ): never {
         throw new Error(`La sala con PIN ${arg} a unirse NO Existe`);
