@@ -5,7 +5,6 @@ import { ThemeEnrichmentHandler } from "../handlers/theme-enrichemnt.handler";
 import { IHasMediaAssets } from "src/core/domain/abstractions/media.assets.interface";
 import { IThemeable } from "src/core/domain/abstractions/themeable.interface";
 import { IUrlConfigurable } from "../ports/i-url-configurable.interface";
-import { MediaEnrichmentHandler } from "../handlers/media-enrichment.handler"; 
 
 @Injectable()
 export class EnrichmentHandlerFactory {

@@ -1,33 +1,37 @@
 // src/kahoots/infrastructure/persistence/mongo/kahoot.repository.mongo.ts
 
-import { Injectable } from '@nestjs/common';
+// --- NestJS & External ---
+import { Inject, Injectable } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { KahootMongo, IKahootDocument } from '../../entities/kahoots.schema';
 
-// Tipos Core
+// --- Tipos Core & Interfaces Genéricas ---
 import { Optional, Either, ErrorData } from 'src/core/types';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 
-// Dominio
+// --- Tokens de Inyección ---
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+
+// --- Dominio & Snapshots ---
 import { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { KahootFactory } from 'src/kahoots/domain/factories/kahoot.factory';
+import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
-// Infraestructura & Helpers
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
-import { KahootReadMapper } from './mappers/kahoot.handler.mapper';
+// --- Infraestructura, Esquemas & Helpers ---
+import { KahootMongo, IKahootDocument } from '../../entities/kahoots.schema';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
-
 import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
 @RepositoryMongo(RepositoryName.Kahoot)
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
-  private readonly mongoErrorMapper = new MongoErrorMapper();
-  private readonly kahootReadMapper = new KahootReadMapper(); 
   private readonly contextBase = KAHOOT_MONGO_BASE;
   private readonly adapterName = KahootRepositoryMongo.name;
   private readonly portName = 'IKahootRepository';
@@ -35,6 +39,10 @@ export class KahootRepositoryMongo implements IKahootRepository {
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
+    @Inject(ERROR_TOKENS.MAPPERS.MONGO)
+    private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_READ)
+    private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
   ) { }
 
   // ==========================================

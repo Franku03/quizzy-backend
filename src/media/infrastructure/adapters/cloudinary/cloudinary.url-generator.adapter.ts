@@ -3,7 +3,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
 import { IAssetUrlGenerator } from 'src/media/application/ports/i-asset-url-generator.interface';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-external-service.context';
-import { CLOUDINARY_CONFIG } from 'src/media/application/dependency-tokens/application-media.tokens';
+import {  MEDIA_TOKENS } from 'src/media/application/dependency-tokens/application-media.tokens';
 
 @Injectable()
 export class CloudinaryUrlGeneratorAdapter implements IAssetUrlGenerator {
@@ -16,7 +16,7 @@ export class CloudinaryUrlGeneratorAdapter implements IAssetUrlGenerator {
   };
 
   constructor(
-    @Inject(CLOUDINARY_CONFIG) 
+    @Inject(MEDIA_TOKENS.CLOUDINARY_CONFIG) 
     private readonly cloudinaryInstance: typeof cloudinary.v2
   ) {}
 

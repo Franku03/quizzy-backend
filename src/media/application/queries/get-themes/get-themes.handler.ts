@@ -4,7 +4,7 @@ import { QueryHandler } from "src/core/infrastructure/cqrs";
 import { GetThemesQuery } from "./get-themes.query";
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Inject } from "@nestjs/common";
-import { ASSET_URL_GENERATOR } from "src/media/application/dependency-tokens/application-media.tokens";
+import {  MEDIA_TOKENS } from "src/media/application/dependency-tokens/application-media.tokens";
 import type { IAssetUrlGenerator } from "src/media/application/ports/i-asset-url-generator.interface";
 import type { IAssetMetadataDao } from "src/media/application/ports/i-asset-metadata.dao.interface";
 import { IQueryHandler } from "src/core/application/cqrs/query-handler.interface";
@@ -20,7 +20,7 @@ export class GetThemesHandler implements IQueryHandler<GetThemesQuery> {
   constructor(
     @Inject(DaoName.AssetMetadataMongo)
     private readonly metadataDao: IAssetMetadataDao,
-    @Inject(ASSET_URL_GENERATOR)
+    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
     private readonly urlService: IAssetUrlGenerator,
   ) {}
 

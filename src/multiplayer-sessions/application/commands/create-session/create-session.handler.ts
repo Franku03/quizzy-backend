@@ -9,7 +9,7 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
-import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
+import type { IdGenerator } from "src/core/application/ports/idgenerator/i-id-generator.interface";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";

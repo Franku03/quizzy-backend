@@ -1,4 +1,3 @@
-// src/core/services/error-mapping.service.ts
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface';
@@ -13,51 +12,71 @@ export class ErrorMappingService {
       code: errorData.code,
       message,
       errorId: errorData.errorId,
-      // God Tier: Filtramos detalles técnicos para el cliente
+      //==========================
+      // REGLA: Filtrado de metadatos sensibles para el cliente final
+      //==========================
       details: this.sanitizeDetails(errorData, status),
     };
   }
 
   private sanitizeDetails(error: ErrorData, status: number): any {
-    // Si es error de servidor o capa técnica (Infra/Externo), ocultamos TODO
+    //==========================
+    // REGLA: Si es un error de servidor (500) o de capas tecnicas, ocultamos los detalles
+    //==========================
     if (
-      status >= 500 || 
-      error.layer === ErrorLayer.INFRASTRUCTURE || 
+      status >= 500 ||
+      error.layer === ErrorLayer.INFRASTRUCTURE ||
       error.layer === ErrorLayer.EXTERNAL
     ) {
-      return { 
-        info: 'Un error técnico ha ocurrido. Contacte a soporte con su errorId.',
+      return {
+        info: 'A technical error has occurred. Contact support with your errorId.',
         timestamp: new Date().toISOString()
       };
     }
-    // En errores de Dominio/App (4xx), permitimos detalles (ej. validaciones)
     return error.details;
   }
 
   private determineStatusCodeAndMessage(error: ErrorData): [HttpStatus, string] {
-    const { layer, code } = error;
+    const { layer, code, details } = error;
 
-    // --- 1. DOMINIO ---
+    // //==========================
+    // // 1. DOMAIN: Errores de logica de negocio y Agregados
+    // //==========================
     if (layer === ErrorLayer.DOMAIN) {
       const domainMap: Record<string, [HttpStatus, string]> = {
-        'RESOURCE_NOT_FOUND': [HttpStatus.NOT_FOUND, 'El recurso solicitado no existe.'],
-        'UNAUTHORIZED_ACCESS': [HttpStatus.FORBIDDEN, 'No tienes permisos para esta acción.'],
-        'VALIDATION_FAILED': [HttpStatus.BAD_REQUEST, 'Los datos enviados son inválidos.'],
-        'CONFLICT': [HttpStatus.CONFLICT, 'Ya existe un recurso con estos datos.'],
+        'RESOURCE_NOT_FOUND': [HttpStatus.NOT_FOUND, 'The requested resource does not exist.'],
+        'UNAUTHORIZED_ACCESS': [HttpStatus.FORBIDDEN, 'You do not have permissions for this action.'],
+        'VALIDATION_FAILED': [HttpStatus.BAD_REQUEST, 'The provided data is invalid.'],
+        'CONFLICT': [HttpStatus.CONFLICT, 'Conflict in the resource state.'],
       };
-      return domainMap[code] ?? [HttpStatus.BAD_REQUEST, 'Error en las reglas de negocio.'];
+      return domainMap[code] ?? [HttpStatus.BAD_REQUEST, 'Business rule violation.'];
     }
 
-    // --- 2. INFRAESTRUCTURA / EXTERNAL ---
-    if (layer === ErrorLayer.INFRASTRUCTURE || layer === ErrorLayer.EXTERNAL) {
-      return [HttpStatus.INTERNAL_SERVER_ERROR, 'Error de conexión con servicios internos.'];
-    }
-
-    // --- 3. APLICACIÓN ---
+    //==========================
+    // 2. APPLICATION: Orquestacion y Autorizacion
+    //==========================
     if (layer === ErrorLayer.APPLICATION) {
-      if (code === 'RESOURCE_NOT_FOUND') return [HttpStatus.NOT_FOUND, 'Recurso no encontrado.'];
+      // //==========================
+      // // REGLA: Usamos la CATEGORY inyectada por la AppErrorFactory para mapear el HTTP status
+      // //==========================
+      const category = details?.errorCategory;
+
+      const appMap: Record<string, [HttpStatus, string]> = {
+        'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
+        'UNAUTHORIZED': [HttpStatus.UNAUTHORIZED, 'Not authorized to perform this action.'],
+        'FORBIDDEN': [HttpStatus.FORBIDDEN, 'Access forbidden due to resource state or policies.'],
+      };
+
+      return appMap[category] ?? [HttpStatus.BAD_REQUEST, 'Application orchestration error.'];
     }
 
-    return [HttpStatus.INTERNAL_SERVER_ERROR, 'Error inesperado del sistema.'];
+    //==========================
+    // 3. INFRASTRUCTURE / EXTERNAL
+    //==========================
+    if (layer === ErrorLayer.INFRASTRUCTURE || layer === ErrorLayer.EXTERNAL) {
+      return [HttpStatus.INTERNAL_SERVER_ERROR, 'Infrastructure or external service error.'];
+    }
+
+    return [HttpStatus.INTERNAL_SERVER_ERROR, 'Unexpected system error.'];
   }
 }

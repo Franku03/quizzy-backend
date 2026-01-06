@@ -5,14 +5,15 @@ import { IAssetStorageService } from 'src/media/application/ports/i-asset-storag
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-external-service.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
-import { ERROR_MAPPER, CLOUDINARY_CONFIG } from 'src/media/application/dependency-tokens/application-media.tokens';
+import { MEDIA_TOKENS } from 'src/media/application/dependency-tokens/application-media.tokens';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
 
 @Injectable()
 export class CloudinaryStorageAdapter implements IAssetStorageService {
   constructor(
-    @Inject(ERROR_MAPPER)
-    private readonly errorMapper: IErrorMapper<IExternalServiceErrorContext>,
-    @Inject(CLOUDINARY_CONFIG)
+    @Inject(ERROR_TOKENS.MAPPERS.CLOUDINARY)
+    private readonly errorMapper: IErrorMapper<unknown,IExternalServiceErrorContext>,
+    @Inject(MEDIA_TOKENS.CLOUDINARY_CONFIG)
     private readonly cloudinaryInstance: typeof cloudinary.v2
   ) { }
 
