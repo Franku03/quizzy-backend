@@ -24,7 +24,7 @@ import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
 // --- Infrastructure: Mappers & Errors ---
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';

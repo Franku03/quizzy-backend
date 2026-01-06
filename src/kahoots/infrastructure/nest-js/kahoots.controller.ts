@@ -16,7 +16,7 @@ import {
 // Core & Types
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 // Comandos y Consultas
 import { CreateKahootCommand, UpdateKahootCommand } from 'src/kahoots/application/commands';

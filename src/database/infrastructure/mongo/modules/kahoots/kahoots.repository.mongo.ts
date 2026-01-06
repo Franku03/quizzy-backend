@@ -7,7 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 
 // --- Tipos Core & Interfaces Genéricas ---
 import { Optional, Either, ErrorData } from 'src/core/types';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 

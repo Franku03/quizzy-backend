@@ -6,7 +6,7 @@ import { SlideHandlerResponseDto } from '../dtos/kahoot.slide.handler.response.d
 import { OptionHandlerResponseDto } from '../dtos/kahoot.slide.option.handler.response.dto';
 import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
 import { OptionSnapshot } from 'src/core/domain/snapshots/snapshot.option';
-import { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 @Injectable()
 export class KahootMapperService implements IMapper<KahootSnapshot, KahootHandlerResponseDto> {

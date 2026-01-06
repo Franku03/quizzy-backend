@@ -16,7 +16,7 @@ import { SoloAttemptFactory } from 'src/solo-attempts/domain/factories/attempt.f
 import { SlideSnapshotMapper } from '../mappers/slide.mapper';
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';

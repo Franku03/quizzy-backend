@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
-import { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
+import { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.interface';
 
 @Injectable()
 export class NodeCryptoService implements ICryptoService {

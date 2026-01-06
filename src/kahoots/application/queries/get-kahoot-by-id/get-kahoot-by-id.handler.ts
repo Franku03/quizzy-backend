@@ -31,7 +31,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
 
 // Mapper
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
 

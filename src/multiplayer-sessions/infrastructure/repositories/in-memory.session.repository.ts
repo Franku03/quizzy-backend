@@ -3,7 +3,7 @@ import { FileSystemPinRepository } from "../adapters/file-system.pin.repository"
 
 import type { ActiveSessionContext, IActiveMultiplayerSessionRepository, IPinRepository,  } from "src/multiplayer-sessions/domain/ports";
 
-import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
+import type { IdGenerator } from "src/core/application/ports/idgenerator/i-id-generator.interface";
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 import { ThemeObject } from "src/core/types/theme.object";
 

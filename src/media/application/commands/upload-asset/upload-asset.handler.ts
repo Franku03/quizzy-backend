@@ -13,8 +13,8 @@ import { Log } from 'src/core/application/aspects/logging/log.decorator';
 // Interfaces de Puertos
 import type { IAssetMetadataDao } from '../../ports/i-asset-metadata.dao.interface';
 import type { IAssetStorageService } from '../../ports/i-asset-storage.interface';
-import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.service';
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import type { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.interface';
+import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
 
 import { UploadAssetCommand } from './upload-asset.command';
 import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interface';

@@ -6,7 +6,7 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
+import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 // --- Aspects & Decorators ---
@@ -38,7 +38,7 @@ import { KahootHandlerResponseDto } from '../../dtos/kahoot.handler.response.dto
 
 //  Import el Facade de Media y el Puerto del Mapper
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 
 
