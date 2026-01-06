@@ -12,23 +12,23 @@ export class ErrorMappingService {
       code: errorData.code,
       message,
       errorId: errorData.errorId,
-     //==========================
-     // REGLA: Filtrado de metadatos sensibles para el cliente final
-     //==========================
+      //==========================
+      // REGLA: Filtrado de metadatos sensibles para el cliente final
+      //==========================
       details: this.sanitizeDetails(errorData, status),
     };
   }
 
   private sanitizeDetails(error: ErrorData, status: number): any {
-   //==========================
-   // REGLA: Si es un error de servidor (500) o de capas tecnicas, ocultamos los detalles
-   //==========================
+    //==========================
+    // REGLA: Si es un error de servidor (500) o de capas tecnicas, ocultamos los detalles
+    //==========================
     if (
-      status >= 500 || 
-      error.layer === ErrorLayer.INFRASTRUCTURE || 
+      status >= 500 ||
+      error.layer === ErrorLayer.INFRASTRUCTURE ||
       error.layer === ErrorLayer.EXTERNAL
     ) {
-      return { 
+      return {
         info: 'A technical error has occurred. Contact support with your errorId.',
         timestamp: new Date().toISOString()
       };
@@ -52,9 +52,9 @@ export class ErrorMappingService {
       return domainMap[code] ?? [HttpStatus.BAD_REQUEST, 'Business rule violation.'];
     }
 
-   //==========================
-   // 2. APPLICATION: Orquestacion y Autorizacion
-   //==========================
+    //==========================
+    // 2. APPLICATION: Orquestacion y Autorizacion
+    //==========================
     if (layer === ErrorLayer.APPLICATION) {
       // //==========================
       // // REGLA: Usamos la CATEGORY inyectada por la AppErrorFactory para mapear el HTTP status
@@ -62,17 +62,17 @@ export class ErrorMappingService {
       const category = details?.errorCategory;
 
       const appMap: Record<string, [HttpStatus, string]> = {
-        'NOT_FOUND':    [HttpStatus.NOT_FOUND, 'Resource not found.'],
+        'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
         'UNAUTHORIZED': [HttpStatus.UNAUTHORIZED, 'Not authorized to perform this action.'],
-        'FORBIDDEN':    [HttpStatus.FORBIDDEN, 'Access forbidden due to resource state or policies.'],
+        'FORBIDDEN': [HttpStatus.FORBIDDEN, 'Access forbidden due to resource state or policies.'],
       };
 
       return appMap[category] ?? [HttpStatus.BAD_REQUEST, 'Application orchestration error.'];
     }
 
-   //==========================
-   // 3. INFRASTRUCTURE / EXTERNAL
-   //==========================
+    //==========================
+    // 3. INFRASTRUCTURE / EXTERNAL
+    //==========================
     if (layer === ErrorLayer.INFRASTRUCTURE || layer === ErrorLayer.EXTERNAL) {
       return [HttpStatus.INTERNAL_SERVER_ERROR, 'Infrastructure or external service error.'];
     }
