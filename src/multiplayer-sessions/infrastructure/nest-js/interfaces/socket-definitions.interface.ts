@@ -4,7 +4,7 @@ import {
   HostEndGameResponse, 
   HostLobbyUpdateResponse, 
   PlayerEndGameResponse, 
-  PlayerStateUpdateResponse, 
+  PlayerLobbyUpdateResponse, 
   PlayerSubmitAnswerResponse, 
   QuestionResultsHostResponse, 
   QuestionResultsPlayerResponse, 
@@ -24,7 +24,7 @@ export interface ServerToClientEvents {
   [ServerEvents.HOST_CONNECTED_SUCCESS]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
   [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
   [ServerEvents.HOST_LOBBY_UPDATE]: (payload: HostLobbyUpdateResponse) => void;
-  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerStateUpdateResponse ) => void;  
+  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerLobbyUpdateResponse ) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 
   [ServerEvents.HOST_ANSWERS_UPDATE]:(payload: PlayerSubmitAnswerResponse ) => void; 
 

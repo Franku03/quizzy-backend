@@ -24,19 +24,19 @@ import {
 
 import { 
   HostNextPhaseType, 
-  GameStateUpdateResponse, 
   HostNextPhaseResponse, 
   QuestionStartedResponse, 
   PlayerSubmitAnswerResponse,
   SyncStateResponse,
 
   HostLobbyUpdateResponse,
-  PlayerStateUpdateResponse,
   SyncType,
   QuestionResultsHostResponse,
   QuestionResultsPlayerResponse,
   HostEndGameResponse,
-  PlayerEndGameResponse
+  PlayerEndGameResponse,
+  LobbyStateUpdateResponse,
+  PlayerLobbyUpdateResponse
 } from 'src/multiplayer-sessions/application/response-dtos';
 import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 
@@ -44,8 +44,6 @@ import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
-import { mapPayloadToPlayer } from 'src/multiplayer-sessions/application/helpers/map-payload-to-player.helper';
-
 
 
 @WebSocketGateway( 
@@ -282,11 +280,11 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
                     client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
                   } else {
 
-                    const { hostLobbyUpdate, playerStateUpdate } = result.data as GameStateUpdateResponse;
+                    const { hostLobbyUpdate, playerLobbyUpdate } = result.data as LobbyStateUpdateResponse;
 
                     // Se le vuelve a reasignar el nickname al socket
-                    client.data.nickname = playerStateUpdate.nickname;
-                    client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerStateUpdate as PlayerStateUpdateResponse );
+                    client.data.nickname = playerLobbyUpdate.nickname;
+                    client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerLobbyUpdate as PlayerLobbyUpdateResponse );
 
                
                      // Notificamos al host
@@ -399,7 +397,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
 
-        const res: Either<Error, GameStateUpdateResponse> = 
+        const res: Either<Error, LobbyStateUpdateResponse> = 
           await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
         if( res.isRight() ){
@@ -407,8 +405,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           const result = res.getRight();
 
           // Guardamos el nickname registrado en el dominio en el socket para futuros usos
-          client.data.nickname = result.playerStateUpdate.nickname;
-          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, result.playerStateUpdate );
+          client.data.nickname = result.playerLobbyUpdate.nickname;
+          client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, result.playerLobbyUpdate );
 
           // Emitimos la respuesta de actualización de lobby solo al Host
 

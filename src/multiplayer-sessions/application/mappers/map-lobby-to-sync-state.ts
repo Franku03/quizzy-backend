@@ -31,7 +31,7 @@ export const mapLobbyToSyncState = (
             type: SyncType.PLAYER_STATE_UPDATE, 
             data: { 
                 hostLobbyUpdate: hostData,
-                playerStateUpdate: playerData,
+                playerLobbyUpdate: playerData,
             } 
         }
 

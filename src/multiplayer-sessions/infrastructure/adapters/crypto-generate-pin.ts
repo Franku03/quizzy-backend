@@ -78,7 +78,7 @@ export class CryptoGeneratePinService implements IGeneratePinService {
         //    evitando el "bias" (sesgo) que ocurre al usar el operador módulo (%) directamente.
         do {
             if (tries++ >= maxTries) {
-                throw new Error("Fallo al generar número aleatorio seguro después de varios intentos.");
+                throw new Error("Fallo al generar número aleatorio después de varios intentos.");
             }
             
             // Calcula la cantidad de bytes necesarios para representar el rango completo.
