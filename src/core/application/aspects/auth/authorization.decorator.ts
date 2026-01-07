@@ -6,7 +6,6 @@ import { Either } from "src/core/types";
 // Type definition for the class constructor of an Authorizer
 // This allows us to type the Strategy parameter in the Authorize decorator factory
 // as a class that can be instantiated to produce an IAuthorizer instance.
-// MODIFICACIÓN: Se añade <any, any, any> para permitir que el tercer parámetro (TResource) sea cualquier cosa.
 type AuthorizerClass = new () => IAuthorizer<any, any, any>;
 
 
@@ -18,6 +17,9 @@ type AuthorizerClass = new () => IAuthorizer<any, any, any>;
 export function Authorize(
   Strategy: AuthorizerClass, 
   contextPropertyKey: string,
+  // Optional operation name to specify the action being authorized.
+  // If not provided, it will be derived from the handler class name.
+  // Do not worry about this parameter if your strategy does not use/need it.
   operationName?: string, 
 ) {
   // The actual decorator function. This syntax is standard for typescript method decorators.
@@ -53,6 +55,17 @@ export function Authorize(
         throw new Error(`Authorization Error: Context '${contextPropertyKey}' is undefined on ${target.constructor.name}.`);
       }
 
+      // We determine the operation name. 
+      // If an operationName was provided to the decorator, we use that.
+      // Otherwise, we derive it from the class name by stripping common suffixes.
+      const finalOperationName = operationName || 
+          target.constructor.name
+            .replace('Handler', '')
+            .replace('Query', '')
+            .replace('Command', '');
+      // We attach the operation name to the command for potential use in the authorization strategy.
+      command.operationName = finalOperationName;
+      
       // Then, we instantiate the Strategy and Run the authorization logic
       // Note: if instead we used the direct strategy as a parameter, and did
       // @Authorize(new Strategy(), 'contextPropertyKey') in the handlers, that would cause 
@@ -60,32 +73,22 @@ export function Authorize(
       // state-related bugs if the strategy maintains any internal state.
       // By passing the class and instantiating it within the decorator, 
       // we ensure a fresh instance per invocation.
-      // Lógica de autoderivación
-      const finalOperationName = operationName || 
-          target.constructor.name
-            .replace('Handler', '')
-            .replace('Query', '')
-            .replace('Command', '');
-
-      // Inyectamos el nombre en el comando para que el Authorizer lo use
-      command.operationName = finalOperationName;
-      
-
       const strategy = new Strategy();
       
-      // Ejecutamos la lógica de autorización. 
-      // Soportamos tanto Promise<void> como Promise<Either<ErrorData, void>>
+      // We call the authorize method of the strategy with the command and context
+      // This method may return void or an Either indicating success or failure
       const authResult = await strategy.authorize(command, context);
 
-      // Si el resultado es un Either y es Left (fallo), cortocircuitamos el "tren" ROP
-      // devolviendo el error antes de ejecutar el método original (Handler).
+      // If the result is an Either, we check if it's a Left (error) or Right (success)
       if (Either.isEither(authResult)) {
         if (authResult.isLeft()) {
+          // If it's a Left, we return the error result immediately
           return authResult;
         }
         
-        // --- INYECCIÓN DEL RECURSO (Optimización de Fetch) ---
-        // Si el resultado es Right y contiene un recurso, lo inyectamos en el comando
+        // If it's a Right, we can optionally extract the TResource from it (IF IT HAS IT ONLY)
+        // and attach it to the command for further processing down the line
+        // This step couples the handler logic to the authorization strategy so only use if necessary
         const resource = authResult.getRight();
         if (resource !== undefined && resource !== null) {
           command.validatedResource = resource;

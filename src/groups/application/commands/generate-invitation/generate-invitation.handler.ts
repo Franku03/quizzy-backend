@@ -56,7 +56,7 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
 
             await this.groupRepository.save(group);
 
-            const baseUrl = 'https://quizzy.app/groups/join';
+            const baseUrl = 'https://quizzy-backend-0wh2.onrender.com/groups/join';
             const link = `${baseUrl}?token=${tokenVO.getValue()}`;
 
             return Either.makeRight({

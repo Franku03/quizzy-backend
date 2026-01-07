@@ -37,8 +37,6 @@ export class AuthService {
   async checkAuthStatus(userPayload: JwtPayload) {
 
     const id = new UserId(userPayload.id);
-    // Nota: Necesitarás implementar findById en tu repo o confiar en el payload si quieres velocidad extrema.
-    // Por ahora, regeneramos basado en el payload para cumplir con Franklin rápido.
 
     const userOptional = await this.userRepository.findById(id);
 

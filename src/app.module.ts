@@ -12,6 +12,7 @@ import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD
 import { AuthModule } from './auth/auth.module';
+import { WellKnownController } from './shared/infrastructure/controllers/well-known.controller';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AuthModule } from './auth/auth.module';
     UsersModule,
     AuthModule,
   ],
+  controllers: [WellKnownController],
 })
 export class AppModule {
   constructor() {}
