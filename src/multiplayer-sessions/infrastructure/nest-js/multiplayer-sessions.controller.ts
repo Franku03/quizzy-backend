@@ -1,5 +1,6 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, InternalServerErrorException, Logger, NotFoundException, Param, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, HttpStatus, InternalServerErrorException, Logger, NotFoundException, Param, Post, UnauthorizedException } from '@nestjs/common';
 import { CreateSessionDto } from './dtos/create-session.dto';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 import { CommandBus } from 'src/core/infrastructure/cqrs';
 
 import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session/create-session.command';
@@ -13,41 +14,31 @@ import { CREATE_SESSION_ERRORS, QR_TOKEN_ERRORS } from 'src/multiplayer-sessions
 export class MultiplayerSessionsController {
 
   constructor(
+    private readonly executor: CommandQueryExecutorService,
+    
     private readonly commandBus: CommandBus,
   ){}
 
-
   // --- C O M A N D S (Mutación) ---
-
 
   // TODO: Agregar obtencion del ID del usuario a traves del JWT por los headers
   @Post()
-  @HttpCode( 201 )
+  @HttpCode(HttpStatus.CREATED)
   async createSession(
     @Body() createSessionDto: CreateSessionDto,
     // TODO: @GetUser('id') userId: string,
   ) {
 
-    const res: Either<Error,CreateSessionResponse> = 
-        await this.commandBus.execute( new CreateSessionCommand( createSessionDto.kahootId, createSessionDto.userId ) );
-      
-    if( res.isRight() ){
-
-      return res.getRight()
-
-    } else {
-
-      this.handleError( res.getLeft() )
-
-
-    }
-
+    return await this.executor
+            .executeCommand<CreateSessionResponse>( new CreateSessionCommand( createSessionDto.kahootId, createSessionDto.userId ) );
+    
   }
 
 
   // --- Q U E R I E S (Lectura) ---
 
   @Get('qr-token/:qrToken')
+  @HttpCode(HttpStatus.OK)
   async getSessionPin(
     @Param('qrToken') qrToken: string,
     // TODO: @GetUser('id') userId: string,

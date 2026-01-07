@@ -54,7 +54,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     @WebSocketServer() wss: Server;
     
     private readonly logger: Logger = new Logger('WebSocketGateway');
-
     // Maps de timers para desconexion, uno para espera de sincronizacion, otro para espera de reconexion de un host
     private readyTimeouts = new Map<string, NodeJS.Timeout>();
 
