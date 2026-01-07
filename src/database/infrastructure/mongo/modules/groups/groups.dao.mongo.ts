@@ -32,7 +32,7 @@ export class GroupDaoMongo implements IGroupsDao {
         const groups = await this.groupModel.find({ members: { $elemMatch: { id: userId } } }).exec();
         if (!groups) return new Optional<GroupReadModel[]>();
 
-        return new Optional<GroupReadModel[]>(groups.map(group => new GroupReadModel(group.groupId, group.name, group.members.find(member => member.id === userId)?.role ?? '', group.members.length, group.createdAt)));
+        return new Optional<GroupReadModel[]>(groups.map(group => new GroupReadModel(group.groupId, group.name, group.description ?? '', group.members.find(member => member.id === userId)?.role ?? '', group.members.length, group.createdAt)));
     }
 
 
@@ -228,17 +228,17 @@ export class GroupDaoMongo implements IGroupsDao {
             .select({ adminId: 1 })
             .lean()
             .exec();
-        
+
         if (!group) {
             return false;
         }
-        
+
         return group.adminId === userId;
     }
 
     async isGroupMember(groupId: string, userId: string): Promise<boolean> {
         const group = await this.groupModel
-            .findOne({ 
+            .findOne({
                 groupId,
                 $or: [
                     { adminId: userId },
@@ -248,7 +248,7 @@ export class GroupDaoMongo implements IGroupsDao {
             .select({ groupId: 1 })
             .lean()
             .exec();
-        
+
         return !!group;
     }
 }
