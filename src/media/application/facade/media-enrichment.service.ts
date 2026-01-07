@@ -10,7 +10,7 @@ import { AttemptResumeReadModel } from "src/solo-attempts/application/queries/re
 import { PaginatedKahootListReadModel, KahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
 import { LibraryReadModel } from "src/library/application/queries/read-model/library.read.model";
 import { IHasMediaAssets } from "src/core/domain/abstractions/media.assets.interface";
-import { ThemeObject } from "src/core/types/theme.object";
+import { IThemeable } from "src/core/domain/abstractions/themeable.interface";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -29,7 +29,7 @@ export class MediaEnrichmentService {
   ): Promise<T> {
     const allIds = [...target.getMediaAssetIds(), ...additionalIds];
     const urlMap = await this.resolveAssetUrls(allIds);
-    
+
     const handler = this.handlerFactory.createAssetHandler<T>(urlMap);
     return handler.handle(target);
   }
@@ -42,12 +42,12 @@ export class MediaEnrichmentService {
     // 1. Solo IDs de ASSETS (imágenes) - NO themeId
     const assetIds = this.collectKahootAssetIds(kahoot);
     const urlMap = await this.resolveAssetUrls(assetIds);
-    
+
     // 2. Enriquecer styling (tema + imagen)
     if (kahoot.styling) {
       await this.enrichStylingInternal(kahoot.styling, urlMap);
     }
-    
+
     // 3. Enriquecer slides (solo imágenes)
     if (kahoot.slides?.length) {
       const slideHandler = this.handlerFactory.createAssetHandler<SlideSnapshot>(urlMap);
@@ -55,14 +55,14 @@ export class MediaEnrichmentService {
         kahoot.slides.map(slide => slideHandler.handle(slide))
       );
     }
-    
+
     return kahoot;
   }
 
   public async enrichStyling(styling: KahootStylingSnapshot): Promise<KahootStylingSnapshot> {
     const assetIds = styling.getMediaAssetIds(); // Solo imageId
     const urlMap = await this.resolveAssetUrls(assetIds);
-    
+
     return this.enrichStylingInternal(styling, urlMap);
   }
 
@@ -70,14 +70,14 @@ export class MediaEnrichmentService {
     return this.enrich(slide);
   }
 
-/**
-   * Enriquece cualquier objeto que implemente IThemeable.
-   * El ThemeHandler utiliza el 'themeId' para buscar los datos y 
-   * popular la propiedad 'theme' (de tipo ThemeObject).
-   */
+  /**
+     * Enriquece cualquier objeto que implemente IThemeable.
+     * El ThemeHandler utiliza el 'themeId' para buscar los datos y 
+     * popular la propiedad 'theme' (de tipo ThemeObject).
+     */
   public async enrichThemeable<T extends IThemeable>(target: T): Promise<T> {
     const handler = this.handlerFactory.createThemeHandler<T>();
-    
+
     return handler.handle(target);
   }
   // ============================================================================
@@ -86,18 +86,18 @@ export class MediaEnrichmentService {
 
   public async enrichKahootList(items: KahootListReadModel[]): Promise<KahootListReadModel[]> {
     if (items.length === 0) return items;
-    
+
     // OPTIMIZACIÓN: Obtener todos los IDs de assets en batch
     const allAssetIds = this.collectAssetIdsFromBatch(items);
-    
+
     if (allAssetIds.length === 0) return items;
-    
+
     // OPTIMIZACIÓN: Obtener URLs una sola vez
     const urlMap = await this.resolveAssetUrls(allAssetIds);
-    
+
     // OPTIMIZACIÓN: Usar mismo handler para todos los items
     const handler = this.handlerFactory.createAssetHandler<KahootListReadModel>(urlMap);
-    
+
     return Promise.all(
       items.map(item => handler.handle(item))
     );
@@ -133,7 +133,7 @@ export class MediaEnrichmentService {
     // Crear cadena COR: tema primero, luego assets
     const themeHandler = this.handlerFactory.createThemeHandler<KahootStylingSnapshot>();
     const assetHandler = this.handlerFactory.createAssetHandler<KahootStylingSnapshot>(urlMap);
-    
+
     themeHandler.setNext(assetHandler);
     return themeHandler.handle(styling);
   }
@@ -144,17 +144,17 @@ export class MediaEnrichmentService {
    */
   private collectKahootAssetIds(kahoot: KahootSnapshot): string[] {
     const assetIds = new Set<string>();
-    
+
     if (kahoot.styling?.imageId) {
       assetIds.add(kahoot.styling.imageId);
     }
-    
+
     if (kahoot.slides?.length) {
       kahoot.slides.forEach(slide => {
         slide.getMediaAssetIds().forEach(id => assetIds.add(id));
       });
     }
-    
+
     return Array.from(assetIds);
   }
 
@@ -163,11 +163,11 @@ export class MediaEnrichmentService {
    */
   private collectAssetIdsFromBatch<T extends IHasMediaAssets>(items: T[]): string[] {
     const allIds = new Set<string>();
-    
+
     items.forEach(item => {
       item.getMediaAssetIds().forEach(id => allIds.add(id));
     });
-    
+
     return Array.from(allIds);
   }
 
