@@ -82,6 +82,16 @@ export class Either<TLeft, TRight> {
         return Either.makeRight<TLeft, TRight>(this.getRight());
     }
 
+    /**
+     * Ejecuta un efecto asíncrono solo si es Left y retorna el Either original.
+     */
+    async tapLeftAsync(fn: (err: TLeft) => Promise<void>): Promise<Either<TLeft, TRight>> {
+        if (this.isLeft()) {
+            await fn(this.getLeft());
+        }
+        return this;
+    }
+
     // --- Flujos Condicionales (Asincrónicos) ---
 
     /** Ejecuta el encadenamiento asíncrono solo si NO se cumple la condición proporcionada */
