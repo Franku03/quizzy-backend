@@ -52,6 +52,7 @@ import { Either } from 'src/core/types/either';
 export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatewayDisconnect {
 
     @WebSocketServer() wss: Server;
+    
     private readonly logger: Logger = new Logger('WebSocketGateway');
 
     // Maps de timers para desconexion, uno para espera de sincronizacion, otro para espera de reconexion de un host

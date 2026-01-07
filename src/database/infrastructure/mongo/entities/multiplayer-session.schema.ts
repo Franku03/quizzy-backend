@@ -70,14 +70,6 @@ const AnswerSelectedSchema = {
 const SessionPlayerAnswerSchema = {
   playerId: { type: String, required: true },
   slideId: { type: String, required: true },
-  // answerIndex: {
-  //   type: [Number],
-  //   required: true,
-  //   validate: {
-  //     validator: (arr: number[]) => arr.length > 0,
-  //     message: 'At least one answer index is required',
-  //   },
-  // },
   earnedScore: { type: Number, required: true, min: 0 },
   timeElapsed: { type: Number, required: true, min: 0 },
   submittedAt: { type: Date, required: true, default: Date.now },
@@ -208,7 +200,6 @@ export class MultiplayerSessionMongo extends Document {
     submissions: Array<{
       playerId: string;
       slideId: string;
-      // answerIndex: number[];
       isAnswerCorrect: boolean;
       earnedScore: number;
       timeElapsed: number;

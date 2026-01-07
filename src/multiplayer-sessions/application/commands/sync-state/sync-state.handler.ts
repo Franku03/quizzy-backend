@@ -9,8 +9,7 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
 import { SyncStateCommand } from "./sync-state.command";
-import { QuestionAdditionalData, SyncStateResponse } from "../../response-dtos/sync-state.response.dto";
-import { SyncData } from "../../response-dtos";
+import { SyncStateResponse } from "../../response-dtos/sync-state.response.dto";
 import { mapEndToSyncState, mapLobbyToSyncState, mapQuestionToSyncState, mapResultsToSyncState, mapToQuestionResponse } from "../../mappers";
 
 import { Either } from "src/core/types";
