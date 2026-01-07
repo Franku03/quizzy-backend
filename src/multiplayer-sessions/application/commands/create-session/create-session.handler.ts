@@ -22,6 +22,9 @@ import { Either } from '../../../../core/types/either';
 
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
+import { Log } from "src/core/application/aspects/logging/log.decorator";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -41,8 +44,11 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         private readonly sessionPinGenerator: IGeneratePinService,
     
         private readonly mediaService: MediaEnrichmentService,
+
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     ){}
 
+    @Log()
     async execute(command: CreateSessionCommand): Promise<Either<Error,CreateSessionResponse>> {
 
 

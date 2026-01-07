@@ -88,6 +88,7 @@ export class KahootController {
     @Param('id') kahootId: string,
     @GetUserId() userId?: string
   ): Promise<KahootHandlerResponseDto> {
+    console.log(`userId in controller: ${userId}`);
     const query = new GetKahootByIdQuery({ kahootId, userId });
     return await this.executor.executeQuery<KahootHandlerResponseDto>(query);
   }
