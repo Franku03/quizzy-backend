@@ -23,10 +23,17 @@ export class ChangeUsernameHandler implements ICommandHandler<ChangeUsernameComm
         const userId = new UserId(command.userId);
         const newUsername = new UserName(command.newUsername);
 
-        const user = await this.userRepo.findUserById(userId);
+        const userOptional = await this.userRepo.findById(userId);
+
+        if (!userOptional.hasValue()) {
+            return Either.makeLeft(new UserNotFoundError(command.userId));
+        }
+        
+        const user = userOptional.getValue();
         if (!user) {
             return Either.makeLeft(new UserNotFoundError(command.userId));
         }
+        
 
         const isTaken = await this.userRepo.existsUserByUsername(newUsername);
         if (isTaken) {

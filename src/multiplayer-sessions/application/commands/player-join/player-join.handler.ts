@@ -11,11 +11,10 @@ import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessio
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
-import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
-import { mapJoinToStateUpdate } from "../../mappers";
+import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';
-import { GameStateUpdateResponse } from "../../response-dtos/game-state-update.response.dto";
+import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update.response.dto";
 import { COMMON_ERRORS } from "../common.errors";
 
 
@@ -28,11 +27,9 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
         @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
         private readonly usersDao: IUserDao,
-
-        private readonly mediaService: MediaEnrichmentService,
     ){}
 
-    async execute(command: PlayerJoinCommand): Promise<Either<Error, GameStateUpdateResponse>> {
+    async execute(command: PlayerJoinCommand): Promise<Either<Error, LobbyStateUpdateResponse>> {
 
 
         try {
@@ -42,7 +39,7 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
             if( !sessionWrapper )
                 return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
 
-            const { session, kahoot } = sessionWrapper
+            const { session } = sessionWrapper
 
 
 
@@ -57,11 +54,15 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
             // Unimos el jugador a la partida
             // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
+
+            // Primero verificamos si ya estaba unido, de ser así borramos manualmente su anterior registro y ponemos el nuevo actualizado
+            // Recordemos que este evento ahora se emite manualmente solo al dar nickname
+            if( session.isPlayerAlreadyJoined( player.id ) )
+                session.deletePlayer( player.id )
+
             session.joinPlayer( player );
 
-            const res = mapJoinToStateUpdate(player, session, kahoot);
-
-            // const enrichedRes = await this.mediaService.enrichSlide( res.playerStateUpdate.currentSlideData!);
+            const res = mapJoinToLobbyUpdate( player, session );
 
             return Either.makeRight( res ); 
 

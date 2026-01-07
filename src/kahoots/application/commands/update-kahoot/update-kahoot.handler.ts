@@ -6,13 +6,11 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
+import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 // --- Aspects & Decorators ---
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { KahootOwnershipAuthorizer, IKahootOwnershipRequest } from 'src/core/application/aspects/auth/strategies/kahootOwnership.strategy';
@@ -33,7 +31,6 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 // --- Application Commands & Context ---
 import { UpdateKahootCommand } from './update-kahoot.command';
 import { KahootSlideCommand } from '../base';
-import { createKahootAppContext } from '../context/base-kahoot-context';
 
 // --- Application Services & Response ---
 import { AttemptCleanupService } from '../../services/attempt-clear.service';
@@ -41,7 +38,7 @@ import { KahootHandlerResponseDto } from '../../dtos/kahoot.handler.response.dto
 
 //  Import el Facade de Media y el Puerto del Mapper
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 
 
@@ -51,13 +48,13 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   constructor(
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
-    @Inject(MAPPER_TOKEN)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.RESPONSE_MAPPER)
     private readonly kahootMapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
     private readonly mediaService: MediaEnrichmentService,
     private readonly attemptCleanup: AttemptCleanupService,
-    @Inject(ID_GENERATOR)
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
   @Log()

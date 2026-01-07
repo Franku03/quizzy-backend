@@ -57,7 +57,7 @@ export class FileSystemPinRepository implements IPinRepository {
 
             // 4) Verificar si hubo un cambio
             if (updatedPins.length === activePins.length) {
-                console.warn(`Warning: PIN ${pinToRemove} was not found in the active pins file.`);
+                console.warn(`Warning: PIN ${pinToRemove} no se encuentra en el registro de pins activos.`);
                 return; // El PIN no estaba en el archivo, no hay que hacer nada.
             }
 
@@ -68,11 +68,11 @@ export class FileSystemPinRepository implements IPinRepository {
             // El uso de fs.writeFile es más seguro para sobrescribir que appendFile.
             await fs.writeFile(this.PIN_FILE_PATH, newFileContent, { encoding: 'utf-8' });
 
-            console.log(`✅ PIN ${pinToRemove} successfully released.`);
+            console.log(`✅ PIN ${pinToRemove} liberado exitosamente.`);
 
         } catch (error: any) {
             if (error.code === 'ENOENT') {
-                console.error(`Error: PIN file not found at ${this.PIN_FILE_PATH}. Cannot release PIN ${pinToRemove}.`);
+                console.error(`Error: PIN no encontrado en ${this.PIN_FILE_PATH}. No se puede liberar el PIN ${pinToRemove}.`);
                 return;
             }
             throw error; // Re-lanzar otros errores del sistema de archivos

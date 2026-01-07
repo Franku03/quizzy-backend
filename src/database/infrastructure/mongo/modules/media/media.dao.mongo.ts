@@ -1,27 +1,31 @@
 // src/database/infrastructure/mongo/modules/media/media.dao.mongo.ts
+
 // --- NestJS & Mongoose ---
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-// --- Core Logic & Types ---
+// --- Tipos Core & Interfaces de Error ---
 import { ErrorData, Either, ErrorLayer } from 'src/core/types';
-import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
+
+// --- Tokens de Inyección ---
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
 
 // --- Application Ports ---
 import { IAssetMetadataDao } from 'src/media/application/ports/i-asset-metadata.dao.interface';
 import { AssetMetadataRecord } from 'src/media/application/ports/i-asset-metadata-record.interface';
 
-// --- Infrastructure: Enums & Decorators ---
+// --- Infrastructure: Entidades, Helpers & Constantes ---
+import { AssetMetadataMongo } from '../../entities/media.schema';
+import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+import { ASSET_MONGO_BASE } from './constants/asset-mongo-constants';
+
+// --- Infrastructure: Decoradores & Catálogos ---
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
-// --- Infrastructure: Entities & Constants ---
-import { AssetMetadataMongo } from '../../entities/media.schema';
-import { ASSET_MONGO_BASE } from './constants/asset-mongo-constants';
-
-// --- Infrastructure: Mappers & Errors ---
-import { MongoErrorMapper } from '../../errors/mongo-error.mapper';
 
 /**
  * Interfaz que representa el POJO devuelto por .lean().
@@ -45,7 +49,6 @@ export interface IAssetMetadataDocument {
 @DaoMongo(DaoName.AssetMetadataMongo)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
-  private readonly mongoErrorMapper = new MongoErrorMapper();
   private readonly contextBase = ASSET_MONGO_BASE;
   private readonly adapterName = AssetMetadataMongoDao.name;
   private readonly portName = 'IAssetMetadataDao';
@@ -53,6 +56,8 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
   constructor(
     @InjectModel(AssetMetadataMongo.name)
     private readonly model: Model<AssetMetadataMongo>,
+    @Inject(ERROR_TOKENS.MAPPERS.MONGO)
+    private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
   ) {}
 
   /**

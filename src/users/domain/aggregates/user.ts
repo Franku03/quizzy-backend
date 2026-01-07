@@ -26,6 +26,7 @@ interface UserProps {
     subscriptionStatus: UserSubscriptionStatus;
     lastUsernameUpdate?: DateISO; 
     favorites: UserFavorites;
+    deviceTokens: string[];
 }
 
 export class User extends AggregateRoot<UserProps, UserId> {
@@ -56,6 +57,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
             subscriptionStatus,
             lastUsernameUpdate: undefined, 
             favorites: UserFavorites.createEmpty(),
+            deviceTokens: [],
         };
 
         const user = new User(props, id);
@@ -153,6 +155,12 @@ export class User extends AggregateRoot<UserProps, UserId> {
         }
     }
 
+    public registerDeviceToken(token: string): void {
+        if (!this.properties.deviceTokens.includes(token)) {
+            this.properties.deviceTokens.push(token);
+        }
+    }
+
     public isUserPremium(): boolean {
         return this.properties.subscriptionStatus.isPremium();
     }
@@ -191,5 +199,9 @@ export class User extends AggregateRoot<UserProps, UserId> {
 
     get favorites(): UserFavorites {
         return this.properties.favorites;
+    }
+
+    get deviceTokens(): string[] {  
+        return this.properties.deviceTokens;
     }
 }

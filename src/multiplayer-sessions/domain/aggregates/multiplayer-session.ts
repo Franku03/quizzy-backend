@@ -142,7 +142,12 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         // Si un jugador que ya esta unido intenta unirse, se retorna de la funcion sin hacer nada (lo mismo que agarrar su score, borrarlo, y volverlo a unir con el score que tenia)
         if( this.isPlayerAlreadyJoined( player.id ))
             return;
-        
+
+        // Si no estamos en lobby no podemos permitir unir nuevos jugadores
+        if( !this.properties.sessionState.isLobby() )
+            throw new Error("La partida ya empezó y no se admiten nuevos jugadores");
+
+
         this.properties.players.set( player.id.value , player );
         
         this.addEntryToScoreboard( player );
@@ -154,7 +159,11 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         this.properties.ranking = this.properties.ranking.addScoreboardEntry( player );
     }
 
-    private deletePlayer( playerId: PlayerId ): boolean {
+    public deletePlayer( playerId: PlayerId ): boolean {
+
+        // Si no estamos en lobby no podemos permitir borrar jugadores
+        if( !this.properties.sessionState.isLobby() )
+            throw new Error("La partida ya empezó y no se pueden eliminar jugadores");
         
         return this.properties.players.delete( playerId.value );
 
@@ -298,9 +307,6 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
     }
 
     private endSession(): StateTransition{
-
-        // ! if( this.properties.sessionState.isQuestion() && !this.properties.progress.hasMoreSlidesLeft() )
-        //      this.properties.sessionState = this.properties.sessionState.toResults(); // Muchos efectos colaterales, pero es necesario pasar a results para luego pasar a end
 
         // Terminamos el juego pasando a estado END y generando la fecha de culminacion
         this.properties.sessionState = this.properties.sessionState.toEnd();

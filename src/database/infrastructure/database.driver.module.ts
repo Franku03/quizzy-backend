@@ -7,8 +7,10 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
+
 import { DAO_OVERRIDE_ENV_MAP } from './catalogs/dao.catalog.enum';
 import { REPOSITORY_OVERRIDE_ENV_MAP } from './catalogs/repository.catalog.enum';
+import { MongoMappersModule } from './mongo/mongo-mappers.module';
 
 type ModuleImport = Type<any> | DynamicModule;
 
@@ -27,10 +29,8 @@ export class DatabaseDriverModule {
 
     const dbsToLoad = new Set<string>();
 
-    // Siempre cargar el globalType
     dbsToLoad.add(globalType);
 
-    // Revisar overrides y agregarlos
     Object.values({
       ...DAO_OVERRIDE_ENV_MAP,
       ...REPOSITORY_OVERRIDE_ENV_MAP,
@@ -40,8 +40,6 @@ export class DatabaseDriverModule {
         dbsToLoad.add(override);
       }
     });
-
-    // dbsToLoad siempre tiene al menos el globalType
 
     if (dbsToLoad.has('postgres')) {
       imports.push(
@@ -94,7 +92,10 @@ export class DatabaseDriverModule {
           }),
         );
       }
-      exports.push(MongooseModule);
+
+      // Carga de mappers e infraestructura específica de MongoDB
+      imports.push(MongoMappersModule);
+      exports.push(MongooseModule, MongoMappersModule);
       console.log('✅ Base de datos configurada: MongoDB (Mongoose)');
     }
 

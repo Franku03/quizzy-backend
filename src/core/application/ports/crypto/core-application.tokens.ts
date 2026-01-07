@@ -1,1 +1,0 @@
-export const ID_GENERATOR = 'IdGenerator'

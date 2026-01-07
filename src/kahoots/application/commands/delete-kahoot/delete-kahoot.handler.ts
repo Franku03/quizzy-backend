@@ -6,7 +6,6 @@ import { ICommandHandler } from 'src/core/application/cqrs/command-handler.inter
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { KahootOwnershipAuthorizer, IKahootOwnershipRequest } from 'src/core/application/aspects/auth/strategies/kahootOwnership.strategy';
@@ -16,6 +15,7 @@ import { RepositoryName } from "src/database/infrastructure/catalogs/repository.
 import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 import { DeleteKahootCommand } from './delete-kahoot.command';
 import { AttemptCleanupService } from '../../services/attempt-clear.service';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(DeleteKahootCommand)
 export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand> {
@@ -24,7 +24,7 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand>
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
     private readonly attemptCleanup: AttemptCleanupService,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
   @Log()

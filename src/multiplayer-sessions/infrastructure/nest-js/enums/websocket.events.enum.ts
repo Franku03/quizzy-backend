@@ -1,4 +1,12 @@
 
+export enum ClientEvents {
+
+    CLIENT_READY = "client_ready",
+
+}
+
+
+
 export enum HostUserEvents {
 
     HOST_START_GAME = "host_start_game",
@@ -21,7 +29,10 @@ export enum ServerEvents {
     HOST_CONNECTED_SUCCESS = "host_connected_success",
     PLAYER_CONNECTED_TO_SERVER = "player_connected_to_server",
     PLAYER_ANSWER_CONFIRMATION = "player_answer_confirmation",
-    
+    PLAYER_LEFT_SESSION = "player_left_session",
+    HOST_LEFT_SESSION = "host_left_session",
+    HOST_RETURNED_TO_SESSION = "host_returned_to_session",
+
     // Eventos provenientes de aplicación
     HOST_LOBBY_UPDATE = "host_lobby_update",
     PLAYER_CONNECTED_TO_SESSION = "player_connected_to_session",
@@ -39,9 +50,9 @@ export enum ServerEvents {
 
 export enum ServerErrorEvents {
 
-    FATAL_ERROR = "connexion_error",
+    SYNC_ERROR = "sync_error",
+    FATAL_ERROR = "connection_error",
     UNAVAILABLE_SESSION = "unnavailable_session",
-
     GAME_ERROR = "game_error",
 
 }

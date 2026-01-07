@@ -8,7 +8,7 @@ import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-hand
 import { ErrorData } from 'src/core/types';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @QueryHandler(CheckIfCanBeSavedToFavoritesQuery)
 export class CheckIfCanBeSavedToFavoritesHandler
@@ -16,7 +16,7 @@ export class CheckIfCanBeSavedToFavoritesHandler
 {
   constructor(
     @Inject(DaoName.Library) private readonly libraryDao: ILibraryDao,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}
 
   @Log()
