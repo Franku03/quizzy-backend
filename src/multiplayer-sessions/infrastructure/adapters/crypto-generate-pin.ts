@@ -18,6 +18,7 @@ export class CryptoGeneratePinService implements IGeneratePinService {
 
     public async generateUniquePin(): Promise<string> {
 
+        // Obtenemos los pins activos (que ahora vienen instantáneamente de la RAM del repo)
         const activePins = await this.fileSystemRepo.getActivePins();
 
         let newPin: string;
@@ -36,6 +37,7 @@ export class CryptoGeneratePinService implements IGeneratePinService {
         } while (activePins.has(newPin));
 
         // After finding a unique PIN, save it to the file immediately
+        // IMPORTANTE: Esto ahora también lo añade al Set de RAM del repo para que el siguiente proceso lo vea ocupado
         await this.fileSystemRepo.saveNewPin(newPin);
 
         // Return the unique PIN
