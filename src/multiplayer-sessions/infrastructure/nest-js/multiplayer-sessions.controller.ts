@@ -8,6 +8,8 @@ import { GetPinWithQrTokenCommand } from 'src/multiplayer-sessions/application/c
 import { CreateSessionResponse } from 'src/multiplayer-sessions/application/response-dtos/create-session.response.dto';
 
 import { Either } from 'src/core/types/either';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { CREATE_SESSION_ERRORS, QR_TOKEN_ERRORS } from 'src/multiplayer-sessions/application/commands';
 
 @Controller('multiplayer-sessions')
@@ -21,16 +23,16 @@ export class MultiplayerSessionsController {
 
   // --- C O M A N D S (Mutación) ---
 
-  // TODO: Agregar obtencion del ID del usuario a traves del JWT por los headers
   @Post()
+  @Auth()
   @HttpCode(HttpStatus.CREATED)
   async createSession(
     @Body() createSessionDto: CreateSessionDto,
-    // TODO: @GetUser('id') userId: string,
+    @GetUserId() userId: string,
   ) {
 
     return await this.executor
-            .executeCommand<CreateSessionResponse>( new CreateSessionCommand( createSessionDto.kahootId, createSessionDto.userId ) );
+            .executeCommand<CreateSessionResponse>( new CreateSessionCommand( createSessionDto.kahootId, userId ) );
     
   }
 

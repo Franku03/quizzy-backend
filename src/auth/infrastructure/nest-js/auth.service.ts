@@ -4,8 +4,9 @@ import type { IPasswordHasher } from 'src/users/domain/domain-services/i.passwor
 import type { IUserRepository } from 'src/users/domain/ports/IUserRepository';
 import { UserEmail } from 'src/users/domain/value-objects/user.email';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { JwtPayload } from '../../domain/interfaces/jwt-payload.interface';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
+import { LoginUserDto } from '../dtos/login-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,8 @@ export class AuthService {
     private readonly passwordHasher: IPasswordHasher,
   ) {}
 
-  async login(loginDto: any) {
+  async login(loginDto: LoginUserDto) {
+
     const { email, password } = loginDto;
     
     const userOptional = await this.userRepository.findByEmail(new UserEmail(email));
@@ -34,9 +36,9 @@ export class AuthService {
     };
   }
 
-  async checkAuthStatus(userPayload: JwtPayload) {
+  async checkAuthStatus( userId: string ) {
 
-    const id = new UserId(userPayload.id);
+    const id = new UserId( userId );
 
     const userOptional = await this.userRepository.findById(id);
 
