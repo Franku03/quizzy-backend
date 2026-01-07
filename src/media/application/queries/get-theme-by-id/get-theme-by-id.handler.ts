@@ -13,6 +13,8 @@ import { ThemeResponse } from "../../dtos/theme.response.dto";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { AssetMetadataRecord } from "../../ports/i-asset-metadata-record.interface";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
 @QueryHandler(GetThemeByIdQuery)
 export class GetThemeByIdHandler implements IQueryHandler<GetThemeByIdQuery> {
@@ -20,6 +22,7 @@ export class GetThemeByIdHandler implements IQueryHandler<GetThemeByIdQuery> {
   constructor(
     @Inject(DaoName.AssetMetadataMongo) private readonly metadataDao: IAssetMetadataDao,
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR) private readonly urlService: IAssetUrlGenerator,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}
 
   @Log()

@@ -1,7 +1,6 @@
 // src/kahoots/infrastructure/nest-js/kahoots.module.ts
 
 import { Module } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 
 // --- Controllers ---
 import { KahootController } from './kahoots.controller';
@@ -35,9 +34,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.Attempt),
     DaoFactoryModule.forFeature(DaoName.Kahoot),
-    
     MediaModule,
-    CqrsModule,
   ],
   providers: [
     // --- Handlers de Aplicación ---
