@@ -10,6 +10,7 @@ import { AttemptResumeReadModel } from "src/solo-attempts/application/queries/re
 import { PaginatedKahootListReadModel, KahootListReadModel } from "src/explore/application/read-models/kahoot-list.read-model";
 import { LibraryReadModel } from "src/library/application/queries/read-model/library.read.model";
 import { IHasMediaAssets } from "src/core/domain/abstractions/media.assets.interface";
+import { ThemeObject } from "src/core/types/theme.object";
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -69,6 +70,16 @@ export class MediaEnrichmentService {
     return this.enrich(slide);
   }
 
+/**
+   * Enriquece cualquier objeto que implemente IThemeable.
+   * El ThemeHandler utiliza el 'themeId' para buscar los datos y 
+   * popular la propiedad 'theme' (de tipo ThemeObject).
+   */
+  public async enrichThemeable<T extends IThemeable>(target: T): Promise<T> {
+    const handler = this.handlerFactory.createThemeHandler<T>();
+    
+    return handler.handle(target);
+  }
   // ============================================================================
   // MÉTODOS PARA READ MODELS (refactorizados internamente)
   // ============================================================================
