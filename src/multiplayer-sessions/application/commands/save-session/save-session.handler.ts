@@ -41,11 +41,11 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
             if( !sessionWrapper )
                 return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
 
-            const { session } = sessionWrapper;
+            const { session, kahoot } = sessionWrapper;
 
             // Procesamos la limpieza y archivado de la sesión
             // Aqui no liberamos el pin, esperamos a que el host cierre la sesion por completo para eso
-            await this.sessionArchiverService.archiveAndClean( session );
+            await this.sessionArchiverService.archiveAndClean( session, kahoot );
 
             // Respuesta guardada con exito
             return Either.makeRight( true );

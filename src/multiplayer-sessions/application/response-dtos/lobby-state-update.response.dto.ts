@@ -12,11 +12,10 @@ interface PlayerData {
 
 export interface PlayerLobbyUpdateResponse {
 
-    connected: boolean,
     state: SessionStateType,
     nickname: string,
     score: number,
-
+    connectedBefore: boolean, 
 }
 
 export interface HostLobbyUpdateResponse {

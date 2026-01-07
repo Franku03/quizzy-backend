@@ -31,6 +31,9 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
 
             const { sessionPin } = command;
 
+            // * Eliminamos el pin del txt para liberarlo, aqui finalmente se hace la sesión completamente inválida
+            this.pinRepo.releasePin( sessionPin );
+
             // Cargamos el agregado session desde el repositorio en memoria
             const sessionWrapper = await this.sessionRepository.findByPin( sessionPin );
 
@@ -41,8 +44,6 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
             // Procesamos la limpieza de la session
             this.sessionRepository.delete( sessionPin );
             
-            // * Eliminamos el pin del txt para liberarlo, aqui finalmente se hace la sesión completamente inválida
-            this.pinRepo.releasePin( sessionPin );
 
             // Habia una sesion por borrar y regresamos true para decir que ya fue liberada de memoria
             return Either.makeRight( true );

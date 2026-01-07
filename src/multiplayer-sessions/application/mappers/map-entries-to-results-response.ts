@@ -10,17 +10,18 @@ import { COMMON_ERRORS } from "../commands/common.errors";
 
 export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionResultsResponse => {
 
-    // Primero Obtenemos la slide previa en la sesión
-    const previousSlideId = session.getPreviousSlideInSession();    
+    // Primero Obtenemos la slide previa en la sesión o la actual si el progreso nos dice que no hay más slides disponibles
+    const slideId = session.hasMoreSlidesLeft() ? session.getPreviousSlideInSession() : session.getCurrentSlideInSession()
+      
 
-    if( !previousSlideId )
+    if( !slideId )
         throw new Error(COMMON_ERRORS.PREVIOUS_SLIDE_NOT_FOUND);
 
     // Luego mapeamos las respuestas correctas de la slide previa   
-    const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, previousSlideId );
+    const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
     
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
-    const hostData = mapHostResultsData( session, previousSlideId, { correctAnswerId, optionsId } );        
+    const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        
 
     // Ahora mapeamos la info de cada jugador
     const entries = session.getPlayersRankingEntries();
@@ -28,7 +29,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
 
     entries.forEach( entry => {
 
-        const entryDataMapped = mapPlayerResultsData( session, previousSlideId, entry, { correctAnswerId, optionsId } );        
+        const entryDataMapped = mapPlayerResultsData( session, slideId, entry, { correctAnswerId, optionsId } );        
 
         playerData.set( entry.getPlayerId().value , entryDataMapped );
     

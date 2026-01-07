@@ -342,8 +342,6 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
     public getOnePlayerAnswers( playerId: PlayerId ): (SessionPlayerAnswer | undefined)[] {
 
-        if( !this.properties.players.has( playerId.value ) )
-            throw new Error("El jugador solicitado no se encuentra en la partida");  
 
         const slidesResults = this.getSlidesResults();
 

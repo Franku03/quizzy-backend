@@ -39,7 +39,7 @@ export class MultiplayerSessionsTracingService {
 
     }
 
-    registerClient( client: SessionSocket ){
+    registerClient( client: SessionSocket ): void {
 
 
         const roomPin = client.data.roomPin;
@@ -47,6 +47,9 @@ export class MultiplayerSessionsTracingService {
         const role = client.data.role
 
         const room = this.getRoom( roomPin );
+
+        if(!room)
+            return
 
         if( role === SessionRoles.HOST ){
 
@@ -71,9 +74,12 @@ export class MultiplayerSessionsTracingService {
 
     } 
 
-    registerClientNickname( client: SessionSocket ){
+    registerClientNickname( client: SessionSocket ): void {
 
         const room = this.getRoom( client.data.roomPin );
+
+        if(!room)
+            return
 
         const clientInRoom = room[ client.id ];
 
@@ -122,7 +128,7 @@ export class MultiplayerSessionsTracingService {
         if( !roomExists )
             return;
 
-        this.availableRooms.delete( roomPin );
+        const deleted = this.availableRooms.delete( roomPin );
 
     }
 
@@ -132,6 +138,9 @@ export class MultiplayerSessionsTracingService {
 
     roomHasHost( roomPin: string ): boolean {
         const room = this.getRoom( roomPin );
+
+        if(!room)
+            return false
 
         const hostClient = room["host"];
 
@@ -146,6 +155,9 @@ export class MultiplayerSessionsTracingService {
 
     getRoomHostSocketId( roomPin: string ): string | undefined {
         const room = this.getRoom( roomPin );
+
+        if(!room)
+            return undefined;
 
         if( this.roomHasHost( roomPin ) )
             return room["host"]?.socket.id;
@@ -186,18 +198,13 @@ export class MultiplayerSessionsTracingService {
         return listOfRooms; 
     }
 
-    private getRoom( roomPin: string ): ConnectedClients  {
+    private getRoom( roomPin: string ): ConnectedClients | undefined {
         const room = this.availableRooms.get( roomPin );
 
         if(!room)
-            return this.roomDoesNotExist( roomPin );
+            return undefined
 
         return room;
     }
 
-
-
-    private roomDoesNotExist( arg: any ): never {
-        throw new Error(`La sala con PIN ${arg} a unirse NO Existe`);
-    }
 }

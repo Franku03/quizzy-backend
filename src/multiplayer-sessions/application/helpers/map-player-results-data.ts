@@ -7,7 +7,7 @@ import { QuestionResultsPlayerResponse } from "../response-dtos";
 export const mapPlayerResultsData = (
 
     session: MultiplayerSession, 
-    previousSlideId: SlideId, 
+    slideId: SlideId, 
     entry: ScoreboardEntry,
     options: { correctAnswerId: string [], optionsId: string []}
 
@@ -17,7 +17,7 @@ export const mapPlayerResultsData = (
 
     const playerId = entry.getPlayerId();
 
-    const playerAnswer = session.getOnePlayerAnswerForASlide( previousSlideId, playerId );
+    const playerAnswer = session.getOnePlayerAnswerForASlide( slideId, playerId );
 
     const progress = {
         current: session.getCurrentSlideIndex(), // No restamos 1 porque realmente nos interesa tener el valor del indice actual

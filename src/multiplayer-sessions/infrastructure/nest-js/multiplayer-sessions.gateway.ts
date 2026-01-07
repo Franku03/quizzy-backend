@@ -170,6 +170,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       const { roomPin, role, userId, nickname } = client.data;
 
+      // Aseguramos que la sala exista para evitar emitir eventos que no tocan o remover cosas del servicio de traza en momentos de cierre de sesión
+      const roomExists = roomPin && this.tracingWsService.roomExist( roomPin )
 
       // Verificamos por si el usuario tiene algun timeout aun en memoria esperándolo, se pudo haber desconectado antes de hacer client_ready
       const pendingReadyTimeout = this.readyTimeouts.get(client.id);
@@ -181,7 +183,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       }
 
       // Desconexión de Host y periodo de gracia para ccerrar sala y desconectar jugadores
-      if (role === SessionRoles.HOST && this.tracingWsService.roomExist( roomPin )) {
+      if (role === SessionRoles.HOST && roomExists ) {
 
         this.logger.warn(`Host se desconectó de la sala ${roomPin}. Iniciando periodo de gracia esperando de reconexion`);
 
@@ -207,8 +209,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
       // Desconexión de jugador
-      // solo hacemos esta notificacion en caso de que el jugador ya haya confirmado que esta sincronizado y que tenga nickname registrado (hizo player_join)
-      if (role === SessionRoles.PLAYER && !this.readyTimeouts.has( client.id ) && nickname ) {
+      // solo hacemos esta notificacion en caso de que el jugador ya haya confirmado que esta sincronizado,
+      // ue tenga nickname registrado (hizo player_join) y la sala exista
+      if (role === SessionRoles.PLAYER && !this.readyTimeouts.has( client.id ) && nickname && roomExists ) {
         // Notificamos al host
         const hostSocketId = this.tracingWsService.getRoomHostSocketId( roomPin ); 
 
@@ -231,7 +234,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       }
 
-      if (roomPin) {
+      if (roomExists) {
           try {
             if( role === SessionRoles.HOST ){
               this.tracingWsService.removeHost( roomPin );
@@ -274,7 +277,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
                   client.emit(ServerEvents.HOST_LOBBY_UPDATE, result.data as HostLobbyUpdateResponse);
                   break;
 
-                case( SyncType.PLAYER_STATE_UPDATE ): {
+                case( SyncType.PLAYER_LOBBY_STATE_UPDATE ): {
 
                   if( result.additionalData ){
                     client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
@@ -284,8 +287,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
                     // Se le vuelve a reasignar el nickname al socket
                     client.data.nickname = playerLobbyUpdate.nickname;
+                    // Marcamos que el usuario ya estaba conectado de antes en la partida
+                    playerLobbyUpdate.connectedBefore = true;
                     client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerLobbyUpdate as PlayerLobbyUpdateResponse );
 
+                    // registramos de nuevo su nombre en el servicio de tracing          
+                    this.tracingWsService.registerClientNickname( client );
                
                      // Notificamos al host
                     const hostSocketId = this.tracingWsService.getRoomHostSocketId( client.data.roomPin ); 
@@ -565,7 +572,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
                 const sockets = await this.wss.in( client.data.roomPin ).fetchSockets();
                 for (const socket of sockets) {
                     if ( socket.data.role === SessionRoles.PLAYER ) {
-                        socket.emit(ServerEvents.PLAYER_RESULTS, res.playerData.get( socket.data.userId ));
+                        socket.emit(ServerEvents.PLAYER_GAME_END, res.playerData.get( socket.data.userId ));
                     }
                 }
 
@@ -620,23 +627,24 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             message:'El anfitrión ha finalizado la sesión.',
         });
 
-        // 3) DESCONEXIÓN DE LA SALA
+        // 3) LIMPIAR INFORMACIÓN DE LA SALA EN MEMORIA
+        // Limpiamos la sala del servicio de traza, necesario para evitar emitir evento de host abandonó la sesión
+        this.tracingWsService.removeRoom( roomPin );
+
+        // 4) DESCONEXIÓN DE LA SALA
         // Esto desconecta a TODOS los sockets en esa sala (Host incluido)
         // El argumento 'true' fuerza el cierre del nivel bajo.
         await this.wss.in(roomPin).disconnectSockets(true);
         
-        // 4) LIMPIEZA ADICIONAL (Opcional)
-        // Limpiamos la sala del servicio de traza
+        // 5) LIMPIEZA ADICIONAL (Opcional)
         // Revisamos si la sesión quedo en memoria tras acabar la sesión pues este cierre pudo darse por una desconexión, lo que puede implicar un leak de memoria
-        this.tracingWsService.removeRoom( roomPin );
-
         const res: Either<Error, boolean > = await this.commandBus.execute( new DeleteSessionCommand( roomPin ) );
 
         if( res.isRight() ){
           if( res.getRight() )
             this.logger.log(`Session con pin: ${ roomPin }, ELIMINADA exitosamente`)
         }else{
-          this.logger.error(`Error crítico al intentar sincronizar al usuario: ${ res.getLeft().message }`)
+          this.logger.error(`Error crítico al intentar ELIMINAR la partida: ${ res.getLeft().message }`)
         }
 
         this.logger.log(`Sala con pin: ${ roomPin }, CERRADA exitosamente el ${ new Date().toString() }`);

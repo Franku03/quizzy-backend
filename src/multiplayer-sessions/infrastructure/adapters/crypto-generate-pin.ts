@@ -4,11 +4,12 @@ import { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-serv
 import type { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
 import { FileSystemPinRepository } from './file-system.pin.repository';
 
-const MAX_ATTEMPTS = process.env.PIN_GENERATION_ATTEMPTS ? +process.env.PIN_GENERATION_ATTEMPTS : 50; // Máximo de intentos para generar un PIN único
-
 
 @Injectable()
 export class CryptoGeneratePinService implements IGeneratePinService {
+
+    // Máximo de intentos para generar un PIN único
+    private readonly MAX_ATTEMPTS = process.env.PIN_GENERATION_ATTEMPTS ? +process.env.PIN_GENERATION_ATTEMPTS : 50;
 
     constructor(
         @Inject( FileSystemPinRepository )
@@ -23,8 +24,8 @@ export class CryptoGeneratePinService implements IGeneratePinService {
         let attempts = 0;
 
         do {
-            if (attempts >= MAX_ATTEMPTS) {
-                throw new Error(`Failed to generate a unique PIN after ${MAX_ATTEMPTS} attempts.`);
+            if (attempts >= this.MAX_ATTEMPTS ) {
+                throw new Error(`Fallo al generar número aleatorio después de ${this.MAX_ATTEMPTS} intentos.`);
             }
             
             // Generates a new cryptographically secure PIN
@@ -44,66 +45,22 @@ export class CryptoGeneratePinService implements IGeneratePinService {
 
     public generateSecurePin(): string {
 
-        // 1) Generamos un numero aleatorio entre 6 y 10 para obtener la longitud del PIN
-        //  Esta fórmula toma el resultado de Math.random() (un número entre 0 y 1), 
-        //  lo multiplica por la cantidad de números posibles en el rango (\(10-6+1=5\)), 
-        //  lo redondea hacia abajo con Math.floor(), y luego le suma el valor mínimo (6) para obtener un resultado final entre 6 y 10. 
         const minLength = 6;
         const maxLength = 10;
-        const pinLength = Math.floor(Math.random() * (maxLength  - minLength + 1)) + minLength;
+        
+        // 1. Elegimos la longitud aleatoriamente
+        const pinLength = crypto.randomInt(minLength, maxLength + 1);
 
-        // 2) Validación de Longitud: Aseguramos que la longitud esté en el rango esperado.
-        if (pinLength < minLength || pinLength > maxLength) {
-            throw new Error("La longitud del PIN debe estar entre 6 y 10 dígitos.");
-        }
+        // 2. Calculamos los límites numéricos para esa longitud
+        // Ejemplo para 6 dígitos: min = 100,000; max = 999,999
+        const minRange = Math.pow(10, pinLength - 1);
+        const maxRange = Math.pow(10, pinLength);
 
-        // 3) Cálculo del Máximo: El número máximo es 10^longitud - 1 (ej: 999999 para 6).
-        //    NOTA: Usaremos BigInt para evitar problemas de precisión si la longitud fuera mayor a 16.
-        const max = BigInt(10) ** BigInt(pinLength) - BigInt(1);
+        // 3. Generamos el número aleatorio directamente en el rango
+        // randomInt(min, max) -> min es inclusivo, max es exclusivo.
+        const pinNumber = crypto.randomInt(minRange, maxRange);
 
-        // 4) Cálculo del Mínimo: El número mínimo es 10^(longitud - 1) (ej: 100000 para 6).
-        const min = BigInt(10) ** BigInt(pinLength - 1);
-
-        // 5) Cálculo del Rango: (maximo - minimo + 1)
-        const range = max - min + BigInt(1);
-
-        let pinNumericBigInt: bigint;
-        let tries = 0;
-        const maxTries = 10;
-
-        // 5) Generación Criptográfica y Descarte:
-        //    El uso de crypto.randomBytes asegura una verdadera aleatoriedad.
-        //    Necesitamos generar un número en el rango [minimo, maximo].
-        //    Usaremos un bucle para asegurar que el número generado esté dentro del rango,
-        //    evitando el "bias" (sesgo) que ocurre al usar el operador módulo (%) directamente.
-        do {
-            if (tries++ >= maxTries) {
-                throw new Error("Fallo al generar número aleatorio después de varios intentos.");
-            }
-            
-            // Calcula la cantidad de bytes necesarios para representar el rango completo.
-            // Math.ceil(rango.toString(2).length / 8) bytes
-            const bytesNeeded = Math.ceil(range.toString(2).length / 8);
-
-            // Genera un buffer de bytes aleatorios.
-            const buffer = crypto.randomBytes(bytesNeeded);
-
-            // Convierte el buffer a BigInt (número entero grande sin signo).
-            const randomNumber = BigInt('0x' + buffer.toString('hex'));
-
-            // Si el número aleatorio está dentro del rango seguro [0, rango - 1]
-            if (randomNumber < range) {
-                // Mapeamos el número al rango deseado [minimo, maximo]
-                pinNumericBigInt = randomNumber + min;
-                break;
-            }
-        } while (true);
-
-
-        // 6) Conversión Final a String y Retorno:
-        // Como aseguramos que el número está en el rango [minimo, maximo],
-        // ya tiene la longitud correcta y no necesita relleno con ceros.
-        return pinNumericBigInt.toString();
+        return pinNumber.toString();
     }
 
 }
