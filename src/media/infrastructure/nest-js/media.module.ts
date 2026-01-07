@@ -1,5 +1,4 @@
 import { Module, Scope } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -18,6 +17,7 @@ import { AssetResolutionService } from '../../application/services/asset-resolut
 import { AssetResolutionProxy } from '../../application/services/asset-resolution.proxy';
 import { ThemeResolutionService } from '../../application/services/theme-resolution.service';
 import { ThemeResolutionProxy } from '../../application/services/theme-resolution.proxy';
+import { ThemeListProxy } from 'src/media/application/queries/get-themes/get-themes.proxy';
 
 // --- Adaptadores e Infraestructura ---
 import { CloudinaryStorageAdapter } from '../adapters/cloudinary/cloudinary.storage.adapter';
@@ -40,7 +40,6 @@ import { MediaController } from './media.controller';
 @Module({
     controllers: [MediaController],
     imports: [
-        CqrsModule,
         CoreModule,
         ConfigModule,
         DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
@@ -48,7 +47,6 @@ import { MediaController } from './media.controller';
     providers: [
         CommandQueryExecutorService,
         UploadAssetHandler,
-        GetThemesHandler,
 
         // --- Orquestación y Factorías ---
         MediaEnrichmentService,
@@ -64,6 +62,14 @@ import { MediaController } from './media.controller';
             scope: Scope.TRANSIENT,
         },
 
+        // --- API Query Proxies (Listados/Colecciones) ---
+        {
+            provide: MEDIA_TOKENS.RAW_THEME_LIST_QUERY_HANDLER,
+            useClass: GetThemesHandler,
+        },
+
+        ThemeListProxy,
+
         // --- Sistema de Resolución de Imágenes (Proxy Pattern) ---
         {
             provide: MEDIA_TOKENS.RAW_IMAGE_URL_ENRICHER,
@@ -71,7 +77,7 @@ import { MediaController } from './media.controller';
         },
         {
             provide: MEDIA_TOKENS.IMAGE_URL_ENRICHER,
-            useClass: AssetResolutionProxy, // El Proxy envuelve al RAW
+            useClass: AssetResolutionProxy, 
         },
 
         // --- Sistema de Resolución de Temas (Proxy Pattern) ---
@@ -81,7 +87,7 @@ import { MediaController } from './media.controller';
         },
         {
             provide: MEDIA_TOKENS.THEME_ENRICHER,
-            useClass: ThemeResolutionProxy, // El Proxy envuelve al RAW
+            useClass: ThemeResolutionProxy, 
         },
 
         // --- Infraestructura y Adaptadores ---

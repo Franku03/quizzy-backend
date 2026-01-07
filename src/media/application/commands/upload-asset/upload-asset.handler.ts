@@ -21,6 +21,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { MimeTypeHelper } from '../../helpers/mime-type.helper';
 import { MEDIA_TOKENS } from '../../dependency-tokens/application-media.tokens';
 import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
@@ -36,6 +37,8 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     
     @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR) 
     private readonly idGenerator: IdGenerator<string>,
+
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
   
   @Log()

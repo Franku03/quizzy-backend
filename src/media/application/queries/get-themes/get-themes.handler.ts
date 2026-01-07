@@ -1,6 +1,4 @@
 // src/media/application/queries/get-themes/get-themes.handler.ts
-
-import { QueryHandler } from "src/core/infrastructure/cqrs";
 import { GetThemesQuery } from "./get-themes.query";
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Inject } from "@nestjs/common";
@@ -11,10 +9,8 @@ import { IQueryHandler } from "src/core/application/cqrs/query-handler.interface
 import { Either, ErrorData } from "src/core/types";
 import { ThemeResponse } from "../../dtos/theme.response.dto";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
-import { Log } from "src/core/application/aspects/logging/log.decorator";
 import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interface';
 
-@QueryHandler(GetThemesQuery)
 export class GetThemesHandler implements IQueryHandler<GetThemesQuery> {
   
   constructor(
@@ -24,7 +20,6 @@ export class GetThemesHandler implements IQueryHandler<GetThemesQuery> {
     private readonly urlService: IAssetUrlGenerator,
   ) {}
 
-  @Log()
   async execute(query: GetThemesQuery): Promise<Either<ErrorData, ThemeResponse[]>> {
     return pipeAsync<ErrorData, ThemeResponse[]>(
       this.metadataDao.findThemes(query),

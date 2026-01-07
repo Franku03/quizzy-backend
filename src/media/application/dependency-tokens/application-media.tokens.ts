@@ -5,14 +5,20 @@ export const MEDIA_TOKENS = {
   CLOUDINARY_CONFIG: Symbol('CLOUDINARY_CONFIG'),
 
   // --- Services (Public API for Handlers) ---
-  // Estos son los que inyectan los Proxies con Caché/Flyweight
+  // Proxies con Flyweight para resoluciones unitarias/batch (IDs)
   IMAGE_URL_ENRICHER: Symbol('IMAGE_URL_ENRICHER'),
   THEME_ENRICHER: Symbol('THEME_ENRICHER'),
 
   // --- Raw Services (Private API for Proxies) ---
-  // Estos son los que inyectan directamente el servicio de Base de Datos
+  // Servicios base que consultan directamente la DB
   RAW_IMAGE_URL_ENRICHER: Symbol('RAW_IMAGE_URL_ENRICHER'),
   RAW_THEME_ENRICHER: Symbol('RAW_THEME_ENRICHER'),
+
+  // --- API Query Proxies (Listados/Colecciones) ---
+  // El Proxy que cachea el listado completo de temas (ThemeListProxy)
+  THEME_LIST_QUERY_HANDLER: Symbol('THEME_LIST_QUERY_HANDLER'),
+  // El Handler real que hace el find() en Mongo (GetThemesHandler)
+  RAW_THEME_LIST_QUERY_HANDLER: Symbol('RAW_THEME_LIST_QUERY_HANDLER'),
   
   // --- Orchestration (Factories & Resolvers) ---
   MEDIA_ENRICHMENT_SERVICE: Symbol('MEDIA_ENRICHMENT_SERVICE'),
