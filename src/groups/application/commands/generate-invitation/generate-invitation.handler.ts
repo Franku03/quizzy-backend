@@ -16,6 +16,10 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 
 @CommandHandler(GenerateInvitationCommand)
@@ -27,9 +31,11 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
         @Inject('ITokenGenerator')
         private readonly tokenGenerator: ITokenGenerator,
         @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
     @Log()
+    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: GenerateInvitationCommand): Promise<Either<ErrorData, InvitationResponse>> {
         const errorContext = createDomainContext('Group', 'generateInvitation', {
             domainObjectId: command.groupId,
@@ -46,12 +52,6 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
 
         const group = groupOptional.getValue();
         const requesterId = new UserId(command.adminId);
-
-        if (!group.isAdmin(requesterId)) {
-            return Either.makeLeft(
-                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
-            );
-        }
 
         try {
             const tokenVO = group.generateInvitation(

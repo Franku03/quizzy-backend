@@ -16,6 +16,10 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 @CommandHandler(ModifyGroupInformationCommand)
 export class ModifyGroupInformationHandler implements ICommandHandler<ModifyGroupInformationCommand> {
@@ -24,9 +28,11 @@ export class ModifyGroupInformationHandler implements ICommandHandler<ModifyGrou
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
     @Log()
+    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: ModifyGroupInformationCommand): Promise<Either<ErrorData, ModifyGroupResponse>> {
         const errorContext = createDomainContext('Group', 'modifyGroupInformation', {
             domainObjectId: command.groupId,
@@ -43,12 +49,6 @@ export class ModifyGroupInformationHandler implements ICommandHandler<ModifyGrou
         }
 
         const group = groupOptional.getValue();
-
-        if (!group.isAdmin(new UserId(command.userId))) {
-            return Either.makeLeft(
-                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
-            );
-        }
 
         try {
             const currentName = group.getName();

@@ -221,4 +221,34 @@ export class GroupDaoMongo implements IGroupsDao {
 
         return new Optional<GroupQuizAssignmentReadModel[]>(quizAssignments);
     }
+
+    async isGroupAdmin(groupId: string, userId: string): Promise<boolean> {
+        const group = await this.groupModel
+            .findOne({ groupId })
+            .select({ adminId: 1 })
+            .lean()
+            .exec();
+        
+        if (!group) {
+            return false;
+        }
+        
+        return group.adminId === userId;
+    }
+
+    async isGroupMember(groupId: string, userId: string): Promise<boolean> {
+        const group = await this.groupModel
+            .findOne({ 
+                groupId,
+                $or: [
+                    { adminId: userId },
+                    { 'members.id': userId }
+                ]
+            })
+            .select({ groupId: 1 })
+            .lean()
+            .exec();
+        
+        return !!group;
+    }
 }

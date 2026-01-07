@@ -15,6 +15,8 @@ import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 
 @QueryHandler(GetGroupQuizzesQuery)
 export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuery> {
@@ -26,6 +28,7 @@ export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuer
     ) { }
 
     @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetGroupQuizzesQuery): Promise<Either<ErrorData, GroupQuizAssignmentReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupQuizzes', {
             domainObjectId: query.groupId,
@@ -38,12 +41,6 @@ export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuer
             const groupOptional = await this.groupRepository.findById(query.groupId);
             if (!groupOptional.hasValue()) {
                 return Either.makeLeft(DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND));
-            }
-            const group = groupOptional.getValue();
-
-            const userId = new UserId(query.userId);
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER));
             }
 
             const quizzesOptional = await this.groupsQueryDao.getGroupQuizzes(query.groupId, query.userId);

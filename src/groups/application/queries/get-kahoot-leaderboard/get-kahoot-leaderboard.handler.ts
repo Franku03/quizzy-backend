@@ -15,6 +15,8 @@ import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id"
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 
 @QueryHandler(GetKahootLeaderboardQuery)
 export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeaderboardQuery> {
@@ -26,6 +28,7 @@ export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeade
     ) { }
 
     @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetKahootLeaderboardQuery): Promise<Either<ErrorData, KahootLeaderboardReadModel>> {
         const errorContext = createDomainContext('Group', 'getKahootLeaderboard', {
             domainObjectId: query.groupId,
@@ -39,12 +42,6 @@ export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeade
             const groupOptional = await this.groupRepository.findById(query.groupId);
             if (!groupOptional.hasValue()) {
                 return Either.makeLeft(DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND));
-            }
-            const group = groupOptional.getValue();
-
-            const userId = new UserId(query.userId);
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER));
             }
 
             const leaderboardOptional = await this.groupsQueryDao.getKahootLeaderboard(query.groupId, query.quizId);

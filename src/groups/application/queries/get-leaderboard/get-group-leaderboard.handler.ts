@@ -15,6 +15,8 @@ import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 
 
 @QueryHandler(GetGroupLeaderboardQuery)
@@ -27,6 +29,7 @@ export class GetGroupLeaderboardHandler implements IQueryHandler<GetGroupLeaderb
     ) { }
 
     @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetGroupLeaderboardQuery): Promise<Either<ErrorData, GroupLeaderboardReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupLeaderboard', {
             domainObjectId: query.groupId,
@@ -41,16 +44,6 @@ export class GetGroupLeaderboardHandler implements IQueryHandler<GetGroupLeaderb
             if (!groupOptional.hasValue()) {
                 return Either.makeLeft(
                     DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND)
-                );
-            }
-
-            const group = groupOptional.getValue();
-            const userId = new UserId(query.userId);
-
-            // Validar que el usuario pertenece al grupo
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(
-                    DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER)
                 );
             }
 

@@ -17,6 +17,10 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 
 @CommandHandler(AssignKahootToGroupCommand)
@@ -28,9 +32,11 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
         @Inject(RepositoryName.Kahoot)
         private readonly kahootRepository: IKahootRepository,
         @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
     @Log()
+    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: AssignKahootToGroupCommand): Promise<Either<ErrorData, AssignKahootToGroupResponse>> {
         const errorContext = createDomainContext('Group', 'assignKahoot', {
             domainObjectId: command.groupId,
@@ -48,12 +54,6 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
         }
 
         const group = groupOptional.getValue();
-
-        if (!group.isAdmin(new UserId(command.userId))) {
-            return Either.makeLeft(
-                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.ONLY_ADMIN)
-            );
-        }
 
         const kahootOptional = await this.kahootRepository.findKahootById(new KahootId(command.kahootId));
 
