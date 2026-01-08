@@ -81,7 +81,7 @@ export class SubmissionFactory {
 
         const optAnswerIndexes = new Optional(answerIndexes);
 
-        const timeElapsed = new ResponseTime(timeElapsedMs);
+        const timeElapsed = ResponseTime.fromMilliseconds(timeElapsedMs);
 
         return new Submission(
             slideId,
