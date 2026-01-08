@@ -5,6 +5,9 @@ import { GetDetailedReportQuery } from 'src/reports/application/queries/get-solo
 import { UnauthorizedException } from '@nestjs/common/exceptions/unauthorized.exception';
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
 import { Headers } from '@nestjs/common';
+// Helpers & Guards
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 
 @Controller('reports')
 export class ReportsController {
@@ -13,9 +16,10 @@ export class ReportsController {
 
   // This endpoint provides a detailed breakdown of a completed solo attempt,
   // showing performance on each individual question for personal review
-  // @UseGuards(JwtAuthGuard)
   @Get('singleplayer/:attemptId')
-  async getSinglePlayerDetailedReport(@Headers('userid') userId: string, @Param('attemptId') attemptId: string) {
+  @Auth()
+  @HttpCode(HttpStatus.OK)
+  async getSinglePlayerDetailedReport(@GetUserId() userId: string, @Param('attemptId') attemptId: string) {
     try {
       // We execute the query to fetch the detailed report from the database
       return await this.queryBus.execute(

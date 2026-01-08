@@ -5,9 +5,8 @@ import { CommandBus } from 'src/core/infrastructure/cqrs';
 
 import { CreateSessionCommand } from 'src/multiplayer-sessions/application/commands/create-session/create-session.command';
 import { GetPinWithQrTokenCommand } from 'src/multiplayer-sessions/application/commands/get-pin-with-qr-token/get-pin-with-qr-token.command';
-import { CreateSessionResponse } from 'src/multiplayer-sessions/application/response-dtos/create-session.response.dto';
+import { CreateSessionResponse, GetPinWithQrTokenResponse } from 'src/multiplayer-sessions/application/response-dtos';
 
-import { Either } from 'src/core/types/either';
 import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { CREATE_SESSION_ERRORS, QR_TOKEN_ERRORS } from 'src/multiplayer-sessions/application/commands';
@@ -16,9 +15,9 @@ import { CREATE_SESSION_ERRORS, QR_TOKEN_ERRORS } from 'src/multiplayer-sessions
 export class MultiplayerSessionsController {
 
   constructor(
+
     private readonly executor: CommandQueryExecutorService,
     
-    private readonly commandBus: CommandBus,
   ){}
 
   // --- C O M A N D S (Mutación) ---
@@ -43,23 +42,11 @@ export class MultiplayerSessionsController {
   @HttpCode(HttpStatus.OK)
   async getSessionPin(
     @Param('qrToken') qrToken: string,
-    // TODO: @GetUser('id') userId: string,
   ) {
 
-      const res: Either<Error,CreateSessionResponse> =
-          await this.commandBus.execute( new GetPinWithQrTokenCommand( qrToken ) );
+      return await this.executor
+              .executeCommand<GetPinWithQrTokenResponse>( new GetPinWithQrTokenCommand( qrToken ) );
 
-      if( res.isRight() ){
-
-        return res.getRight()
-
-      } else {
-
-        this.handleError( res.getLeft() )
-
-
-      }
- 
   }
 
   private handleError( error: Error ): never {

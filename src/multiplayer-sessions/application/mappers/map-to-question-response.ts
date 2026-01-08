@@ -29,7 +29,7 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
 
     const currentSlideSnapshotClean: SlideSnapshotWithoutAnswers = {
         id: currentSlideSnapshot.id,
-        questionIndex: currentSlideSnapshot.position,    
+        position: currentSlideSnapshot.position,    
         slideType: currentSlideSnapshot.slideType as SlideTypeEnum, 
         timeLimitSeconds: currentSlideSnapshot.timeLimitSeconds, 
         //Opcionales
