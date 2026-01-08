@@ -9,6 +9,7 @@ import {
   Param,
   Delete,
   Get,
+  UseGuards,
   Inject, 
 } from '@nestjs/common';
 
@@ -31,8 +32,6 @@ import { ReplaceKahootInput } from '../adapters/mappers/update-kahoot.request.ma
 // Helpers & Guards
 import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
-import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-user-detail.read.model.dto';
-import { GetKahootUserDetailById } from 'src/kahoots/application/queries/get-kahoot-preview-by-id/get-kahoot-user-detail-by-id.query';
 
 @Controller('kahoots')
 export class KahootController {
@@ -89,19 +88,7 @@ export class KahootController {
     @Param('id') kahootId: string,
     @GetUserId() userId?: string
   ): Promise<KahootHandlerResponseDto> {
-    console.log(`userId in controller: ${userId}`);
     const query = new GetKahootByIdQuery({ kahootId, userId });
     return await this.executor.executeQuery<KahootHandlerResponseDto>(query);
-  }
-
-  @Get('inspect/:id')
-  @Auth()
-  @HttpCode(HttpStatus.OK)
-  async inspectKahoot(
-    @Param('id') kahootId: string,
-    @GetUserId() userId: string
-  ): Promise<KahootUserDetailReadModel> {
-    const query = new GetKahootUserDetailById({ kahootId, userId });
-    return await this.executor.executeQuery<KahootUserDetailReadModel>(query);
   }
 }

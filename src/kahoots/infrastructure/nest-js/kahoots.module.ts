@@ -16,6 +16,7 @@ import { CreateKahootHandler } from '../../application/commands/create-kahoot/cr
 import { UpdateKahootHandler } from '../../application/commands/update-kahoot/update-kahoot.handler';
 import { DeleteKahootHandler } from 'src/kahoots/application/commands/delete-kahoot/delete-kahoot.handler';
 import { GetKahootByIdHandler } from '../../application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
+import { GetKahootUserDetailHandler } from 'src/kahoots/application/queries/get-kahoot-preview-by-id/get-kahoot-user-detail-by-id.handler';
 
 // --- Mappers & Tokens ---
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
@@ -26,6 +27,7 @@ import { UpdateKahootRequestMapper } from '../adapters/mappers/update-kahoot.req
 // --- Servicios de Apoyo & Otros Módulos ---
 import { AttemptCleanupService } from '../../application/services/attempt-clear.service';
 import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
+
 
 @Module({
   controllers: [KahootController],
@@ -42,6 +44,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
     UpdateKahootHandler,
     DeleteKahootHandler,
     GetKahootByIdHandler,
+    GetKahootUserDetailHandler ,
 
     // --- Mapeo de Salida (Response) ---
     {

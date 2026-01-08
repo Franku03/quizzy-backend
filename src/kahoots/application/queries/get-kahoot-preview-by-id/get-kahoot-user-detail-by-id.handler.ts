@@ -10,9 +10,12 @@ import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 // --- Aspects & Decorators ---
 import { Log } from "src/core/application/aspects/logging/log.decorator";
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
-import { LOGGER_TOKEN } from "src/core/application/aspects/logging/logger.token";
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
+// Infraestructura
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
 
 // --- Application Services, DTOs & Queries ---
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
@@ -25,7 +28,8 @@ export class GetKahootUserDetailHandler implements IQueryHandler<GetKahootUserDe
 
   constructor(
     private readonly mediaService: MediaEnrichmentService,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+    @Inject(DaoName.Kahoot) private readonly kahootDao: IKahootDao,
   ) { }
 
   @Log()
