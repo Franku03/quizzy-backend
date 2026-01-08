@@ -2,8 +2,9 @@
 
 export const APPLICATION_CORE_TOKENS = {
     MAPPER: {
-        // Lectura desde Persistence (Infra -> Domain)
+        // Lectura desde Persistence (Infra -> Domain / Read Models)
         KAHOOT_READ: Symbol('KAHOOT_READ_MAPPER'),
+        KAHOOT_USER_DETAIL_READ: Symbol('KAHOOT_USER_DETAIL_READ_MAPPER'),
         USER_READ: Symbol('USER_READ_MAPPER'),
 
         // Salida hacia el exterior (Domain/App -> DTO)

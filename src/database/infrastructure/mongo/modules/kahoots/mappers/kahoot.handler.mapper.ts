@@ -1,5 +1,4 @@
 // src/kahoots/infrastructure/persistence/mongo/mappers/kahoot-read.mapper.ts
-import { Injectable } from '@nestjs/common';
 import { 
   IKahootDocument, 
   SlideSnapshot, 
@@ -9,7 +8,7 @@ import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.type';
 import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
-@Injectable()
+
 export class KahootReadMapper implements IMapper<IKahootDocument, KahootSnapshot> {
 
   // ==========================================

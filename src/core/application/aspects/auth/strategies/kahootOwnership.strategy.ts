@@ -75,7 +75,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
             // REGLA [TÉCNICA]: Normalización mediante encadenamiento opcional.
             // Se extrae el ID del autor priorizando la estructura de Objeto de Valor (VO).
             const authorId = (data.author as ValueObject)?.value ?? (data.author as string) ?? data.authorId ?? '';
-            
+
             const visibilityStr = (data.visibility as ValueObject)?.value ?? (data.visibility as string) ?? '';
             const visibility = visibilityStr.toUpperCase();
 
@@ -84,7 +84,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
             const isOwner = authorId === userId;
             const isPublic = visibility === VisibilityStatusEnum.PUBLIC;
-            
+
             // REGLA [NEGOCIO]: Clasificación de la naturaleza de la operación
             const isReadOperation = /^(get|read|find|list)/i.test(operationName);
             const isExecutionOperation = /^(create|start|launch)session/i.test(operationName);
@@ -106,7 +106,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
             return hasAccess
                 ? Either.makeRight(resource)
-                : Either.makeLeft(AppErrorFactory.unauthorized(appContext));
+                : Either.makeLeft(AppErrorFactory.forbidden(appContext, "Access denied"));
         });
     }
 }

@@ -8,8 +8,11 @@ import { Model } from 'mongoose';
 import { ErrorData, Either } from 'src/core/types';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 
-// --- Domain Models & Snapshots ---
+// --- Read Models & Snapshots ---
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
+import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-user-detail.read.model.dto';
+import { KahootUserDetailInput } from './mappers/kahoot.user.details.mapper';
+
 
 // --- Application Ports ---
 import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
@@ -20,6 +23,8 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 
 // --- Infrastructure: Entities & Constants ---
 import { IKahootDocument, KahootMongo } from '../../entities/kahoots.schema';
+import { UserMongo } from '../../entities/users.schema';
+import { AttemptMongo } from '../../entities/attempts.scheme';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
 // --- Infrastructure: Mappers & Errors ---
@@ -39,11 +44,17 @@ export class KahootDaoMongo implements IKahootDao {
   constructor(
     @InjectModel(KahootMongo.name)
     private readonly kahootModel: Model<KahootMongo>,
+    @InjectModel(UserMongo.name)
+    private readonly userModel: Model<UserMongo>,
+    @InjectModel(AttemptMongo.name)
+    private readonly attemptModel: Model<AttemptMongo>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
     private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_READ)
     private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
-  ) {}
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_READ)
+    private readonly userDetailMapper: IMapper<KahootUserDetailInput, KahootUserDetailReadModel>,
+  ) { }
   // ==========================================
   // HELPERS PRIVADOS
   // ==========================================
@@ -91,7 +102,7 @@ export class KahootDaoMongo implements IKahootDao {
       this.kahootModel
         .findOne({ id })
         .select('authorId visibility')
-        .lean<ValidationData>() 
+        .lean<ValidationData>()
         .exec(),
       (err) => this.mongoErrorMapper.toErrorData(err, ctx)
     );
@@ -103,5 +114,39 @@ export class KahootDaoMongo implements IKahootDao {
         visibility: doc.visibility
       };
     });
+  }
+
+  public async getKahootUserDetail(
+    kahootId: string,
+    userId: string,
+  ): Promise<Either<ErrorData, KahootUserDetailReadModel | null>> {
+    const ctx = this.getCtx('getKahootUserDetail', kahootId, { userId });
+    return await Either.tryCatch<ErrorData, KahootUserDetailReadModel | null>(
+      this.fetchAndMapUserDetail(kahootId, userId),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx),
+    );
+  }
+
+  /**
+   * Método privado para limpiar la lógica de orquestación y mapeo.
+   * Esto hace que el tryCatch sea una sola línea.
+   */
+  private async fetchAndMapUserDetail(
+    kahootId: string,
+    userId: string
+  ): Promise<KahootUserDetailReadModel | null> {
+    const [kahoot, user, lastAttempt] = await Promise.all([
+      this.kahootModel.findOne({ id: kahootId }).lean<IKahootDocument>().exec(),
+      this.userModel.findOne({ userId }).lean<UserMongo>().exec(),
+      this.attemptModel
+        .findOne({ kahootId, playerId: userId })
+        .sort({ 'timeDetails.lastPlayedAt': -1 })
+        .lean<AttemptMongo>()
+        .exec(),
+    ]);
+
+    if (!kahoot) return null;
+
+    return this.userDetailMapper.map({ kahoot, user, lastAttempt });
   }
 }

@@ -85,6 +85,7 @@ export function Log(loggerPropertyKey: string = 'logger') {
                 errorCode: errorData.code,
                 errorId: errorData.errorId,
                 duration: `${duration}ms`,
+                layer: errorData.layer,
                 handler: target.constructor.name,
                 useCase
               });
