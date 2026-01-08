@@ -92,6 +92,24 @@ export class Either<TLeft, TRight> {
         return this;
     }
 
+    // --- Flujos Condicionales (Sincrónicos) ---
+
+    /** Ejecuta el encadenamiento solo si NO se cumple la condición proporcionada */
+    chainUnless<TNewRight>(
+        condition: (val: TRight) => boolean,
+        fn: (val: TRight) => Either<TLeft, TNewRight>
+    ): Either<TLeft, TRight | TNewRight> {
+        if (this.isLeft()) return Either.makeLeft(this.getLeft());
+
+        // Si la condición se cumple, "saltamos" la función y seguimos con el valor actual
+        if (condition(this.getRight())) {
+            return Either.makeRight(this.getRight());
+        }
+
+        // Si no se cumple, ejecutamos la lógica
+        return fn(this.getRight());
+    }
+
     // --- Flujos Condicionales (Asincrónicos) ---
 
     /** Ejecuta el encadenamiento asíncrono solo si NO se cumple la condición proporcionada */

@@ -7,18 +7,11 @@ import { VisibilityStatusEnum } from "src/kahoots/domain/value-objects/kahoot.vi
 import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
+import { KahootStatusEnum } from "src/kahoots/domain/value-objects/kahoot.status";
 
-// REGLA: Interfaz para normalizar el acceso a datos sin importar si es Agregado o Snapshot.
-interface IKahootAuthData {
-    authorId: string;
-    visibility: string;
-    status: string;
-}
-
-// REGLA: Definición de tipos para soportar búsqueda tanto en DAO (lectura) como en Repositorio (dominio).
 type KahootFetcher =
-    Partial<Pick<IKahootDao, 'getKahootById'>> &
-    Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
+    | Partial<Pick<IKahootDao, 'getKahootById'>>
+    & Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
 
 type ExclusiveId =
     | { kahootId: string; id?: never }
@@ -30,6 +23,20 @@ export type IKahootOwnershipRequest = ExclusiveId & {
     validatedResource?: KahootSnapshot | Kahoot;
 };
 
+// RULE [TÉCNICA]: Estructura que unifica Value Objects y Primitivos.
+// Usamos interfaces que TypeScript puede navegar sin 'typeof'.
+interface ValueObject { value: string }
+
+type RawOrVO = string | ValueObject;
+
+interface Authorizable {
+    authorId?: string
+    author?: RawOrVO;
+    visibility?: RawOrVO;
+    status?: RawOrVO;
+    properties?: Authorizable;
+}
+
 export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRequest, KahootFetcher, KahootSnapshot | Kahoot> {
 
     async authorize(
@@ -37,7 +44,6 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         context: KahootFetcher
     ): Promise<Either<ErrorData, KahootSnapshot | Kahoot>> {
 
-        // REGLA: Normalización del ID y creación de metadatos de error.
         const finalId = (request.kahootId || request.id) as string;
         const { userId, operationName } = request;
 
@@ -47,63 +53,60 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
             resourceType: 'Kahoot'
         });
 
-        // REGLA: Selección del método de obtención según lo que haya inyectado el Handler.
         const fetchMethod = context.getKahootById?.bind(context)
             || context.findKahootByIdEither?.bind(context);
 
         if (!fetchMethod) {
             return Either.makeLeft(new ErrorData(
-                'AUTH_CONTEXT_INVALID',
-                `Context missing search methods`,
-                ErrorLayer.APPLICATION,
-                appContext
+                'AUTH_CONTEXT_INVALID', 'Context missing search methods',
+                ErrorLayer.APPLICATION, appContext
             ));
         }
 
         const result = await fetchMethod(finalId);
 
         return result.chain(resource => {
-            // REGLA: Si el fetcher no encuentra nada, error 404 vía Factory.
             if (!resource) return Either.makeLeft(AppErrorFactory.notFound(appContext));
 
-            // REGLA: Duck Typing para extraer datos de validación.
-            const data = resource as unknown as IKahootAuthData;
+            // REGLA [TÉCNICA]: Acceso estructural directo al recurso (Agregado o Snapshot)
+            const raw = resource as Authorizable;
+            const data = raw.properties || raw;
 
-            const authorId = data.authorId;
-            const visibility = (data.visibility || '').toUpperCase();
-            const status = (data.status || '').toUpperCase();
+            // REGLA [TÉCNICA]: Normalización mediante encadenamiento opcional.
+            // Se extrae el ID del autor priorizando la estructura de Objeto de Valor (VO).
+            const authorId = (data.author as ValueObject)?.value ?? (data.author as string) ?? data.authorId ?? '';
+            
+            const visibilityStr = (data.visibility as ValueObject)?.value ?? (data.visibility as string) ?? '';
+            const visibility = visibilityStr.toUpperCase();
+
+            const statusStr = (data.status as ValueObject)?.value ?? (data.status as string) ?? '';
+            const status = statusStr.toUpperCase();
 
             const isOwner = authorId === userId;
             const isPublic = visibility === VisibilityStatusEnum.PUBLIC;
-
-            // 1. Identificamos el tipo de operación con más precisión
+            
+            // REGLA [NEGOCIO]: Clasificación de la naturaleza de la operación
             const isReadOperation = /^(get|read|find|list)/i.test(operationName);
-            const isExecutionOperation = /^(create|start|launch)session/i.test(operationName); // <-- Nueva detección
+            const isExecutionOperation = /^(create|start|launch)session/i.test(operationName);
 
-            // 2. REGLA DRAFT ESTRICTA:
-            // Si es DRAFT, el autor puede VERLO o EDITARLO, pero NADIE puede EJECUTARLO (Session).
-            if (status === 'DRAFT') {
+            // REGLA [NEGOCIO]: Restricción de Borrador (Draft)
+            if (status === KahootStatusEnum.DRAFT) {
+                // No se puede jugar/lanzar un Kahoot que no esté publicado
                 if (isExecutionOperation) {
-                    return Either.makeLeft(AppErrorFactory.forbidden(
-                        appContext,
-                        "Cannot launch a session from a draft Kahoot. Please publish it first."
-                    ));
+                    return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot launch a session from a draft Kahoot."));
                 }
-
+                // Los borradores no son visibles para nadie más que el dueño
                 if (!isOwner) {
                     return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot access a draft Kahoot"));
                 }
             }
 
-            // 3. Lógica de acceso general (se mantiene igual)
+            // REGLA [NEGOCIO]: Verificación final de acceso (Lectura vs Escritura)
             const hasAccess = isReadOperation ? (isPublic || isOwner) : isOwner;
 
-            if (hasAccess) {
-                return Either.makeRight(resource);
-            }
-
-            // REGLA: Si no cumple las condiciones de identidad, error 401 vía Factory.
-            return Either.makeLeft(AppErrorFactory.unauthorized(appContext));
+            return hasAccess
+                ? Either.makeRight(resource)
+                : Either.makeLeft(AppErrorFactory.unauthorized(appContext));
         });
     }
 }
