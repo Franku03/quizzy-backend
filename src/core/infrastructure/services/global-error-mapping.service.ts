@@ -65,9 +65,13 @@ export class ErrorMappingService {
         'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
         'UNAUTHORIZED': [HttpStatus.UNAUTHORIZED, 'Not authorized to perform this action.'],
         'FORBIDDEN': [HttpStatus.FORBIDDEN, 'Access forbidden due to resource state or policies.'],
+        'HTTP_ERROR_401': [HttpStatus.UNAUTHORIZED, 'Invalid or missing authentication token.'],
+        'HTTP_ERROR_403': [HttpStatus.FORBIDDEN, 'You do not have permission to access this resource.'],
       };
 
-      return appMap[category] ?? [HttpStatus.BAD_REQUEST, 'Application orchestration error.'];
+
+      //Intentar categoría, si no, intentar código, si no, fallback.
+      return appMap[category] ?? appMap[code] ?? [HttpStatus.BAD_REQUEST, 'Application orchestration error.'];
     }
 
     //==========================
