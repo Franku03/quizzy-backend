@@ -44,22 +44,42 @@ export class DatabaseDriverModule {
     // dbsToLoad siempre tiene al menos el globalType
 
     if (dbsToLoad.has('postgres')) {
-      imports.push(
-        TypeOrmModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (config: ConfigService) => ({
-            type: 'postgres',
-            host: config.get<string>('DB_HOST'),
-            port: config.get<number>('DB_PORT') ?? 5432,
-            database: config.get<string>('DB_NAME'),
-            username: config.get<string>('DB_USERNAME'),
-            password: config.get<string>('DB_PASSWORD'),
-            autoLoadEntities: true,
-            synchronize: config.get<boolean>('IS_PROD') ?? false,
+
+      if (process.env.MONGO_CNN) {
+
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              url: config.get<string>('POSTGRES_CNN'), // Usar la URL directamente
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
           }),
-        }),
-      );
+        );
+
+      } else {
+  
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              host: config.get<string>('DB_HOST'),
+              port: config.get<number>('DB_PORT') ?? 5432,
+              database: config.get<string>('DB_NAME'),
+              username: config.get<string>('DB_USERNAME'),
+              password: config.get<string>('DB_PASSWORD'),
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
+          }),
+        );
+
+      }
       exports.push(TypeOrmModule);
       console.log('✅ Base de datos configurada: PostgreSQL (TypeORM)');
     }
