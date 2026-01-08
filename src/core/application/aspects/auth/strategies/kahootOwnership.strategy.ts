@@ -16,17 +16,17 @@ interface IKahootAuthData {
 }
 
 // REGLA: Definición de tipos para soportar búsqueda tanto en DAO (lectura) como en Repositorio (dominio).
-type KahootFetcher = 
-    Partial<Pick<IKahootDao, 'getKahootById'>> & 
+type KahootFetcher =
+    Partial<Pick<IKahootDao, 'getKahootById'>> &
     Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
 
-type ExclusiveId = 
-    | { kahootId: string; id?: never } 
+type ExclusiveId =
+    | { kahootId: string; id?: never }
     | { id: string; kahootId?: never };
 
 export type IKahootOwnershipRequest = ExclusiveId & {
     userId: string;
-    operationName: string; 
+    operationName: string;
     validatedResource?: KahootSnapshot | Kahoot;
 };
 
@@ -34,22 +34,22 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
     async authorize(
         request: IKahootOwnershipRequest,
-        context: KahootFetcher 
+        context: KahootFetcher
     ): Promise<Either<ErrorData, KahootSnapshot | Kahoot>> {
-        
+
         // REGLA: Normalización del ID y creación de metadatos de error.
         const finalId = (request.kahootId || request.id) as string;
         const { userId, operationName } = request;
 
-        const appContext = createApplicationContext(operationName, { 
-            actorId: userId, 
+        const appContext = createApplicationContext(operationName, {
+            actorId: userId,
             resourceTargetId: finalId,
             resourceType: 'Kahoot'
         });
 
         // REGLA: Selección del método de obtención según lo que haya inyectado el Handler.
-        const fetchMethod = context.getKahootById?.bind(context) 
-                         || context.findKahootByIdEither?.bind(context);
+        const fetchMethod = context.getKahootById?.bind(context)
+            || context.findKahootByIdEither?.bind(context);
 
         if (!fetchMethod) {
             return Either.makeLeft(new ErrorData(
@@ -68,21 +68,34 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
             // REGLA: Duck Typing para extraer datos de validación.
             const data = resource as unknown as IKahootAuthData;
-            
+
             const authorId = data.authorId;
             const visibility = (data.visibility || '').toUpperCase();
             const status = (data.status || '').toUpperCase();
 
             const isOwner = authorId === userId;
-            const isReadOperation = /^(get|read|find|list)/i.test(operationName);
             const isPublic = visibility === VisibilityStatusEnum.PUBLIC;
 
-            // REGLA: Si es DRAFT, se prohíbe el acceso a cualquier actor que no sea el autor (Forbidden).
-            if (status === 'DRAFT' && !isOwner) {
-                return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot access a draft Kahoot"));
+            // 1. Identificamos el tipo de operación con más precisión
+            const isReadOperation = /^(get|read|find|list)/i.test(operationName);
+            const isExecutionOperation = /^(create|start|launch)session/i.test(operationName); // <-- Nueva detección
+
+            // 2. REGLA DRAFT ESTRICTA:
+            // Si es DRAFT, el autor puede VERLO o EDITARLO, pero NADIE puede EJECUTARLO (Session).
+            if (status === 'DRAFT') {
+                if (isExecutionOperation) {
+                    return Either.makeLeft(AppErrorFactory.forbidden(
+                        appContext,
+                        "Cannot launch a session from a draft Kahoot. Please publish it first."
+                    ));
+                }
+
+                if (!isOwner) {
+                    return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot access a draft Kahoot"));
+                }
             }
 
-            // REGLA: Lógica de acceso general. Lectura (Público o Dueño) | Escritura (Solo Dueño).
+            // 3. Lógica de acceso general (se mantiene igual)
             const hasAccess = isReadOperation ? (isPublic || isOwner) : isOwner;
 
             if (hasAccess) {
