@@ -8,6 +8,7 @@ import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
 import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { createKahootAppContext } from '../context/base-kahoot-context';
 
 // --- Aspects & Decorators ---
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
@@ -42,6 +43,7 @@ import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interfa
 
 
 
+
 @CommandHandler(UpdateKahootCommand)
 export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand> {
 
@@ -63,12 +65,16 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
     command: UpdateKahootCommand & IKahootOwnershipRequest
   ): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
 
+    const appContext = createKahootAppContext('updateKahoot', command.kahootId, command.userId);
+
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. RECURSO YA VALIDADO: Iniciamos el tren directamente con el Agregado inyectado
       Either.makeRight(command.validatedResource as Kahoot),
 
       // 2. Lógica de Dominio (Mutación controlada por performance)
-      k => k.chain(kahoot => this.applyUpdates(kahoot, command)),
+      k => k.chain(kahoot => this.applyUpdates(kahoot, command))
+      //Agregando contexto de app extra a los posibles errores de dominio
+      .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
