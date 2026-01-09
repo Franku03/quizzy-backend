@@ -1,4 +1,14 @@
-// src/kahoots/application/services/kahoot.mapper.service.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\application\mappers\kahoot.response.mapper.ts
+
 import { Injectable } from '@nestjs/common';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootHandlerResponseDto } from '../dtos/kahoot.handler.response.dto';
