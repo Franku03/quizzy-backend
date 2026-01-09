@@ -15,11 +15,12 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';
 import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update.response.dto";
-import { COMMON_ERRORS } from "../common.errors";
-import { ErrorData, ErrorLayer } from "src/core/types";
+
+import { ErrorData } from "src/core/types";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { Player } from "src/multiplayer-sessions/domain/entity/session.player";
+import { SessionResourcesForPlayerJoin } from "../context/session-resources.context.interface";
 
 
 @CommandHandler( PlayerJoinCommand )
@@ -34,7 +35,7 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
     ){}
 
 
-async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateUpdateResponse>> {
+    async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateUpdateResponse>> {
 
         // Contexto para logs
         const appContext = createMultiplayerSessionAppContext('playerJoin', undefined, command.userId, command.sessionPin );
@@ -46,13 +47,13 @@ async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateU
 
             // 2. OBTENER SESIÓN
             // Necesitamos la sesión Y mantener el comando vivo para los siguientes pasos.
-            // Input: Command -> Output: Promise<Either<Error, { sessionCtx, command }>>
-            cmd => cmd.chainAsync(c => this.addSessionToContext(c)),
+            // Input: Command -> Output: Promise<Either<Error, ActiveSessionContext>>
+            cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
 
             // 3. LÓGICA DE NEGOCIO (Buscar User + Crear Player + Unir)
             // Aquí manejamos la lógica de "Invitado vs Registrado"
             // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
-            ctx => ctx.chainAsync(c => this.processPlayerJoin(c) ),
+            ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
 
             // 4. PERSISTENCIA
             // actualizamos 'lastActivity' en el repo
@@ -74,14 +75,16 @@ async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateU
     /**
      * Paso 2: Busca la sesión y prepara el contexto combinado.
      */
-    private async addSessionToContext(command: PlayerJoinCommand) {
+    private async addSessionToContext(
+        command: PlayerJoinCommand
+    ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
         // Usamos el método Either del repositorio que acabamos de crear
         const sessionResult = await this.sessionRepository.findByPinEither(command.sessionPin);
 
         // Si encontramos la sesión, combinamos los datos
-        return sessionResult.map(sessionCtx => ({
-            sessionCtx: sessionCtx,
-            command: command
+        return sessionResult.map( sessionCtx => ({ 
+                sessionCtx, 
+                command 
         }));
     }
 
@@ -89,62 +92,63 @@ async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateU
      * Paso 3: Resuelve la identidad (User vs Guest), crea el Player y actualiza la Session.
      */
     private async processPlayerJoin(
-        ctx: { sessionCtx: ActiveSessionContext, command: PlayerJoinCommand }
-    ): Promise<Either<ErrorData,{sessionCtx: ActiveSessionContext, player: Player}>> {
-        const { command, sessionCtx } = ctx;
+        ctx: SessionResourcesForPlayerJoin,
+    ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
+        const { sessionCtx, command } = ctx; // Desempaquetamos
         const { session } = sessionCtx;
 
-        try {
-            // A. Buscar usuario (Bifurcación suave)
-            const userResult = await this.usersDao.getUserById(command.userId);
-            const isRegistered = userResult.hasValue();
+        // A. Buscar usuario (Bifurcación suave)
+        const userResult = await this.usersDao.getUserById(command.userId);
+        const isRegistered = userResult.hasValue();
 
-            // B. Determinar ID y Rol
-            const finalId = isRegistered ? userResult.getValue().id : command.userId;
-            const isGuest = !isRegistered;
+        // B. Determinar ID y Rol
+        const finalId = isRegistered ? userResult.getValue().id : command.userId;
+        const isGuest = !isRegistered;
 
-            // C. Crear Factory Player
-            const player = PlayerFactory.createPlayerForSession(
-                finalId,
-                command.nickname,
-                isGuest
-            );
+        // C. Crear Factory Player
+        const playerResult = PlayerFactory.createPlayerForSession(
+            finalId,
+            command.nickname,
+            isGuest
+        );
 
-            // D. Lógica de Dominio (Reingreso)
-            // TODO: Aquí podrías añadir validación: if (!session.canJoin()) return Either.makeLeft(...)
-            // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
 
+        // D. Lógica de Dominio dentro del MAP
+        // Si playerResult es Left, este bloque se salta y retornamos el Left directamente.
+        // Si es Right, ejecutamos la lógica y retornamos el nuevo contexto.
+        return playerResult.map( player => {
             
             if (session.isPlayerAlreadyJoined(player.id)) {
                 session.deletePlayer(player.id);
             }
 
+            // D. Lógica de Dominio (Reingreso)
+            // TODO: Aquí podrías añadir validación: if (!session.canJoin()) return Either.makeLeft(...) De ser asi esto ya no seria un map sino un chain
+            // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
+
             session.joinPlayer(player);
 
-            // Retornamos el contexto actualizado. 
-            // Nota: sessionCtx guarda la sesión por referencia, así que ya está modificada.
-            return Either.makeRight({
+            // Retornamos la bola de nieve más grande
+            return {
                 sessionCtx: sessionCtx,
+                command: command,
                 player: player
-            });
-
-        } catch (error) {
-            // Si falla la BD de usuarios o la lógica interna
-            return Either.makeLeft( new ErrorData("Error en BD","Hubo un fallo en BD", ErrorLayer.INFRASTRUCTURE ));
-        }
+            };
+        });
     }
 
     /**
      * Paso 4: Persistencia explicita.
-     * Aunque modifiquemos la sesión en memoria, llamar a save actualiza timestamps.
+     * Aunque modifiquemos la sesión en memoria, llamar a updateSession actualiza timestamps.
      */
-    private async persistState(ctx: { sessionCtx: ActiveSessionContext, player: Player }) {
+    private async persistState(ctx: SessionResourcesForPlayerJoin ) {
 
         const saveResult = await this.sessionRepository.updateSessionEither( ctx.sessionCtx.session.getSessionPin() );
         
         // Si se guarda OK, seguimos pasando los datos que necesitamos para la respuesta final
         return saveResult.map(() => ctx);
     }
+
 
     // async execute(command: PlayerJoinCommand): Promise<Either<Error, LobbyStateUpdateResponse>> {
 
