@@ -1,14 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
+import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
 
-@Schema({ collection: 'notifications' })
+const COLLECTION_NAME: string = 'notifications'
+@DbMongoDocument(COLLECTION_NAME)
+@Schema({ collection: COLLECTION_NAME, timestamps: true })
 export class NotificationMongo extends Document {
-
 
     @Prop({
         type: String,
-        default: () => crypto.randomUUID(),
-        alias: '_id',
+        unique: true,
+        index: true,
+        required: true,
     })
     public notificationId: string;
 
@@ -28,6 +32,9 @@ export class NotificationMongo extends Document {
     @Prop({ required: true })
     body: string;
 
+    @Prop({ required: false })
+    resourceId?: string;
+
     @Prop({ default: false })
     isRead: boolean;
 
@@ -37,5 +44,4 @@ export class NotificationMongo extends Document {
 
 export const NotificationSchema = SchemaFactory.createForClass(NotificationMongo);
 
-NotificationSchema.set('_id', false);
-NotificationSchema.set('id', false);
+NotificationSchema.set('id', false);    
