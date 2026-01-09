@@ -21,7 +21,8 @@ import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { GetKahootUserDetailById } from "./get-kahoot-user-detail-by-id.query";
 import { KahootUserDetailReadModel } from '../../dtos/kahoot-user-detail.read.model.dto';
-import { KahootUserDetailAuthorizer } from 'src/core/application/aspects/auth/strategies/kahoot-user-detail.strategy';
+//import { KahootUserDetailAuthorizer } from 'src/core/application/aspects/auth/strategies/kahoot-user-detail.strategy';
+import { KahootOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/kahootOwnership.strategy';
 
 @QueryHandler(GetKahootUserDetailById)
 export class GetKahootUserDetailHandler implements IQueryHandler<GetKahootUserDetailById> {
@@ -33,7 +34,7 @@ export class GetKahootUserDetailHandler implements IQueryHandler<GetKahootUserDe
   ) { }
 
   @Log()
-  @Authorize(KahootUserDetailAuthorizer, 'kahootDao')
+  @Authorize(KahootOwnershipAuthorizer, 'kahootDao')
   async execute(
     query: GetKahootUserDetailById & { validatedResource: KahootUserDetailReadModel }
   ): Promise<Either<ErrorData, KahootUserDetailReadModel>> {

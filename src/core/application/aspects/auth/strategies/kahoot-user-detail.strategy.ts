@@ -1,5 +1,5 @@
 
-import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";
+/*import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";
 import { createApplicationContext } from "src/core/errors/helpers/app-error-context.helper";
 import { Either, ErrorData } from "src/core/types";
 
@@ -65,4 +65,4 @@ export class KahootUserDetailAuthorizer implements IAuthorizer<IKahootUserDetail
       return Either.makeRight(readModel);
     });
   }
-}
+}*/

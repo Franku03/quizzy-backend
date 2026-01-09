@@ -1,3 +1,4 @@
+
 import { Either, ErrorData } from "src/core/types";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
@@ -27,7 +28,7 @@ export class Points extends ValueObject<PointsProps> {
             return Either.makeLeft(DomainErrorFactory.validation(
                 domainContext,
                 { value: ['MUST_BE_NON_NEGATIVE_INTEGER'] },
-                "Los puntos deben ser un número entero positivo o cero."
+                "Points must be a non-negative integer."
             ));
         }
 
@@ -35,7 +36,7 @@ export class Points extends ValueObject<PointsProps> {
             return Either.makeLeft(DomainErrorFactory.validation(
                 domainContext,
                 { value: ['INVALID_POINTS_VALUE'] },
-                `El valor de puntos (${points}) no es un valor permitido.`
+                `The points value (${points}) is not allowed.`
             ));
         }
 

@@ -74,7 +74,6 @@ export function Authorize(
       // By passing the class and instantiating it within the decorator, 
       // we ensure a fresh instance per invocation.
       const strategy = new Strategy();
-      
       // We call the authorize method of the strategy with the command and context
       // This method may return void or an Either indicating success or failure
       const authResult = await strategy.authorize(command, context);

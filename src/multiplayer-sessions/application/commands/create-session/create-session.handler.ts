@@ -70,7 +70,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             const sessionId = this.idGenerator.generateId()  
 
             // 1 Creamos el contexto de error (para saber dónde falló si algo pasa)
-            const appContext = createMultiplayerSessionAppContext('createSession', sessionId , command.hostId );
+            const appContext = createMultiplayerSessionAppContext('createSession', sessionId , command.userId );
 
             return pipeAsync<ErrorData, CreateSessionResponse>(
                 // PASO INICIAL: Arrancamos el riel con el Kahoot validado
@@ -152,7 +152,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
     ): SessionResourcesForCreation {
         const session = MultiplayerSessionFactory.createMultiplayerSession(
             ctx.kahoot,
-            command.hostId,
+            command.userId,
             ctx.sessionId,
             ctx.pin
         );

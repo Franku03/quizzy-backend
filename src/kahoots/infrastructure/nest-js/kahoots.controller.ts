@@ -10,7 +10,7 @@ import {
   Delete,
   Get,
   UseGuards,
-  Inject, 
+  Inject,
 } from '@nestjs/common';
 
 // Core & Types
@@ -24,7 +24,7 @@ import { DeleteKahootCommand } from 'src/kahoots/application/commands/delete-kah
 import { GetKahootByIdQuery } from 'src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.query';
 
 // DTOs e Inputs de Mappers
-import { CreateKahootDTO, UpdateKahootDTO } from '../dtos'; 
+import { CreateKahootDTO, UpdateKahootDTO } from '../dtos';
 import { KahootHandlerResponseDto } from 'src/kahoots/application/dtos/kahoot.handler.response.dto';
 import { CreateKahootInput } from '../adapters/mappers/create-kahoot.request.mapper';
 import { ReplaceKahootInput } from '../adapters/mappers/update-kahoot.request.mapper';
@@ -32,20 +32,22 @@ import { ReplaceKahootInput } from '../adapters/mappers/update-kahoot.request.ma
 // Helpers & Guards
 import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
+import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-user-detail.read.model.dto';
+import { GetKahootUserDetailById } from 'src/kahoots/application/queries/get-kahoot-preview-by-id/get-kahoot-user-detail-by-id.query';
 
 @Controller('kahoots')
 export class KahootController {
-  
+
   constructor(
     private readonly executor: CommandQueryExecutorService,
 
     // Inyección por Tokens para desacoplar de la implementación concreta
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.CREATE_KAHOOT_REQUEST)
     private readonly createMapper: IMapper<CreateKahootInput, CreateKahootCommand>,
-    
+
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.UPDATE_KAHOOT_REQUEST)
     private readonly updateMapper: IMapper<ReplaceKahootInput, UpdateKahootCommand>,
-  ) {}
+  ) { }
 
   @Post()
   @Auth()
@@ -54,11 +56,11 @@ export class KahootController {
     @Body() dto: CreateKahootDTO,
     @GetUserId() userId: string
   ): Promise<KahootHandlerResponseDto> {
-    const command = this.createMapper.map({ dto, userId }); 
+    const command = this.createMapper.map({ dto, userId });
     return await this.executor.executeCommand<KahootHandlerResponseDto>(command);
   }
-  
-  @Put(':id') 
+
+  @Put(':id')
   @Auth()
   @HttpCode(HttpStatus.OK)
   async replaceKahoot(
@@ -72,7 +74,7 @@ export class KahootController {
 
   @Delete(':id')
   @Auth()
-  @HttpCode(HttpStatus.NO_CONTENT) 
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteKahoot(
     @Param('id') id: string,
     @GetUserId() userId: string
@@ -80,7 +82,7 @@ export class KahootController {
     const command = new DeleteKahootCommand({ id, userId });
     await this.executor.executeCommand<void>(command);
   }
-  
+
   @Get(':id')
   @Auth()
   @HttpCode(HttpStatus.OK)
@@ -90,5 +92,16 @@ export class KahootController {
   ): Promise<KahootHandlerResponseDto> {
     const query = new GetKahootByIdQuery({ kahootId, userId });
     return await this.executor.executeQuery<KahootHandlerResponseDto>(query);
+  }
+
+  @Get('inspect/:idKahoot') // Usando el path exacto que pediste
+  @Auth()
+  @HttpCode(HttpStatus.OK)
+  async inspectKahoot(
+    @Param('idKahoot') kahootId: string,
+    @GetUserId() userId: string
+  ): Promise<KahootUserDetailReadModel> {
+    const query = new GetKahootUserDetailById({ kahootId, userId });
+    return await this.executor.executeQuery<KahootUserDetailReadModel>(query);
   }
 }
