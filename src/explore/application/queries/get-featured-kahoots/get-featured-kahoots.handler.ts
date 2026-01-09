@@ -10,6 +10,7 @@ import type { ILogger } from 'src/core/application/aspects/logging/logger.interf
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 // This handler processes the query to fetch featured kahoots for the platform.
 // Featured kahoots are selected based on a ranking algorithm that balances
@@ -22,7 +23,7 @@ export class GetFeaturedKahootsHandler implements IQueryHandler<GetFeaturedKahoo
   constructor(
     @Inject(DaoName.Explore)
     private readonly exploreDao: IExploreDao,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     private readonly mediaService: MediaEnrichmentService,
   ) {}
 

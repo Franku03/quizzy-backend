@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { ValidRoles } from 'src/auth/domain/interfaces/jwt-payload.interface';
+import { ValidRoles } from 'src/auth/infrastructure/interfaces/jwt-payload.interface';
 
 export const META_ROLES = 'roles';
 

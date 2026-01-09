@@ -13,37 +13,26 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 @Injectable()
 export class ThemeResolutionService implements IThemeEnricher {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
-    private readonly mediaDao: IAssetMetadataDao,
-    
-    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
-    private readonly urlGenerator: IAssetUrlGenerator,
+    @Inject(DaoName.AssetMetadata) private readonly mediaDao: IAssetMetadataDao,
+    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR) private readonly urlGenerator: IAssetUrlGenerator,
   ) {}
 
   async enrichTheme(assetId: string): Promise<Either<ErrorData, ThemeObject | null>> {
-    return pipeAsync(
-      Either.makeRight<ErrorData, string>(assetId),
+    if (!assetId) return Either.makeRight(null);
 
-      (e) => e.chainAsync(id => {
-          if (!id) {
-              return Promise.resolve(
-                  Either.makeRight<ErrorData, AssetMetadataRecord | null>(null)
-              );
-          }
-          return this.mediaDao.findThemeById(id);
-      }),
-
-      (e) => e.map(record => {
-          if (!record) return null;
-          return this.mapRecordToTheme(record);
-      })
-    );
+    const dbResult = await this.mediaDao.findThemeById(assetId);
+    
+    return dbResult.map(record => {
+      return record 
+        ? this.mapRecordToTheme(record)
+        : { id: assetId, url: 'not-valid', name: 'Name not found' };
+    });
   }
 
   private mapRecordToTheme(record: AssetMetadataRecord): ThemeObject {
     return {
-      id: record.assetId, 
-      url: this.urlGenerator.generateUrl(record.publicId), 
+      id: record.assetId,
+      url: this.urlGenerator.generateUrl(record.publicId),
       name: record.originalName || 'Sin Título'
     };
   }

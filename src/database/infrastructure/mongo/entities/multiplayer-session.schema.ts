@@ -11,18 +11,18 @@ const COLLECTION_NAME: string = 'multiplayer_sessions';
 // 2. Value Object Sub-Schemas
 // ---------------------------------------------------------
 
-const AnswerSelectedSchema = {
+
+const OptionsSnapshotSchema = {
+
+  index: { type: Number, required: true, min: 0 },
+  type: { type: String, required: true },
+  value: { type: String, required: true },
   isCorrect: { type: Boolean, required: true },
-  answerContent: {
-    type: {
-      type: String,
-      required: true,
-    },
-    value: { type: String, required: true },
-  },
-};
+
+}
 
 const QuestionSnapshotSchema = {
+
   questionText: { type: String, required: true },
   basePoints: {
     type: Number,
@@ -34,14 +34,8 @@ const QuestionSnapshotSchema = {
     required: true,
     min: 0,
   },
-  // correctAnswerIndices: {
-  //   type: [Number],
-  //   required: true,
-  //   validate: {
-  //     validator: (arr: number[]) => arr.length > 0,
-  //     message: 'At least one correct answer index is required'
-  //   }
-  // }
+  optionsContent: { type: [OptionsSnapshotSchema], required: true, default: []}
+
 };
 
 const ScoreboardEntrySchema = {
@@ -49,33 +43,38 @@ const ScoreboardEntrySchema = {
   nickname: { type: String, required: true },
   score: { type: Number, required: true, min: 0 },
   rank: { type: Number, required: true, min: 1 },
-  previousRank: { type: Number, required: true, min: 0 },
 };
 
 const PlayerSchema = {
   playerId: { type: String, required: true },
   nickname: { type: String, required: true },
   score: { type: Number, required: true, default: 0, min: 0 },
-  isHost: { type: Boolean, required: true, default: false },
-  joinedAt: { type: Date, required: true, default: Date.now },
+  isGuest: { type: Boolean, required: true, default: false },
+  answersSubmitted: { type: Number, required: true, default: 0, min: 0 },
 };
+
+
+const AnswerSelectedSchema = {
+  answerIndex: { type: Number, required: true, min: 0},
+  isCorrect: { type: Boolean, required: true },
+  answerContent: {
+    type: {
+      type: String,
+      required: true,
+    },
+    value: { type: String, required: true },
+  },
+};
+
 
 const SessionPlayerAnswerSchema = {
   playerId: { type: String, required: true },
   slideId: { type: String, required: true },
-  answerIndex: {
-    type: [Number],
-    required: true,
-    validate: {
-      validator: (arr: number[]) => arr.length > 0,
-      message: 'At least one answer index is required',
-    },
-  },
-  isAnswerCorrect: { type: Boolean, required: true },
   earnedScore: { type: Number, required: true, min: 0 },
   timeElapsed: { type: Number, required: true, min: 0 },
   submittedAt: { type: Date, required: true, default: Date.now },
-  answerContent: {
+  isAnswerCorrect: { type: Boolean, required: true },
+  answerSelected: {
     type: [AnswerSelectedSchema],
     default: [],
   },
@@ -84,31 +83,21 @@ const SessionPlayerAnswerSchema = {
 const SlideResultSchema = {
   slideId: { type: String, required: true },
   slidePosition: { type: Number, required: true, min: 0 },
-  questionSnapshot: { type: QuestionSnapshotSchema, required: true },
-  submissions: { type: [SessionPlayerAnswerSchema], default: [] },
-  // startedAt: { type: Date, required: true },
-  endedAt: { type: Date, default: null },
+  numberOfSubmissions: { type: Number, required: true, min: 0 },
+  questionData: { type: QuestionSnapshotSchema, required: true }, // Es required porque requerimos el snapshot de la slide para el modulo de reportes
+  submissions: { type: [SessionPlayerAnswerSchema], default: [] }, // no es required porque pueden haber slideResults sin respuestas suministradas
 };
 
 const SessionProgressSchema = {
-  currentSlideId: { type: String, default: null },
-  currentQuestionStartTime: { type: Date, default: null },
-  slideOrder: {
-    type: [String],
-    default: [],
-  },
-  currentSlideIndex: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  totalSlides: { type: Number, required: true, min: 1 },
+
+  lastSlidePlayedId: { type: String, required: true },
+  totalSlidesPlayed: { type: Number, required: true, min: 1 },
+  
 };
 
 const TimeDetailsSchema = {
   startedAt: { type: Date, required: true },
-  lastActivityAt: { type: Date, required: true },
-  completedAt: { type: Date, default: null },
+  completedAt: { type: Date, required: true },
 };
 
 // ---------------------------------------------------------
@@ -142,37 +131,16 @@ export class MultiplayerSessionMongo extends Document {
 
   @Prop({
     required: true,
-    unique: true,
+    unique: false, // Varias sesiones pueden tener el mismo pin
     index: true,
     match: /^\d{6,10}$/,
   })
   public sessionPin: string;
 
-  @Prop({
-    required: true,
-    type: String,
-    default: 'LOBBY',
-    index: true,
-  })
-  public state: string;
-
   @Prop({ required: true, type: TimeDetailsSchema })
   public timeDetails: {
     startedAt: Date;
-    lastActivityAt: Date;
-    completedAt: Date | null;
-  };
-
-  @Prop({
-    type: SessionProgressSchema,
-    required: true,
-  })
-  public progress: {
-    currentSlideId: string | null;
-    currentQuestionStartTime: Date | null;
-    slideOrder: string[];
-    currentSlideIndex: number;
-    totalSlides: number;
+    completedAt: Date;
   };
 
   @Prop({
@@ -184,7 +152,6 @@ export class MultiplayerSessionMongo extends Document {
     nickname: string;
     score: number;
     rank: number;
-    previousRank: number;
   }>;
 
   @Prop({
@@ -195,9 +162,21 @@ export class MultiplayerSessionMongo extends Document {
     playerId: string;
     nickname: string;
     score: number;
-    isHost: boolean;
-    joinedAt: Date;
+    isGuest: boolean;
+    answersSubmitted: number;
   }>;
+
+
+  
+  @Prop({
+    type: SessionProgressSchema,
+    required: true,
+  })
+  public totalProgress: {
+    lastSlidePlayedId: string | null;
+    totalSlidesPlayed: number;
+  };
+
 
   @Prop({
     type: [SlideResultSchema],
@@ -206,21 +185,26 @@ export class MultiplayerSessionMongo extends Document {
   public slideResults: Array<{
     slideId: string;
     slidePosition: number;
-    questionSnapshot: {
+    numberOfSubmissions: number;
+    questionData: {
       questionText: string;
       basePoints: number;
       timeLimit: number;
-      correctAnswerIndices: number[];
+      optionsContent: Array<{
+        index: number;
+        type: string;
+        value: string;
+        isCorrect: boolean;
+      }>;
     };
     submissions: Array<{
       playerId: string;
       slideId: string;
-      answerIndex: number[];
       isAnswerCorrect: boolean;
       earnedScore: number;
       timeElapsed: number;
-      submittedAt: Date;
-      answerContent: Array<{
+      answerSelected: Array<{
+        answerIndex: number;
         isCorrect: boolean;
         answerContent: {
           type: string;
@@ -228,8 +212,6 @@ export class MultiplayerSessionMongo extends Document {
         };
       }>;
     }>;
-    // startedAt: Date;
-    // endedAt: Date | null;
   }>;
 
   @Prop({ type: Number, default: 1 })
@@ -251,11 +233,6 @@ MultiplayerSessionSchema.index({ 'players.playerId': 1 });
 MultiplayerSessionSchema.index({ 'slideResults.submissions.playerId': 1 });
 MultiplayerSessionSchema.index({ 'ranking.score': -1 });
 
-MultiplayerSessionSchema.index({
-  'timeDetails.lastActivityAt': 1,
-  state: 1,
-});
-
 // ---------------------------------------------------------
 // 5. Pre-save middleware
 // ---------------------------------------------------------
@@ -264,7 +241,6 @@ MultiplayerSessionSchema.pre('save', function (next) {
   const session = this as any;
 
   if (session.isModified()) {
-    session.timeDetails.lastActivityAt = new Date();
     session.version = (session.version || 1) + 1;
   }
 

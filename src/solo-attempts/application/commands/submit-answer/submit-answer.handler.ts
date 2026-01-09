@@ -25,15 +25,15 @@ import { Authorize } from 'src/core/application/aspects/auth/authorization.decor
 import { AttemptOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/attemptOwnership.strategy';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 
 // Application Layer Mapper
 import { SubmissionMapper } from '../mappers/submission.mapper';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 
 @CommandHandler(SubmitAnswerCommand)
 export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand> {
-  
+
   private readonly evaluationService: SoloAttemptEvaluationService;
   private readonly useCase: string = 'User submits an answer in a solo attempt';
 
@@ -46,14 +46,15 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
     private readonly soloAttemptQueryDao: ISoloAttemptQueryDao,
     @Inject(EVENT_BUS_TOKEN)
     private readonly eventBus: EventBus,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
+    private readonly logger: ILogger,
     private readonly mediaService: MediaEnrichmentService,
   ) {
     this.evaluationService = new SoloAttemptEvaluationService();
   }
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.
-  @Log() 
+  @Log()
   // We check that the user submitting the answer owns the attempt
   @Authorize(AttemptOwnershipAuthorizer, 'soloAttemptQueryDao')
   async execute(command: SubmitAnswerCommand): Promise<any> {
@@ -132,12 +133,12 @@ export class SubmitAnswerHandler implements ICommandHandler<SubmitAnswerCommand>
     // and therefore can react accordingly.
     let nextSlide: OutputSlide | null;
     if (nextSlideSnapshot) {
-        // we enrich media URLs before sending to client
-        const enrichedSlide = await this.mediaService.enrichSlide(nextSlideSnapshot);
-        nextSlide = SlideSnapshotMapper.toOutputSlide(enrichedSlide);
+      // we enrich media URLs before sending to client
+      const enrichedSlide = await this.mediaService.enrichSlide(nextSlideSnapshot);
+      nextSlide = SlideSnapshotMapper.toOutputSlide(enrichedSlide);
     }
     else {
-        nextSlide = null;
+      nextSlide = null;
     }
 
     // We construct the response matching the API specification for H5.3

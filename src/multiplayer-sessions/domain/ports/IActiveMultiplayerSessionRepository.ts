@@ -20,8 +20,9 @@ export interface IActiveMultiplayerSessionRepository {
     findByPin(pin: string): Promise< ActiveSessionContext | null >;
     findByTemporalToken(token: string): Promise<ActiveSessionContext | null>;
     delete(pin: string): Promise<void>;
-    IsUserSessionHost( pin: string, userId: string ): Promise<boolean>;
+    // IsUserSessionHost( pin: string, userId: string ): Promise<boolean>;
     
+    // ========== VERSION CON EITHER (ROP) ==========
 
     // findByPin(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
 

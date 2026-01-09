@@ -1,7 +1,6 @@
 import { Result } from '../shared-value-objects/parameter-objects/parameter.object.result';
 import { QuestionSnapshot } from '../shared-value-objects/value-objects/value.object.question-snapshot';
 import { Points } from '../shared-value-objects/value-objects/value.object.points';
-import { TimeLimitSeconds } from '../shared-value-objects/value-objects/value.object.time-limit-seconds';
 
 export class QuestionSnapshotFactory {
 

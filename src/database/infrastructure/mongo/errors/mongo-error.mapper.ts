@@ -1,64 +1,53 @@
-// src/database/infrastructure/mongo/mongo-error.mapper.ts
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 import { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { MongoError, MongoServerError } from 'mongodb'; 
+import { Error as MongooseError } from 'mongoose'; 
 
-export class MongoErrorMapper implements IErrorMapper<IDatabaseErrorContext> {
+interface MongoDuplicateKeyError extends MongoServerError {
+    code: 11000;
+    keyPattern: Record<string, number>;
+    keyValue: Record<string, any>;
+}
+
+export class MongoErrorMapper implements IErrorMapper<unknown, IDatabaseErrorContext> {
     
-    /**
-     * Mapea una excepción nativa de MongoDB o Mongoose a un objeto ErrorData universal.
-     */
-    public toErrorData(error: any, context: IDatabaseErrorContext): ErrorData {
-        // La información del contexto ya viene tipada
+    public toErrorData(error: unknown, context: IDatabaseErrorContext): ErrorData {
         const baseDetails = context; 
 
-        if (error.code === 11000) {
+        // 1. DUPLICADOS
+        if (error instanceof MongoError && error.code === 11000) {
+            const duplicateError = error as MongoDuplicateKeyError;
             return new ErrorData(
                 "DUPLICATE_RESOURCE_CONSTRAINT",
                 "Violation of unique index constraint.",
                 ErrorLayer.INFRASTRUCTURE,
-                { 
-                    ...baseDetails, 
-                    mongoCode: error.code, 
-                    keyPattern: error.keyPattern, 
-                    keyValue: error.keyValue 
-                },
+                { ...baseDetails, mongoCode: 11000, keyPattern: duplicateError.keyPattern, keyValue: duplicateError.keyValue },
                 error
             );
         }
 
-        // 2. CONEXIÓN/RED
-        if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
-            return new ErrorData(
-                "DB_CONNECTION_FAILED",
-                "Could not connect to MongoDB Atlas.",
-                ErrorLayer.INFRASTRUCTURE,
-                baseDetails, 
-                error 
-            );
-        }
-
-        // 3. VALIDACIÓN DE ESQUEMA (Mongoose)
-        if (error.name === 'ValidationError') {
+        // 2. VALIDACIÓN DE ESQUEMA
+        if (error instanceof MongooseError.ValidationError) {
             return new ErrorData(
                 "DB_SCHEMA_VALIDATION",
                 "Mongoose/Mongo schema validation failed.",
                 ErrorLayer.INFRASTRUCTURE,
-                { 
-                    ...baseDetails, 
-                    validationErrors: error.errors 
-                }, 
+                { ...baseDetails, validationErrors: error.errors }, 
                 error 
             );
         }
 
-        // 4. ERROR DESCONOCIDO (Default)
+        // 3. ERROR DESCONOCIDO
+        const message = error instanceof Error ? error.message : 'Unknown infrastructure error.';
+        const safeError = error instanceof Error ? error : undefined;
+        
         return new ErrorData(
             "INFRA_UNKNOWN_ERROR",
-            error?.message || 'Unknown infrastructure error.',
+            message,
             ErrorLayer.INFRASTRUCTURE,
             baseDetails, 
-            error 
+            safeError 
         );
     }
 }

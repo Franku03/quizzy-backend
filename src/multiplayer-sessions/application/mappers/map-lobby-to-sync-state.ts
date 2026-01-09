@@ -28,16 +28,16 @@ export const mapLobbyToSyncState = (
         const hostData = mapHostLobbyData( session );
 
         return { 
-            type: SyncType.PLAYER_STATE_UPDATE, 
+            type: SyncType.PLAYER_LOBBY_STATE_UPDATE, 
             data: { 
                 hostLobbyUpdate: hostData,
-                playerStateUpdate: playerData,
+                playerLobbyUpdate: playerData,
             } 
         }
 
     } else {
 
-        return { type: SyncType.PLAYER_STATE_UPDATE, data: undefined, additionalData: { isJoined: false }  }
+        return { type: SyncType.PLAYER_LOBBY_STATE_UPDATE, data: undefined, additionalData: { isJoined: false }  }
 
     }
 

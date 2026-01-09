@@ -1,2 +1,2 @@
-// export * from './tudao';
+export * from './asset.pg.dao';
 // export * from './turepo';

@@ -11,7 +11,7 @@ import { ErrorData, ErrorLayer } from 'src/core/types';
 import { User } from 'src/users/domain/aggregates/user';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(RemoveKahootFromFavoritesCommand)
 export class RemoveKahootFromFavoritesHandler
@@ -24,7 +24,7 @@ export class RemoveKahootFromFavoritesHandler
 
   constructor(
     @Inject(RepositoryName.User) private readonly userRepo: IUserRepository,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}
 
   @Log()

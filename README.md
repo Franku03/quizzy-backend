@@ -119,3 +119,9 @@ También existen módulos compartidos entre desarrolladores, siendo estos los si
 
 - 🟡🟣🔵 **Modulo core** 🔵🟣🟡: Inserte definición
 - 🔵 **Modulo databases** 🔵 Definiciones de las entidades bajo las librerías de terceros [TypeORM, Mongoose] para trabajar con el modelo de datos y las implementaciones respectivas de cada respositorio perteneciente a los módulos de la aplicación. Permite cambiar dinámicamente de Base de datos y de un ORM a un ODM.
+
+## ⚖️ License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Gustavo Kufatty, Luis Monroy, Luis Ochoa, Franklin Quintana, Sergio Rodríguez, Santiago Silva.

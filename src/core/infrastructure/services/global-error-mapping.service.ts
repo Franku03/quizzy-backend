@@ -63,8 +63,8 @@ export class ErrorMappingService {
       const category = details?.errorCategory;
 
       if (code === 'Bad Request' || code === 'HTTP_ERROR_400') {
-        return [HttpStatus.BAD_REQUEST, message];
-      }
+            return [HttpStatus.BAD_REQUEST, message]; 
+        }
 
       const appMap: Record<string, [HttpStatus, string]> = {
         'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
@@ -74,7 +74,7 @@ export class ErrorMappingService {
         'HTTP_ERROR_403': [HttpStatus.FORBIDDEN, 'You do not have permission to access this resource.'],
       };
 
-
+      
 
 
       //Intentar categoría, si no, intentar código, si no, fallback.

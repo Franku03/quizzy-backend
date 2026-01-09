@@ -7,8 +7,11 @@ import {
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
+
 import { DAO_OVERRIDE_ENV_MAP } from './catalogs/dao.catalog.enum';
 import { REPOSITORY_OVERRIDE_ENV_MAP } from './catalogs/repository.catalog.enum';
+import { MongoMappersModule } from './mongo/mongo-mappers.module';
+import { PostgresMappersModule } from './postgres/postgres-mapper.module';
 
 type ModuleImport = Type<any> | DynamicModule;
 
@@ -27,10 +30,8 @@ export class DatabaseDriverModule {
 
     const dbsToLoad = new Set<string>();
 
-    // Siempre cargar el globalType
     dbsToLoad.add(globalType);
 
-    // Revisar overrides y agregarlos
     Object.values({
       ...DAO_OVERRIDE_ENV_MAP,
       ...REPOSITORY_OVERRIDE_ENV_MAP,
@@ -41,26 +42,41 @@ export class DatabaseDriverModule {
       }
     });
 
-    // dbsToLoad siempre tiene al menos el globalType
-
     if (dbsToLoad.has('postgres')) {
-      imports.push(
-        TypeOrmModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (config: ConfigService) => ({
-            type: 'postgres',
-            host: config.get<string>('DB_HOST'),
-            port: config.get<number>('DB_PORT') ?? 5432,
-            database: config.get<string>('DB_NAME'),
-            username: config.get<string>('DB_USERNAME'),
-            password: config.get<string>('DB_PASSWORD'),
-            autoLoadEntities: true,
-            synchronize: config.get<boolean>('IS_PROD') ?? false,
+      if (process.env.POSTGRES_CNN) {
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              url: config.get<string>('POSTGRES_CNN'),
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
           }),
-        }),
-      );
-      exports.push(TypeOrmModule);
+        );
+      } else {
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              host: config.get<string>('DB_HOST'),
+              port: config.get<number>('DB_PORT') ?? 5432,
+              database: config.get<string>('DB_NAME'),
+              username: config.get<string>('DB_USERNAME'),
+              password: config.get<string>('DB_PASSWORD'),
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
+          }),
+        );
+      }
+      
+      imports.push(PostgresMappersModule); 
+      exports.push(TypeOrmModule, PostgresMappersModule);
       console.log('✅ Base de datos configurada: PostgreSQL (TypeORM)');
     }
 
@@ -94,7 +110,9 @@ export class DatabaseDriverModule {
           }),
         );
       }
-      exports.push(MongooseModule);
+
+      imports.push(MongoMappersModule);
+      exports.push(MongooseModule, MongoMappersModule);
       console.log('✅ Base de datos configurada: MongoDB (Mongoose)');
     }
 

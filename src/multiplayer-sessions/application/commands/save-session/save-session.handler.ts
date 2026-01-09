@@ -3,14 +3,15 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
-import { COMMON_ERRORS } from "../common.errors";
 import { SaveSessionCommand } from "./save-session.command";
 
-import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
+import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository, IPinRepository } from "src/multiplayer-sessions/domain/ports";
 import { SessionArchiverService } from "src/multiplayer-sessions/domain/domain-services";
 
-import { Either } from '../../../../core/types/either';
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
+import { Either } from '../../../../core/types/either';
+
+import { COMMON_ERRORS } from "../common.errors";
 
 // Este caso de uso es utilizado cuando el host decide finalizar la partida antes de que se hayan mostrado todas las preguntas
 @CommandHandler( SaveSessionCommand )
@@ -40,10 +41,11 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
             if( !sessionWrapper )
                 return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
 
-            const { session } = sessionWrapper;
+            const { session, kahoot } = sessionWrapper;
 
             // Procesamos la limpieza y archivado de la sesión
-            await this.sessionArchiverService.archiveAndClean( session );
+            // Aqui no liberamos el pin, esperamos a que el host cierre la sesion por completo para eso
+            await this.sessionArchiverService.archiveAndClean( session, kahoot );
 
             // Respuesta guardada con exito
             return Either.makeRight( true );

@@ -1,32 +1,31 @@
-// src/media/application/dependency-tokens/application-media.tokens.ts
-
-// Infrastructure
-export const ASSET_STORAGE_SERVICE = 'IAssetStorageService';
-export const CRYPTO_SERVICE = 'ICryptoService';
-export const ASSET_URL_GENERATOR = 'IAssetUrlGenerator';
-export const ERROR_MAPPER = 'IErrorMapper';
-export const CLOUDINARY_CONFIG = 'CLOUDINARY_CONFIG';
-
-// Services & Ports
-export const IMAGE_URL_ENRICHER = 'IImageUrlEnricher';
-export const THEME_ENRICHER = 'IThemeEnricher';
-export const ENRICHMENT_HANDLER_FACTORY = 'IEnrichmentHandlerFactory';
-
-// New Handlers & Config (Internal Application)
-export const URL_ENRICHMENT_HANDLER = 'UrlEnrichmentHandler';
-export const THEME_ENRICHMENT_HANDLER = 'ThemeEnrichmentHandler';
-export const URL_CONFIGURABLE = 'IUrlConfigurable';
-
 export const MEDIA_TOKENS = {
-  ASSET_STORAGE_SERVICE,
-  CRYPTO_SERVICE,
-  ASSET_URL_GENERATOR,
-  ERROR_MAPPER,
-  CLOUDINARY_CONFIG,
-  IMAGE_URL_ENRICHER,
-  THEME_ENRICHER,
-  ENRICHMENT_HANDLER_FACTORY,
-  URL_ENRICHMENT_HANDLER,
-  THEME_ENRICHMENT_HANDLER,
-  URL_CONFIGURABLE
+  // --- Infrastructure (External Ports) ---
+  ASSET_STORAGE_SERVICE: Symbol('ASSET_STORAGE_SERVICE'),
+  ASSET_URL_GENERATOR: Symbol('ASSET_URL_GENERATOR'),
+  CLOUDINARY_CONFIG: Symbol('CLOUDINARY_CONFIG'),
+
+  // --- Services (Public API for Handlers) ---
+  // Proxies con Flyweight para resoluciones unitarias/batch (IDs)
+  IMAGE_URL_ENRICHER: Symbol('IMAGE_URL_ENRICHER'),
+  THEME_ENRICHER: Symbol('THEME_ENRICHER'),
+
+  // --- Raw Services (Private API for Proxies) ---
+  // Servicios base que consultan directamente la DB
+  RAW_IMAGE_URL_ENRICHER: Symbol('RAW_IMAGE_URL_ENRICHER'),
+  RAW_THEME_ENRICHER: Symbol('RAW_THEME_ENRICHER'),
+
+  // --- API Query Proxies (Listados/Colecciones) ---
+  // El Proxy que cachea el listado completo de temas (ThemeListProxy)
+  THEME_LIST_QUERY_HANDLER: Symbol('THEME_LIST_QUERY_HANDLER'),
+  // El Handler real que hace el find() en Mongo (GetThemesHandler)
+  RAW_THEME_LIST_QUERY_HANDLER: Symbol('RAW_THEME_LIST_QUERY_HANDLER'),
+  
+  // --- Orchestration (Factories & Resolvers) ---
+  MEDIA_ENRICHMENT_SERVICE: Symbol('MEDIA_ENRICHMENT_SERVICE'),
+  ENRICHMENT_HANDLER_FACTORY: Symbol('ENRICHMENT_HANDLER_FACTORY'),
+  HANDLER_RESOLVER: Symbol('HANDLER_RESOLVER'), 
+
+  // --- Individual Handlers (Chain of Responsibility) ---
+  URL_ENRICHMENT_HANDLER: Symbol('URL_ENRICHMENT_HANDLER'),
+  THEME_ENRICHMENT_HANDLER: Symbol('THEME_ENRICHMENT_HANDLER'), 
 } as const;

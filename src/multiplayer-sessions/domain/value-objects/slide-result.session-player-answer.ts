@@ -1,10 +1,8 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
-import { QuestionSnapshotFactory } from "src/core/domain/factories/question-snapshot.factory";
 
 import { ImageId } from "src/core/domain/shared-value-objects/id-objects/image.id";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { ResponseTime } from "src/core/domain/shared-value-objects/value-objects/value.object.response-time";
-import { QuestionSnapshot } from "src/core/domain/shared-value-objects/value-objects/value.object.question-snapshot";
 import { Result } from "src/core/domain/shared-value-objects/parameter-objects/parameter.object.result";
 import { Submission } from '../../../core/domain/shared-value-objects/parameter-objects/parameter.object.submission';
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
@@ -20,7 +18,6 @@ interface SessionPlayerAnswerProps {
     earnedScore: Score,
     timeElapsed: ResponseTime,
     answerContent: AnswerSelected[],
-    questionSnapshot: QuestionSnapshot   
 }
 
 export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
@@ -39,7 +36,6 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
         // Mapeamos las option de la submission a AnswerSelected
         const answerContent = AnswerSelected.createFromOptions( playerSubmission );
 
-        const questionSnapshot = QuestionSnapshotFactory.createQuestionSnapshotFromResult( result )
 
         const answerProps: SessionPlayerAnswerProps = {
             playerId: playerId,
@@ -54,9 +50,8 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
             timeElapsed: playerSubmission.getTimeElapsed(),
 
-            answerContent: answerContent, // No pregunto por el valor dado que siempre como minimo hay un arreglo vacio
+            answerContent: answerContent,
 
-            questionSnapshot: questionSnapshot,
         }
 
         return new SessionPlayerAnswer( answerProps );
@@ -114,14 +109,6 @@ export class SessionPlayerAnswer extends ValueObject<SessionPlayerAnswerProps> {
 
     }
 
-    public getQuestionSnapshot(): QuestionSnapshot {
-
-        return this.properties.questionSnapshot;
-        
-    }
-
-
-    // TODO: Colocar demas getters que hagan falta
     public getProperties(): SessionPlayerAnswerProps {
         return this.properties;
     }

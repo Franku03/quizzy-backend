@@ -6,7 +6,7 @@ import { QuestionResultsHostResponse } from "../response-dtos";
 
 export const mapHostResultsData = (
     session: MultiplayerSession, 
-    previousSlideId: SlideId, 
+    slideId: SlideId, 
     options: { correctAnswerId: string [], optionsId: string []}
 ): QuestionResultsHostResponse => {
 
@@ -23,8 +23,8 @@ export const mapHostResultsData = (
 
     const stats = {
 
-        totalAnswers: session.getNumberOfAnswersForASlide( previousSlideId ),
-        distribution: session.calculateAnswerDistributionForASlide( previousSlideId, options.optionsId )
+        totalAnswers: session.getNumberOfAnswersForASlide( slideId ),
+        distribution: session.calculateAnswerDistributionForASlide( slideId, options.optionsId )
 
     }
 

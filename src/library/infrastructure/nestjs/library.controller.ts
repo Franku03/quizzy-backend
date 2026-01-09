@@ -22,10 +22,11 @@ import { GetInProgressKahootsQuery } from '../../application/queries/get-in-prog
 import { AddKahootToFavoritesCommand } from 'src/library/application/commands/add-kahoot-to-favorites/add-kahoot-to-favorites.command';
 import { RemoveKahootFromFavoritesCommand } from '../../application/commands/remove-kahoot-from-favorites/remove-kahoot-from-favorites.command';
 import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
-import { GetUserId } from '../../../common/decorators/get-user-id-decorator';
 import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 import { ErrorData } from 'src/core/types';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 
 // TODO: agregar autenticacion
 @Controller('library')
@@ -37,7 +38,7 @@ export class LibraryController {
 
   // Query (CQRS) H7.1
   @HttpCode(200)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Get('my-creations')
   async getDraftsAndCreatedKahoots(
     @Query() paginationDto: PaginationDto,
@@ -57,9 +58,10 @@ export class LibraryController {
 
   // Query (CQRS) H7.2
   @HttpCode(200)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Get('favorites')
-  async getFavorites(@Query() paginationDto: PaginationDto,
+  async getFavorites(
+    @Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
     const response: Either<ErrorData, LibraryReadModel> =
@@ -72,9 +74,10 @@ export class LibraryController {
 
   // query + command (CQRS) H7.3
   @HttpCode(201)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Post('favorites/:kahootId')
-  async addKahootTofavorites(@Param('kahootId') kahootId: string,
+  async addKahootTofavorites(
+    @Param('kahootId') kahootId: string,
     @GetUserId() userId: string,
   ) {
     const kahootExistanceOptional: Optional<ErrorData> =
@@ -91,9 +94,10 @@ export class LibraryController {
 
   // command (CQRS) H7.4 - TODO: Mejorar manejo de errores de comandos
   @HttpCode(204)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Delete('favorites/:kahootId')
-  async deleteKahootFromfavorites(@Param('kahootId') kahootId: string,
+  async deleteKahootFromfavorites(
+    @Param('kahootId') kahootId: string,
     @GetUserId() userId: string,
   ) {
     const res: Optional<ErrorData> = await this.commandBus.execute(
@@ -104,9 +108,10 @@ export class LibraryController {
 
   // Query (CQRS) H7.5
   @HttpCode(200)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Get('in-progress')
-  async getInProgressKahoots(@Query() paginationDto: PaginationDto,
+  async getInProgressKahoots(
+    @Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
     const response: Either<ErrorData, LibraryReadModel> =
@@ -123,9 +128,10 @@ export class LibraryController {
 
   // Query (CQRS) H7.6
   @HttpCode(200)
-  @UseGuards(MockAuthGuard)
+  @Auth()
   @Get('completed')
-  async getCompletedKahoots(@Query() paginationDto: PaginationDto,
+  async getCompletedKahoots(
+    @Query() paginationDto: PaginationDto,
     @GetUserId() userId: string,
   ) {
     const response: Either<ErrorData, LibraryReadModel> =
