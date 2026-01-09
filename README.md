@@ -173,7 +173,7 @@ Existe una diferencia fundamental en el consumo de recursos entre retornar un va
 ### 3. Maximización del Throughput (Short-circuit)
 El mecanismo de **cortocircuito** de la utilidad `pipeAsync` optimiza el uso de recursos del sistema:
 
-- **Gestión del Event Loop**: Al detener la ejecución al primer error, se evita la creación y el encolamiento de microtareas innecesarias en el Event Loop de Node.js.
+- **Gestión del Event Loop**: Al detener la ejecución al primer error, se evita la creación y el encolamiento de microtasks innecesarias en el Event Loop de Node.js.
 
 - **Liberación de CPU**: El cese inmediato de la ejecución tras un fallo previene el consumo de ciclos de reloj en pasos posteriores (como enriquecimiento de datos o procesamiento de archivos), permitiendo al servidor gestionar un mayor volumen de peticiones concurrentes.
 
@@ -208,7 +208,7 @@ La clase `ErrorData` encapsula toda la información de error de manera estructur
 
 > [!WARNING]
 > ⚠️ Seguridad en Producción:
->  Para futuras revisiones, se implementará un mecanismo basado en `process.env.NODE_ENV` que eliminará automáticamente el `stackTrace` (evitando referenciar el constructor de erro con super) en entornos de producción (`isProd === true`), manteniéndolo únicamente en desarrollo para facilitar el debugging.
+>  Para futuras revisiones, se implementará un mecanismo basado en `process.env.NODE_ENV` que eliminará automáticamente el `stackTrace` (evitando referenciar el constructor de error con super) en entornos de producción (`isProd === true`), manteniéndolo únicamente en desarrollo para facilitar el debugging.
 
 **Formato de Log Estructurado**: El método `toLogString()` genera una representación visualmente clara del error con:
   - Codificación de colores por capa del sistema
@@ -263,7 +263,7 @@ Orquesta la ejecución secuencial de operaciones con mecanismo de cortocircuito:
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (ERRORES / ROP)
  
-> El siguiente diagrama describe el flujo reducido del sistema de errores (UpdataKahootHandler)
+> El siguiente diagrama describe el flujo reducido del sistema de errores (UpdateKahootHandler)
 
 ---
 
@@ -313,7 +313,7 @@ sequenceDiagram
 
 ---
 
-> El siguiente diagrama describe el flujo completo de ejecución, incluyendo el manejo de errores mediante Railway Oriented Programming (UpdataKahootHandler).
+> El siguiente diagrama describe el flujo completo de ejecución, incluyendo el manejo de errores mediante Railway Oriented Programming (UpdateKahootHandler).
 
 ---
 
@@ -335,100 +335,100 @@ sequenceDiagram
     autonumber
 
     %% --- PARTICIPANTES ---
-    participant Client as <b><font color="black">Cliente</font></b>
-    participant Ctrl as <b><font color="black">Controller</font></b>
-    participant Deco as <b><font color="black">Decorator</font></b>
-    participant Auth as <b><font color="black">Authorizer</font></b>
-    participant Repo as <b><font color="black">Repository</font></b>
-    participant Fact as <b><font color="black">Factory</font></b>
-    participant Hand as <b><font color="black">Handler</font></b>
-    participant Agg as <b><font color="black">Aggregate</font></b>
-    participant Exec as <b><font color="black">Executor</font></b>
-    participant Filt as <b><font color="black">Filter</font></b>
+    participant Client as Cliente
+    participant Ctrl as Controller
+    participant Deco as Decorator
+    participant Auth as Authorizer
+    participant Repo as Repository
+    participant Fact as Factory
+    participant Hand as Handler
+    participant Agg as Aggregate
+    participant Exec as Executor
+    participant Filt as Filter
 
-    Note over Ctrl: <b><font color="black">[Controller] KahootController</font></b>
-    Note over Deco: <b><font color="black">[Decorator] Authorize</font></b>
-    Note over Auth: <b><font color="black">[IAuthorizer] KahootOwnershipAuthorizer</font></b>
-    Note over Repo: <b><font color="black">[IKahootRepository] KahootRepositoryMongo</font></b>
-    Note over Fact: <b><font color="black">[DomainFactory] KahootFactory</font></b>
-    Note over Hand: <b><font color="black">[ICommandHandler] UpdateKahootHandler</font></b>
-    Note over Agg: <b><font color="black">[Domain] Kahoot / Value Objects</font></b>
-    Note over Filt: <b><font color="black">[ExceptionFilter] AllExceptionsFilter</font></b>
+    Note over Ctrl: [Controller] KahootController
+    Note over Deco: [Decorator] Authorize
+    Note over Auth: [IAuthorizer] KahootOwnershipAuthorize
+    Note over Repo: [IKahootRepository] KahootRepositoryMongo
+    Note over Fact: [DomainFactory] KahootFactory
+    Note over Hand: [ICommandHandler] UpdateKahootHandler
+    Note over Agg: [Domain] Kahoot / Value Objects
+    Note over Filt: [ExceptionFilter] AllExceptionsFilter
 
     %% --- FASE 1: AUTH & RECONSTRUCTION ---
-    Client->>Ctrl: <b><font color="black">PUT /kahoots/:id</font></b>
-    Ctrl->>Deco: <b><font color="black">executeCommand(cmd)</font></b>
+    Client->>Ctrl: PUT /kahoots/:id
+    Ctrl->>Deco: executeCommand(cmd)
 
     rect rgb(243, 229, 245)
-        Note right of Deco: <b><font color="black">FASE 1: SEGURIDAD (Capa Aplicacion)</font></b>
-        Deco->>Auth: <b><font color="black">authorize(command, context)</font></b>
+        Note right of Deco: FASE 1: SEGURIDAD (Capa Aplicacion)
+        Deco->>Auth: authorize(command, context)
 
         rect rgb(227, 242, 253)
-            Note right of Repo: <b><font color="black">RECONSTRUCCION DE DOMINIO (Capa Infra)</font></b>
-            Auth->>Repo: <b><font color="black">findKahootByIdEither(id)</font></b>
-            Repo->>Repo: <b><font color="black">mongoModel.findOne()</font></b>
+            Note right of Repo: RECONSTRUCCION DE DOMINIO (Capa Infra)
+            Auth->>Repo: findKahootByIdEither(id)
+            Repo->>Repo: mongoModel.findOne()
             
             rect rgb(255, 250, 200)
-                Note right of Fact: <b><font color="black">VALIDACION DE AGREGADO (Capa Dominio)</font></b>
-                Repo->>Fact: <b><font color="black">reconstructFromSnapshot(snap)</font></b>
-                Note over Fact: <b><font color="black">Revalida VOs e Invariantes</font></b>
-                Fact-->>Repo: <b><font color="black">Either (Left o Right)</font></b>
+                Note right of Fact: VALIDACION DE AGREGADO (Capa Dominio)
+                Repo->>Fact: reconstructFromSnapshot(snap)
+                Note over Fact: Revalida VOs e Invariantes
+                Fact-->>Repo: Either (Left o Right)
             end
-            Repo-->>Auth: <b><font color="black">Either (Left o Right)</font></b>
+            Repo-->>Auth: Either (Left o Right)
         end
         
-        Note over Auth: <b><font color="black">Valida Reglas de Acceso (Ownership, Status)</font></b>
-        Auth-->>Deco: <b><font color="black">Either (Left o Right)</font></b>
+        Note over Auth: Valida Reglas de Acceso (Ownership, Status)
+        Auth-->>Deco: Either (Left o Right)
         
-        alt <b><font color="black">isLeft (Falla Seguridad o Dominio)</font></b>
-            Deco-->>Ctrl: <b><font color="black">Return Either.Left (Cortocircuito)</font></b>
-        else <b><font color="black">isRight (Todo OK)</font></b>
-            Deco->>Deco: <b><font color="black">command.validatedResource = kahoot</font></b>
+        alt (Falla Seguridad o Dominio)
+            Deco-->>Ctrl: Return Either.Left (Cortocircuito)
+        else >isRight (Todo OK)
+            Deco->>Deco: command.validatedResource = kahoot
         end
     end
 
     %% --- FASE 2: USE CASE (pipeAsync) ---
     rect rgb(243, 229, 245)
-        Note right of Hand: <b><font color="black">FASE 2: LOGICA DE NEGOCIO (Capa Aplicacion)</font></b>
-        Deco->>Hand: <b><font color="black">execute(command)</font></b>
+        Note right of Hand: FASE 2: LOGICA DE NEGOCIO (Capa Aplicacion)
+        Deco->>Hand: execute(command)
 
         rect rgb(230, 242, 255)
-            Note right of Hand: <b><font color="black">Bucle pipeAsync (Railway Oriented Programming)</font></b>
+            Note right of Hand: Bucle pipeAsync (Railway Oriented Programming)
             
-            Note over Hand: <b><font color="black">Paso 1: Mutacion de Dominio</font></b>
-            Hand->>Agg: <b><font color="black">applyUpdates()</font></b>
-            Agg-->>Hand: <b><font color="black">Either.Right(kahoot)</font></b>
+            Note over Hand: Paso 1: Mutacion de Dominio
+            Hand->>Agg: applyUpdates()
+            Agg-->>Hand: >Either.Right(kahoot)
 
             rect rgb(255, 235, 235)
-                Note over Hand: <b><font color="black">Paso 2: Persistencia (Simulacion de Fallo)</font></b>
-                Hand->>Repo: <b><font color="black">saveKahootEither(kahoot)</font></b>
-                Repo-->>Hand: <b><font color="black">Either.Left(ErrorData INFRA)</font></b>
+                Note over Hand: Paso 2: Persistencia (Simulacion de Fallo)
+                Hand->>Repo: saveKahootEither(kahoot)
+                Repo-->>Hand: Either.Left(ErrorData INFRA)
                 
-                Note over Hand: <b><font color="black">CORTOCIRCUITO: pipeAsync detecta Left</font></b>
-                Note over Hand: <b><font color="black">break loop (Se detiene el tren)</font></b>
+                Note over Hand: CORTOCIRCUITO: pipeAsync detecta Left
+                Note over Hand: break loop (Se detiene el tren)
             end
         end
 
-        Hand->>Hand: <b><font color="black">err.setContext(appContext)</font></b>
-        Note over Hand: <b><font color="black">Agrega ActorId y Operacion al ErrorData</font></b>
-        Hand-->>Deco: <b><font color="black">Return Either.Left(ErrorData)</font></b>
+        Hand->>Hand: err.setContext(appContext)
+        Note over Hand: Agrega ActorId y Operacion al ErrorData
+        Hand-->>Deco: Return Either.Left(ErrorData)
     end
 
-    Deco-->>Ctrl: <b><font color="black">Propaga Either.Left</font></b>
+    Deco-->>Ctrl: Propaga Either.Left
 
     %% --- FASE 3: BRIDGE & FILTER ---
     rect rgb(227, 242, 253)
-        Note right of Exec: <b><font color="black">EXCEPTION BRIDGE (Puente a NestJS)</font></b>
-        Ctrl->>Exec: <b><font color="black">throwResult(result)</font></b>
-        Note over Exec: <b><font color="black">result.isLeft -> throw ErrorData</font></b>
-        Exec-->>Filt: <b><font color="black">Lanza Excepcion para AllExceptionsFilter</font></b>
+        Note right of Exec: EXCEPTION BRIDGE (Puente a NestJS)
+        Ctrl->>Exec: throwResult(result)
+        Note over Exec: result.isLeft -> throw ErrorData
+        Exec-->>Filt: Lanza Excepcion para AllExceptionsFilter
 
-        Note right of Filt: <b><font color="black">FILTRO GLOBAL (Capa Infra)</font></b>
-        Filt->>Filt: <b><font color="black">logger.error(toLogString)</font></b>
-        Note over Filt: <b><font color="black">Log visual detallado con StackTrace</font></b>
-        Filt->>Filt: <b><font color="black">sanitizeDetails(error)</font></b>
-        Note over Filt: <b><font color="black">Oculta DB e Infra si es un error critico</font></b>
-        Filt-->>Client: <b><font color="black">HTTP Response (JSON IErrorResponse)</font></b>
+        Note right of Filt: FILTRO GLOBAL (Capa Infra)
+        Filt->>Filt: logger.error(toLogString)
+        Note over Filt: Log visual detallado con StackTrace
+        Filt->>Filt: sanitizeDetails(error)
+        Note over Filt: Oculta DB e Infra si es un error critico
+        Filt-->>Client: HTTP Response (JSON IErrorResponse)
     end
 ```
 
