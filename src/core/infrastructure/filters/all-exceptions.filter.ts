@@ -1,13 +1,4 @@
-/**
- * MIT License | Copyright (c) 2025
- * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
- * Project: quizzy-backend
- *
- * Full license text available in the LICENSE file at the root of this project.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
- */
-
-// File: src\core\infrastructure\filters\all-exceptions.filter.ts
+// src/core/filters/all-exceptions.filter.ts
 
 import {
   ExceptionFilter,
@@ -23,6 +14,8 @@ import { ErrorMappingService } from '../services/global-error-mapping.service';
 import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface';
 import { isErrorData } from 'src/core/errors/type-guards.ts/error-data.type.guard';
 import { IErrorContext } from 'src/core/errors/interface/context/i-error-context.interface';
+import { WsException } from '@nestjs/websockets';
+import { ServerErrorEvents } from 'src/multiplayer-sessions/infrastructure/nest-js/enums/websocket.events.enum';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -34,23 +27,54 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse();
-    const request = ctx.getRequest();
+    // const ctx = host.switchToHttp();
+    // const response = ctx.getResponse();
+    // const request = ctx.getRequest();
 
-    /**
-     * 1. Creamos el contexto de infraestructura.
+    const type = host.getType(); // 'http' o 'ws'
+    let errorToProcess: ErrorData;
+    let infraContext: IErrorContext = {};
+
+    // --- 1. CAPTURA DE CONTEXTO SEGÚN EL TIPO ---
+      /**
+     * Creamos el contexto de infraestructura.
      * Aunque IErrorContext no declare 'path' o 'method', el index signature 
      * [key: string]: any permite que TS acepte este objeto sin chillar.
      */
-    const infraContext: IErrorContext = {
-      path: request.url,
-      method: request.method,
-      actorId: request.user?.id || request.user?.userId || 'anonymous',
-      operation: 'HTTP_REQUEST', // Solo se usará si el ErrorData no trae una operación propia
-    };
+    if (type === 'http') {
+      const ctx = host.switchToHttp();
+      const request = ctx.getRequest();
+      infraContext = {
+        path: request.url,
+        method: request.method,
+        actorId: request.user?.id || request.user?.userId || 'anonymous',
+        operation: 'HTTP_REQUEST', // Solo se usará si el ErrorData no trae una operación propia
+      };
+    } else if (type === 'ws') {
+      const wsCtx = host.switchToWs();
+      const client = wsCtx.getClient();
+      
+      // Seguridad extra: Nos aseguramos de que 'client' y 'client.data' existan
+      const socketData = client?.data || {}; 
 
-    let errorToProcess: ErrorData;
+      infraContext = {
+        pattern: wsCtx.getPattern(),
+        data: wsCtx.getData(),
+        socketId: client?.id || 'NO-SOCKET-ID',
+        userId: socketData.userId || 'ANONYMOUS',
+        roomId: socketData.roomPin || 'NO-ROOM',
+        operation: 'WS_EVENT',
+      };
+    }
+
+    // const infraContext: IErrorContext = {
+    //   path: request.url,
+    //   method: request.method,
+    //   actorId: request.user?.id || request.user?.userId || 'anonymous',
+    //   operation: 'HTTP_REQUEST', // Solo se usará si el ErrorData no trae una operación propia
+    // };
+
+    // let errorToProcess: ErrorData;
 
     // --- ESCENARIO 1: ErrorData (ROP / Dominio / UseCases) ---
     if (isErrorData(exception)) {
@@ -70,9 +94,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
         { ...infraContext, ...responseBody.details },
         exception
       );
-    } 
+    }
+    // --- ESCENARIO 3: Errores de WS ---
+ 
+    else if (exception instanceof WsException) {
+        // Para errores específicos de WS
+        const errorData = exception.getError() as any;
 
-    // --- ESCENARIO 3: Errores de Runtime (Crashes, bugs de código) ---
+        errorToProcess = new ErrorData(
+            'WS_ERROR',
+            typeof errorData === 'string' ? errorData : errorData.message,
+            ErrorLayer.INFRASTRUCTURE,
+            infraContext,
+            exception
+        );
+    }
+
+    // --- ESCENARIO 4: Errores de Runtime (Crashes, bugs de código) ---
     else {
       errorToProcess = new ErrorData(
         'APPLICATION_UNEXPECTED_ERROR',
@@ -89,7 +127,29 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 3. MAPPING: Sanitizamos la respuesta para el cliente (Borra credenciales si es 500)
     const clientResponse: IErrorResponse = this.errorMappingService.toClientResponse(errorToProcess);
 
+    // 4. RESPUESTA
+
+    if (type === 'http') {
+      // 4.1 RESPUESTA HTTP
+      const ctx = host.switchToHttp();
+      const response = ctx.getResponse();
+      response.status(clientResponse.status).json(clientResponse);
+    } else if (type === 'ws') {
+
+      // 4.2 RESPUESTA EMISION EVENTO WS
+      const wsCtx = host.switchToWs();
+      const client = wsCtx.getClient();
+      // En WebSockets, enviamos un evento de error al cliente
+      // LOGICA DE SEGURIDAD: 
+      // Algunos adaptadores de WS no tienen el método 'emit' directo en el cliente
+      // o el cliente podría estar desconectado en el momento del error.
+      if (client && typeof client.emit === 'function') {
+
+        client.emit(ServerErrorEvents.FATAL_ERROR, clientResponse); 
+        // Nota: Nest por defecto busca el evento 'exception' en el cliente
+      }
+    }
     // 4. RESPUESTA HTTP
-    response.status(clientResponse.status).json(clientResponse);
+    // response.status(clientResponse.status).json(clientResponse);
   }
 }

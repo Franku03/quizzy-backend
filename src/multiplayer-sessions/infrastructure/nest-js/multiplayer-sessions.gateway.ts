@@ -1,4 +1,4 @@
-import { BadRequestException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger, UseFilters } from '@nestjs/common';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 
@@ -45,8 +45,9 @@ import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
+import { AllExceptionsFilter } from 'src/core/infrastructure/filters/all-exceptions.filter';
 
-
+@UseFilters( AllExceptionsFilter ) // <--- Esto es lo que rompe la barrera del WsExceptionsHandler
 @WebSocketGateway( 
   { namespace: 'multiplayer-sessions', cors: true }
 )
