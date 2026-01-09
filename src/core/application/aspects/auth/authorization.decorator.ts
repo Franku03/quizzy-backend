@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\application\aspects\auth\authorization.decorator.ts
+
 // application/decorators/Authorize.ts
 
 import { IAuthorizer } from "./authorizer.interface";
@@ -74,7 +85,6 @@ export function Authorize(
       // By passing the class and instantiating it within the decorator, 
       // we ensure a fresh instance per invocation.
       const strategy = new Strategy();
-      
       // We call the authorize method of the strategy with the command and context
       // This method may return void or an Either indicating success or failure
       const authResult = await strategy.authorize(command, context);

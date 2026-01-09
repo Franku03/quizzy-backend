@@ -1,4 +1,14 @@
-// src/media/application/handlers/theme-enrichment.handler.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\handlers\theme-enrichement.handler.ts
+
 import { Injectable, Inject } from "@nestjs/common";
 import { IThemeable } from "src/core/domain/abstractions/themeable.interface";
 import { BaseEnrichmentHandler } from "./base-enrichment.handler";

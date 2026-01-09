@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\domain\factories\question-snapshot.factory.ts
+
 import { Result } from '../shared-value-objects/parameter-objects/parameter.object.result';
 import { QuestionSnapshot } from '../shared-value-objects/value-objects/value.object.question-snapshot';
 import { Points } from '../shared-value-objects/value-objects/value.object.points';

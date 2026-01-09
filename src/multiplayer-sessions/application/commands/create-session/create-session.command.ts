@@ -4,7 +4,7 @@ export class CreateSessionCommand implements ICommand {
 
     constructor(
         public readonly kahootId: string,
-        public readonly hostId: string
+        public readonly userId: string
     ){}
 
 }

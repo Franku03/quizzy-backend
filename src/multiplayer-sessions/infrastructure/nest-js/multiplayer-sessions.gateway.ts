@@ -3,6 +3,7 @@ import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGa
 import { Server } from 'socket.io';
 
 import { CommandBus } from 'src/core/infrastructure/cqrs';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 import { MultiplayerSessionsTracingService } from './multiplayer-sessions.tracing.service';
 
 import { SessionRoles } from './enums/session-roles.enum';
@@ -61,6 +62,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     constructor(
       private readonly tracingWsService: MultiplayerSessionsTracingService,
+      private readonly executor: CommandQueryExecutorService,
       private readonly commandBus: CommandBus,
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.PORT }`);
@@ -404,12 +406,15 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
 
-        const res: Either<Error, LobbyStateUpdateResponse> = 
-          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
+        // const res: Either<Error, LobbyStateUpdateResponse> = 
+        //   await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
-        if( res.isRight() ){
+        const result = await this.executor
+                 .executeCommand<LobbyStateUpdateResponse>( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
-          const result = res.getRight();
+        // if( res.isRight() ){
+
+          // const result = res.getRight();
 
           // Guardamos el nickname registrado en el dominio en el socket para futuros usos
           client.data.nickname = result.playerLobbyUpdate.nickname;
@@ -432,10 +437,10 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.tracingWsService.registerClientNickname( client );
           this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
 
-        } else {
+        // } else {
 
-          this.handleError( client, res.getLeft() );
-        }
+        //   this.handleError( client, res.getLeft() );
+        // }
 
 
     }
