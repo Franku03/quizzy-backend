@@ -1,0 +1,32 @@
+# Dependencias
+node_modules
+jspm_packages
+
+# Carpeta de compilación (NestJS)
+dist
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# Variables de entorno (Seguridad)
+.env
+.env.local
+.env.production
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Otros
+.DS_Store
+README.md
+LICENSE

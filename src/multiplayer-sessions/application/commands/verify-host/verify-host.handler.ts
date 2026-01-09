@@ -29,8 +29,6 @@ export class VerifyHostHandler implements ICommandHandler< VerifyHostCommand > {
         if( !sessionWrapper )
             throw new Error(COMMON_ERRORS.SESSION_NOT_FOUND);
 
-        console.log(sessionWrapper.session.getHostId().value, command.hostId);
-
         if( sessionWrapper.session.getHostId().value !== command.hostId )
             throw new Error(COMMON_ERRORS.USER_NOT_AUTHORIZED);
 

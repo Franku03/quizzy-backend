@@ -69,22 +69,26 @@ export class TransferAdminHandler implements ICommandHandler<TransferAdminComman
             }
 
 
-            const currentAdminOptional = await this.userRepository.findUserById(new UserId(command.userId));
+            const currentAdminOptional = await this.userRepository.findById(new UserId(command.userId));
 
 
-            if (!currentAdminOptional) {
+            if (!currentAdminOptional.hasValue()) {
                 return Either.makeLeft(
                     DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.USER_NOT_FOUND)
                 );
             }
 
-            const newAdminOptional = await this.userRepository.findUserById(new UserId(command.newAdminId));
+            const currentAdmin = currentAdminOptional.getValue();
 
-            if (!newAdminOptional) {
+            const newAdminOptional = await this.userRepository.findById(new UserId(command.newAdminId));
+
+            if (!newAdminOptional.hasValue()) {
                 return Either.makeLeft(
                     DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.USER_NOT_FOUND)
                 );
             }
+
+            const newAdmin = newAdminOptional.getValue();
 
             group.transferAdmin(new UserId(command.userId), new UserId(command.newAdminId));
 
@@ -95,11 +99,11 @@ export class TransferAdminHandler implements ICommandHandler<TransferAdminComman
             return Either.makeRight({
                 groupId: group.getId().value,
                 previousAdmin: {
-                    userId: currentAdminOptional.id.value,
+                    userId: currentAdmin.id.value,
                     role: GroupMemberRole.MEMBER,
                 },
                 newAdmin: {
-                    userId: newAdminOptional.id.value,
+                    userId: newAdmin.id.value,
                     role: GroupMemberRole.ADMIN,
                 },
                 transferredAt: new Date(),

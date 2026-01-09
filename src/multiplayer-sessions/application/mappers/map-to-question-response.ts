@@ -25,15 +25,11 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
     if( !currentSlideSnapshot.options )
         throw new Error(COMMON_ERRORS.NO_OPTIONS)
 
-    console.log('\n\nCurrent slide snapshot in mapToQuestionResponse: ', currentSlideSnapshot );
-
     currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
-
-    console.log('\n\nCurrent slide snapshot enriched in mapToQuestionResponse: ', currentSlideSnapshot );
 
     const currentSlideSnapshotClean: SlideSnapshotWithoutAnswers = {
         id: currentSlideSnapshot.id,
-        questionIndex: currentSlideSnapshot.position,    
+        position: currentSlideSnapshot.position,    
         slideType: currentSlideSnapshot.slideType as SlideTypeEnum, 
         timeLimitSeconds: currentSlideSnapshot.timeLimitSeconds, 
         //Opcionales
@@ -51,8 +47,6 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
             mediaURL: option.optionImageId ? option.optionImageId : undefined,
         }
     ))
-
-    // TODO: Incoporar los assetEnricher de las slides y sus option una vez existan
 
     currentSlideSnapshotClean.options = cleanSnapshotOptions;
 

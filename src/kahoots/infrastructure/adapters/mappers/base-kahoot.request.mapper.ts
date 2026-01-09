@@ -1,5 +1,5 @@
 // src/kahoots/infrastructure/adapters/mappers/base-kahoot.request.mapper.ts
-import { IMapper } from "src/core/application/mapper/i-mapper.interface";
+import { IMapper } from "src/core/application/ports/mapper/i-mapper.interface";
 import { OptionInputDTO, SlideInputDTO } from 'src/kahoots/infrastructure/dtos';
 import { KahootOptionCommand, KahootSlideCommand } from 'src/kahoots/application/commands';
 

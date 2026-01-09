@@ -9,7 +9,7 @@ import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infras
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
-import type { IdGenerator } from "src/core/application/idgenerator/id.generator";
+import type { IdGenerator } from "src/core/application/ports/idgenerator/i-id-generator.interface";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";
@@ -22,6 +22,15 @@ import { Either } from '../../../../core/types/either';
 
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { CREATE_SESSION_ERRORS } from "./create-session.errors";
+import { Log } from "src/core/application/aspects/logging/log.decorator";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
+import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
+import { pipeAsync } from "src/core/errors/helpers/pipe-async";
+import { ErrorData } from "src/core/types";
+import { IKahootOwnershipRequest, KahootOwnershipAuthorizer } from "src/core/application/aspects/auth/strategies/kahootOwnership.strategy";
+import { Authorize } from "src/core/application/aspects/auth/authorization.decorator";
+import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 
 
 @CommandHandler( CreateSessionCommand )
@@ -40,7 +49,10 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         @Inject( CryptoGeneratePinService )
         private readonly sessionPinGenerator: IGeneratePinService,
     
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+
         private readonly mediaService: MediaEnrichmentService,
+
     ){}
 
     async execute(command: CreateSessionCommand): Promise<Either<Error,CreateSessionResponse>> {
@@ -97,19 +109,20 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             // Generamos el Pin de la sesion
             const pin = await this.sessionPinGenerator.generateUniquePin();
 
+            if( pin.isLeft() )
+                return Either.makeLeft( new Error( pin.getLeft().message ) ); // !Parche
+
             const session = MultiplayerSessionFactory.createMultiplayerSession(
                 kahoot,
                 hostIdString,
                 sessionIdString,
-                pin
+                pin.getRight(), // ! Parche
             )
 
 
             const kahootSnapshot = kahoot.getSnapshot();
 
             const enrichedSessionStyling = await this.mediaService.enrichStyling( kahootSnapshot.styling );
-
-            console.log( enrichedSessionStyling );
 
             // Guardamos la sesion en el repositorio de sesiones activas y obtenemos el token QR
             const qrToken = await this.sessionRepository.saveSession({
@@ -119,7 +132,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             });
 
             return Either.makeRight({ 
-                sessionPin: pin, 
+                sessionPin: pin.getRight(), 
                 qrToken: qrToken,
                 quizTitle: kahootSnapshot.details?.title || 'Untitled Quiz',
                 coverImageUrl: enrichedSessionStyling.imageId || '',
@@ -135,3 +148,71 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
     }
 
 }
+
+    // ! CASO DE USO EN REFACTORING
+
+    // @Log()
+    // @Authorize(KahootOwnershipAuthorizer, 'kahootRepository')  // Aquí cargamos el kahoot del repositorio para luego guardarlo en memoria
+    // async execute(
+    //     command: CreateSessionCommand & IKahootOwnershipRequest 
+    // ): Promise<Either<ErrorData,CreateSessionResponse>> {
+
+
+    //     try {
+    //          // Creamos el id de la sesion y para que la fábrica construya el VO del id de la sesión en base al mismo
+    //         const sessionIdString = await this.IdGenerator.generateId();
+
+    //         const appContext = createMultiplayerSessionAppContext('createSession', sessionIdString , command.hostId );
+    //          // Generamos el Pin de la sesion
+    //         const pin = await this.sessionPinGenerator.generateUniquePin();
+
+    //         return pipeAsync<ErrorData, CreateSessionResponse>(
+    //             // 1) RECURSO YA VALIDADO: Iniciamos el tren directamente con el Agregado inyectado
+    //             Either.makeRight(command.validatedResource as Kahoot),
+
+    //             // 2) Generamos el Pin de la sesión
+    //             e => e.chain( e => )
+
+                
+
+
+    //         )
+
+
+  
+    //         const session = MultiplayerSessionFactory.createMultiplayerSession(
+    //             kahoot,
+    //             hostIdString,
+    //             sessionIdString,
+    //             pin
+    //         )
+
+
+    //         const kahootSnapshot = kahoot.getSnapshot();
+
+    //         const enrichedSessionStyling = await this.mediaService.enrichStyling( kahootSnapshot.styling );
+
+    //         // Guardamos la sesion en el repositorio de sesiones activas y obtenemos el token QR
+    //         const qrToken = await this.sessionRepository.saveSession({
+    //             session,
+    //             kahoot,
+    //             sessionStyling: enrichedSessionStyling
+    //         });
+
+    //         return Either.makeRight({ 
+    //             sessionPin: pin, 
+    //             qrToken: qrToken,
+    //             quizTitle: kahootSnapshot.details?.title || 'Untitled Quiz',
+    //             coverImageUrl: enrichedSessionStyling.imageId || '',
+    //             theme: enrichedSessionStyling.theme || { id: '', url: '', name: ''},
+    //         }); 
+
+    //     } catch (error) {
+
+    //         return Either.makeLeft( error );
+
+    //     }
+
+    // }
+
+// }

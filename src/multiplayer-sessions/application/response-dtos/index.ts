@@ -8,7 +8,7 @@ export * from './question-started.response.dto';
 export * from './question-results.response.dto';
 
 export * from './player-submit-answer.response.dto';
-export * from './game-state-update.response.dto';
+export * from './lobby-state-update.response.dto';
 export * from './sync-state.response.dto';
 
 // Types and Enums

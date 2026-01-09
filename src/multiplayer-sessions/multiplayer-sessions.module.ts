@@ -10,6 +10,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { 
   CreateSessionHandler, 
+  DeleteSessionHandler, 
   GetPinWithQrTokenHandler, 
   HostNextPhaseHandler, 
   HostStartGameHandler, 
@@ -58,6 +59,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     VerifyHostHandler,
     VerifyPinHandler,
     SyncStateHandler,
+    DeleteSessionHandler
 
   ],
   controllers: [MultiplayerSessionsController],

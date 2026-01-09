@@ -1,6 +1,6 @@
 export * from './map-entries-to-results-response';
 export * from './map-final-scoreboard';
-export * from './map-join-to-state-update';
+export * from './map-join-to-lobby-update';
 export * from './map-to-question-response';
 
 // SYNC STATE MAPPERS

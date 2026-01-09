@@ -3,7 +3,7 @@ import { SyncData } from "./types/sync-data.type";
 
 
 export interface QuestionAdditionalData {
-    timeRemaining: number;
+    timeRemainingMs: number;
     hasAnswered?: boolean;
 }
 
