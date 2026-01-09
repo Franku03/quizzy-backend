@@ -54,8 +54,8 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
         @Inject( FileSystemPinRepository )
         private readonly pinRepository: IPinRepository,
     ) {
-        // Limpiador de sesiones no usadas automático cada 10 minutos
-        setInterval(() => this.cleanupUnusedSessions(), 10 * 60 * 1000);
+        // Limpiador de sesiones no usadas automático cada 10 minutos - cambio a 30 por testeo
+        setInterval(() => this.cleanupUnusedSessions(), 30 * 60 * 1000);
 
         // limpiador de códigos qr cada 5 minutos
         setInterval(() => this.cleanupExpiredTokens(), 5 * 60 * 1000);
@@ -73,7 +73,6 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
     }
 
 
-    // Cada vez que se toque la sesión, actualiza lastActivity
     async saveSession(sessionWraper: MemorySessionContext): Promise<qrToken> {
 
         const { session, kahoot, sessionStyling } = sessionWraper;
@@ -138,6 +137,22 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
 
     }
 
+    // Cada vez que se toque la sesión, actualiza lastActivity
+    async updateSession( pin: string): Promise<MemorySessionContext | null> {
+
+        const sessionWrapper = await this.findByPin( pin );
+
+        if( !sessionWrapper)
+            return null;
+
+        // Actualizamos su estatus de actividad
+        sessionWrapper.lastActivity = Date.now();
+
+
+        return sessionWrapper;
+
+    }
+
 
     // =================================================================
     //  MÉTODOS ROP (Wrappers Seguros)
@@ -165,7 +180,6 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
         if (!session) {
             const err = new Error( REPOSITORY_ERRORS.SESSION_NOT_FOUND )
             return Either.makeLeft(this.errorMapper.toErrorData(err,ctx));
-
         }
 
         return Either.makeRight(session);
@@ -196,6 +210,23 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
             return Either.makeLeft( this.errorMapper.toErrorData( err, ctx ) );
         }
     }
+
+
+    async updateSessionEither(pin: string): Promise<Either<ErrorData, MemorySessionContext>> {
+        
+        const ctx = this.getCtx('updateSession', pin );
+        const sessionWrapper = await this.updateSession(pin);
+
+
+        if (!sessionWrapper) {
+            const err = new Error( REPOSITORY_ERRORS.SESSION_NOT_FOUND );
+            return Either.makeLeft(this.errorMapper.toErrorData(err,ctx));
+        }
+        
+        return Either.makeRight(sessionWrapper); 
+
+    }
+
 
 
     // * Funciones de limpieza de memoria

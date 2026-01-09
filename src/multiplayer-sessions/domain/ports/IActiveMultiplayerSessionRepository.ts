@@ -19,12 +19,14 @@ export interface IActiveMultiplayerSessionRepository {
     saveSession(sessionWraper: ActiveSessionContext): Promise<string>;
     findByPin(pin: string): Promise< ActiveSessionContext | null >;
     findByTemporalToken(token: string): Promise<ActiveSessionContext | null>;
+    updateSession(pin: string): Promise<ActiveSessionContext | null>
     deleteSession(pin: string): Promise<void>;
     
     // ========== VERSION CON EITHER (ROP - Nueva Arquitectura) ==========
     saveSessionEither(sessionWraper: ActiveSessionContext): Promise< Either<ErrorData,string> >;
     findByPinEither(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
     findByTemporalTokenEither(token: string): Promise< Either<ErrorData,ActiveSessionContext> >;
+    updateSessionEither(pin: string): Promise< Either<ErrorData,ActiveSessionContext> >
     deleteSessionEither(pin: string): Promise< Either<ErrorData,void> >;
 
 }

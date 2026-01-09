@@ -75,7 +75,6 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             return pipeAsync<ErrorData, CreateSessionResponse>(
                 // PASO INICIAL: Arrancamos el riel con el Kahoot validado
                 Either.makeRight(command.validatedResource as Kahoot)
-                    // this.kahootRepository.findKahootByIdEither( command.kahootId )
                 ,
 
                 // PASO 1: Generar Contexto
