@@ -1,10 +1,7 @@
-export enum ValidRoles {
-    admin = 'admin',
-    user = 'user',
-  }
-  
-  export interface JwtPayload {
-    id: string;
-    email: string;
-    roles: string[];
-  }
+export { UserRole as ValidRoles } from '../../../users/domain/value-objects/user.roles';
+
+export interface JwtPayload {
+  id: string;
+  email: string;
+  roles: string[];
+}
