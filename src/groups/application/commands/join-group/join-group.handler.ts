@@ -18,7 +18,7 @@ import { createDomainContext } from "src/core/errors/helpers/domain-error-contex
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(JoinGroupCommand)
 export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
@@ -28,7 +28,7 @@ export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
         private readonly groupRepository: IGroupRepository,
         @Inject(RepositoryName.User)
         private readonly userRepository: IUserRepository,
-        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     ) { }
 
     @Log()
