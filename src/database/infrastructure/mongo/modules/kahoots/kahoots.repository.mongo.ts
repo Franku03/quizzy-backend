@@ -26,10 +26,11 @@ import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootMongo, IKahootDocument } from '../../entities/kahoots.schema';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
-import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
-import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
-@RepositoryMongo(RepositoryName.Kahoot)
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { RepositoryPostgres } from 'src/database/infrastructure/postgres/decorators/repository-postgres.registry';
+
+@RepositoryPostgres(RepositoryName.Kahoot)
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
   private readonly contextBase = KAHOOT_MONGO_BASE;
@@ -41,7 +42,7 @@ export class KahootRepositoryMongo implements IKahootRepository {
     private readonly kahootModel: Model<KahootMongo>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
     private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
-    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_READ)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_MONGO_SNAPSHOT)
     private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
   ) { }
 

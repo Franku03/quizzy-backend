@@ -11,6 +11,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { DAO_OVERRIDE_ENV_MAP } from './catalogs/dao.catalog.enum';
 import { REPOSITORY_OVERRIDE_ENV_MAP } from './catalogs/repository.catalog.enum';
 import { MongoMappersModule } from './mongo/mongo-mappers.module';
+import { PostgresMappersModule } from './postgres/postgres-mapper.module';
 
 type ModuleImport = Type<any> | DynamicModule;
 
@@ -58,7 +59,8 @@ export class DatabaseDriverModule {
           }),
         }),
       );
-      exports.push(TypeOrmModule);
+      imports.push(PostgresMappersModule); 
+      exports.push(TypeOrmModule, PostgresMappersModule);
       console.log('✅ Base de datos configurada: PostgreSQL (TypeORM)');
     }
 

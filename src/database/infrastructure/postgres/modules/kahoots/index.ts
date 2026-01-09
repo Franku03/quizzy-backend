@@ -1,2 +1,2 @@
-export * from './kahoots.dao.postgres';
-export * from './kahoots.repository.postgres';
+export * from './kahoots.dao.pg';
+export * from './kahoots.repository.pg';

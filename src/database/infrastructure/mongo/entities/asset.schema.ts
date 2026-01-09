@@ -13,7 +13,7 @@ const COLLECTION_NAME: string = 'asset_metadata';
   timestamps: true,
   versionKey: false,
 })
-export class AssetMetadataMongo extends Document {
+export class AssetMetadata extends Document {
   @Prop({ required: true, unique: true, index: true })
   assetId: string;
 
@@ -52,6 +52,6 @@ export class AssetMetadataMongo extends Document {
 }
 
 export const AssetMetadataMongoSchema =
-  SchemaFactory.createForClass(AssetMetadataMongo);
+  SchemaFactory.createForClass(AssetMetadata);
 
 DbMongoSchema(COLLECTION_NAME)(AssetMetadataMongoSchema);

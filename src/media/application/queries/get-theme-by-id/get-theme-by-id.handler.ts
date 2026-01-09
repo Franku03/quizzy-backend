@@ -20,7 +20,7 @@ import type { ILogger } from "src/core/application/aspects/logging/logger.interf
 export class GetThemeByIdHandler implements IQueryHandler<GetThemeByIdQuery> {
   
   constructor(
-    @Inject(DaoName.AssetMetadataMongo) private readonly metadataDao: IAssetMetadataDao,
+    @Inject(DaoName.AssetMetadata) private readonly metadataDao: IAssetMetadataDao,
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR) private readonly urlService: IAssetUrlGenerator,
     @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}

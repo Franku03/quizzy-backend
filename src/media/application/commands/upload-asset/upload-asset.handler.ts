@@ -26,7 +26,7 @@ import type { ILogger } from 'src/core/application/aspects/logging/logger.interf
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo) 
+    @Inject(DaoName.AssetMetadata) 
     private readonly metadataDao: IAssetMetadataDao,
     
     @Inject(MEDIA_TOKENS.ASSET_STORAGE_SERVICE) 

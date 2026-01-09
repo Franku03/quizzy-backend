@@ -50,9 +50,9 @@ export class KahootDaoMongo implements IKahootDao {
     private readonly attemptModel: Model<AttemptMongo>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
     private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
-    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_READ)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_MONGO_SNAPSHOT)
     private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
-    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_READ)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_MONGO_READ)
     private readonly userDetailMapper: IMapper<KahootUserDetailInput, KahootUserDetailReadModel>,
   ) { }
   // ==========================================

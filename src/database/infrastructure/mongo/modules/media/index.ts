@@ -1,1 +1,1 @@
-export * from './media.dao.mongo';
+export * from './asset.dao.mongo';

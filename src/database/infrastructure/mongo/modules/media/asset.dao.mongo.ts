@@ -18,7 +18,7 @@ import { IAssetMetadataDao } from 'src/media/application/ports/i-asset-metadata.
 import { AssetMetadataRecord } from 'src/media/application/ports/i-asset-metadata-record.interface';
 
 // --- Infrastructure: Entidades, Helpers & Constantes ---
-import { AssetMetadataMongo } from '../../entities/media.schema';
+import { AssetMetadata } from '../../entities/asset.schema';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 import { ASSET_MONGO_BASE } from './constants/asset-mongo-constants';
 
@@ -46,7 +46,7 @@ export interface IAssetMetadataDocument {
   uploadedAt: Date;
 }
 
-@DaoMongo(DaoName.AssetMetadataMongo)
+@DaoMongo(DaoName.AssetMetadata)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
   private readonly contextBase = ASSET_MONGO_BASE;
@@ -54,8 +54,8 @@ export class AssetMetadataMongoDao implements IAssetMetadataDao {
   private readonly portName = 'IAssetMetadataDao';
 
   constructor(
-    @InjectModel(AssetMetadataMongo.name)
-    private readonly model: Model<AssetMetadataMongo>,
+    @InjectModel(AssetMetadata.name)
+    private readonly model: Model<AssetMetadata>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
     private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
   ) {}

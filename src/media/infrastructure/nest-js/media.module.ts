@@ -42,7 +42,7 @@ import { MediaController } from './media.controller';
     imports: [
         CoreModule,
         ConfigModule,
-        DaoFactoryModule.forFeature(DaoName.AssetMetadataMongo),
+        DaoFactoryModule.forFeature(DaoName.AssetMetadata),
     ],
     providers: [
         CommandQueryExecutorService,

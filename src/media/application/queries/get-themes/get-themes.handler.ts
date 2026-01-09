@@ -14,7 +14,7 @@ import { AssetMetadataRecord } from '../../ports/i-asset-metadata-record.interfa
 export class GetThemesHandler implements IQueryHandler<GetThemesQuery> {
   
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
+    @Inject(DaoName.AssetMetadata)
     private readonly metadataDao: IAssetMetadataDao,
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
     private readonly urlService: IAssetUrlGenerator,
