@@ -11,6 +11,7 @@
 
 export type UploadAssetResponse = {
   assetId: string;
+  url: string;
   mimeType: string;
   size: number;
   format: string;

@@ -31,6 +31,7 @@ import { MimeTypeHelper } from '../../helpers/mime-type.helper';
 import { MEDIA_TOKENS } from '../../dependency-tokens/application-media.tokens';
 import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import type { IAssetUrlGenerator } from '../../ports/i-asset-url-generator.interface';
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
@@ -46,6 +47,9 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     
     @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR) 
     private readonly idGenerator: IdGenerator<string>,
+
+    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
+    private readonly urlService: IAssetUrlGenerator,
 
     @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
@@ -101,7 +105,8 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
 
   private mapToResponse(data: AssetMetadataRecord): UploadAssetResponse {
     return { 
-      assetId: data.assetId, 
+      assetId: data.assetId,
+      url: this.urlService.generateUrl(data.publicId), 
       mimeType: data.mimeType, 
       size: data.size, 
       format: data.format, 
