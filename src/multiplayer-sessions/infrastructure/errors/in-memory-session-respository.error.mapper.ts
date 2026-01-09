@@ -26,7 +26,7 @@ export class InMemoryActiveSessionRepositoryErrorMapper implements IErrorMapper<
         const safeError = error instanceof Error ? error : undefined;
         
         return new ErrorData(
-            "FAILED_OPERATION_AT_MULTIPLAYER_SESSION_MEMORY_REPOSITORY",
+            "INVALID_DATA",
             message,
             ErrorLayer.INFRASTRUCTURE,
             baseDetails, 
