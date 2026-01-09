@@ -109,53 +109,164 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 - external-services
 - repositories (Mongoose / TypeORM)
 
-## 🚨 Arquitectura de Errores y Flujo ROP
+## 🚨 Arquitectura de Errores y Eficiencia en el Motor V8
 
-### 1. Objeto ErrorData
-- errorId único para trazabilidad
-- acumulación progresiva de contexto técnico y de negocio
-- sanitización automática de errores de infraestructura
+La implementación de **Railway Oriented Programming (ROP)** mediante el uso de `Either<L, R>` y `pipeAsync` proporciona beneficios críticos en la optimización del tiempo de ejecución y el aprovechamiento del motor **V8**:
 
-### 2. Either<L, R> y pipeAsync
-- Left: ErrorData (fallo)
-- Right: Resultado exitoso
-- Short-circuit: el flujo se detiene al primer error
+### 1. Optimización del Compilador (Monomorfismo)
+El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno.
+
+### 2. Instanciación vs. Lanzamiento de Excepciones
+Existe una diferencia fundamental en el consumo de recursos entre retornar un valor y lanzar una excepción:
+
+- **Costo de la Excepción**: Cuando se ejecuta un `throw`, el motor V8 debe capturar el **Stack Trace** completo, una operación intensiva en CPU que implica inspeccionar la pila de llamadas y realizar múltiples concatenaciones de strings. Además, el proceso de **Stack Unwinding** (buscar el bloque `catch` correspondiente) interrumpe la tubería de instrucciones del procesador.
+
+- **Eficiencia del Either**: Instanciar un objeto `Either` es una operación de asignación de memoria estándar y extremadamente ligera. Al tratar el error como un dato más, el flujo de ejecución permanece lineal. Para V8, recolectar estos objetos de vida corta en la "Young Generation" del montón (heap) es órdenes de magnitud más rápido que procesar el ciclo de vida de una excepción.
+
+### 3. Maximización del Throughput (Short-circuit)
+El mecanismo de **cortocircuito** de la utilidad `pipeAsync` optimiza el uso de recursos del sistema:
+
+- **Gestión del Event Loop**: Al detener la ejecución al primer error, se evita la creación y el encolamiento de microtareas innecesarias en el Event Loop de Node.js.
+
+- **Liberación de CPU**: El cese inmediato de la ejecución tras un fallo previene el consumo de ciclos de reloj en pasos posteriores (como enriquecimiento de datos o procesamiento de archivos), permitiendo al servidor gestionar un mayor volumen de peticiones concurrentes.
+
+### 4. Continuidad del Hot Path
+Los bloques `try/catch` históricamente han sido difíciles de optimizar para los compiladores JIT, limitando en ocasiones la capacidad de realizar **inlining** (insertar el código de una función dentro de otra). Al utilizar un flujo basado en retornos y condicionales simples (`if`), se facilita que el compilador realice optimizaciones avanzadas de flujo, manteniendo la ejecución en el nivel más alto de rendimiento.
+
+> [!IMPORTANT]
+> 🏗️ Ingeniería de Software de Alto Rendimiento:
+> Esta arquitectura está diseñada desde la perspectiva de la ingeniería de Software, destacando por qué es la opción más escalable para un backend de alto rendimiento como lo es una app de quizzes.
+
+---
+
+## 📦 Componentes de la Arquitectura ROP
+
+### 1. Clase ErrorData
+La clase `ErrorData` encapsula toda la información de error de manera estructurada, proporcionando:
+
+**Propiedades Principales**:
+- `errorId`: UUID único generado con `randomUUID()` para trazabilidad
+- `code`: Código de error identificativo
+- `layer`: Capa del sistema donde ocurrió (`ErrorLayer`)
+- `timestamp`: Fecha y hora exacta del error
+- `message`: Descripción legible del error
+- `stackTrace`: Stack trace del error (en desarrollo)
+- `details`: Contexto técnico y de negocio (`IErrorContext`)
+- `innerError`: Error original (si aplica)
+
+**Características Avanzadas**:
+- **Acumulación Contextual**: El método `setContext()` permite enriquecer progresivamente el contexto del error con información específica de cada capa.
+- **Sanitización Automática**: Protección de campos sensibles del dominio y control jerárquico sobre la propiedad `operation`.
+- **Regla de Operación**: Una vez que un error alcanza la capa `APPLICATION`, el nombre de la operación se vuelve inmutable, previniendo sobrescrituras incorrectas desde capas inferiores.
+
+> [!WARNING]
+> ⚠️ Seguridad en Producción:
+>  Para futuras revisiones, se implementará un mecanismo basado en `process.env.NODE_ENV` que eliminará automáticamente el `stackTrace` (evitando referenciar el constructor de erro con super) en entornos de producción (`isProd === true`), manteniéndolo únicamente en desarrollo para facilitar el debugging.
+
+**Formato de Log Estructurado**: El método `toLogString()` genera una representación visualmente clara del error con:
+  - Codificación de colores por capa del sistema
+  - Separadores distintivos para cada sección
+  - Formato jerárquico para detalles y contexto
+
+### 2. Clase Either<TLeft, TRight>
+Implementación completa del patrón Either que sirve como contenedor de resultados:
+
+**Estado y Acceso**:
+- `isLeft()` / `isRight()`: Métodos de consulta del estado
+- `getLeft()` / `getRight()`: Extracción segura de valores con validación de tipo
+
+**Fábricas Estáticas**:
+- `makeLeft()`: Crea una instancia representando un fallo (valor izquierdo)
+- `makeRight()`: Crea una instancia representando un éxito (valor derecho)
+
+**Transformaciones Sincrónicas**:
+- `map()`: Transforma el valor Right manteniendo posibles Left
+- `mapLeft()`: Transforma el valor Left manteniendo posibles Right
+- `chain()`: Encadena operaciones que devuelven Either (validaciones secuenciales)
+
+**Operaciones Asincrónicas**:
+- `chainAsync()`: Encadena operaciones asíncronas que devuelven Promise<Either>
+- `mapAsync()`: Transforma valores Right mediante promesas
+- `tapChainAsync()`: Ejecuta efectos asíncronos manteniendo valores
+- `tapLeftAsync()`: Ejecuta efectos solo en caso de error
+
+**Flujos Condicionales**:
+- `chainUnless()` / `chainUnlessAsync()`: Ejecuta encadenamiento solo si NO se cumple condición
+- `mapUnlessAsync()`: Transforma valores solo si NO se cumple condición
+
+**Utilidades Avanzadas**:
+- `tryCatch()`: Elimina try-catch de promesas, convirtiéndolas en Either automáticamente
+- `isEither()`: Type Guard para verificar instancias de Either
+
+### 3. Función pipeAsync
+Orquesta la ejecución secuencial de operaciones con mecanismo de cortocircuito:
+
+**Características Principales**:
+- **Cortocircuito Automático**: Detiene la ejecución inmediatamente al encontrar un error (valor Left)
+- **Flexibilidad de Tipos**: Acepta Either o Promise<Either> como valor inicial
+- **Adaptación Automática**: Detecta si un paso devuelve Either o valor plano, envolviéndolo adecuadamente
+- **Pipeline Asíncrono**: Maneja automáticamente operaciones sincrónicas y asíncronas
+
+**Flujo de Ejecución**:
+1. Resolución del valor inicial (puede ser Promise)
+2. Iteración secuencial por cada paso del pipeline
+3. Detección automática de errores (break en el primer Left)
+4. Casting final al tipo esperado de retorno
+
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (ERRORES / ROP)
  
-> El siguiente diagrama describe el flujo reducido del sistema de errores
+> El siguiente diagrama describe el flujo reducido del sistema de errores (UpdataKahootHandler)
 
 ---
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'actorLineColor': '#008000', 'actorTextColor': '#000000', 'noteTextColor': '#000000', 'signalTextColor': '#000000' }}}%%
+%%{init: { 
+  'theme': 'base', 
+  'themeVariables': { 
+    'actorLineColor': '#008000',
+    'actorTextColor': '#000000', 
+    'actorFontWeight': '900', 
+    'noteTextColor': '#000000', 
+    'noteFontWeight': '900', 
+    'signalTextColor': '#000000', 
+    'signalFontWeight': '900',
+    'mainBkg': '#FFFFFF'
+  }
+}}%%
 sequenceDiagram
     autonumber
     
     participant Client as 📱 Cliente
-    participant App as 🟣 Capa Aplicación
-    participant Domain as 🟡 Capa Dominio
-    participant Infra as 🔵 Capa Infraestructura
+    participant App as 🟣 Aplicación
+    participant Domain as 🟡 Dominio
+    participant Infra as 🔵 Infraestructura
 
-    Client->>App: Solicitud HTTP (Controller)
-    
-    Note over App: 🛡️ @Authorize & Reconstrucción
-    App->>Infra: Buscar datos actuales
-    Infra->>Domain: Reconstruir Agregado (Factory)
-    Domain-->>App: Agregado Válido
-    
-    Note over App: 🛤️ Ejecución ROP (pipeAsync)
-    App->>Domain: Aplicar cambios (Reglas de Negocio)
-    App->>Infra: Persistir cambios (Repositorio)
-    
-    Note over App: 🖼️ Enriquecer Media (Side Effects)
-    
-    App-->>Client: 200 OK / Error Sanitizado
+    rect rgb(245, 245, 245)
+        Note over Client, Infra: FLUJO SIMPLIFICADO DE LA ARQUITECTURA (HEXAGONAL + ROP)
+        
+        Client->>App: 1. Petición (Controller)
+        
+        rect rgb(255, 255, 255)
+            Note over App, Domain: 🛡️ SEGURIDAD Y RECONSTRUCCIÓN
+            App->>Infra: Consultar Estado
+            Infra->>Domain: Reconstruir Agregado (Factory)
+            Domain-->>App: Retornar Objeto Válido
+        end
+
+        rect rgb(255, 255, 255)
+            Note over App, Domain: 🛤️ LÓGICA ROP (pipeAsync)
+            App->>Domain: Ejecutar Reglas de Negocio
+            App->>Infra: Persistir Cambios
+        end
+
+        App-->>Client: 2. Respuesta DTO o Error Sanitizado
+    end
 ```
 
 ---
 
-> El siguiente diagrama describe el flujo completo de ejecución, incluyendo el manejo de errores mediante Railway Oriented Programming.
+> El siguiente diagrama describe el flujo completo de ejecución, incluyendo el manejo de errores mediante Railway Oriented Programming (UpdataKahootHandler).
 
 ---
 
@@ -317,6 +428,18 @@ Diseñada para ser agnóstica al motor de persistencia, permitiendo alta escalab
 | **Configuración** | Gestión de conexiones para **TypeORM** y **Mongoose**. |
 | **Intercambio Dinámico** | Capacidad de conmutar entre motores de BD (SQL/NoSQL) según el entorno o necesidad. |
 | **Patrón Repositorio** | Implementaciones concretas que desacoplan el dominio de la base de datos elegida. |
+
+---
+
+### 🔗 Documentación de Referencia
+> [!IMPORTANT]
+> **Especificación de API Endpoints**
+> Para profundizar en los endpoints, requests y response de la app:
+>
+> 📂 **Acceso al Documento:** [Especificación de API](https://docs.google.com/document/d/1wopz-IhqVTCTEU9TGHClAUCmHJ8dOp4M2ZBwvzwADrQ/edit?usp=sharing)
+
+---
+
 
 ---
 ## ⚖️ License
