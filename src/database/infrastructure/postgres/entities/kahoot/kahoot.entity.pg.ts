@@ -40,7 +40,9 @@ export class KahootEntity {
   coverImageId: string;
 
   // Relación: Un Kahoot tiene muchas diapositivas
-  @OneToMany(() => SlideEntity, (slide) => slide.kahoot, { cascade: true })
+  @OneToMany(() => SlideEntity, (slide) => slide.kahoot, {
+    cascade: true, // Permite que repo.save(kahoot) cree/actualice slides
+  })
   slides: SlideEntity[];
 
   @CreateDateColumn()

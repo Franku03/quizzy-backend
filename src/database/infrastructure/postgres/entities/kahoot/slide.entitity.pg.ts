@@ -36,7 +36,10 @@ export class SlideEntity {
   descriptionText: string;
 
   // Relaciones
-  @ManyToOne(() => KahootEntity, (kahoot) => kahoot.slides)
+  @ManyToOne(() => KahootEntity, (kahoot) => kahoot.slides, {
+    onDelete: 'CASCADE', // Si se borra el Kahoot, desaparecen las slides
+    nullable: false,     // PROHIBE que TypeORM ponga kahootId en NULL durante el UPDATE
+  })
   @JoinColumn({ name: 'kahootId' })
   kahoot: KahootEntity;
 

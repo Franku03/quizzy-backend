@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, PrimaryGeneratedColumn } from 'typeorm';
 import { SlideEntity } from './slide.entitity.pg';
 import { DbPostgresEntity } from '../../registries/db-model-postgres.registry';
 
@@ -7,8 +7,8 @@ const ENTITY_NAME = 'options';
 @DbPostgresEntity(ENTITY_NAME)
 @Entity('options')
 export class OptionEntity {
-  @PrimaryColumn('uuid')
-  id: string; 
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   slideId: string;
@@ -22,7 +22,10 @@ export class OptionEntity {
   @Column({ nullable: true })
   optionImageId: string;
 
-  @ManyToOne(() => SlideEntity, (slide) => slide.options)
+  @ManyToOne(() => SlideEntity, (slide) => slide.options, {
+    onDelete: 'CASCADE',
+    nullable: false, // Evita huérfanos durante el reemplazo de slides
+  })
   @JoinColumn({ name: 'slideId' })
   slide: SlideEntity;
 }

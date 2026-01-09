@@ -2,7 +2,7 @@
 
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, DeepPartial, Not, In } from 'typeorm';
 
 // --- Core Logic ---
 import { Optional, Either, ErrorData } from 'src/core/types';
@@ -26,6 +26,7 @@ import { createDatabaseContext } from 'src/core/errors/helpers/database-error-co
 
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { RepositoryPostgres } from '../../decorators/repository-postgres.registry';
+import { SlideEntity } from '../../entities/kahoot/slide.entitity.pg';
 
 @RepositoryPostgres(RepositoryName.Kahoot)
 @Injectable()
@@ -41,8 +42,10 @@ export class KahootRepository implements IKahootRepository {
     private readonly pgErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT) // Mapper específico para aplanar Entity -> Snapshot
     private readonly pgReadMapper: IMapper<KahootEntity, KahootSnapshot>,
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_PERSISTENCE)
+    private readonly pgPersistenceMapper: IMapper<KahootSnapshot, DeepPartial<KahootEntity>>,
     private readonly dataSource: DataSource, // Para transacciones manuales si fuera necesario
-  ) {}
+  ) { }
 
   private getCtx(operation: string, entityId?: string) {
     return createDatabaseContext(this.contextBase, this.adapterName, this.portName, operation, entityId);
@@ -54,18 +57,18 @@ export class KahootRepository implements IKahootRepository {
 
   public async saveKahootEither(kahoot: Kahoot): Promise<Either<ErrorData, void>> {
     const ctx = this.getCtx('save', kahoot.id.value);
-    const snapshot = kahoot.getSnapshot();
+    const snap = kahoot.getSnapshot();
+    const ids = snap.slides.map(s => s.id);
 
-    const result = await Either.tryCatch(
-      // save() en TypeORM hace "upsert" automáticamente si encuentra el ID
-      // Gracias al cascade: true en las entidades, esto guarda slides y opciones.
-      this.repo.save(this.repo.create(snapshot as any)), 
+    return (await Either.tryCatch(
+      (async () => {
+        if (ids.length > 0) await this.repo.manager.delete(SlideEntity, { kahootId: snap.id, id: Not(In(ids)) });
+        return this.repo.save(this.repo.create(this.pgPersistenceMapper.map(snap)));
+      })(),
       (err) => this.pgErrorMapper.toErrorData(err, ctx)
-    );
-
-    return result.map(() => undefined);
+    )).map(() => undefined);
   }
-
+  
   public async findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>> {
     const ctx = this.getCtx('findById', id);
 

@@ -9,6 +9,7 @@ import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/a
 // Mappers de Postgres
 import { PostgresErrorMapper } from './errors/pg-error.mapper';
 import { KahootSnapshotPgMapper } from './modules/kahoots/mappers/kahoot.snapshot.pg.mapper';
+import { KahootPersistencePgMapper } from './modules/kahoots/mappers/kahoot.snapshot.persitence.pg.mapper';
 // Nota: Este Mapper lo dejamos como ErrorData en el DAO, pero aquí se registraría
 // cuando se tenga clase implementada.
 // import { KahootUserDetailPgMapper } from './modules/kahoots/mappers/kahoot.user.detail.pg.mapper'; 
@@ -26,6 +27,11 @@ import { KahootSnapshotPgMapper } from './modules/kahoots/mappers/kahoot.snapsho
       provide: APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT,
       useClass: KahootSnapshotPgMapper,
     },
+    // 3. App layer -> Persistencia
+    {
+      provide: APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_PERSISTENCE,
+      useClass: KahootPersistencePgMapper,
+    },
     /* 3. Lectura (DAOs)
     {
       provide: APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ,
@@ -36,7 +42,8 @@ import { KahootSnapshotPgMapper } from './modules/kahoots/mappers/kahoot.snapsho
   exports: [
     ERROR_TOKENS.MAPPERS.POSTGRES,
     APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT,
+    APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_PERSISTENCE,
     // APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ,
   ],
 })
-export class PostgresMappersModule {}
+export class PostgresMappersModule { }
