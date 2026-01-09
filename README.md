@@ -1,10 +1,57 @@
+# Kahoot Clone Backend - NestJS 🚀
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank">
     <img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" />
   </a>
 </p>
 
-# Kahoot Clone Backend - NestJS 🚀
+<p align="center">
+  <img src="https://img.shields.io/badge/nestjs-%23E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS" />
+  <img src="https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white" alt="Postgres" />
+  <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+  <img src="https://img.shields.io/badge/MongoDB%20Atlas-001E2B?style=for-the-badge&logo=mongodb&logoColor=00ED64" alt="MongoDB Atlas" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
+  <img src="https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=Cloudinary&logoColor=white" alt="Cloudinary" />
+  <img src="https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socket.io&badgeColor=010101" alt="Socket.io" />
+  <img src="https://img.shields.io/badge/Pino-636363?style=for-the-badge&logo=pino&logoColor=white" alt="Pino Logger" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+  <img src="https://img.shields.io/badge/-jest-%23C21325?style=for-the-badge&logo=jest&logoColor=white" alt="Jest" />
+</p>
+
+---
+
+<div align="center">
+
+## 🛠️ Stack Tecnológico
+
+| Categoría | Tecnologías Utilizadas |
+| :--- | :--- |
+| **Framework Core** | **NestJS** (Node.js) con **TypeScript** |
+| **Comunicación Real-time** | **Socket.io** (WebSockets) |
+| **Notificaciones Push** | **Firebase Cloud Messaging** (FCM) |
+| **Persistencia (Cloud)** | **Supabase** (PostgreSQL) & **MongoDB Atlas** |
+| **Persistencia (Local)** | **PostgreSQL** & **MongoDB** (Docker Containers) |
+| **Gestión de Media** | **Cloudinary** (CDN & Storage) |
+| **Infraestructura** | **Docker** & **Docker Compose** |
+| **Logging** | **PinoLogger** |
+| **Testing** | **Jest** |
+
+</div>
+
+---
 
 ## Configuración del Proyecto 🛠️
 
