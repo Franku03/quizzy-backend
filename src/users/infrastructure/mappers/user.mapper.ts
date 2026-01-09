@@ -12,54 +12,61 @@ import { SubscriptionState } from '../../domain/value-objects/user.subscription-
 import { SubscriptionPlan } from '../../domain/value-objects/user.subscription-plan';
 import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
 import { UserFavorites } from 'src/users/domain/value-objects/user.favorite-kahoots';
+import { UserState } from 'src/users/domain/value-objects/user.state';
+import { UserRole } from 'src/users/domain/value-objects/user.roles';
 
 export class UserMapper {
-
   static toDomain(raw: UserMongo): User {
     const id = new UserId(raw.userId);
     const email = new UserEmail(raw.email);
     const username = new UserName(raw.username);
-    const passwordHash = new HashedPassword(raw.passwordHash); 
-    const type = raw.type as UserType; // Ojo: Asegúrate que UserType tenga un método fromValue o casting seguro
+    const passwordHash = new HashedPassword(raw.passwordHash);
+    const type = raw.type as UserType;
     const favorites = UserFavorites.fromPrimitives(raw.favoriteKahoots || []);
 
     const profile = new UserProfileDetails(
       raw.profile.name,
       raw.profile.description,
-      raw.profile.avatarUrl
+      raw.profile.avatarUrl,
     );
-    
-    // Manejo seguro de fechas
-    const subscriptionExpiresIso = new Date(raw.subscription.expiresAt).toISOString().split('T')[0];
+
+    const subscriptionExpiresIso = new Date(raw.subscription.expiresAt)
+      .toISOString()
+      .split('T')[0];
     const subscription = new UserSubscriptionStatus(
       raw.subscription.state as SubscriptionState,
       raw.subscription.plan as SubscriptionPlan,
-      DateISO.createFrom(subscriptionExpiresIso)
+      DateISO.createFrom(subscriptionExpiresIso),
     );
 
     const preferences = UserPreferences.create(raw.preferences.theme);
 
     let lastUsernameUpdate: DateISO | undefined = undefined;
     if (raw.lastUsernameUpdate) {
-        const updateIso = new Date(raw.lastUsernameUpdate).toISOString().split('T')[0];
-        lastUsernameUpdate = DateISO.createFrom(updateIso);
+      const updateIso = new Date(raw.lastUsernameUpdate)
+        .toISOString()
+        .split('T')[0];
+      lastUsernameUpdate = DateISO.createFrom(updateIso);
     }
 
-    return new User(
+    return User.reconstitute(
       {
         email,
         username,
         userProfileDetails: profile,
         passwordHash,
+        userPreferences: preferences,
         type,
         subscriptionStatus: subscription,
-        userPreferences: preferences,
         lastUsernameUpdate,
-        favorites: favorites,
-        // 👇 AQUÍ AGREGAMOS LOS TOKENS (Requisito Sergi)
-        deviceTokens: raw.deviceTokens || [], 
+        favorites,
+        deviceTokens: raw.deviceTokens || [],
+        state: raw.state as UserState, // Cambiado de isBlocked
+        roles: raw.roles as UserRole[], // Cambiado de isAdmin
+        isDeleted: raw.isDeleted,
+        deletedHash: raw.deletedHash || null,
       },
-      id
+      id,
     );
   }
 
@@ -69,32 +76,29 @@ export class UserMapper {
       email: user.email.value,
       username: user.username.value,
       passwordHash: user.passwordHash.value,
-      type: user.type, // Asegúrate que esto retorne el string/valor primitivo, no el objeto VO
-
-      lastUsernameUpdate: user.lastUsernameUpdate 
-        ? new Date(user.lastUsernameUpdate.value) 
+      type: user.type,
+      lastUsernameUpdate: user.lastUsernameUpdate
+        ? new Date(user.lastUsernameUpdate.value)
         : undefined,
-
-      // 👇 AQUÍ GUARDAMOS LOS TOKENS (Requisito Sergi)
-      deviceTokens: user.deviceTokens, 
-
+      deviceTokens: user.deviceTokens,
       profile: {
         name: user.userProfileDetails.name,
         description: user.userProfileDetails.description,
         avatarUrl: user.userProfileDetails.avatarImageURL,
       },
-
       subscription: {
-        state: user.subscriptionStatus.state, // Asegúrate que sea primitivo
-        plan: user.subscriptionStatus.plan,   // Asegúrate que sea primitivo
+        state: user.subscriptionStatus.state,
+        plan: user.subscriptionStatus.plan,
         expiresAt: new Date(user.subscriptionStatus.expiresAt.value),
       },
-
       preferences: {
         theme: user.userPreferences.themePreference,
       },
-
       favoriteKahoots: user.favorites.toPrimitives(),
+      state: user.state, // Cambiado de isBlocked
+      roles: user.roles, // Cambiado de isAdmin
+      isDeleted: user.isDeleted,
+      deletedHash: user.deletedHash,
     } as UserMongo;
   }
 }
