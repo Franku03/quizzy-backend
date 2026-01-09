@@ -17,6 +17,6 @@ export class SessionArchiverService {
         await this.historyRepo.archiveSession(session, kahoot);
         
         // Liberamos el recurso de memoria
-        await this.activeRepo.delete( session.getSessionPin() );
+        await this.activeRepo.deleteSession( session.getSessionPin() );
     }
 }

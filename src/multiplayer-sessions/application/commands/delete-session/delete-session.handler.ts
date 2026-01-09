@@ -21,7 +21,7 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
         @Inject( FileSystemPinRepository )
-        private readonly pinRepo: IPinRepository,
+        private readonly pinRepository: IPinRepository,
     ){}
 
     async execute(command: DeleteSessionCommand): Promise<Either<Error, boolean>> {
@@ -32,7 +32,7 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
             const { sessionPin } = command;
 
             // * Eliminamos el pin del txt para liberarlo, aqui finalmente se hace la sesión completamente inválida
-            this.pinRepo.releasePin( sessionPin );
+            this.pinRepository.releasePin( sessionPin );
 
             // Cargamos el agregado session desde el repositorio en memoria
             const sessionWrapper = await this.sessionRepository.findByPin( sessionPin );
@@ -42,7 +42,7 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
                 return Either.makeRight( false );
 
             // Procesamos la limpieza de la session
-            this.sessionRepository.delete( sessionPin );
+            this.sessionRepository.deleteSession( sessionPin );
             
 
             // Habia una sesion por borrar y regresamos true para decir que ya fue liberada de memoria
