@@ -37,7 +37,7 @@ export class ErrorMappingService {
   }
 
   private determineStatusCodeAndMessage(error: ErrorData): [HttpStatus, string] {
-    const { layer, code, details } = error;
+    const { layer, code, details, message } = error;
 
     // //==========================
     // // 1. DOMAIN: Errores de logica de negocio y Agregados
@@ -61,6 +61,10 @@ export class ErrorMappingService {
       // //==========================
       const category = details?.errorCategory;
 
+      if (code === 'Bad Request' || code === 'HTTP_ERROR_400') {
+            return [HttpStatus.BAD_REQUEST, message]; 
+        }
+
       const appMap: Record<string, [HttpStatus, string]> = {
         'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
         'UNAUTHORIZED': [HttpStatus.UNAUTHORIZED, 'Not authorized to perform this action.'],
@@ -68,6 +72,8 @@ export class ErrorMappingService {
         'HTTP_ERROR_401': [HttpStatus.UNAUTHORIZED, 'Invalid or missing authentication token.'],
         'HTTP_ERROR_403': [HttpStatus.FORBIDDEN, 'You do not have permission to access this resource.'],
       };
+
+      
 
 
       //Intentar categoría, si no, intentar código, si no, fallback.
