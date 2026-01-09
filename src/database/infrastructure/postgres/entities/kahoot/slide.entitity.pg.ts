@@ -1,7 +1,11 @@
 import { Entity, Column, PrimaryColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { KahootEntity } from './kahoot.entity.pg';
 import { OptionEntity } from './option.entity.pg';
+import { DbPostgresEntity } from '../../decorators/db-postgres-entity.decorator';
 
+const ENTITY_NAME = 'slides';
+
+@DbPostgresEntity(ENTITY_NAME)
 @Entity('slides')
 export class SlideEntity {
   @PrimaryColumn('uuid')

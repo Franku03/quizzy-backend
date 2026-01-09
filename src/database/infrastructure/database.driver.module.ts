@@ -43,22 +43,38 @@ export class DatabaseDriverModule {
     });
 
     if (dbsToLoad.has('postgres')) {
-      imports.push(
-        TypeOrmModule.forRootAsync({
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: (config: ConfigService) => ({
-            type: 'postgres',
-            host: config.get<string>('DB_HOST'),
-            port: config.get<number>('DB_PORT') ?? 5432,
-            database: config.get<string>('DB_NAME'),
-            username: config.get<string>('DB_USERNAME'),
-            password: config.get<string>('DB_PASSWORD'),
-            autoLoadEntities: true,
-            synchronize: config.get<boolean>('IS_PROD') ?? false,
+      if (process.env.POSTGRES_CNN) {
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              url: config.get<string>('POSTGRES_CNN'),
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
           }),
-        }),
-      );
+        );
+      } else {
+        imports.push(
+          TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (config: ConfigService) => ({
+              type: 'postgres',
+              host: config.get<string>('DB_HOST'),
+              port: config.get<number>('DB_PORT') ?? 5432,
+              database: config.get<string>('DB_NAME'),
+              username: config.get<string>('DB_USERNAME'),
+              password: config.get<string>('DB_PASSWORD'),
+              autoLoadEntities: true,
+              synchronize: config.get<boolean>('IS_PROD') ?? false,
+            }),
+          }),
+        );
+      }
+      
       imports.push(PostgresMappersModule); 
       exports.push(TypeOrmModule, PostgresMappersModule);
       console.log('✅ Base de datos configurada: PostgreSQL (TypeORM)');
@@ -95,7 +111,6 @@ export class DatabaseDriverModule {
         );
       }
 
-      // Carga de mappers e infraestructura específica de MongoDB
       imports.push(MongoMappersModule);
       exports.push(MongooseModule, MongoMappersModule);
       console.log('✅ Base de datos configurada: MongoDB (Mongoose)');
