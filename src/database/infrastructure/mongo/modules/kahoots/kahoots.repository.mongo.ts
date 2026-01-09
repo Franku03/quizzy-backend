@@ -28,9 +28,9 @@ import { createDatabaseContext } from 'src/core/errors/helpers/database-error-co
 import { KAHOOT_MONGO_BASE } from './constants/kahoot.mongo-constants';
 
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { RepositoryPostgres } from 'src/database/infrastructure/postgres/decorators/repository-postgres.registry';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
 
-@RepositoryPostgres(RepositoryName.Kahoot)
+@RepositoryMongo(RepositoryName.Kahoot)
 @Injectable()
 export class KahootRepositoryMongo implements IKahootRepository {
   private readonly contextBase = KAHOOT_MONGO_BASE;
