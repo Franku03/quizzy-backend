@@ -20,7 +20,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
         const matchedTheme = Object.values(UIThemeEnum).find(theme => theme === theme);
 
         if (!matchedTheme) {
-            throw new InvalidArgumentError(`El tema <${theme}> no es válido. Opciones: ${Object.values(UIThemeEnum).join(', ')}`);
+            throw new InvalidArgumentError(`The theme <${theme}> is invalid. Options: ${Object.values(UIThemeEnum).join(', ')}`);
         }
         return new UserPreferences(matchedTheme);
     }

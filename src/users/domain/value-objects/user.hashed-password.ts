@@ -10,7 +10,7 @@ interface HashedPasswordProps {
 export class HashedPassword extends ValueObject<HashedPasswordProps> {
     
     constructor(value: string) {
-        if (!value) throw new InvalidArgumentError("El hash no puede estar vacío");
+        if (!value) throw new InvalidArgumentError("The hash cannot be empty.");
         super({ value });
     }
 

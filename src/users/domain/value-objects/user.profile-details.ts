@@ -19,16 +19,16 @@ export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
    
     private static ensureNameIsValid(name: string): void {
         if (!name || name.trim().length === 0) {
-            throw new InvalidArgumentError("El nombre no puede estar vacío.");
+            throw new InvalidArgumentError("The name cannot be empty.");
         }
         if (name.length > 148) {
-            throw new InvalidArgumentError(`El nombre es demasiado largo. Máximo 148 caracteres.`);
+            throw new InvalidArgumentError(`The name is too long. Maximum 148 characters.`);
         }
     }
     
     private static ensureDescriptionIsValid(description: string): void {
         if (description.length > 300) {
-            throw new InvalidArgumentError(`La descripción supera el límite de 300 caracteres.`);
+            throw new InvalidArgumentError(`The description exceeds the 300 character limit.`);
         }
     }
 
@@ -38,7 +38,7 @@ export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
         try {
             new URL(url);
         } catch (error) {
-            throw new InvalidArgumentError(`La URL del avatar <${url}> no es válida.`);
+            throw new InvalidArgumentError(`The avatar URL <${url}> is not valid.`);
         }
     }
     
