@@ -18,8 +18,9 @@ import { SubscriptionPlan } from 'src/users/domain/value-objects/user.subscripti
 import { UIThemeEnum } from 'src/users/domain/value-objects/user.user-preferences';
 import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
 import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
+import { UserState } from 'src/users/domain/value-objects/user.state';
+import { UserRole } from 'src/users/domain/value-objects/user.roles';
 
-// Database Collection Name
 const COLLECTION_NAME: string = 'users';
 
 @Schema({ _id: false })
@@ -92,6 +93,28 @@ export class UserMongo extends Document {
 
   @Prop({ type: [String], default: [] })
   public deviceTokens: string[];
+
+  @Prop({
+    type: String,
+    enum: UserState,
+    default: UserState.ACTIVE, // Cambiado de isBlocked
+    required: true,
+  })
+  public state: string;
+
+  @Prop({
+    type: [String],
+    enum: UserRole,
+    default: [UserRole.USER], // Cambiado de isAdmin
+    required: true,
+  })
+  public roles: string[];
+
+  @Prop({ type: Boolean, default: false })
+  public isDeleted: boolean;
+
+  @Prop({ type: String, required: false, default: null })
+  public deletedHash: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserMongo);

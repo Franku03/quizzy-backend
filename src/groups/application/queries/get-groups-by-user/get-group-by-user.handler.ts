@@ -10,12 +10,20 @@ import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 
 @QueryHandler(GetGroupsByUserQuery)
 export class GetGroupsByUserHandler implements IQueryHandler<GetGroupsByUserQuery> {
-    constructor(@Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao) { }
+    private readonly useCase: string = 'User retrieves the list of groups they belong to';
+    constructor(
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+    ) { }
 
+    @Log()
     async execute(query: GetGroupsByUserQuery): Promise<Either<ErrorData, GroupReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupsByUser', {
             userId: query.userId,

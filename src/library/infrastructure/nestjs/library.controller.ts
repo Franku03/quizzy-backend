@@ -21,7 +21,6 @@ import { GetCompletedKahootsQuery } from '../../application/queries/get-complete
 import { GetInProgressKahootsQuery } from '../../application/queries/get-in-progress-kahoots/get-in-progress-kahoots.query';
 import { AddKahootToFavoritesCommand } from 'src/library/application/commands/add-kahoot-to-favorites/add-kahoot-to-favorites.command';
 import { RemoveKahootFromFavoritesCommand } from '../../application/commands/remove-kahoot-from-favorites/remove-kahoot-from-favorites.command';
-import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
 import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 import { ErrorData } from 'src/core/types';

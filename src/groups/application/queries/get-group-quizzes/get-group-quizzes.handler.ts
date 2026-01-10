@@ -12,14 +12,23 @@ import { GroupQuizAssignmentReadModel } from "../read-model/group.quiz.assignmen
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 
 @QueryHandler(GetGroupQuizzesQuery)
 export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuery> {
+    private readonly useCase: string = 'User retrieves the list of quizzes assigned to a group';
     constructor(
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     ) { }
 
+    @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetGroupQuizzesQuery): Promise<Either<ErrorData, GroupQuizAssignmentReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupQuizzes', {
             domainObjectId: query.groupId,
@@ -32,12 +41,6 @@ export class GetGroupQuizzesHandler implements IQueryHandler<GetGroupQuizzesQuer
             const groupOptional = await this.groupRepository.findById(query.groupId);
             if (!groupOptional.hasValue()) {
                 return Either.makeLeft(DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND));
-            }
-            const group = groupOptional.getValue();
-
-            const userId = new UserId(query.userId);
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER));
             }
 
             const quizzesOptional = await this.groupsQueryDao.getGroupQuizzes(query.groupId, query.userId);

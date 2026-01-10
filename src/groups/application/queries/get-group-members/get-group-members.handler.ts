@@ -10,13 +10,25 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import { GROUP_ERRORS } from "src/groups/application/commands/group.errors";
 import { GroupMemberReadModel } from "../read-model/group.member.read.model";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from '../ports/groups.dao.port';
 
 @QueryHandler(GetGroupMembersQuery)
 export class GetGroupMembersHandler implements IQueryHandler<GetGroupMembersQuery> {
+    private readonly useCase: string = 'User retrieves the list of members in a group';
     constructor(
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
+    @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetGroupMembersQuery): Promise<Either<ErrorData, GroupMemberReadModel[]>> {
         const errorContext = createDomainContext('Group', 'getGroupMembers', {
             domainObjectId: query.groupId,
@@ -35,14 +47,6 @@ export class GetGroupMembersHandler implements IQueryHandler<GetGroupMembersQuer
             }
 
             const group = groupOptional.getValue();
-            const userId = new UserId(query.userId);
-
-            // Validar que el usuario pertenece al grupo
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(
-                    DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER)
-                );
-            }
 
             // Obtener los miembros del grupo y mapearlos al read model
             // Accedemos directamente a los miembros usando los métodos públicos
