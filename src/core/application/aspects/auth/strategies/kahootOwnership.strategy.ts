@@ -47,7 +47,7 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
 
     async authorize(
         request: IKahootOwnershipRequest,
-        context: KahootFetcher
+        context: KahootFetcher,
     ): Promise<Either<ErrorData, unknown>> {
 
         const finalId = (request.kahootId || request.id)!;
@@ -60,13 +60,15 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         });
 
         // REGLA: Si el recurso ya viene validado, evitamos el fetch (Optimización)
-        if (validatedResource) {
+        /*if (validatedResource) {
             return this.validateAccess(validatedResource, userId, operationName, appContext);
-        }
+        }*/
 
         const fetchMethod = (context as any).getKahootUserDetail?.bind(context)
             || context.getKahootById?.bind(context)
             || context.findKahootByIdEither?.bind(context);
+
+        console.log('Using fetch method:', fetchMethod?.name);
 
         if (!fetchMethod) {
             return Either.makeLeft(new ErrorData('AUTH_CONTEXT_INVALID', 'No search method', ErrorLayer.APPLICATION, appContext));
