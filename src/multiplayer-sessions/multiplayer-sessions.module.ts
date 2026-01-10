@@ -28,6 +28,7 @@ import { InMemoryActiveSessionRepository } from './infrastructure/repositories/i
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
+import { AuthModule } from 'src/auth/auth.module';
 
 
 
@@ -36,6 +37,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
     DaoFactoryModule.forFeature(DaoName.User), 
+    AuthModule,
     MediaModule,
     CqrsModule,
   ],

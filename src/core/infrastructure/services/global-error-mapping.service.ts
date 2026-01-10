@@ -105,6 +105,10 @@ export class ErrorMappingService {
         'VALIDATION_FAILED': [HttpStatus.BAD_REQUEST, 'The provided data is invalid.'],
         'INVALID_NICKNAME': [HttpStatus.BAD_REQUEST, 'The nickname provided is invalid.'], 
         'CONFLICT': [HttpStatus.CONFLICT, 'Conflict in the resource state.'],
+        'INVALID_PARAMETER_LENGTH': [HttpStatus.BAD_REQUEST, 'The parameter length is not valid.'],
+        'INVALID_CREDENTIALS': [HttpStatus.UNAUTHORIZED, 'Incorrect credentials.'],
+        'ACCOUNT_BLOCKED': [HttpStatus.FORBIDDEN, 'Your account has been blocked. Contact support.'],
+        'ACCOUNT_INACTIVE': [HttpStatus.FORBIDDEN, 'Your account has been deactivated. Contact support.'],
       };
       
       return domainMap[code] ?? [HttpStatus.BAD_REQUEST, message || 'Business rule violation.'];

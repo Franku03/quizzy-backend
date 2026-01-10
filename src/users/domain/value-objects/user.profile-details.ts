@@ -4,41 +4,30 @@ import { InvalidArgumentError } from "../errors/invalid.argument.error";
 interface UserProfileDetailsProps {
     readonly name: string;
     readonly description: string;
-    readonly avatarImageURL: string;
+    readonly avatarAssetId: string;
 }
 
 export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
 
-    constructor(name: string, description: string, avatarImageURL: string) {
+    constructor(name: string, description: string, avatarAssetId: string) {
         UserProfileDetails.ensureNameIsValid(name);
         UserProfileDetails.ensureDescriptionIsValid(description);
-        UserProfileDetails.ensureAvatarUrlIsValid(avatarImageURL);
 
-        super({ name, description, avatarImageURL });
+        super({ name, description, avatarAssetId });
     }
    
     private static ensureNameIsValid(name: string): void {
         if (!name || name.trim().length === 0) {
-            throw new InvalidArgumentError("El nombre no puede estar vacío.");
+            throw new InvalidArgumentError("The name cannot be empty.");
         }
         if (name.length > 148) {
-            throw new InvalidArgumentError(`El nombre es demasiado largo. Máximo 148 caracteres.`);
+            throw new InvalidArgumentError(`The name is too long. Maximum 148 characters.`);
         }
     }
     
     private static ensureDescriptionIsValid(description: string): void {
         if (description.length > 300) {
-            throw new InvalidArgumentError(`La descripción supera el límite de 300 caracteres.`);
-        }
-    }
-
-    private static ensureAvatarUrlIsValid(url: string): void {
-        if (url === '') return;
-
-        try {
-            new URL(url);
-        } catch (error) {
-            throw new InvalidArgumentError(`La URL del avatar <${url}> no es válida.`);
+            throw new InvalidArgumentError(`The description exceeds the 300 character limit.`);
         }
     }
     
@@ -50,7 +39,7 @@ export class UserProfileDetails extends ValueObject<UserProfileDetailsProps> {
         return this.properties.description;
     }
 
-    get avatarImageURL(): string {
-        return this.properties.avatarImageURL;
+    get avatarAssetId(): string {
+        return this.properties.avatarAssetId;
     }
 }

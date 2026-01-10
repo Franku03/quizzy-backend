@@ -32,7 +32,7 @@ class UserProfileSchema {
   description: string;
 
   @Prop({ type: String, required: true })
-  avatarUrl: string;
+  avatarAssetId: string;
 }
 
 @Schema({ _id: false })
@@ -90,9 +90,6 @@ export class UserMongo extends Document {
 
   @Prop({ type: [String], default: [] })
   public favoriteKahoots: string[];
-
-  @Prop({ type: [String], default: [] })
-  public deviceTokens: string[];
 
   @Prop({
     type: String,

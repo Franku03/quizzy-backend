@@ -263,7 +263,7 @@ Orquesta la ejecución secuencial de operaciones con mecanismo de cortocircuito:
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (ERRORES / ROP)
  
-> El siguiente diagrama describe el flujo reducido del sistema de errores (UpdateKahootHandler)
+> El siguiente diagrama describe el flujo reducido del sistema de errores
 
 ---
 
@@ -432,12 +432,270 @@ sequenceDiagram
     end
 ```
 
-###
 ### 🔗 RECURSOS EXTERNOS PARA LOS ERRORES
 Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/w9byiD8Kuq4CRJ47rOU8?origin=share)**
 
+---
+
+# 🧩 Media Module: MediaEnrichmentService El Serivcio MVP 
+### *Abstracción de Infraestructura y Enriquecimiento de Dominio*
+
+El **Media Module**, Ademas de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concertl**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
+
+
+#### 🎯 Visión y Propósito Estratégico
+* **Desacoplamiento Total:** Los agregados de dominio (como `Kahoot` o `Question`) no almacenan URLs de Cloudinary. Esto evita que el dominio dependa de proveedores externos que podrían cambiar en el futuro.
+* **API Unificada:** Proporciona una interfaz única donde el desarrollador no tiene que preocuparse de donde viene el recurso, siendo abstracto.
+* **Optimización del Event Loop:** Al centralizar la resolución de medios, el servicio gestiona las promesas y llamadas asíncronas de forma agrupada, liberando carga al Event Loop de Node.js.
+
+> [!IMPORTANT]
+> **Filosofía de Diseño:** Consumir media debe ser una operación de "caja negra". El desarrollador entrega un ID y recibe un objeto listo para pintar en pantalla, sin conocer la complejidad técnica que ocurre detrás.
+
+---
+
+## 🏛️ Arquitectura Interna y Mecanismos de Eficiencia
+
+El Servicio opera bajo una arquitectura de **Contratos de Comportamiento**. En lugar de acoplarse a clases específicas, utiliza interfaces situadas en `src/core/domain/abstractions`. Cualquier objeto que implemente estos contratos puede ser "procesado" por el Servicio.
+
+
+### 🔄 El Ciclo de Vida del Enriquecimiento
+
+1.  **Harvesting (Fase de Recolección):**
+    El `MediaEnrichmentService` realiza una inspección profunda (Introspection) del objeto. Si el objeto implementa `IHasMediaAssets`, el servicio extrae todos los UUIDs. Esto permite que, incluso en objetos anidados (como un Kahoot con múltiples preguntas), se obtengan todos los requerimientos de una sola vez.
+
+2.  **Resolution (Proxy y y FlyWeight):**
+    Aquí entra en juego el **AssetResolutionProxy**. En lugar de disparar 20 peticiones HTTP, el Proxy agrupa los IDs únicos.
+    * **Mecanismo Flyweight:** Si varios elementos comparten la misma imagen de portada, el Proxy solo la resuelve una vez y clona la referencia de la URL, ahorrando memoria RAM de forma masiva.
+    * **Caché Transparente:** Implementa una capa de persistencia volátil que evita re-consultar bases de datos para recursos estáticos frecuentes.
+
+3.  **Injection (Pipeline de Handlers):**
+    Utilizamos una **Cadena de Responsabilidad (Chain of Responsibility)** para que el proceso sea modular.
+    * **ThemeHandler:** Resuelve colores, tipografías y estilos del tema.
+    * **AssetHandler:** Inyecta las URLs finales de Cloudinary en los campos correspondientes.
+    * **ValidationHandler:** Asegura que los recursos resueltos sean válidos y seguros para el cliente.
+
+### 🛠️ Patrones de Diseño 
+
+| Patrón | Implementación Técnica | Beneficio de Ingeniería |
+| :--- | :--- | :--- |
+| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transoframaciones mas complejas podria requerer methods especificos |
+| **FACTORY** | `EnrichmentHandlerFactory` | Encapsula el uso de la palabra reservada `new` en la facade. |
+| **PROXY** | `AssetResolutionProxy` | Control de acceso y optimización de red (Batching). |
+| **FLYWEIGHT** | Gestión de Instancias de URL | Minimiza el impacto en el Garbage Collector al reutilizar strings y objetos de configuración. |
+| **CHAIN OF RESP.** | `EnrichmentHandlers` | Permite añadir lógica de procesamiento (ej. marcas de agua) sin tocar el código existente. |
+
+---
+
+## 🚀 Guía de Ingeniería para el Desarrollador
+
+### 1. Integración en la Capa de Aplicación
+El uso del MediaEnrichmentService es obligatorio antes de que cualquier dato salga de la API. Esto garantiza que el Frontend nunca reciba un ID interno de base de datos donde debería ir una imagen.
+
+```typescript
+// Ejemplo en un Handler
+export class AnyHandler (Puede ser Query o Command) {
+  async execute(query: queryParameterObject) {
+    Persistencia: Obtenemos el Dato
+    const snapshot = await this.repository.findById(query.id);
+    // 2. Servicio: Transformación masiva y enriquecimiento
+    // El Servicio maneja internamente la recursividad y la optimización de red
+    return await this.mediaService.enrichKahoot(snapshot);
+  }
+}
+```
+
+---
+
+## 🏛️ Principios SOLID
+
+El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arquitectura limpia. Se han aplicado los principios **SOLID** para garantizar que el sistema sea inmune a la degradación de código a medida que el proyecto crece.
+
+* **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El servicio no es un monolito GOD Class, sino una suma de especialistas coordinados.
+* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No bostante ver máas abajo el trade-offs.
+* **LSP (Liskov Substitution Principle):** Todos los Handlers heredan de una base abstracta. El motor de orquestación trata a cualquier `VideoHandler` o `ImageHandler` como un `BaseHandler` genérico, garantizando la sustituibilidad total sin romper el flujo de ejecución.
+* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo`. Los objetos de dominio solo implementan lo que realmente necesitan.
+* **DIP (Dependency Inversion Principle):** El Servicio depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
+
+---
+
+## 🚀 Extensibilidad y Compromisos de Diseño
+
+### El Camino de la Extensión (Ejemplo: Streaming Video)
+Añadir soporte para un nuevo tipo de medio es un proceso lineal y seguro que no afecta a los módulos existentes:
+1.  **Contrato:** Se define `IHasStreamingVideo` con el método `setVideoUrl()`.
+2.  **Procesador:** Se implementa `VideoEnrichmentHandler` encapsulando la lógica del proveedor (ej. Mux o YouTube).
+3.  **Registro:** Se añade al pipeline en la Factoría. Las imágenes y temas siguen funcionando sin enterarse del cambio.
+
+### ⚖️ El Sacrificio Arquitectónico (Design Trade-offs)
+En ingeniería, toda solución tiene un costo. Para lograr un **OCP** perfecto y una experiencia de desarrollo (DX) superior, hemos aceptado deliberadamente dos sacrificios:
+
+* **Complejidad en la Facade:** La `MediaEnrichmentService` asume la responsabilidad de orquestar múltiples sub-servicios. Es el "punto caliente" de configuración, pero es el precio a pagar para que el resto de la aplicación disfrute de una simplicidad total (una sola línea de código para enriquecer).
+* **Verbocidad en la Factory:** La `EnrichmentHandlerFactory` introduce un nivel adicional de indirección y código repetitivo (*boilerplate*). Sin embargo, este es el sacrificio necesario para desacoplar la **creación** de la **ejecución**, permitiendo que el sistema sea testeable y escalable.
+
+---
+
+## ⚡ Optimización para el Motor V8 (Node.js)
+
+El Media Module ha sido diseñado mecánicamente para ser "amigable" con el compilador JIT de V8, maximizando el rendimiento en entornos de alta concurrencia:
+
+* **Monomorfismo de Retorno:** Los handlers devuelven estructuras de datos con formas (*shapes*) consistentes. Esto permite que V8 optimice las **Hidden Classes** de los objetos, evitando la desoptimización del código en el "Hot Path".
+* **Short-Circuiting:** Si un objeto no requiere enriquecimiento, el servicio aplica un cortocircuito inmediato. Esto evita la creación de micro-tareas y promesas innecesarias, manteniendo el **Throughput** del servidor al máximo y optimizando el uso del Event Loop.
+
+> [!NOTE]
+> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/BoilerPlate masivo en una operación de una sola línea. 
+
+---
+### 📌 DIAGRAMA DE SECUENCIA (MediaEnrichmentService)
+ 
+> El siguiente diagrama describe el flujo reducido del servicio de enriquecimiento de media
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
+    'signalColor': '#009900',
+    'signalTextColor': '#000000',
+    'actorTextColor': '#000000',
+    'noteTextColor': '#000000',
+    'actorLineColor': '#009900',
+    'labelBoxBorderColor': '#000000',
+    'actorBorder': '#000000',
+    'fontSize': '16px',
+    'fontFamily': 'Segoe UI'
+  }
+} }%%
+
+sequenceDiagram
+    autonumber
+    
+    participant UC as AnyUseCase
+    participant Facade as MediaEnrichmentService
+    participant Entity as "TargetObject<T><br>(IHasMediaAssets)"
+
+    rect rgb(255, 255, 255)
+        Note over UC, Entity: FLUJO DE ENRIQUECIMIENTO (MediaEnrichmentService)
+        
+        UC->>Facade: enrich(target)
+        activate Facade
+
+        Note over Facade, Entity: 1. Protocolo de Extracción (Harvesting)
+        Facade->>Entity: getMediaAssetIds()
+        activate Entity
+        Entity-->>Facade: Returns [ "uuid-1", "uuid-2" ]
+        deactivate Entity
+
+        Note over Facade, Entity: 2. Resolución Masiva (Proxy/Batch)
+        Facade->>Facade: Resolve URLs (Batch & Cache)
+
+        Note over Facade, Entity: 3. Protocolo de Inyección (Enrichment)
+        Facade->>Entity: applyMediaUrls( {uuid: url} )
+        activate Entity
+        Entity-->>Facade: void
+        deactivate Entity
+
+        Facade-->>UC: target (Enriched Object)
+        deactivate Facade 
+    end
+```
+---
+> El siguiente diagrama describe el flujo completo de ejecución, del servicio).
+---
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
+    'signalColor': '#009900',
+    'signalTextColor': '#000000',
+    'actorTextColor': '#000000',
+    'noteTextColor': '#000000',
+    'actorLineColor': '#009900',
+    'labelBoxBorderColor': '#000000',
+    'actorBorder': '#000000',
+    'fontSize': '15px',
+    'fontFamily': 'Segoe UI'
+  }
+} }%%
+
+sequenceDiagram
+    autonumber
+    
+    participant Handler as GetKahootByIdHandler
+    participant Facade as MediaEnrichmentService
+    participant Factory as EnrichmentHandlerFactory
+    participant Chain as Handlers (Chain)
+    participant Repo as KahootRepository
+    participant ImgProxy as AssetResolutionProxy
+    participant ThemeProxy as ThemeResolutionProxy
+    participant Snapshot as KahootStylingSnapshot
+
+    rect rgb(255, 255, 255)
+        Note over Handler, Snapshot: FLUJO DETALLADO: MediaEnrichmentService
+        
+        Handler->>Repo: 1. findById(id)
+        activate Repo
+        Repo-->>Handler: Return Snapshot (IDs)
+        deactivate Repo
+
+        Handler->>Facade: 2. enrichKahoot(snapshot)
+        activate Facade
+
+        Note over Facade, Snapshot: FASE 1: RECOLECCIÓN (IHasMediaAssets)
+        Facade->>Snapshot: getMediaAssetIds()
+        activate Snapshot
+        Snapshot-->>Facade: Returns [UUIDs]
+        deactivate Snapshot
+
+        Note over Facade, ImgProxy: FASE 2: RESOLUCIÓN BATCH
+        Facade->>ImgProxy: resolveUrlsBatch(ids)
+        activate ImgProxy
+        ImgProxy-->>Facade: Returns Map(UUID -> URL)
+        deactivate ImgProxy
+
+        Facade->>Factory: FASE 3: createChain(urlMap)
+        activate Factory
+        Factory-->>Facade: Chain(Theme -> Asset)
+        deactivate Factory
+
+        Facade->>Chain: FASE 4: handle(snapshot)
+        activate Chain
+
+        Note over Chain, ThemeProxy: Lógica de Temas (IThemeable)
+        opt themeId exists
+            Chain->>ThemeProxy: getTheme(themeId)
+            activate ThemeProxy
+            ThemeProxy-->>Chain: Full Theme Object
+            deactivate ThemeProxy
+            Chain->>Snapshot: setInternalTheme(Theme)
+        end
+
+        Note over Chain, Snapshot: Lógica de Assets (IHasMediaAssets)
+        Chain->>Snapshot: applyMediaUrls(urlMap)
+        activate Snapshot
+        Snapshot-->>Chain: void
+        deactivate Snapshot
+
+        Chain-->>Facade: Enriched Snapshot
+        deactivate Chain
+
+        Facade-->>Handler: Enriched Data Ready
+        deactivate Facade
+    end
+```
+---
+### 🔗 RECURSOS EXTERNOS PARA EL FLUJO DEL SERVICIO DE ENRIQUECIMIENTO DE MEDIA
+Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
+
+> 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/fRfrRr2cxxbeY7vfT7CT?origin=share)**
 ---
 
 ## 📁 Guía de Directorios

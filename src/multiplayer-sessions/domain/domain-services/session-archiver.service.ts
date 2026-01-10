@@ -16,7 +16,8 @@ export class SessionArchiverService {
         // TODO: Hacer mapeo de monadas Either desde la respuesta del saveSession
         await this.historyRepo.archiveSession(session, kahoot);
         
+        // No borramos en memoria aun pues el host debe cerrar partida para eso
         // Liberamos el recurso de memoria
-        await this.activeRepo.deleteSession( session.getSessionPin() );
+        // await this.activeRepo.deleteSession( session.getSessionPin() );
     }
 }

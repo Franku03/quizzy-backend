@@ -1,24 +1,28 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { Inject } from '@nestjs/common';
+
+import { Either } from 'src/core/types/either';
+
 import { GetUserByIdQuery } from './get-user-by-id.query';
 import { UserReadModel } from '../read-model/user.read.model';
+
 import type { IUserDao } from '../ports/users.dao.port';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
-import { Either } from 'src/core/types/either';
+import { ErrorData, ErrorLayer } from 'src/core/types';
 
 @QueryHandler(GetUserByIdQuery)
 export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
   
-  constructor(
-    @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
-    private readonly usersDao: IUserDao
-  ) {}
+  constructor(@Inject(DaoName.User) private readonly usersDao: IUserDao) {}
 
-  async execute(query: GetUserByIdQuery): Promise<Either<Error, UserReadModel>> {
+  async execute(query: GetUserByIdQuery): Promise<Either<ErrorData, UserReadModel>> {
     const result = await this.usersDao.getUserById(query.id);
 
     if (!result.hasValue()) {
-      return Either.makeLeft(new Error());
+      return Either.makeLeft(
+         new ErrorData('RESOURCE_NOT_FOUND', `User ${query.id} not found`, ErrorLayer.DOMAIN)
+      );
     }
 
     return Either.makeRight(result.getValue());
