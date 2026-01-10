@@ -46,14 +46,12 @@ export class UserRepositoryMongo implements IUserRepository {
     }
   }
 
-  // ✅ Corregido: Coincide con la interfaz y usa new Optional()
   async findById(id: UserId): Promise<Optional<User>> {
     try {
       const document = await this.userModel
         .findOne({ userId: id.value })
         .exec();
 
-      // Usamos el constructor directamente como lo tienes definido
       return document 
         ? new Optional(UserMapper.toDomain(document)) 
         : new Optional(); 
@@ -62,7 +60,6 @@ export class UserRepositoryMongo implements IUserRepository {
     }
   }
 
-  // ✅ Corregido: Coincide con la interfaz y usa new Optional()
   async findByEmail(email: UserEmail): Promise<Optional<User>> {
     try {
       const document = await this.userModel
@@ -74,6 +71,20 @@ export class UserRepositoryMongo implements IUserRepository {
         : new Optional();
     } catch (error) {
       throw new Error(`Error finding user by Email: ${error.message}`);
+    }
+  }
+
+  async findByUsername(username: UserName): Promise<Optional<User>> {
+    try {
+      const document = await this.userModel
+        .findOne({ username: username.value })
+        .exec();
+
+      return document 
+        ? new Optional(UserMapper.toDomain(document)) 
+        : new Optional();
+    } catch (error) {
+      throw new Error(`Error finding user by Username: ${error.message}`);
     }
   }
 

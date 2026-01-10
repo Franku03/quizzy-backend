@@ -37,6 +37,10 @@ export class UserRepositoryPostgres implements IUserRepository {
       throw new Error('Postgres no soportado'); 
   }
 
+  async findByUsername(username: UserName): Promise<Optional<User>> {
+        throw new Error('Postgres no soportado'); 
+    }
+
   async existsUserByUsername(username: UserName): Promise<boolean> { 
       throw new Error('Postgres no soportado'); 
   }

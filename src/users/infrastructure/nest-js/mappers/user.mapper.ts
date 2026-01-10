@@ -26,7 +26,7 @@ export class UserMapper {
     const profile = new UserProfileDetails(
       raw.profile.name,
       raw.profile.description,
-      raw.profile.avatarUrl,
+      raw.profile.avatarAssetId || '',
     );
 
     const subscriptionExpiresIso = new Date(raw.subscription.expiresAt)
@@ -62,7 +62,6 @@ export class UserMapper {
         subscriptionStatus: subscription,
         lastUsernameUpdate,
         favorites,
-        deviceTokens: raw.deviceTokens || [],
         state: raw.state as UserState, // Cambiado de isBlocked
         roles: raw.roles as UserRole[], // Cambiado de isAdmin
         isDeleted: raw.isDeleted,
@@ -82,11 +81,10 @@ export class UserMapper {
       lastUsernameUpdate: user.lastUsernameUpdate
         ? new Date(user.lastUsernameUpdate.value)
         : undefined,
-      deviceTokens: user.deviceTokens,
       profile: {
         name: user.userProfileDetails.name,
         description: user.userProfileDetails.description,
-        avatarUrl: user.userProfileDetails.avatarImageURL,
+        avatarAssetId: user.userProfileDetails.avatarAssetId,
       },
       subscription: {
         state: user.subscriptionStatus.state,

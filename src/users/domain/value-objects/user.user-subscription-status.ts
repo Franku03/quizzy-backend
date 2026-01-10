@@ -1,7 +1,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
-import { SubscriptionState } from "./user.subscription-state"; // Ajusta ruta
-import { SubscriptionPlan } from "./user.subscription-plan"; // Ajusta ruta
-import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date"; // Asegúrate de esta ruta
+import { SubscriptionState } from "./user.subscription-state";
+import { SubscriptionPlan } from "./user.subscription-plan";
+import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 
 interface UserSubscriptionStatusProps {
     readonly state: SubscriptionState;
