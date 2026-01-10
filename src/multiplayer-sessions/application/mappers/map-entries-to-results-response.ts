@@ -7,6 +7,7 @@ import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.e
 import { getOptionsIdsAndCorrectAnswers, mapHostResultsData, mapPlayerResultsData } from "../helpers";
 
 import { COMMON_ERRORS } from "../commands/common.errors";
+import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 
 export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionResultsResponse => {
 
@@ -15,7 +16,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
       
 
     if( !slideId )
-        throw new Error(COMMON_ERRORS.PREVIOUS_SLIDE_NOT_FOUND);
+        throw createSlideNotFoundError("getPreviousSlideSnapshotById | getSlideSnapshotById", kahoot.id.value ) 
 
     // Luego mapeamos las respuestas correctas de la slide previa   
     const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, slideId );

@@ -9,5 +9,7 @@ export enum COMMON_ERRORS {
         USER_NOT_AUTHORIZED = "Usuario no autorizado: El usuario no puede conectarse a la sesión como HOST",
         SESSION_NOT_ACCEPTING_CONNECTIONS = "El host ha bloqueado las conexiones de nuevos jugadores a la sesión",
         USER_NOT_IN_SESSION = "La partida ya ha comenzado y el usuario no forma parte de la sesión activa",
+        RESOURCE_NOT_FOUND = "El recurso solicitado no pudo ser encontrado",
+        SESSION_INVALID_STATE = "La sesion se encuentra en un estado desde el cual no se permite avanzar",
 
 }

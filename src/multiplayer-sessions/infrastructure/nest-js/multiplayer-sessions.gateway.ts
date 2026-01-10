@@ -262,18 +262,18 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
     private async syncClientState( client: SessionSocket ): Promise<Either<Error, void>> {
-        try {
+        // try {
 
-            const res: Either<Error, SyncStateResponse >
-             = await this.commandBus.execute( new SyncStateCommand( client.data.roomPin , client.data.userId ) );
+            const result = 
+              await this.executor.executeCommand<SyncStateResponse>( new SyncStateCommand( client.data.roomPin , client.data.userId ) );
 
-            if( res.isLeft() ){
+            // if( res.isLeft() ){
 
-              return Either.makeLeft( res.getLeft() );
+            //   return Either.makeLeft( res.getLeft() );
 
-            } else {
+            // } else {
 
-              const result = res.getRight();
+              // const result = res.getRight();
 
               switch( result.type ){
 
@@ -344,14 +344,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
               return Either.makeRight( undefined );
 
-            }
+            // }
               
 
-        } catch (error) {
-            // Capturamos cualquier error inesperado en el caso de uso
-            this.logger.error(`Error crítico al intentar sincronizar al usuario: ${error}`);
-            return Either.makeLeft(error instanceof Error ? error : new Error(String(error)));
-        }
+        // } catch (error) {
+        //     // Capturamos cualquier error inesperado en el caso de uso
+        //     this.logger.error(`Error crítico al intentar sincronizar al usuario: ${error}`);
+        //     return Either.makeLeft(error instanceof Error ? error : new Error(String(error)));
+        // }
     }
     
 
@@ -405,7 +405,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     // --------------------------------------------------------------------------
     @SubscribeMessage( PlayerUserEvents.PLAYER_JOIN )
     async handlePlayerJoin( client: SessionSocket, payload: PlayerJoinDto ){
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+      // TODO: Implementar decorador para hacer esta validación
 
         if( !client.rooms.has( client.data.roomPin ))
           this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"));
@@ -457,7 +457,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     @SubscribeMessage( PlayerUserEvents.PLAYER_SUBMIT_ANSWER )
     async handlePlayerSubmitAnswer( client: SessionSocket, payload: PlayerSubmitAnswerDto ){
 
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+      // TODO: Implementar decorador para hacer esta validación
 
         if( !client.rooms.has( client.data.roomPin ))
           this.handleError( client, new Error("FATAL: El cliente no se encuentra conectado a la sala solicitada"));
@@ -465,9 +465,17 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede enviar preguntas"));
  
+        // const res: Either<Error, PlayerSubmitAnswerResponse> = 
+        //   await this.commandBus.execute( new PlayerSubmitAnswerCommand( 
+        //       payload.questionId,
+        //       payload.answerId,
+        //       payload.timeElapsedMs,
+        //       client.data.roomPin,
+        //       client.data.userId
+        //   ));
 
-        const res: Either<Error, PlayerSubmitAnswerResponse> = 
-          await this.commandBus.execute( new PlayerSubmitAnswerCommand( 
+        const res = 
+          await this.executor.executeCommand<PlayerSubmitAnswerResponse>( new PlayerSubmitAnswerCommand( 
               payload.questionId,
               payload.answerId,
               payload.timeElapsedMs,
@@ -475,7 +483,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
               client.data.userId
           ));
 
-        if( res.isRight() ){
 
           client.emit( ServerEvents.PLAYER_ANSWER_CONFIRMATION, { status: 'ANSWER SUCCESFULLY SUBMITTED' });
 
@@ -488,15 +495,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             const clients = await this.wss.in( hostSocketId ).fetchSockets();
             const hostClient = clients[0]; // Como el ID es único, solo vendrá uno
 
-            hostClient.emit(ServerEvents.HOST_ANSWERS_UPDATE, res.getRight());
+            hostClient.emit(ServerEvents.HOST_ANSWERS_UPDATE, res );
           }
 
-        } else {
-
-
-          this.handleError( client, res.getLeft() );
-
-        }
 
 
     }
@@ -507,7 +508,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     @SubscribeMessage( HostUserEvents.HOST_START_GAME )
     async handleHostStartGame( client: SessionSocket ){
 
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+      // TODO: Implementar decorador para hacer esta validación
 
         if( !(client.data.role === SessionRoles.HOST) )
           this.handleError( client, new WsException("El cliente no es Host"));
@@ -515,20 +516,23 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( !client.rooms.has( client.data.roomPin as string ))
           this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
  
-
-        const res: Either<Error, QuestionStartedResponse> = 
-          await this.commandBus.execute( new HostStartGameCommand( client.data.roomPin ) );
-
-        if( res.isRight() ){
-
-          this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.getRight().data );
-
-        } else {
+        const res =
+                  await this.executor.executeCommand<QuestionStartedResponse>( new HostStartGameCommand( client.data.roomPin ) );
 
 
-          this.handleError( client, res.getLeft() );
+        // const res: Either<Error, QuestionStartedResponse> = 
+        //   await this.commandBus.execute( new HostStartGameCommand( client.data.roomPin ) );
 
-        }
+        // if( res.isRight() ){
+
+          this.wss.to( client.data.roomPin ).emit( ServerEvents.QUESTION_STARTED, res.data );
+
+        // } else {
+
+
+        //   this.handleError( client, res.getLeft() );
+
+        // }
 
 
     }
@@ -537,7 +541,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     @SubscribeMessage( HostUserEvents.HOST_NEXT_PHASE )
     async handleHostNextPhase( client: SessionSocket ){
 
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+      // TODO: Implementar decorador para hacer esta validación
 
         if( !(client.data.role === SessionRoles.HOST) )
           this.handleError( client, new WsException("El cliente no es Host"));
@@ -546,13 +550,16 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.handleError( client, new WsException("FATAL: El HOST no se encuentra conectado a la sala solicitada"))
  
 
-        const result: Either<Error, HostNextPhaseResponse > = 
-          await this.commandBus.execute( new HostNextPhaseCommand( client.data.roomPin ) );
+        const res =
+                await this.executor.executeCommand<HostNextPhaseResponse>( new HostNextPhaseCommand( client.data.roomPin ) );
 
-        if( result.isRight() ){
+        // const result: Either<Error, HostNextPhaseResponse > = 
+        //   await this.commandBus.execute( new HostNextPhaseCommand( client.data.roomPin ) );
+
+        // if( result.isRight() ){
 
 
-          const res = result.getRight();
+          // const res = result.getRight();
 
           switch( res.type ){
 
@@ -594,11 +601,11 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           }
           
 
-        } else {
+        // } else {
 
-          this.handleError( client, result.getLeft() );
+        //   this.handleError( client, result.getLeft() );
 
-        }
+        // }
 
 
     }
@@ -606,7 +613,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     @SubscribeMessage( HostUserEvents.HOST_END_SESSION )
     async handleHostEndSession( client: SessionSocket ){
 
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT para extraer IdUser y username
+      // TODO: Implementar decorador para hacer esta validación
 
         // 1) SEGURIDAD: Verificar que quien ordena cerrar es el HOST
         if( !(client.data.role === SessionRoles.HOST) )
@@ -650,14 +657,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         
         // 5) LIMPIEZA ADICIONAL (Opcional)
         // Revisamos si la sesión quedo en memoria tras acabar la sesión pues este cierre pudo darse por una desconexión, lo que puede implicar un leak de memoria
-        const res: Either<Error, boolean > = await this.commandBus.execute( new DeleteSessionCommand( roomPin ) );
+        const res = await this.executor.executeCommand<boolean>( new DeleteSessionCommand( roomPin ) );
 
-        if( res.isRight() ){
-          if( res.getRight() )
+        if( res )
+          // if( res.getRight() )
             this.logger.log(`Session con pin: ${ roomPin }, ELIMINADA exitosamente`)
-        }else{
-          this.logger.error(`Error crítico al intentar ELIMINAR la partida: ${ res.getLeft().message }`)
-        }
+        // }else{
+        //   this.logger.error(`Error crítico al intentar ELIMINAR la partida: ${ res.message }`)
+        // }
 
         this.logger.log(`Sala con pin: ${ roomPin }, CERRADA exitosamente el ${ new Date().toString() }`);
 

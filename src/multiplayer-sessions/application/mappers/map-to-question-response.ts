@@ -10,6 +10,8 @@ import { QuestionStartedResponse } from "../response-dtos/question-started.respo
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.type";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
+import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";
+import { createOptionNotFoundError, createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 
 export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot: Kahoot, mediaService: MediaEnrichmentService): Promise<QuestionStartedResponse> => {
     
@@ -20,10 +22,12 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
     // No debería ocurrir dado que el session se basa en un kahoot existente que de paso nos aseguramos que no esté en DRAFT
     // dejo la protección por si acaso y porque TS la exige
     if( !currentSlideSnapshot )
-        throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND)
+        throw createSlideNotFoundError("getSlideSnapshotById", kahoot.id.value ) 
+        // throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND)
 
     if( !currentSlideSnapshot.options )
-        throw new Error(COMMON_ERRORS.NO_OPTIONS)
+        throw createOptionNotFoundError("SlideSnapshot.options", kahoot.id.value ) 
+        // throw new Error(COMMON_ERRORS.NO_OPTIONS)
 
     currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
 

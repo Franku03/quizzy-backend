@@ -7,8 +7,9 @@ import { PlayerFactory } from "src/multiplayer-sessions/domain/factories/player.
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
-import type { ActiveSessionContext, IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
@@ -19,8 +20,9 @@ import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update
 import { ErrorData } from "src/core/types";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
-import { Player } from "src/multiplayer-sessions/domain/entity/session.player";
 import { SessionResourcesForPlayerJoin } from "../context/session-resources.context.interface";
+import { Log } from "src/core/application/aspects/logging/log.decorator";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 
 
 @CommandHandler( PlayerJoinCommand )
@@ -32,9 +34,13 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
         @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
         private readonly usersDao: IUserDao,
+
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        private readonly logger: ILogger,
     ){}
 
 
+    @Log()
     async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateUpdateResponse>> {
 
         // Contexto para logs

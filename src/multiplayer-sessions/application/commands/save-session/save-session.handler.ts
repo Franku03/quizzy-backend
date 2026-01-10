@@ -45,7 +45,7 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
 
             // Procesamos la limpieza y archivado de la sesión
             // Aqui no liberamos el pin, esperamos a que el host cierre la sesion por completo para eso
-            await this.sessionArchiverService.archiveAndClean( session, kahoot );
+            await this.sessionArchiverService.archiveSession( session, kahoot );
 
             // Respuesta guardada con exito
             return Either.makeRight( true );
