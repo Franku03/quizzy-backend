@@ -23,6 +23,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { NotificationMongo, NotificationSchema } from 'src/database/infrastructure/mongo/entities/notifications.schema';
 import { DeviceTokenMongo, DeviceTokenSchema } from 'src/database/infrastructure/mongo/entities/devices.schema';
 import 'src/database/infrastructure/mongo/modules/notifications/notification.repository.mongo';
+import { RegisterDeviceHandler } from './application/commands/register-device/register-device.handler';
+import { UnregisterDeviceHandler } from './application/commands/unregister-device/unregister-device.handler';
+import { MarkNotificationAsReadHandler } from './application/commands/mark-notification-as-read/mark-notification-as-read.handler';
+import { GetNotificationsHandler } from './application/queries/get-notifications/get-notifications.handler';
 
 @Module({
     controllers: [NotificationsController],
@@ -88,6 +92,10 @@ import 'src/database/infrastructure/mongo/modules/notifications/notification.rep
             },
             inject: [NotifyKahootAssignedUseCase],
         },
+        RegisterDeviceHandler,
+        UnregisterDeviceHandler,
+        MarkNotificationAsReadHandler,
+        GetNotificationsHandler,
     ],
 })
 
