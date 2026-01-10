@@ -31,7 +31,6 @@ import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.
     GroupsModule, 
     MediaModule,
     ExploreModule,
-    UsersModule,
     AuthModule,
     BackofficeModule,
   ],
