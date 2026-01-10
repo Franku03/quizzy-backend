@@ -555,8 +555,10 @@ El Media Module ha sido diseñado mecánicamente para ser "amigable" con el comp
 %%{init: {
   'theme': 'base',
   'themeVariables': {
-    'background': '#f4f4f5',
-    'mainBkg': '#f4f4f5',
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
     'signalColor': '#009900',
     'signalTextColor': '#000000',
     'actorTextColor': '#000000',
@@ -565,7 +567,7 @@ El Media Module ha sido diseñado mecánicamente para ser "amigable" con el comp
     'labelBoxBorderColor': '#000000',
     'actorBorder': '#000000',
     'fontSize': '16px',
-    'fontFamily': 'Arial'
+    'fontFamily': 'Segoe UI'
   }
 } }%%
 
@@ -576,30 +578,30 @@ sequenceDiagram
     participant Facade as MediaEnrichmentService
     participant Entity as "TargetObject<T><br>(IHasMediaAssets)"
 
-    %% INICIO
-    UC->>Facade: enrich(target)
-    activate Facade
+    rect rgb(255, 255, 255)
+        Note over UC, Entity: FLUJO DE ENRIQUECIMIENTO (KERNEL)
+        
+        UC->>Facade: enrich(target)
+        activate Facade
 
-    %% 1. EXTRAER
-    Note over Facade, Entity: 1. Protocolo de Extracción
-    Facade->>Entity: getMediaAssetIds()
-    activate Entity
-    Entity-->>Facade: Returns [ "uuid-1", "uuid-2" ]
-    deactivate Entity
+        Note over Facade, Entity: 1. Protocolo de Extracción (Harvesting)
+        Facade->>Entity: getMediaAssetIds()
+        activate Entity
+        Entity-->>Facade: Returns [ "uuid-1", "uuid-2" ]
+        deactivate Entity
 
-    %% 2. RESOLVER (Interno)
-    Facade->>Facade: Resolve URLs (Batch/Cache)
+        Note over Facade, Entity: 2. Resolución Masiva (Proxy/Batch)
+        Facade->>Facade: Resolve URLs (Batch & Cache)
 
-    %% 3. INYECTAR
-    Note over Facade, Entity: 2. Protocolo de Inyección
-    Facade->>Entity: applyMediaUrls( {uuid: url} )
-    activate Entity
-    Entity-->>Facade: void
-    deactivate Entity
+        Note over Facade, Entity: 3. Protocolo de Inyección (Enrichment)
+        Facade->>Entity: applyMediaUrls( {uuid: url} )
+        activate Entity
+        Entity-->>Facade: void
+        deactivate Entity
 
-    %% FIN
-    Facade-->>UC: target (Enriched)
-    deactivate Facade
+        Facade-->>UC: target (Enriched Object)
+        deactivate Facade 
+    end
 ```
 ---
 > El siguiente diagrama describe el flujo completo de ejecución, del servicio).
