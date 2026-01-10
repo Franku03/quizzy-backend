@@ -1,5 +1,5 @@
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
-export const createMultiplayerSessionAppContext = (operation: string, aggregateId?: string, actorId?: string, sessionPin?: string) => {
+export const createMultiplayerSessionAppContext = (operation: string, aggregateId?: string, actorId?: string, sessionPin?: string ) => {
     return createDomainContext(
         'MultiplayerSession',
         operation,
@@ -7,7 +7,7 @@ export const createMultiplayerSessionAppContext = (operation: string, aggregateI
             rootAggregateName: 'MultiplayerSession',
             rootAggregateId: aggregateId,
             sessionPin: sessionPin ?? "UNAVAILABLE AT SESSION CREATION",
-            actorId: actorId,
+            actorId: actorId        
         }
     );
 };

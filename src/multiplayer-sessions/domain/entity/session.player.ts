@@ -26,11 +26,11 @@ export class Player extends Entity<PlayerProps, PlayerId> {
 
     public changeNickname( newNickname: string ): void {
 
-        const { cleanNickname, isValid, error } = validateNicknameInvariants( newNickname );
+        const { cleanNickname, isValid, errorMessage } = validateNicknameInvariants( newNickname );
 
         if( !isValid ) {
 
-            throw new Error( error );
+            throw new Error( errorMessage );
 
         } 
 

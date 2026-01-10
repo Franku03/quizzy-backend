@@ -1,8 +1,11 @@
-import { BadRequestException, Logger } from '@nestjs/common';
+import { BadRequestException, Logger, UseFilters } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage, WebSocketGateway, WebSocketServer, WsException } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 
+import { JwtPayload } from 'src/auth/infrastructure/interfaces/jwt-payload.interface';
 import { CommandBus } from 'src/core/infrastructure/cqrs';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 import { MultiplayerSessionsTracingService } from './multiplayer-sessions.tracing.service';
 
 import { SessionRoles } from './enums/session-roles.enum';
@@ -44,8 +47,10 @@ import { PlayerJoinDto, PlayerSubmitAnswerDto } from './dtos';
 import { COMMON_ERRORS } from 'src/multiplayer-sessions/application/commands/common.errors';
 
 import { Either } from 'src/core/types/either';
+import { AllExceptionsFilter } from 'src/core/infrastructure/filters/all-exceptions.filter';
 
 
+@UseFilters( AllExceptionsFilter ) // <--- Esto es lo que rompe la barrera del WsExceptionsHandler
 @WebSocketGateway( 
   { namespace: 'multiplayer-sessions', cors: true }
 )
@@ -61,6 +66,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     constructor(
       private readonly tracingWsService: MultiplayerSessionsTracingService,
+      private readonly JwtService: JwtService,
+      private readonly executor: CommandQueryExecutorService,
       private readonly commandBus: CommandBus,
     ) {
       this.logger.log(`WebSocketServer running on port ${ process.env.PORT }`);
@@ -68,16 +75,17 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
     async handleConnection( client: SessionSocket ) {
 
-      // TODO: Cuando el modulo Auth este integrado implementar logica de verificacion de JWT
-
       const { pin , role, jwt } = client.handshake.headers 
+
+      let jwtPayload: JwtPayload;
 
       try {
 
-        // 1) Validacion basica de tener todos los headers
+        // 1) Validacion basica de tener todos los headers y que el jwt sea valido
         if( !pin || !role || !jwt )
           throw new WsException("Hacen falta datos en el header para realizar la conexión");
         
+        jwtPayload = this.JwtService.verify( jwt as string ); // ? nos devuelve el payload del JWT
 
        // 2) Guardamos la data inmediatamente de los clientes en su propio socket
        // Hacemos esto antes de cualquier await para que se tengan los datos
@@ -85,7 +93,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         client.data.role = role as SessionRoles;
 
-        client.data.userId = jwt as string; // TODO: Cuando lo podamos obtener con el JWT realmente adjuntaremos aqui el UserID obtenido mediante el mismo
+        client.data.userId = jwtPayload.id as string; 
+        
 
         // 3) Validaciones de Dominio (Asíncronas)
         // TODO: Verificar uso del Either cuando haya refactoring de errores
@@ -94,14 +103,14 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if ( role === SessionRoles.HOST ) {
 
             // TODO: Verificar uso del Either cuando haya refactoring de errores
-            await this.commandBus.execute( new VerifyHostCommand( pin as string, jwt as string ) );
+            await this.commandBus.execute( new VerifyHostCommand( pin as string, jwtPayload.id as string ) );
 
             this.tracingWsService.registerRoom( client ); // Registramos La sala en nuestro servicio de Loggeo
               
         } else if( role === SessionRoles.PLAYER ){
   
           // TODO: Verificar uso del Either cuando haya refactoring de errores
-          await this.commandBus.execute( new VerifyConnectionAvailabilityCommand( pin as string, jwt as string ) );
+          await this.commandBus.execute( new VerifyConnectionAvailabilityCommand( pin as string, jwtPayload.id as string ) );
             
         } else {
   
@@ -404,12 +413,15 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
         if( client.data.role !== SessionRoles.PLAYER )
           this.handleError( client, new Error("El Host de la partida no puede unrise a la sesion de juego"));
 
-        const res: Either<Error, LobbyStateUpdateResponse> = 
-          await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
+        // const res: Either<Error, LobbyStateUpdateResponse> = 
+        //   await this.commandBus.execute( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
-        if( res.isRight() ){
+        const result = await this.executor
+                 .executeCommand<LobbyStateUpdateResponse>( new PlayerJoinCommand( client.data.userId, payload.nickname, client.data.roomPin ) );
 
-          const result = res.getRight();
+        // if( res.isRight() ){
+
+          // const result = res.getRight();
 
           // Guardamos el nickname registrado en el dominio en el socket para futuros usos
           client.data.nickname = result.playerLobbyUpdate.nickname;
@@ -432,10 +444,10 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
           this.tracingWsService.registerClientNickname( client );
           this.tracingWsService.logConnectedClients(); // Registramos en logging en memoria
 
-        } else {
+        // } else {
 
-          this.handleError( client, res.getLeft() );
-        }
+        //   this.handleError( client, res.getLeft() );
+        // }
 
 
     }

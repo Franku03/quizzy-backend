@@ -9,4 +9,7 @@ export interface IGroupsDao {
     getGroupLeaderboard(groupId: string): Promise<Optional<GroupLeaderboardReadModel[]>>;
     getKahootLeaderboard(groupId: string, quizId: string): Promise<Optional<KahootLeaderboardReadModel>>;
     getGroupQuizzes(groupId: string, userId: string): Promise<Optional<GroupQuizAssignmentReadModel[]>>;
+    
+    isGroupAdmin(groupId: string, userId: string): Promise<boolean>;
+    isGroupMember(groupId: string, userId: string): Promise<boolean>;
 }

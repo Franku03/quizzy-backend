@@ -1,4 +1,13 @@
-// src/media/application/commands/upload-asset/upload-asset.handler.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\commands\upload-asset\upload-asset.handler.ts
 
 import { Inject } from '@nestjs/common';
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
@@ -22,6 +31,7 @@ import { MimeTypeHelper } from '../../helpers/mime-type.helper';
 import { MEDIA_TOKENS } from '../../dependency-tokens/application-media.tokens';
 import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import type { IAssetUrlGenerator } from '../../ports/i-asset-url-generator.interface';
 
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
@@ -37,6 +47,9 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     
     @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR) 
     private readonly idGenerator: IdGenerator<string>,
+
+    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
+    private readonly urlService: IAssetUrlGenerator,
 
     @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
@@ -92,7 +105,8 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
 
   private mapToResponse(data: AssetMetadataRecord): UploadAssetResponse {
     return { 
-      assetId: data.assetId, 
+      assetId: data.assetId,
+      url: this.urlService.generateUrl(data.publicId), 
       mimeType: data.mimeType, 
       size: data.size, 
       format: data.format, 

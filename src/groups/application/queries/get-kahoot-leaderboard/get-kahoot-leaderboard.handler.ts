@@ -12,14 +12,23 @@ import { KahootLeaderboardReadModel } from "../read-model/kahoot.leaderboard.mod
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 
 @QueryHandler(GetKahootLeaderboardQuery)
 export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeaderboardQuery> {
+    private readonly useCase: string = 'User retrieves the leaderboard of a specific kahoot in a group';
     constructor(
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     ) { }
 
+    @Log()
+    @Authorize(GroupMemberAuthorizer, 'groupsQueryDao')
     async execute(query: GetKahootLeaderboardQuery): Promise<Either<ErrorData, KahootLeaderboardReadModel>> {
         const errorContext = createDomainContext('Group', 'getKahootLeaderboard', {
             domainObjectId: query.groupId,
@@ -33,12 +42,6 @@ export class GetKahootLeaderboardHandler implements IQueryHandler<GetKahootLeade
             const groupOptional = await this.groupRepository.findById(query.groupId);
             if (!groupOptional.hasValue()) {
                 return Either.makeLeft(DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.NOT_FOUND));
-            }
-            const group = groupOptional.getValue();
-
-            const userId = new UserId(query.userId);
-            if (!group.isMember(userId)) {
-                return Either.makeLeft(DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER));
             }
 
             const leaderboardOptional = await this.groupsQueryDao.getKahootLeaderboard(query.groupId, query.quizId);

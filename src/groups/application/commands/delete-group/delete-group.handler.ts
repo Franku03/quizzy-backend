@@ -9,16 +9,28 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 
 
 @CommandHandler(DeleteGroupCommand)
 export class DeleteGroupHandler implements ICommandHandler<DeleteGroupCommand> {
+    private readonly useCase: string = 'Admin deletes a group';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
+    @Log()
+    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: DeleteGroupCommand): Promise<Either<ErrorData, void>> {
         const errorContext = createDomainContext('Group', 'deleteGroup', {
             domainObjectId: command.groupId,
@@ -33,11 +45,6 @@ export class DeleteGroupHandler implements ICommandHandler<DeleteGroupCommand> {
             );
         }
         const group = groupOptional.getValue();
-        if (!group.isAdmin(new UserId(command.userId))) {
-            return Either.makeLeft(
-                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
-            );
-        }
 
         try {
             group.deleteGroup(new UserId(command.userId));

@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\core.module.ts
+
 import { Global, Module } from '@nestjs/common';
 
 // Tokens
@@ -17,6 +28,8 @@ import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
 import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
 import { CommandQueryExecutorService } from './infrastructure/services/command-query-executor.service';
 import { ErrorMappingService } from './infrastructure/services/global-error-mapping.service';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from './infrastructure/filters/all-exceptions.filter';
 
 @Global()
 @Module({
@@ -50,6 +63,12 @@ import { ErrorMappingService } from './infrastructure/services/global-error-mapp
     {
       provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
       useClass: NodeCryptoService,
+    },
+
+    // Filtro de excepciones
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
   exports: [

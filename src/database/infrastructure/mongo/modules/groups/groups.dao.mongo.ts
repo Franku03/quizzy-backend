@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\groups\groups.dao.mongo.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -32,7 +43,7 @@ export class GroupDaoMongo implements IGroupsDao {
         const groups = await this.groupModel.find({ members: { $elemMatch: { id: userId } } }).exec();
         if (!groups) return new Optional<GroupReadModel[]>();
 
-        return new Optional<GroupReadModel[]>(groups.map(group => new GroupReadModel(group.groupId, group.name, group.members.find(member => member.id === userId)?.role ?? '', group.members.length, group.createdAt)));
+        return new Optional<GroupReadModel[]>(groups.map(group => new GroupReadModel(group.groupId, group.name, group.description ?? '', group.members.find(member => member.id === userId)?.role ?? '', group.members.length, group.createdAt)));
     }
 
 
@@ -220,5 +231,35 @@ export class GroupDaoMongo implements IGroupsDao {
         }
 
         return new Optional<GroupQuizAssignmentReadModel[]>(quizAssignments);
+    }
+
+    async isGroupAdmin(groupId: string, userId: string): Promise<boolean> {
+        const group = await this.groupModel
+            .findOne({ groupId })
+            .select({ adminId: 1 })
+            .lean()
+            .exec();
+
+        if (!group) {
+            return false;
+        }
+
+        return group.adminId === userId;
+    }
+
+    async isGroupMember(groupId: string, userId: string): Promise<boolean> {
+        const group = await this.groupModel
+            .findOne({
+                groupId,
+                $or: [
+                    { adminId: userId },
+                    { 'members.id': userId }
+                ]
+            })
+            .select({ groupId: 1 })
+            .lean()
+            .exec();
+
+        return !!group;
     }
 }

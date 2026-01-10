@@ -1,6 +1,6 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards, Delete } from '@nestjs/common';
-import { GetUserId } from 'src/common/decorators/get-user-id-decorator';
-import { MockAuthGuard } from 'src/common/infrastructure/guards/mock-auth-guard';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Delete } from '@nestjs/common';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
 import { GetGroupsByUserQuery } from 'src/groups/application/queries/get-groups-by-user/get-group-by-user.query';
@@ -52,7 +52,7 @@ export class GroupsController {
 
     // Crear un nuevo grupo
     @Post()
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.CREATED) // Status 201
     async create(
         @GetUserId() adminId: string,
@@ -64,7 +64,7 @@ export class GroupsController {
 
     // Obtener grupos del usuario logueado
     @Get()
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async getGroupsByUser(@GetUserId() userId: string): Promise<GroupReadModel[]> {
         const query = new GetGroupsByUserQuery(userId);
@@ -73,7 +73,7 @@ export class GroupsController {
 
     // Modificar información de un grupo
     @Patch(':groupId')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async modifyGroupInformation(
         @Param('groupId') groupId: string,
@@ -87,7 +87,7 @@ export class GroupsController {
 
     // Generar invitación para un grupo
     @Post(':groupId/invitations')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.CREATED)
     async generateInvitation(
         @Param('groupId') groupId: string,
@@ -100,7 +100,7 @@ export class GroupsController {
 
     // Unirse a un grupo
     @Post('/join')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async joinGroup(
         @GetUserId() userId: string,
@@ -113,7 +113,7 @@ export class GroupsController {
 
     // Eliminar un miembro de un grupo
     @Delete(':groupId/members/:targetUserId')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.NO_CONTENT)
     async deleteMember(
         @Param('groupId') groupId: string,
@@ -126,7 +126,7 @@ export class GroupsController {
 
     // Eliminar un grupo
     @Delete(':groupId')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.NO_CONTENT)
     async deleteGroup(
         @Param('groupId') groupId: string,
@@ -139,7 +139,7 @@ export class GroupsController {
 
     // Asignar un kahoot a un grupo
     @Post(':groupId/quizzes')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async assignKahootToGroup(
         @Param('groupId') groupId: string,
@@ -153,7 +153,7 @@ export class GroupsController {
 
     // Transferir el admin de un grupo
     @Patch(':groupId/transfer-admin')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async transferAdmin(
         @Param('groupId') groupId: string,
@@ -166,7 +166,7 @@ export class GroupsController {
 
     // Obtener el leaderboard de un grupo
     @Get(':groupId/leaderboard')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async getGroupLeaderboard(
         @Param('groupId') groupId: string,
@@ -178,7 +178,7 @@ export class GroupsController {
 
     // Obtener el leaderboard de un kahoot
     @Get(':groupId/quizzes/:quizId/leaderboard')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async getKahootLeaderboard(
         @Param('groupId') groupId: string,
@@ -191,7 +191,7 @@ export class GroupsController {
 
     // Obtener los quizzes asignados al grupo con su status y resultados
     @Get(':groupId/quizzes')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async getGroupQuizzes(
         @Param('groupId') groupId: string,
@@ -204,7 +204,7 @@ export class GroupsController {
 
     // Obtener los miembros de un grupo
     @Get(':groupId/members')
-    @UseGuards(MockAuthGuard)
+    @Auth()
     @HttpCode(HttpStatus.OK)
     async getGroupMembers(
         @Param('groupId') groupId: string,

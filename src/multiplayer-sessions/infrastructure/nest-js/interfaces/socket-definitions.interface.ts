@@ -43,6 +43,12 @@ export interface ServerToClientEvents {
   [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
   [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
   [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
+  
+  /*
+  [ServerErrorEvents.FATAL_ERROR]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.SYNC_ERROR]: (payload: ISocketErrorPayload) => void;
+  */
 
   // ... más eventos que el servidor emite
 }
@@ -68,6 +74,12 @@ export interface SocketData {
     role: SessionRoles,
     // isAuthenticated: boolean;
     
+}
+
+export interface ISocketErrorPayload {
+  statusCode: number;
+  message: string;
+  error: string; // El tipo de error (ej: "Bad Request", "Internal Server Error")
 }
 
 

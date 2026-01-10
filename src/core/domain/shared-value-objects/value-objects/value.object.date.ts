@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\domain\shared-value-objects\value-objects\value.object.date.ts
+
 import { ValueObject } from '../../abstractions/value.object';
 
 const ISO_8601_DATE_REGEX = /^(?:\d{4})-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;

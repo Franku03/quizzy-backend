@@ -1,4 +1,14 @@
-// src/kahoots/infrastructure/persistence/postgres/mappers/kahoot.snapshot.pg.mapper.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\postgres\modules\kahoots\mappers\kahoot.snapshot.pg.mapper.ts
+
 import { KahootEntity } from '../../../entities/kahoot/kahoot.entity.pg';
 import { SlideEntity } from '../../../entities/kahoot/slide.entitity.pg';
 import { OptionEntity } from '../../../entities/kahoot/option.entity.pg';
