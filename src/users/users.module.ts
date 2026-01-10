@@ -15,6 +15,7 @@ import { BcryptHasherService } from './infrastructure/external-services/bcrypt-h
 import { GetUserByIdHandler } from './application/queries/get-user-by-id/get-user-by-id.handler';
 import { ChangeUsernameHandler } from './application/commands/change-username/change-username.handler';
 import { DeleteUserHandler } from './application/commands/delete-user/delete-user.handler';
+import { CoreModule } from 'src/core/core.module';
 
 @Module({
   controllers: [UsersController],
@@ -22,6 +23,7 @@ import { DeleteUserHandler } from './application/commands/delete-user/delete-use
     RepositoryFactoryModule.forFeature(RepositoryName.User), 
     DaoFactoryModule.forFeature(DaoName.User), 
     CqrsModule,
+    CoreModule,
   ],
   providers: [
     CreateUserHandler,
@@ -36,6 +38,11 @@ import { DeleteUserHandler } from './application/commands/delete-user/delete-use
       provide: 'IPasswordHasher',
       useClass: BcryptHasherService,
     },
+  ],
+
+  exports: [
+    RepositoryFactoryModule,
+    'IPasswordHasher',
   ],
 })
 export class UsersModule {}

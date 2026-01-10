@@ -35,8 +35,8 @@ async function bootstrap() {
 
   //  4. REGISTRO GLOBAL DEL FILTRO DE EXCEPCIONES
 
-  const errorMappingService = app.get(ErrorMappingService);
-  app.useGlobalFilters(new AllExceptionsFilter(errorMappingService));
+  // const errorMappingService = app.get(ErrorMappingService);
+  // app.useGlobalFilters(new AllExceptionsFilter(errorMappingService));
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\services\asset-resolution.service.ts
+
 import { Injectable, Inject } from "@nestjs/common";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { Either, ErrorData } from "src/core/types";
@@ -11,7 +22,7 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 @Injectable()
 export class AssetResolutionService implements IImageUrlEnricher {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
+    @Inject(DaoName.AssetMetadata)
     private readonly mediaDao: IAssetMetadataDao,
     
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)

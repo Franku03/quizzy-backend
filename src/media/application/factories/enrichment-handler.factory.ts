@@ -1,25 +1,39 @@
-// src/media/application/factories/enrichment-handler.factory.ts
-import { Injectable } from "@nestjs/common";
-import { UrlEnrichmentHandler } from "../handlers/url-enrichment.handler";
-import { ThemeEnrichmentHandler } from "../handlers/theme-enrichemnt.handler";
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\factories\enrichment-handler.factory.ts
+
+import { Injectable, Inject } from "@nestjs/common";
 import { IHasMediaAssets } from "src/core/domain/abstractions/media.assets.interface";
 import { IThemeable } from "src/core/domain/abstractions/themeable.interface";
-import { IUrlConfigurable } from "../ports/i-url-configurable.interface";
-import { MediaEnrichmentHandler } from "../handlers/media-enrichment.handler"; 
+import { AssetEnrichmentHandler } from "../handlers/asset-enrichment.handler";
+import { ThemeEnrichmentHandler } from "../handlers/theme-enrichement.handler";
+import { MEDIA_TOKENS } from "../dependency-tokens/application-media.tokens";
+import type { IThemeEnricher } from "../ports/i-theme-enricher.interface";
 
 @Injectable()
 export class EnrichmentHandlerFactory {
   constructor(
-    private readonly urlHandlerRef: UrlEnrichmentHandler<IHasMediaAssets>,
-    private readonly themeHandlerRef: ThemeEnrichmentHandler<IThemeable & IHasMediaAssets>
+    @Inject(MEDIA_TOKENS.THEME_ENRICHER)
+    private readonly themeEnricher: IThemeEnricher
   ) {}
 
-  public createUrlHandler<T extends IHasMediaAssets>(urlMap: Map<string, string>): IUrlConfigurable<T> {
-    const handler = this.urlHandlerRef as unknown as IUrlConfigurable<T>;
+  // ========== SOLO 2 MÉTODOS BÁSICOS ==========
+
+  public createAssetHandler<T extends IHasMediaAssets>(
+    urlMap: Map<string, string>
+  ): AssetEnrichmentHandler<T> {
+    const handler = new AssetEnrichmentHandler<T>();
     return handler.setContext(urlMap);
   }
 
-  public createThemeHandler<T extends IThemeable & IHasMediaAssets>(): ThemeEnrichmentHandler<T> {
-    return this.themeHandlerRef as unknown as ThemeEnrichmentHandler<T>;
+  public createThemeHandler<T extends IThemeable>(): ThemeEnrichmentHandler<T> {
+    return new ThemeEnrichmentHandler<T>(this.themeEnricher);
   }
 }

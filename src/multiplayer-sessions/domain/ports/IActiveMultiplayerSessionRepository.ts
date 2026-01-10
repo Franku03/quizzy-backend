@@ -14,16 +14,20 @@ export interface ActiveSessionContext {
 // repositorio para las operaciones de tiempo real (búsqueda por PIN, gestión de estado volátil).
 export interface IActiveMultiplayerSessionRepository {
 
-    // ========== LEGACY (NO TOCAR) ==========
+    // ========== LEGACY (NO TOCAR - Compatibilidad) ==========
 
     saveSession(sessionWraper: ActiveSessionContext): Promise<string>;
     findByPin(pin: string): Promise< ActiveSessionContext | null >;
     findByTemporalToken(token: string): Promise<ActiveSessionContext | null>;
-    delete(pin: string): Promise<void>;
-    IsUserSessionHost( pin: string, userId: string ): Promise<boolean>;
+    updateSession(pin: string): Promise<ActiveSessionContext | null>
+    deleteSession(pin: string): Promise<void>;
     
-
-    // findByPin(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
+    // ========== VERSION CON EITHER (ROP - Nueva Arquitectura) ==========
+    saveSessionEither(sessionWraper: ActiveSessionContext): Promise< Either<ErrorData,string> >;
+    findByPinEither(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
+    findByTemporalTokenEither(token: string): Promise< Either<ErrorData,ActiveSessionContext> >;
+    updateSessionEither(pin: string): Promise< Either<ErrorData,ActiveSessionContext> >
+    deleteSessionEither(pin: string): Promise< Either<ErrorData,void> >;
 
 }
 

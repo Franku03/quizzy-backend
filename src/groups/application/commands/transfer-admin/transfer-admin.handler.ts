@@ -15,7 +15,7 @@ import { createDomainContext } from "src/core/errors/helpers/domain-error-contex
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
@@ -31,7 +31,7 @@ export class TransferAdminHandler implements ICommandHandler<TransferAdminComman
         private readonly groupRepository: IGroupRepository,
         @Inject(RepositoryName.User)
         private readonly userRepository: IUserRepository,
-        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
@@ -69,22 +69,26 @@ export class TransferAdminHandler implements ICommandHandler<TransferAdminComman
             }
 
 
-            const currentAdminOptional = await this.userRepository.findUserById(new UserId(command.userId));
+            const currentAdminOptional = await this.userRepository.findById(new UserId(command.userId));
 
 
-            if (!currentAdminOptional) {
+            if (!currentAdminOptional.hasValue()) {
                 return Either.makeLeft(
                     DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.USER_NOT_FOUND)
                 );
             }
 
-            const newAdminOptional = await this.userRepository.findUserById(new UserId(command.newAdminId));
+            const currentAdmin = currentAdminOptional.getValue();
 
-            if (!newAdminOptional) {
+            const newAdminOptional = await this.userRepository.findById(new UserId(command.newAdminId));
+
+            if (!newAdminOptional.hasValue()) {
                 return Either.makeLeft(
                     DomainErrorFactory.notFound(errorContext, GROUP_ERRORS.USER_NOT_FOUND)
                 );
             }
+
+            const newAdmin = newAdminOptional.getValue();
 
             group.transferAdmin(new UserId(command.userId), new UserId(command.newAdminId));
 
@@ -95,11 +99,11 @@ export class TransferAdminHandler implements ICommandHandler<TransferAdminComman
             return Either.makeRight({
                 groupId: group.getId().value,
                 previousAdmin: {
-                    userId: currentAdminOptional.id.value,
+                    userId: currentAdmin.id.value,
                     role: GroupMemberRole.MEMBER,
                 },
                 newAdmin: {
-                    userId: newAdminOptional.id.value,
+                    userId: newAdmin.id.value,
                     role: GroupMemberRole.ADMIN,
                 },
                 transferredAt: new Date(),

@@ -1,4 +1,13 @@
-// src/media/infrastructure/nest-js/media.controller.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\infrastructure\nest-js\media.controller.ts
 
 import {
   Controller,
@@ -18,6 +27,7 @@ import { UploadAssetResponse } from 'src/media/application/dtos/upload-asset.res
 import { GetThemesQuery } from 'src/media/application/queries/get-themes/get-themes.query';
 import { ThemeResponse } from 'src/media/application/dtos/theme.response.dto';
 import { GetThemesDTO } from '../dtos/get-themes.dto';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 
 @Controller('media')
 export class MediaController {
@@ -26,6 +36,7 @@ export class MediaController {
   ) { }
 
   @Post('upload')
+  @Auth()
   @UseInterceptors(FileInterceptor('file'))
   async uploadAsset(@UploadedFile() file: File): Promise<UploadAssetResponse> {
     if (!file) {
@@ -42,8 +53,8 @@ export class MediaController {
   }
 
   @Get('themes')
-    async getThemes(@Query() params: GetThemesDTO): Promise<ThemeResponse[]> {
-        const query = new GetThemesQuery(params);
-        return await this.executor.executeQuery<ThemeResponse[]>(query);
-    }
+  async getThemes(@Query() params: GetThemesDTO): Promise<ThemeResponse[]> {
+    const query = new GetThemesQuery(params);
+    return await this.executor.executeQuery<ThemeResponse[]>(query);
+  }
 }

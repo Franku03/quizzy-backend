@@ -7,16 +7,20 @@ import { PlayerFactory } from "src/multiplayer-sessions/domain/factories/player.
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
-import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ActiveSessionContext, IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
-import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
-import { mapJoinToStateUpdate } from "../../mappers";
+import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';
-import { GameStateUpdateResponse } from "../../response-dtos/game-state-update.response.dto";
-import { COMMON_ERRORS } from "../common.errors";
+import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update.response.dto";
+
+import { ErrorData } from "src/core/types";
+import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
+import { pipeAsync } from "src/core/errors/helpers/pipe-async";
+import { Player } from "src/multiplayer-sessions/domain/entity/session.player";
+import { SessionResourcesForPlayerJoin } from "../context/session-resources.context.interface";
 
 
 @CommandHandler( PlayerJoinCommand )
@@ -28,49 +32,167 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
         @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
         private readonly usersDao: IUserDao,
-
-        private readonly mediaService: MediaEnrichmentService,
     ){}
 
-    async execute(command: PlayerJoinCommand): Promise<Either<Error, GameStateUpdateResponse>> {
 
+    async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateUpdateResponse>> {
 
-        try {
-            // Cargamos el agregado session desde el repositorio en memoria
-            const sessionWrapper = await this.sessionRepository.findByPin( command.sessionPin );
+        // Contexto para logs
+        const appContext = createMultiplayerSessionAppContext('playerJoin', undefined, command.userId, command.sessionPin );
 
-            if( !sessionWrapper )
-                return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
+        return pipeAsync<ErrorData, LobbyStateUpdateResponse>(
+            
+            // 1. INICIO: Arrancamos con el comando
+            Either.makeRight(command),
 
-            const { session, kahoot } = sessionWrapper
+            // 2. OBTENER SESIÓN
+            // Necesitamos la sesión Y mantener el comando vivo para los siguientes pasos.
+            // Input: Command -> Output: Promise<Either<Error, ActiveSessionContext>>
+            cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
 
+            // 3. LÓGICA DE NEGOCIO (Buscar User + Crear Player + Unir)
+            // Aquí manejamos la lógica de "Invitado vs Registrado"
+            // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
+            ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
 
+            // 4. PERSISTENCIA
+            // actualizamos 'lastActivity' en el repo
+            // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
+            ctx => ctx.chainAsync(c => this.persistState(c)),
 
-            // Buscamos el usuario que se quiere unir (si es que existe), de no ser asi lo unimos a la partida como invitado
-            const result = await this.usersDao.getUserById(command.userId);
- 
-            const player = PlayerFactory.createPlayerForSession( 
-                result.hasValue() ? result.getValue().id : command.userId, // Si no se encontro el usuario, pasamos el id que viene del JWT de invitado
-                command.nickname, 
-                !result.hasValue() // Si no se encontro el usuario, es un invitado
-            );
+            // 5. RESPUESTA
+            // Mapeamos a la respuesta que espera el Gateway
+            ctx => ctx.map(c => mapJoinToLobbyUpdate(c.player, c.sessionCtx.session)),
 
-            // Unimos el jugador a la partida
-            // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
-            session.joinPlayer( player );
-
-            const res = mapJoinToStateUpdate(player, session, kahoot);
-
-            // const enrichedRes = await this.mediaService.enrichSlide( res.playerStateUpdate.currentSlideData!);
-
-            return Either.makeRight( res ); 
-
-        } catch (error) {
-
-            return Either.makeLeft( error );
-
-        }
-
+            // 6. MANEJO DE ERRORES
+            result => result.mapLeft(err => err.setContext(appContext))
+        );
     }
+
+
+    // --- MÉTODOS PRIVADOS (PASOS DEL TREN) ---
+
+    /**
+     * Paso 2: Busca la sesión y prepara el contexto combinado.
+     */
+    private async addSessionToContext(
+        command: PlayerJoinCommand
+    ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
+        // Usamos el método Either del repositorio que acabamos de crear
+        const sessionResult = await this.sessionRepository.findByPinEither(command.sessionPin);
+
+        // Si encontramos la sesión, combinamos los datos
+        return sessionResult.map( sessionCtx => ({ 
+                sessionCtx, 
+                command 
+        }));
+    }
+
+    /**
+     * Paso 3: Resuelve la identidad (User vs Guest), crea el Player y actualiza la Session.
+     */
+    private async processPlayerJoin(
+        ctx: SessionResourcesForPlayerJoin,
+    ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
+        const { sessionCtx, command } = ctx; // Desempaquetamos
+        const { session } = sessionCtx;
+
+        // A. Buscar usuario (Bifurcación suave)
+        const userResult = await this.usersDao.getUserById(command.userId);
+        const isRegistered = userResult.hasValue();
+
+        // B. Determinar ID y Rol
+        const finalId = isRegistered ? userResult.getValue().id : command.userId;
+        const isGuest = !isRegistered;
+
+        // C. Crear Factory Player
+        const playerResult = PlayerFactory.createPlayerForSession(
+            finalId,
+            command.nickname,
+            isGuest
+        );
+
+
+        // D. Lógica de Dominio dentro del MAP
+        // Si playerResult es Left, este bloque se salta y retornamos el Left directamente.
+        // Si es Right, ejecutamos la lógica y retornamos el nuevo contexto.
+        return playerResult.map( player => {
+            
+            if (session.isPlayerAlreadyJoined(player.id)) {
+                session.deletePlayer(player.id);
+            }
+
+            // D. Lógica de Dominio (Reingreso)
+            // TODO: Aquí podrías añadir validación: if (!session.canJoin()) return Either.makeLeft(...) De ser asi esto ya no seria un map sino un chain
+            // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
+
+            session.joinPlayer(player);
+
+            // Retornamos la bola de nieve más grande
+            return {
+                sessionCtx: sessionCtx,
+                command: command,
+                player: player
+            };
+        });
+    }
+
+    /**
+     * Paso 4: Persistencia explicita.
+     * Aunque modifiquemos la sesión en memoria, llamar a updateSession actualiza timestamps.
+     */
+    private async persistState(ctx: SessionResourcesForPlayerJoin ) {
+
+        const saveResult = await this.sessionRepository.updateSessionEither( ctx.sessionCtx.session.getSessionPin() );
+        
+        // Si se guarda OK, seguimos pasando los datos que necesitamos para la respuesta final
+        return saveResult.map(() => ctx);
+    }
+
+
+    // async execute(command: PlayerJoinCommand): Promise<Either<Error, LobbyStateUpdateResponse>> {
+
+
+    //     try {
+    //         // Cargamos el agregado session desde el repositorio en memoria
+    //         const sessionWrapper = await this.sessionRepository.findByPin( command.sessionPin );
+
+    //         if( !sessionWrapper )
+    //             return Either.makeLeft( new Error(COMMON_ERRORS.SESSION_NOT_FOUND) );
+
+    //         const { session } = sessionWrapper
+
+
+
+    //         // Buscamos el usuario que se quiere unir (si es que existe), de no ser asi lo unimos a la partida como invitado
+    //         const result = await this.usersDao.getUserById(command.userId);
+ 
+    //         const player = PlayerFactory.createPlayerForSession( 
+    //             result.hasValue() ? result.getValue().id : command.userId, // Si no se encontro el usuario, pasamos el id que viene del JWT de invitado
+    //             command.nickname, 
+    //             !result.hasValue() // Si no se encontro el usuario, es un invitado
+    //         );
+
+    //         // Unimos el jugador a la partida
+    //         // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
+
+    //         // Primero verificamos si ya estaba unido, de ser así borramos manualmente su anterior registro y ponemos el nuevo actualizado
+    //         // Recordemos que este evento ahora se emite manualmente solo al dar nickname
+    //         if( session.isPlayerAlreadyJoined( player.id ) )
+    //             session.deletePlayer( player.id )
+
+    //         session.joinPlayer( player );
+
+    //         const res = mapJoinToLobbyUpdate( player, session );
+
+    //         return Either.makeRight( res ); 
+
+    //     } catch (error) {
+
+    //         return Either.makeLeft( error );
+
+    //     }
+
+    // }
 
 }

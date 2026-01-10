@@ -1,4 +1,14 @@
-// src/kahoots/application/services/kahoot.mapper.service.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\application\mappers\kahoot.response.mapper.ts
+
 import { Injectable } from '@nestjs/common';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootHandlerResponseDto } from '../dtos/kahoot.handler.response.dto';
@@ -6,7 +16,7 @@ import { SlideHandlerResponseDto } from '../dtos/kahoot.slide.handler.response.d
 import { OptionHandlerResponseDto } from '../dtos/kahoot.slide.option.handler.response.dto';
 import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
 import { OptionSnapshot } from 'src/core/domain/snapshots/snapshot.option';
-import { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 @Injectable()
 export class KahootMapperService implements IMapper<KahootSnapshot, KahootHandlerResponseDto> {

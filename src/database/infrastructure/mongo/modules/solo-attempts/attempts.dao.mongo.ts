@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\solo-attempts\attempts.dao.mongo.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -15,6 +26,8 @@ import {
 import { NextSlideReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { AttemptInspectReadModel, AttemptGameStateReadModel } from 'src/solo-attempts/application/queries/read-models/inspect.attempt.read.model';
+
 
 @DaoMongo(DaoName.SoloAttempt)
 @Injectable()
@@ -209,6 +222,58 @@ export class SoloAttemptQueryDaoMongo implements ISoloAttemptQueryDao {
         avgTime,
         questionResults,
       ),
+    );
+  }
+
+
+  async inspectAttempt(kahootId: string, userId: string): Promise<Optional<AttemptInspectReadModel>> {
+    // Priority 1: Check for an IN_PROGRESS attempt.
+    // We use findOne to get the first encountered match.
+    let attempt = await this.attemptModel.findOne({
+      playerId: userId,
+      kahootId: kahootId,
+      status: AttemptStatusEnum.IN_PROGRESS,
+    }).exec();
+
+    if (attempt) {
+      const gameState = new AttemptGameStateReadModel(
+        attempt.id,
+        attempt.totalScore,
+        attempt.progress.questionsAnswered,
+        attempt.progress.totalQuestions,
+        attempt.timeDetails.lastPlayedAt,
+      );
+      
+      return new Optional(
+        new AttemptInspectReadModel(true, false, gameState)
+      );
+    }
+
+    // Priority 2: If no active game, check for a COMPLETED attempt.
+    attempt = await this.attemptModel.findOne({
+      playerId: userId,
+      kahootId: kahootId,
+      status: AttemptStatusEnum.COMPLETED,
+    }).exec();
+
+    if (attempt) {
+      const gameState = new AttemptGameStateReadModel(
+        attempt.id,
+        attempt.totalScore,
+        attempt.progress.questionsAnswered,
+        attempt.progress.totalQuestions,
+        attempt.timeDetails.lastPlayedAt,
+      );
+
+      return new Optional(
+        new AttemptInspectReadModel(false, true, gameState)
+      );
+    }
+
+    // Fallback: No attempt found (neither in-progress nor completed).
+    // Return model with all flags false and no game state.
+    return new Optional(
+      new AttemptInspectReadModel(false, false, null)
     );
   }
 }

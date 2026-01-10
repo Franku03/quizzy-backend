@@ -1,5 +1,14 @@
-// src/kahoots/infrastructure/persistence/mongo/mappers/kahoot-read.mapper.ts
-import { Injectable } from '@nestjs/common';
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\kahoots\mappers\kahoot.handler.mapper.ts
+
 import { 
   IKahootDocument, 
   SlideSnapshot, 
@@ -7,9 +16,9 @@ import {
 } from '../../../entities/kahoots.schema';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.type';
-import { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
-@Injectable()
+
 export class KahootReadMapper implements IMapper<IKahootDocument, KahootSnapshot> {
 
   // ==========================================

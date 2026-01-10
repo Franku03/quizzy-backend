@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\types\either.ts
+
 export class Either<TLeft, TRight> {
     private readonly value: TLeft | TRight;
     private readonly left: boolean;
@@ -80,6 +91,34 @@ export class Either<TLeft, TRight> {
         const result = await fn(this.getRight());
         if (result.isLeft()) return Either.makeLeft<TLeft, TRight>(result.getLeft());
         return Either.makeRight<TLeft, TRight>(this.getRight());
+    }
+
+    /**
+     * Ejecuta un efecto asíncrono solo si es Left y retorna el Either original.
+     */
+    async tapLeftAsync(fn: (err: TLeft) => Promise<void>): Promise<Either<TLeft, TRight>> {
+        if (this.isLeft()) {
+            await fn(this.getLeft());
+        }
+        return this;
+    }
+
+    // --- Flujos Condicionales (Sincrónicos) ---
+
+    /** Ejecuta el encadenamiento solo si NO se cumple la condición proporcionada */
+    chainUnless<TNewRight>(
+        condition: (val: TRight) => boolean,
+        fn: (val: TRight) => Either<TLeft, TNewRight>
+    ): Either<TLeft, TRight | TNewRight> {
+        if (this.isLeft()) return Either.makeLeft(this.getLeft());
+
+        // Si la condición se cumple, "saltamos" la función y seguimos con el valor actual
+        if (condition(this.getRight())) {
+            return Either.makeRight(this.getRight());
+        }
+
+        // Si no se cumple, ejecutamos la lógica
+        return fn(this.getRight());
     }
 
     // --- Flujos Condicionales (Asincrónicos) ---

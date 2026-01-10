@@ -1,49 +1,132 @@
-// multiplayer-session.repository.ts
-import { Injectable } from '@nestjs/common';
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\multiplayer-session\multiplayer-session.repository.mongo.ts
+
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+
 import { MultiplayerSession } from 'src/multiplayer-sessions/domain/aggregates/multiplayer-session';
+import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
+import { SlideId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.slide.id';
+
 import { MultiplayerSessionMongo } from '../../entities/multiplayer-session.schema';
 import { IMultiplayerSessionHistoryRepository } from 'src/multiplayer-sessions/domain/ports';
 import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
+import { MULTIPLAYER_SESSIONS_MONGO_BASE } from './constants/multiplayer-session.mongo-constants';
+
+import { Either, ErrorData } from 'src/core/types';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 
 @RepositoryMongo(RepositoryName.MultiplayerSession)
 @Injectable()
 export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSessionHistoryRepository {
+
+  private readonly contextBase = MULTIPLAYER_SESSIONS_MONGO_BASE;
+  private readonly adapterName = MultiplayerSessionMongo.name;
+  private readonly portName = 'IMultiplayerSessionHistoryRepository';
+
+
   constructor(
     @InjectModel(MultiplayerSessionMongo.name) 
-    private readonly sessionModel: Model<MultiplayerSessionMongo>
+    private readonly sessionModel: Model<MultiplayerSessionMongo>,
+
+    @Inject(ERROR_TOKENS.MAPPERS.MONGO)
+    private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
   ) {}
 
- async archiveSession(session: MultiplayerSession): Promise<void> {
-  try {
+
+  async archiveSessionEither( session: MultiplayerSession, kahoot: Kahoot ): Promise<Either<ErrorData, void>> {
+
+    const ctx = this.getCtx('save', session.id.value);
+
+    const sessionData = this.mapToPersistence( session, kahoot );
+
+    const result = await Either.tryCatch(
+      this.sessionModel.findOneAndUpdate(
+        
+        { sessionId: session.id.value },
+        { $set: sessionData },
+        { upsert: true, new: true, runValidators: true }
+
+      ).exec(),
+      ( err ) => this.mongoErrorMapper.toErrorData( err, ctx )
+    );
+
+    return result.map( () => undefined );
+
+  }
+
+
+ async archiveSession(session: MultiplayerSession, kahoot: Kahoot ): Promise<void> {
+
+    const result = await this.archiveSessionEither( session, kahoot );
+
+    if (result.isLeft()) throw result.getLeft();
+
+ } 
+
+
+  // ==========================================
+  // HELPERS PRIVADOS
+  // ==========================================
+
+  /**
+   * Genera el contexto usando la factory del Core.
+   */
+  private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
+    return createDatabaseContext(
+      this.contextBase,
+      this.adapterName,
+      this.portName,
+      operation,
+      entityId,
+      extra
+    );
+  }
+
+
+  private mapToPersistence( session: MultiplayerSession, kahoot: Kahoot ) {
+
     const props = session.props();
-    
-    // ... (tu código de playersArray está bien) ...
+
+    // Mapear información de jugadores
+
     const playersArray = Array.from(props.players.entries()).map(([playerIdValue, player]) => ({
       playerId: playerIdValue,
       nickname: player.getPlayerNickname(),
       score: player.getScore(),
+      isGuest: player.isGuest(),
+      answersSubmitted: session.getOnePlayerAnswers( player.id ).filter( answer => answer !== undefined ).length,
     }));
 
-    const slideResultsArray = Array.from(props.playersAnswers.entries()).map(([slideIdValue, slideResult]) => {
+
+    // Mappear resultados de cada Slide
+    const slideResultsArray = Array.from( props.playersAnswers.entries() ).map(([slideIdValue, slideResult]) => {
+
         const playerAnswers = slideResult.getPlayersAnswers();
         
         // Mapear submissions
-        const submissions = playerAnswers.map(answer => ({
+        const submissions = playerAnswers.map( answer => ({
           playerId: answer.getPlayerId().value,
           slideId: slideIdValue,
-          answerIndex: answer.getAnswerIndex(),
-          isAnswerCorrect: answer.isCorrect(),
+          // answerIndex: answer.getAnswerIndex(),
           earnedScore: answer.getEarnedScore(),
-          
-          // --- CORRECCIÓN 1: timeElapsed ---
-          // El log mostraba "timeElapsed: [ResponseTime]"
-          // Asumimos que tiene .value o .getValue() para obtener el número
-          timeElapsed: answer.getTimeElapsed().toMilliseconds(), 
-          
-          answerContent: answer.getProperties().answerContent?.map(content => ({
+          timeElapsed: answer.getTimeElapsed().toMilliseconds(),       
+          isAnswerCorrect: answer.isCorrect(),
+          answerSelected: answer.getProperties().answerContent.map(( content, index )=> ({
+            answerIndex: answer.getAnswerIndex()[index] ,
             isCorrect: content.isCorrect,
             answerContent: {
               type: content.hasImage() ? 'IMAGE' : 'TEXT',
@@ -52,89 +135,71 @@ export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSes
           })) || []
         }));
 
-        // Helper para no repetir código y limpiar la lectura
-        const snapshot = playerAnswers.length > 0 ? playerAnswers[0].getQuestionSnapshot() : null;
+        // Mappear los Datos de la Slide jugada
+        const currentSlideSnapshot = kahoot.getSlideSnapshotById( new SlideId( slideIdValue ) );
+
+        const optionsSnapshot = currentSlideSnapshot?.options.map( (options, index) => ({
+              index: index,
+              type: options.optionImageId ? 'IMAGE' : 'TEXT',
+              value: options.optionImageId ? options.optionImageId : options.optionText,
+              isCorrect: options.isCorrect,
+        }))
 
         return {
+
           slideId: slideIdValue,
-          slidePosition: 0, 
-          
-          questionSnapshot: snapshot ? {
-            questionText: snapshot.questionText,
-            
-            // --- CORRECCIÓN 2: basePoints ---
-            // Antes: snapshot.basePoints (Objeto Points)
-            // Ahora: snapshot.basePoints.value (Número 1000)
-            basePoints: snapshot.basePoints.value, 
-
-            // --- CORRECCIÓN 3: timeLimit ---
-            // Antes: snapshot.timeLimit (Objeto TimeLimitSeconds)
-            // Ahora: snapshot.timeLimit.value (Número)
-            timeLimit: snapshot.timeLimit.value,
-
-            // --- CORRECCIÓN 4: correctAnswerIndices ---
-            // Antes: estabas pasando "snapshot" (el objeto entero) a este campo
-            // Ahora: pasamos la propiedad específica dentro del snapshot
-            // correctAnswerIndices: snapshot
+          slidePosition: currentSlideSnapshot?.position ?? 0,
+          numberOfSubmissions: slideResult.getPlayersAnswers().length,
+          questionData: currentSlideSnapshot ? {
+            questionText: currentSlideSnapshot.questionText,
+            basePoints: currentSlideSnapshot.pointsValue, 
+            timeLimit: currentSlideSnapshot.timeLimitSeconds,
+            optionsContent: optionsSnapshot
           } : {
             questionText: '',
             basePoints: 0,
             timeLimit: 0,
-            // correctAnswerIndices: []
+            correctAnswerIndices: []
           },
+
           submissions: submissions,
-          // startedAt: new Date(), 
-          // endedAt: new Date() 
+
         };
       });
 
+
       const sessionData = {
+
         sessionId: session.id.value,
         hostId: props.hostId.value,
         kahootId: props.kahootId.value,
         sessionPin: props.sessionPin.getPin(),
-        state: props.sessionState.getActualState(),
         
         timeDetails: {
           startedAt: props.startedAt.value,
-          lastActivityAt: new Date(),
           completedAt: props.completedAt.hasValue() ? props.completedAt.getValue().value : null
         },
-        
-        progress: {
-          // currentSlideId: null, // Ojo: ¿seguro que quieres null aquí siempre?
-          // currentQuestionStartTime: null,
-          // slideOrder: [],
-          currentSlideIndex: 0,
-          totalSlides: props.progress.getNumberOfTotalSlides()
-        },
-        
+         
         ranking: props.ranking.getEntries().map(entry => ({
           playerId: entry.getPlayerId().value,
           nickname: entry.getNickname(),
           score: entry.getScore(),
           rank: entry.getRank(),
-          previousRank: entry.getPreviousRank()
         })),
         
         players: playersArray,
+
+        totalProgress: {
+          lastSlidePlayedId: props.progress.getCurrentSlide().value,
+          totalSlidesPlayed: props.progress.getNumberOfSlidesAnswered()
+        },
+
         slideResults: slideResultsArray,
+
       };
 
-      await this.sessionModel.findOneAndUpdate(
-        { sessionId: sessionData.sessionId },
-        { $set: sessionData },
-        { 
-          upsert: true, 
-          new: true,
-          runValidators: true 
-        }
-      );
+      return sessionData;
 
-    } catch (error) {
-      console.error('Error saving multiplayer session:', error);
-      throw new Error(`Failed to save session: ${error.message}`);
-    }
-  } 
+  }
 
 }

@@ -20,8 +20,9 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   async execute(command: DeleteUserCommand): Promise<Either<UserNotFoundError, void>> {
     const userId = new UserId(command.userId);
 
-    const user = await this.userRepo.findUserById(userId);
-    if (!user) {
+    const userOptional = await this.userRepo.findById(userId);
+
+    if (!userOptional.hasValue()) {
       return Either.makeLeft(new UserNotFoundError(command.userId));
     }
 

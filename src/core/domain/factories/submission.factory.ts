@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\domain\factories\submission.factory.ts
+
 import { Optional } from "src/core/types/optional";
 
 import { SlideId } from "../shared-value-objects/id-objects/kahoot.slide.id";
@@ -81,7 +92,7 @@ export class SubmissionFactory {
 
         const optAnswerIndexes = new Optional(answerIndexes);
 
-        const timeElapsed = new ResponseTime(timeElapsedMs);
+        const timeElapsed = ResponseTime.fromMilliseconds(timeElapsedMs);
 
         return new Submission(
             slideId,

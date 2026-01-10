@@ -20,10 +20,15 @@ export const mapQuestionToSyncState = (
 
     let currentSlideSnapshot: SlideSnapshot | null = kahoot.getSlideSnapshotById( currentSlideId );
         
-    // Calculamos tiempo restante
+    // 1) Calculamos tiempo transcurrido (en Milisegundos)
     const timeElapsed = Date.now() - session.getCurrentQuestionStartTime().getTime();
-    // Básicamente calcula el tiempo restante, pero si ya se acabó, devuelve 0, nunca un número negativo".
-    const timeRemaining = Math.max(0, currentSlideSnapshot?.timeLimitSeconds! - timeElapsed);
+    
+    // 2) Convertimos el límite de la slide a Milisegundos
+    const timeLimitMs = (currentSlideSnapshot?.timeLimitSeconds || 0) * 1000;
+
+    // 3) Ahora la resta tiene sentido (ms - ms)
+    const timeRemaining = Math.max(0, timeLimitMs - timeElapsed);
+    
 
     const hasAnswered = !isHost(userInfo.userId, session.getHostId().value)
                             ? session.hasPlayerAnsweredSlide( currentSlideId, playerId )
@@ -40,7 +45,7 @@ export const mapQuestionToSyncState = (
         },
 
         additionalData: {
-            timeRemaining: timeRemaining,
+            timeRemainingMs: timeRemaining,
             // Importante: Chequear si ya respondió para bloquear la capacidad de respuesta o renderizar el front de otra forma
             hasAnswered: hasAnswered
         }

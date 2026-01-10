@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, Param, Req, HttpStatus, HttpCode, Get } from '@nestjs/common';
 import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
 import { StartSoloAttemptCommand } from 'src/solo-attempts/application/commands/start-attempt/start-attempt.command';
@@ -11,7 +11,10 @@ import { AttemptSummaryReadModel } from 'src/solo-attempts/application/queries/r
 import { AttemptResumeReadModel } from 'src/solo-attempts/application/queries/read-models/resume.attempt.read.model';
 import { GetAttemptStatusQuery } from 'src/solo-attempts/application/queries/get-attempt/get-attempt.query';
 import { ATTEMPT_ERROR_CODES } from 'src/solo-attempts/domain/errors/attempt.errors.codes';
-import { Headers } from '@nestjs/common';
+
+// Helpers & Guards
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 
 @Controller('attempts')
 export class SoloAttemptsController {
@@ -19,10 +22,10 @@ export class SoloAttemptsController {
   
   // This endpoint starts a new Single Player Session.
   // It corresponds to the POST /attempts specification in the API docs.
-  // @UseGuards(JwtAuthGuard) 
   @Post()
+  @Auth()
   @HttpCode(HttpStatus.CREATED)
-  async startAttempt(@Headers('userid') userId: string, @Body('kahootId') kahootId: string, @Req() req: any) {
+  async startAttempt(@GetUserId() userId: string, @Body('kahootId') kahootId: string) {
     try {
         // User module is not ready yet, so for testing we get userId from headers
         if (!userId) { 
@@ -60,10 +63,10 @@ export class SoloAttemptsController {
   // This endpoint retrieves the current state of a singleplayer attempt
   // It allows the user to resume a paused game by returning the next slide
   // to answer if the attempt is still in progress
-  // @UseGuards(JwtAuthGuard)
   @Get(':attemptId')
+  @Auth()
   @HttpCode(HttpStatus.OK)
-  async getResumeContext(@Headers('userid') userId: string, @Param('attemptId') attemptId: string, @Req() req: any) {
+  async getResumeContext(@GetUserId() userId: string, @Param('attemptId') attemptId: string) {
     try {
       // We extract the authenticated user's ID from the request object
       // const userId = req.user?.id;
@@ -95,12 +98,12 @@ export class SoloAttemptsController {
   // This endpoint submits an answer for a specific attempt.
   // It corresponds to the POST /attempts/:attemptId/answer specification in the API docs.
   @Post(':attemptId/answer')
+  @Auth()
   @HttpCode(HttpStatus.OK)
   async submitAnswer(
-    @Headers('userid') userId: string,
+    @GetUserId() userId: string,
     @Param('attemptId') attemptId: string,
     @Body() body: any,
-    @Req() req: any
   ) {
     try {
       
@@ -159,9 +162,10 @@ export class SoloAttemptsController {
     // This endpoint retrieves the summary of a completed solo attempt
     // It corresponds to GET /attempts/:attemptId/summary in the API docs
     // The summary includes final score, total correct answers, and accuracy percentage
-    // @UseGuards(JwtAuthGuard)
     @Get(':attemptId/summary')
-    async getAttemptSummary(@Headers('userid') userId: string, @Param('attemptId') attemptId: string) {
+    @Auth()
+    @HttpCode(HttpStatus.OK)
+    async getAttemptSummary(@GetUserId() userId: string, @Param('attemptId') attemptId: string) {
       try {
         // Execute the query to get the attempt summary
         // The query handler will return a summary if a completed attempt is found for that attempt ID

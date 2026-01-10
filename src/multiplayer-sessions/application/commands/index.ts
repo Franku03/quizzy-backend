@@ -10,6 +10,7 @@ export * from './verify-pin/verify-pin.command';
 export * from './verify-host/verify-host.command';
 export * from './verify-connection-availability/verify-connection-availability.command';
 export * from './sync-state/sync-state.command';
+export * from './delete-session/delete-session.command'
 
 // HANDLERS
 export * from './create-session/create-session.handler'
@@ -23,6 +24,7 @@ export * from './verify-pin/verify-pin.handler';
 export * from './verify-host/verify-host.handler';
 export * from './verify-connection-availability/verify-connection-availability.handler';
 export * from './sync-state/sync-state.handler';
+export * from './delete-session/delete-session.handler'
 
 // ERRORS
 export * from './create-session/create-session.errors'

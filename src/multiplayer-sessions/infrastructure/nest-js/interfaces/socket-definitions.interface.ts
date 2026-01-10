@@ -4,7 +4,7 @@ import {
   HostEndGameResponse, 
   HostLobbyUpdateResponse, 
   PlayerEndGameResponse, 
-  PlayerStateUpdateResponse, 
+  PlayerLobbyUpdateResponse, 
   PlayerSubmitAnswerResponse, 
   QuestionResultsHostResponse, 
   QuestionResultsPlayerResponse, 
@@ -13,7 +13,7 @@ import {
 
 import { SessionClosed } from "../dtos/session-closed.response.dto";
 import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
-import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents } from '../enums/websocket.events.enum';
+import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents, ClientEvents } from '../enums/websocket.events.enum';
 
 import { SessionRoles } from "../enums/session-roles.enum";
 
@@ -24,7 +24,7 @@ export interface ServerToClientEvents {
   [ServerEvents.HOST_CONNECTED_SUCCESS]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
   [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
   [ServerEvents.HOST_LOBBY_UPDATE]: (payload: HostLobbyUpdateResponse) => void;
-  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerStateUpdateResponse ) => void;  
+  [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerLobbyUpdateResponse ) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 
   [ServerEvents.HOST_ANSWERS_UPDATE]:(payload: PlayerSubmitAnswerResponse ) => void; 
 
@@ -32,18 +32,32 @@ export interface ServerToClientEvents {
   [ServerEvents.HOST_RESULTS]:(payload: QuestionResultsHostResponse ) => void;
   [ServerEvents.PLAYER_RESULTS]:(payload: QuestionResultsPlayerResponse ) => void;
   [ServerEvents.HOST_GAME_END]:(payload: HostEndGameResponse ) => void; 
-  [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void; 
+  [ServerEvents.PLAYER_GAME_END]:(payload: PlayerEndGameResponse ) => void;
+  [ServerEvents.PLAYER_LEFT_SESSION]:(payload: { userId: string, nickname: string, message: string}) => void; 
+  [ServerEvents.HOST_LEFT_SESSION]:(payload: { message: string }) => void; 
+  [ServerEvents.HOST_RETURNED_TO_SESSION]:(payload: { message: string }) => void; 
   [ServerEvents.SESSION_CLOSED]:(payload: SessionClosed ) => void; 
 
 
    // Errores
   [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
   [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
+  [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
+  
+  /*
+  [ServerErrorEvents.FATAL_ERROR]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.SYNC_ERROR]: (payload: ISocketErrorPayload) => void;
+  */
+
   // ... más eventos que el servidor emite
 }
 
 // Eventos que los Clientes envían al Servidor
 export interface ClientToServerEvents {
+
+  [ClientEvents.CLIENT_READY]: () => void;
+
   [PlayerUserEvents.PLAYER_JOIN]: (payload: {}) => void;
   [PlayerUserEvents.PLAYER_SUBMIT_ANSWER]: (payload: PlayerSubmitAnswerDto ) => void;
 
@@ -60,6 +74,12 @@ export interface SocketData {
     role: SessionRoles,
     // isAuthenticated: boolean;
     
+}
+
+export interface ISocketErrorPayload {
+  statusCode: number;
+  message: string;
+  error: string; // El tipo de error (ej: "Bad Request", "Internal Server Error")
 }
 
 

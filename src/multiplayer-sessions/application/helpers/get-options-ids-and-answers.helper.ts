@@ -2,10 +2,10 @@ import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { COMMON_ERRORS } from "../commands/common.errors";
 
-export const getOptionsIdsAndCorrectAnswers = ( kahoot: Kahoot, previousSlideId: SlideId )  => { 
+export const getOptionsIdsAndCorrectAnswers = ( kahoot: Kahoot, slideId: SlideId )  => { 
 
     
-    const currentSlideSnapshot = kahoot.getSlideSnapshotById( previousSlideId );
+    const currentSlideSnapshot = kahoot.getSlideSnapshotById( slideId );
 
     if( !currentSlideSnapshot )
         throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND);

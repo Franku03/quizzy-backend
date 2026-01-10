@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\users\users.repository.mongo.ts
+
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -12,59 +23,87 @@ import { UserEmail } from 'src/users/domain/value-objects/user.email';
 import { UserName } from 'src/users/domain/value-objects/user.user-name';
 import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { Optional } from 'src/core/types/optional'; 
 
 @RepositoryMongo(RepositoryName.User)
 @Injectable()
 export class UserRepositoryMongo implements IUserRepository {
-
   constructor(
     @InjectModel(UserMongo.name)
     private readonly userModel: Model<UserMongo>,
   ) {}
 
   async save(user: User): Promise<void> {
-    const persistenceData = UserMapper.toPersistence(user);
-
-    await this.userModel.updateOne(
-      { userId: persistenceData.userId },
-      { $set: persistenceData },
-      { upsert: true }
-    ).exec();
+    try {
+      const persistenceData = UserMapper.toPersistence(user);
+      await this.userModel.updateOne(
+        { userId: persistenceData.userId },
+        { $set: persistenceData },
+        { upsert: true }
+      ).exec();
+    } catch (error) {
+      throw new Error(`Error saving user: ${error.message}`);
+    }
   }
 
-  async findUserById(id: UserId): Promise<User | null> {
-    const document = await this.userModel
-      .findOne({ userId: id.value })
-      .exec();
+  // ✅ Corregido: Coincide con la interfaz y usa new Optional()
+  async findById(id: UserId): Promise<Optional<User>> {
+    try {
+      const document = await this.userModel
+        .findOne({ userId: id.value })
+        .exec();
 
-    return document ? UserMapper.toDomain(document) : null;
+      // Usamos el constructor directamente como lo tienes definido
+      return document 
+        ? new Optional(UserMapper.toDomain(document)) 
+        : new Optional(); 
+    } catch (error) {
+      throw new Error(`Error finding user by ID: ${error.message}`);
+    }
   }
 
-  async findUserByEmail(email: UserEmail): Promise<User | null> {
-    const document = await this.userModel
-      .findOne({ email: email.value })
-      .exec();
+  // ✅ Corregido: Coincide con la interfaz y usa new Optional()
+  async findByEmail(email: UserEmail): Promise<Optional<User>> {
+    try {
+      const document = await this.userModel
+        .findOne({ email: email.value })
+        .exec();
 
-    return document ? UserMapper.toDomain(document) : null;
+      return document 
+        ? new Optional(UserMapper.toDomain(document)) 
+        : new Optional();
+    } catch (error) {
+      throw new Error(`Error finding user by Email: ${error.message}`);
+    }
   }
 
   async existsUserByEmail(email: UserEmail): Promise<boolean> {
-    const exists = await this.userModel
-      .exists({ email: email.value })
-      .exec();
-
-    return exists !== null;
+    try {
+      const exists = await this.userModel
+        .exists({ email: email.value })
+        .exec();
+      return exists !== null;
+    } catch (error) {
+      throw new Error(`Error checking email existence: ${error.message}`);
+    }
   }
 
   async existsUserByUsername(username: UserName): Promise<boolean> {
-    const exists = await this.userModel
-      .exists({ username: username.value })
-      .exec();
-
-    return exists !== null;
+    try {
+      const exists = await this.userModel
+        .exists({ username: username.value })
+        .exec();
+      return exists !== null;
+    } catch (error) {
+      throw new Error(`Error checking username existence: ${error.message}`);
+    }
   }
 
   async deleteUser(id: UserId): Promise<void> {
-    await this.userModel.deleteOne({ userId: id.value }).exec();
+    try {
+      await this.userModel.deleteOne({ userId: id.value }).exec();
+    } catch (error) {
+      throw new Error(`Error deleting user: ${error.message}`);
+    }
   }
 }

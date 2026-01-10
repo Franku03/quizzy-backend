@@ -12,7 +12,7 @@ import { GroupMemberReadModel } from "../read-model/group.member.read.model";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { GroupMemberAuthorizer } from 'src/core/application/aspects/auth/strategies/groupMember.strategy';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
@@ -23,7 +23,7 @@ export class GetGroupMembersHandler implements IQueryHandler<GetGroupMembersQuer
     private readonly useCase: string = 'User retrieves the list of members in a group';
     constructor(
         @Inject(RepositoryName.Group) private readonly groupRepository: IGroupRepository,
-        @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 

@@ -1,4 +1,3 @@
-import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
 import { PlayerId } from "./player.id";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { validateNicknameInvariants } from "../helpers/validate-nickname-invariants";
@@ -32,7 +31,7 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
 
         if( !nicknameValidation.isValid ) {
 
-            throw new Error( nicknameValidation.error );
+            throw new Error( nicknameValidation.errorMessage );
 
         } 
 

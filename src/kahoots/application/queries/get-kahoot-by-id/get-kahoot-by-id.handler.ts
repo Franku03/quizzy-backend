@@ -1,4 +1,13 @@
-// src/kahoots/application/queries/get-kahoot-by-id/get-kahoot-by-id.handler.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\application\queries\get-kahoot-by-id\get-kahoot-by-id.handler.ts
 
 import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
 import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
@@ -8,11 +17,11 @@ import { GetKahootByIdQuery } from './get-kahoot-by-id.query';
 // Core & Types
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+
 
 // --- Aspects & Decorators ---
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 
@@ -31,7 +40,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IKahootDao } from '../../ports/i-kahoot.dao.interface';
 
 // Mapper
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 
 
@@ -42,12 +51,12 @@ export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery> {
     @Inject(DaoName.Kahoot)
     private readonly kahootDao: IKahootDao,
 
-    @Inject(MAPPER_TOKEN)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.RESPONSE_MAPPER)
     private readonly mapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
 
     private readonly mediaService: MediaEnrichmentService,
 
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
   @Log()

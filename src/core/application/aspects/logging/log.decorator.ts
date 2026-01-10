@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\application\aspects\logging\log.decorator.ts
+
 // core/application/aspects/logging/log.decorator.ts
 
 import { isErrorData } from "src/core/errors/type-guards.ts/error-data.type.guard";
@@ -85,6 +96,7 @@ export function Log(loggerPropertyKey: string = 'logger') {
                 errorCode: errorData.code,
                 errorId: errorData.errorId,
                 duration: `${duration}ms`,
+                layer: errorData.layer,
                 handler: target.constructor.name,
                 useCase
               });

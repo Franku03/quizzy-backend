@@ -2,14 +2,15 @@ import { User } from "../aggregates/user";
 import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
 import { UserEmail } from "../value-objects/user.email";
 import { UserName } from "../value-objects/user.user-name";
+import { Optional } from "src/core/types/optional";
 
 export interface IUserRepository {
 
     save(user: User): Promise<void>; 
 
-    findUserById(id: UserId): Promise<User | null>;
+    findById(id: UserId): Promise<Optional<User>>;
 
-    findUserByEmail(email: UserEmail): Promise<User | null>;
+    findByEmail(email: UserEmail): Promise<Optional<User>>;
 
     existsUserByEmail(email: UserEmail): Promise<boolean>;
 

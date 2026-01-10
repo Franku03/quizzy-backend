@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\entities\users.schema.ts
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -7,8 +18,9 @@ import { SubscriptionPlan } from 'src/users/domain/value-objects/user.subscripti
 import { UIThemeEnum } from 'src/users/domain/value-objects/user.user-preferences';
 import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
 import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
+import { UserState } from 'src/users/domain/value-objects/user.state';
+import { UserRole } from 'src/users/domain/value-objects/user.roles';
 
-// Database Collection Name
 const COLLECTION_NAME: string = 'users';
 
 @Schema({ _id: false })
@@ -78,6 +90,31 @@ export class UserMongo extends Document {
 
   @Prop({ type: [String], default: [] })
   public favoriteKahoots: string[];
+
+  @Prop({ type: [String], default: [] })
+  public deviceTokens: string[];
+
+  @Prop({
+    type: String,
+    enum: UserState,
+    default: UserState.ACTIVE, // Cambiado de isBlocked
+    required: true,
+  })
+  public state: string;
+
+  @Prop({
+    type: [String],
+    enum: UserRole,
+    default: [UserRole.USER], // Cambiado de isAdmin
+    required: true,
+  })
+  public roles: string[];
+
+  @Prop({ type: Boolean, default: false })
+  public isDeleted: boolean;
+
+  @Prop({ type: String, required: false, default: null })
+  public deletedHash: string | null;
 }
 
 export const UserSchema = SchemaFactory.createForClass(UserMongo);

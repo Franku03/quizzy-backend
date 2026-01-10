@@ -9,7 +9,7 @@ import { EXPLORE_ERROR_CODES } from '../explore.query.errors';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 // This handler provides access to the available category list for kahoots.
 // Categories are maintained as a static list, regular users cannot modify them.
@@ -20,7 +20,7 @@ export class GetCategoriesHandler implements IQueryHandler<GetCategoriesQuery> {
   constructor(
     @Inject(DaoName.Explore)
     private readonly exploreDao: IExploreDao,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) {}
 
   // The Log decorator automatically logs method execution details. Uses default "logger" property.

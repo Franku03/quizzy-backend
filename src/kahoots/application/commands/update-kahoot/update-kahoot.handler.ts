@@ -1,4 +1,13 @@
-// src/kahoots/application/commands/update-kahoot/update-kahoot.handler.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\application\commands\update-kahoot\update-kahoot.handler.ts
 
 // --- Nest & CQRS ---
 import { Inject } from '@nestjs/common';
@@ -6,13 +15,12 @@ import { CommandHandler } from 'src/core/infrastructure/cqrs/decorators/command-
 import { ICommandHandler } from 'src/core/application/cqrs/command-handler.interface';
 import { Either, ErrorData } from 'src/core/types';
 import { pipeAsync } from 'src/core/errors/helpers/pipe-async';
-import { ID_GENERATOR } from 'src/core/application/ports/crypto/core-application.tokens';
-import type { IdGenerator } from 'src/core/application/idgenerator/id.generator';
-import { MAPPER_TOKEN } from 'src/core/application/mapper/i-mapper.token';
+import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { createKahootAppContext } from '../context/base-kahoot-context';
 
 // --- Aspects & Decorators ---
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
-import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
 import { KahootOwnershipAuthorizer, IKahootOwnershipRequest } from 'src/core/application/aspects/auth/strategies/kahootOwnership.strategy';
@@ -33,7 +41,6 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 // --- Application Commands & Context ---
 import { UpdateKahootCommand } from './update-kahoot.command';
 import { KahootSlideCommand } from '../base';
-import { createKahootAppContext } from '../context/base-kahoot-context';
 
 // --- Application Services & Response ---
 import { AttemptCleanupService } from '../../services/attempt-clear.service';
@@ -41,7 +48,8 @@ import { KahootHandlerResponseDto } from '../../dtos/kahoot.handler.response.dto
 
 //  Import el Facade de Media y el Puerto del Mapper
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
-import type { IMapper } from 'src/core/application/mapper/i-mapper.interface';
+import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
+
 
 
 
@@ -51,13 +59,13 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   constructor(
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
-    @Inject(MAPPER_TOKEN)
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.RESPONSE_MAPPER)
     private readonly kahootMapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
     private readonly mediaService: MediaEnrichmentService,
     private readonly attemptCleanup: AttemptCleanupService,
-    @Inject(ID_GENERATOR)
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
-    @Inject(LOGGER_TOKEN) private readonly logger: ILogger,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
   @Log()
@@ -66,12 +74,16 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
     command: UpdateKahootCommand & IKahootOwnershipRequest
   ): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
 
+    const appContext = createKahootAppContext('updateKahoot', command.kahootId, command.userId);
+
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. RECURSO YA VALIDADO: Iniciamos el tren directamente con el Agregado inyectado
       Either.makeRight(command.validatedResource as Kahoot),
 
       // 2. Lógica de Dominio (Mutación controlada por performance)
-      k => k.chain(kahoot => this.applyUpdates(kahoot, command)),
+      k => k.chain(kahoot => this.applyUpdates(kahoot, command))
+      //Agregando contexto de app extra a los posibles errores de dominio
+      .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),

@@ -1,195 +1,377 @@
-import { AggregateRoot } from "src/core/domain/abstractions/aggregate.root";
-import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
-import { UserEmail } from "../value-objects/user.email";
-import { UserName } from "../value-objects/user.user-name";
-import { UserProfileDetails } from "../value-objects/user.profile-details";
-import { HashedPassword } from "../value-objects/user.hashed-password";
-import { UserPreferences } from "../value-objects/user.user-preferences";
-import { UserType } from "../value-objects/user.type";
-import { UserSubscriptionStatus } from "../value-objects/user.user-subscription-status";
-import { PlainPassword } from "../value-objects/user.plain-password";
-import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
-import { IPasswordHasher } from "../domain-services/i.password-hasher.interface";
-import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
-import { UserFavorites } from "../value-objects/user.favorite-kahoots";
-// import { UserFavoritedKahootEvent } from "../domain-events/user-favorited-kahoot.event"; // TODO
-// import { UserCreatedEvent } from "../domain-events/user-created.event"; // TODO
-// import { UserPasswordChangedEvent } from "../domain-events/user-password-changed.event"; // TODO
+import { AggregateRoot } from 'src/core/domain/abstractions/aggregate.root';
+import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
+import { UserEmail } from '../value-objects/user.email';
+import { UserName } from '../value-objects/user.user-name';
+import { UserProfileDetails } from '../value-objects/user.profile-details';
+import { HashedPassword } from '../value-objects/user.hashed-password';
+import { UserPreferences } from '../value-objects/user.user-preferences';
+import { UserType } from '../value-objects/user.type';
+import { UserSubscriptionStatus } from '../value-objects/user.user-subscription-status';
+import { PlainPassword } from '../value-objects/user.plain-password';
+import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
+import { IPasswordHasher } from '../domain-services/i.password-hasher.interface';
+import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
+import { UserFavorites } from '../value-objects/user.favorite-kahoots';
+import { IDeletedUserHasher } from '../domain-services/deleted-user-hashed.interface';
+import { UserState } from '../value-objects/user.state';
+import { UserRole } from '../value-objects/user.roles';
 
 interface UserProps {
-    email: UserEmail;
-    username: UserName;
-    userProfileDetails: UserProfileDetails;
-    passwordHash: HashedPassword;
-    userPreferences: UserPreferences;
-    type: UserType;
-    subscriptionStatus: UserSubscriptionStatus;
-    lastUsernameUpdate?: DateISO; 
-    favorites: UserFavorites;
+  email: UserEmail;
+  username: UserName;
+  userProfileDetails: UserProfileDetails;
+  passwordHash: HashedPassword;
+  userPreferences: UserPreferences;
+  type: UserType;
+  subscriptionStatus: UserSubscriptionStatus;
+  lastUsernameUpdate?: DateISO;
+  favorites: UserFavorites;
+  deviceTokens: string[];
+  state: UserState; // Reemplaza isBlocked
+  roles: UserRole[]; // Reemplaza isAdmin (array de roles)
+  isDeleted: boolean;
+  deletedHash: string | null;
 }
 
 export class User extends AggregateRoot<UserProps, UserId> {
+  // Constructor privado (factory method)
+  private constructor(props: UserProps, id: UserId) {
+    super(props, id);
+  }
 
-    public constructor(props: UserProps, id: UserId) {
-        super(props, id);
+  // Método estático para crear NUEVOS usuarios (Factory Method)
+  public static create(
+    id: UserId,
+    email: UserEmail,
+    username: UserName,
+    userProfileDetails: UserProfileDetails,
+    passwordHash: HashedPassword,
+    type: UserType,
+    subscriptionStatus: UserSubscriptionStatus,
+    userPreferences?: UserPreferences,
+    state: UserState = UserState.ACTIVE,
+    roles: UserRole[] = [UserRole.USER],
+    isDeleted: boolean = false,
+  ): User {
+    const finalPreferences = userPreferences || UserPreferences.create('LIGHT');
+
+    const props: UserProps = {
+      email,
+      username,
+      userProfileDetails,
+      passwordHash,
+      type,
+      userPreferences: finalPreferences,
+      subscriptionStatus,
+      lastUsernameUpdate: undefined,
+      favorites: UserFavorites.createEmpty(),
+      deviceTokens: [],
+      state,
+      roles,
+      isDeleted,
+      deletedHash: null,
+    };
+
+    const user = new User(props, id);
+
+    // user.record(new UserCreatedEvent(id, email, username)); // TODO
+
+    return user;
+  }
+
+  // Método estático para reconstruir usuarios existentes desde persistencia
+  public static reconstitute(props: UserProps, id: UserId): User {
+    return new User(props, id);
+  }
+
+  // Métodos para manejar roles
+  public addRole(role: UserRole): void {
+    if (!this.hasRole(role)) {
+      this.properties.roles.push(role);
+    }
+  }
+
+  public removeRole(role: UserRole): void {
+    this.properties.roles = this.properties.roles.filter((r) => r !== role);
+  }
+
+  public hasRole(role: UserRole): boolean {
+    return this.properties.roles.includes(role);
+  }
+
+  public isAdmin(): boolean {
+    return this.hasRole(UserRole.ADMIN);
+  }
+
+  // Métodos para manejar estado (reemplazan ban/unBan)
+  public block(): void {
+    this.properties.state = UserState.BLOCKED;
+  }
+
+  public unblock(): void {
+    this.properties.state = UserState.ACTIVE;
+  }
+
+  public isActive(): boolean {
+    return this.properties.state === UserState.ACTIVE;
+  }
+
+  public isBlocked(): boolean {
+    return this.properties.state === UserState.BLOCKED;
+  }
+
+  // Métodos existentes (sin cambios)
+  public addFavorite(kahootId: KahootId): void {
+    this.properties.favorites.add(kahootId);
+  }
+
+  public removeFavorite(kahootId: KahootId): void {
+    this.properties.favorites.remove(kahootId);
+  }
+
+  public changeUserName(newUsername: UserName): void {
+    if (this.properties.username.equals(newUsername)) {
+      return;
     }
 
-    public static create(
-        id: UserId,
-        email: UserEmail,
-        username: UserName,
-        userProfileDetails: UserProfileDetails,
-        passwordHash: HashedPassword,
-        type: UserType,
-        subscriptionStatus: UserSubscriptionStatus,
-        userPreferences?: UserPreferences,
-    ): User {
-        const finalPreferences = userPreferences || UserPreferences.create("LIGHT");
+    this.checkInvariants();
 
-        const props: UserProps = {
-            email,
-            username,
-            userProfileDetails,
-            passwordHash,
-            type,
-            userPreferences: finalPreferences,
-            subscriptionStatus,
-            lastUsernameUpdate: undefined, 
-            favorites: UserFavorites.createEmpty(),
-        };
+    this.properties.username = newUsername;
+    this.properties.lastUsernameUpdate = DateISO.generate();
+  }
 
-        const user = new User(props, id);
+  public changeEmail(newEmail: UserEmail): void {
+    if (this.properties.email.equals(newEmail)) {
+      return;
+    }
+    this.properties.email = newEmail;
+  }
 
-        // user.record(new UserCreatedEvent(id, email, username)); // TODO
-        
-        return user;
+  public changeProfileDetails(newDetails: UserProfileDetails): void {
+    if (this.properties.userProfileDetails.equals(newDetails)) {
+      return;
+    }
+    this.properties.userProfileDetails = newDetails;
+  }
+
+  public changeUserPreferences(newUserPreferences: UserPreferences): void {
+    if (this.properties.userPreferences.equals(newUserPreferences)) {
+      return;
+    }
+    this.properties.userPreferences = newUserPreferences;
+  }
+
+  public async changePassword(
+    currentPassword: PlainPassword,
+    newPassword: PlainPassword,
+    hasher: IPasswordHasher,
+  ): Promise<void> {
+    const isMatch = await this.properties.passwordHash.match(
+      currentPassword,
+      hasher,
+    );
+
+    if (!isMatch) {
+      throw new Error('La contraseña actual es incorrecta.');
     }
 
-    public addFavorite(kahootId: KahootId): void {
-        this.properties.favorites.add(kahootId);
-        // user.record(new UserFavoritedKahootEvent(this.id, kahootId)); // TODO
+    if (await this.properties.passwordHash.match(newPassword, hasher)) {
+      throw new Error('La nueva contraseña debe ser diferente a la actual.');
     }
 
-    public removeFavorite(kahootId: KahootId): void {
-        this.properties.favorites.remove(kahootId);
+    this.properties.passwordHash = await newPassword.hash(hasher);
+  }
+
+  public async verifyPassword(
+    inputPassword: PlainPassword,
+    hasher: IPasswordHasher,
+  ): Promise<boolean> {
+    return this.properties.passwordHash.match(inputPassword, hasher);
+  }
+
+  public async resetPassword(
+    newPassword: PlainPassword,
+    hasher: IPasswordHasher,
+  ): Promise<void> {
+    this.properties.passwordHash = await newPassword.hash(hasher);
+  }
+
+  protected checkInvariants(): void {
+    const lastUpdateVO = this.properties.lastUsernameUpdate;
+
+    if (!lastUpdateVO) return;
+
+    const lastUpdateDate = new Date(lastUpdateVO.value);
+    const nextAllowedDate = new Date(lastUpdateDate);
+    nextAllowedDate.setFullYear(nextAllowedDate.getFullYear() + 1);
+
+    const nextAllowedIsoString = nextAllowedDate.toISOString().split('T')[0];
+    const nextAllowedDateVO = DateISO.createFrom(nextAllowedIsoString);
+
+    const todayVO = DateISO.generate();
+
+    if (nextAllowedDateVO.isGreaterThan(todayVO)) {
+      throw new Error(
+        `Solo puedes cambiar tu nombre de usuario una vez al año. Podrás hacerlo nuevamente el: ${nextAllowedDateVO.value}`,
+      );
+    }
+  }
+
+  public registerDeviceToken(token: string): void {
+    if (!this.properties.deviceTokens.includes(token)) {
+      this.properties.deviceTokens.push(token);
+    }
+  }
+
+  public isUserPremium(): boolean {
+    return this.properties.subscriptionStatus.isPremium();
+  }
+
+  // Método para eliminar el usuario con hash de auditoría (actualizado)
+  public async delete(deletedUserHasher: IDeletedUserHasher): Promise<void> {
+    if (this.properties.isDeleted) {
+      throw new Error('El usuario ya está eliminado.');
     }
 
-    public changeUserName(newUsername: UserName): void {
-        if (this.properties.username.equals(newUsername)) {
-            return;
-        }
+    // 1. Marcar como eliminado
+    this.properties.isDeleted = true;
 
-        this.checkInvariants();
+    // 2. Crear un objeto con todos los datos del usuario para hashear
+    const userDataForHash = {
+      id: this.id.value,
+      email: this.properties.email.value,
+      username: this.properties.username.value,
+      profile: {
+        name: this.properties.userProfileDetails.name,
+        description: this.properties.userProfileDetails.description,
+        avatarUrl: this.properties.userProfileDetails.avatarImageURL,
+      },
+      type: this.properties.type,
+      subscription: {
+        state: this.properties.subscriptionStatus.state,
+        plan: this.properties.subscriptionStatus.plan,
+        expiresAt: this.properties.subscriptionStatus.expiresAt.value,
+      },
+      preferences: {
+        theme: this.properties.userPreferences.themePreference,
+      },
+      favorites: this.properties.favorites.toPrimitives(),
+      deviceTokens: this.properties.deviceTokens,
+      state: this.properties.state, // Cambiado de isBlocked
+      roles: this.properties.roles, // Cambiado de isAdmin
+      deletedAt: new Date().toISOString(),
+    };
 
-        this.properties.username = newUsername;
-        this.properties.lastUsernameUpdate = DateISO.generate();
+    // 3. Convertir a string JSON (ordenado para consistencia)
+    const userDataString = JSON.stringify(
+      userDataForHash,
+      Object.keys(userDataForHash).sort(),
+    );
+
+    // 4. Generar hash del usuario eliminado
+    this.properties.deletedHash = await deletedUserHasher.hash(userDataString);
+  }
+
+  // Método para verificar si el hash de eliminación es válido (actualizado)
+  public async verifyDeletedHash(
+    deletedUserHasher: IDeletedUserHasher,
+  ): Promise<boolean> {
+    if (!this.properties.isDeleted || !this.properties.deletedHash) {
+      return false;
     }
 
-    public changeEmail(newEmail: UserEmail): void {
-        if (this.properties.email.equals(newEmail)) {
-            return;
-        }
-        this.properties.email = newEmail;
-    }
+    // Reconstruir el objeto de datos del usuario
+    const userDataForHash = {
+      id: this.id.value,
+      email: this.properties.email.value,
+      username: this.properties.username.value,
+      profile: {
+        name: this.properties.userProfileDetails.name,
+        description: this.properties.userProfileDetails.description,
+        avatarUrl: this.properties.userProfileDetails.avatarImageURL,
+      },
+      type: this.properties.type,
+      subscription: {
+        state: this.properties.subscriptionStatus.state,
+        plan: this.properties.subscriptionStatus.plan,
+        expiresAt: this.properties.subscriptionStatus.expiresAt.value,
+      },
+      preferences: {
+        theme: this.properties.userPreferences.themePreference,
+      },
+      favorites: this.properties.favorites.toPrimitives(),
+      deviceTokens: this.properties.deviceTokens,
+      state: this.properties.state, // Cambiado de isBlocked
+      roles: this.properties.roles, // Cambiado de isAdmin
+      deletedAt: new Date().toISOString(),
+    };
 
-    public changeProfileDetails(newDetails: UserProfileDetails): void {
-        if (this.properties.userProfileDetails.equals(newDetails)) {
-            return;
-        }
-        this.properties.userProfileDetails = newDetails;
-    }
+    const userDataString = JSON.stringify(
+      userDataForHash,
+      Object.keys(userDataForHash).sort(),
+    );
 
-    public changeUserPreferences(newUserPreferences: UserPreferences): void {
-        if (this.properties.userPreferences.equals(newUserPreferences)) {
-            return;
-        }
-        this.properties.userPreferences = newUserPreferences;
-    }
+    // Comparar con el hash almacenado
+    return await deletedUserHasher.compare(
+      userDataString,
+      this.properties.deletedHash,
+    );
+  }
 
-    public async changePassword(
-        currentPassword: PlainPassword, 
-        newPassword: PlainPassword, 
-        hasher: IPasswordHasher
-    ): Promise<void> {
-        const isMatch = await this.properties.passwordHash.match(currentPassword, hasher);
-        
-        if (!isMatch) {
-            throw new Error("La contraseña actual es incorrecta.");
-        }
+  // Getters
+  get email(): UserEmail {
+    return this.properties.email;
+  }
 
-        if (await this.properties.passwordHash.match(newPassword, hasher)) {
-             throw new Error("La nueva contraseña debe ser diferente a la actual.");
-        }
+  get username(): UserName {
+    return this.properties.username;
+  }
 
-        this.properties.passwordHash = await newPassword.hash(hasher);
+  get userProfileDetails(): UserProfileDetails {
+    return this.properties.userProfileDetails;
+  }
 
-        // this.record(new UserPasswordChangedEvent(this.id, this.properties.email)); // TODO
-    }
+  get passwordHash(): HashedPassword {
+    return this.properties.passwordHash;
+  }
 
-    public async verifyPassword(inputPassword: PlainPassword, hasher: IPasswordHasher): Promise<boolean> {
-        return this.properties.passwordHash.match(inputPassword, hasher);
-    }
-    
-    public async resetPassword(newPassword: PlainPassword, hasher: IPasswordHasher): Promise<void> {
-        this.properties.passwordHash = await newPassword.hash(hasher);
-    }
-    
-    protected checkInvariants(): void {
-        const lastUpdateVO = this.properties.lastUsernameUpdate;
-    
-        if (!lastUpdateVO) return;
+  get userPreferences(): UserPreferences {
+    return this.properties.userPreferences;
+  }
 
-        const lastUpdateDate = new Date(lastUpdateVO.value);
-        const nextAllowedDate = new Date(lastUpdateDate);
-        nextAllowedDate.setFullYear(nextAllowedDate.getFullYear() + 1);
-        
-        const nextAllowedIsoString = nextAllowedDate.toISOString().split('T')[0];
-        const nextAllowedDateVO = DateISO.createFrom(nextAllowedIsoString);
+  get type(): UserType {
+    return this.properties.type;
+  }
 
-        const todayVO = DateISO.generate();
+  get subscriptionStatus(): UserSubscriptionStatus {
+    return this.properties.subscriptionStatus;
+  }
 
-        if (nextAllowedDateVO.isGreaterThan(todayVO)) {
-            throw new Error(`Solo puedes cambiar tu nombre de usuario una vez al año. Podrás hacerlo nuevamente el: ${nextAllowedDateVO.value}`);
-        }
-    }
+  get lastUsernameUpdate(): DateISO | undefined {
+    return this.properties.lastUsernameUpdate;
+  }
 
-    public isUserPremium(): boolean {
-        return this.properties.subscriptionStatus.isPremium();
-    }
+  get favorites(): UserFavorites {
+    return this.properties.favorites;
+  }
 
-    get email(): UserEmail {
-        return this.properties.email;
-    }
+  get deviceTokens(): string[] {
+    return this.properties.deviceTokens;
+  }
 
-    get username(): UserName {
-        return this.properties.username;
-    }
+  get state(): UserState {
+    return this.properties.state;
+  }
 
-    get userProfileDetails(): UserProfileDetails {
-        return this.properties.userProfileDetails;
-    }
+  get roles(): UserRole[] {
+    return [...this.properties.roles]; // Devuelve copia para evitar mutaciones externas
+  }
 
-    get passwordHash(): HashedPassword {
-        return this.properties.passwordHash;
-    }
+  get isDeleted(): boolean {
+    return this.properties.isDeleted;
+  }
 
-    get userPreferences(): UserPreferences {
-        return this.properties.userPreferences;
-    }
-
-    get type(): UserType {
-        return this.properties.type;
-    }
-
-    get subscriptionStatus(): UserSubscriptionStatus {
-        return this.properties.subscriptionStatus;
-    }
-
-    get lastUsernameUpdate(): DateISO | undefined {
-        return this.properties.lastUsernameUpdate;
-    }
-
-    get favorites(): UserFavorites {
-        return this.properties.favorites;
-    }
+  get deletedHash(): string | null {
+    return this.properties.deletedHash;
+  }
 }

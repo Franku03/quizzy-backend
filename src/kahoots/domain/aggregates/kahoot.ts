@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\domain\aggregates\kahoot.ts
+
 import { Optional } from "src/core/types/optional";
 import { Slide } from "../entities/slides/kahoot.slide";
 import { KahootDetails } from "../value-objects/kahoot.details";
@@ -38,7 +49,7 @@ export interface KahootProps {
     visibility: VisibilityStatus;
     status: KahootStatus;
     slides: Map<SlideIdValue, Slide>;
-    playCount: PlayNumber; 
+    playCount: PlayNumber;
 }
 
 export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
@@ -64,7 +75,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             return Either.makeLeft(DomainErrorFactory.validation(
                 domainContext,
                 { generic: ['REQUIRED_DATA_MISSING'] },
-                "Faltan atributos mandatorios para crear el Kahoot (Author, Status, Visibility o Styling)."
+                "Missing mandatory attributes to create the Kahoot (Author, Status, Visibility, or Styling)."
             ));
         }
 
@@ -74,9 +85,23 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     // --- Validación de Invariantes ---
     protected checkInvariants(): Either<ErrorData, void> {
+        const context = this.getContext('checkInvariants');
+
+        // 1. REGLA DRAFT + PUBLIC: Siempre se evalúa
+        if (this.properties.status.value === KahootStatusEnum.DRAFT &&
+            this.properties.visibility.value === VisibilityStatusEnum.PUBLIC) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { visibility: ['INVALID_DRAFT_VISIBILITY'] },
+                "A draft Kahoot cannot be public."
+            ));
+        }
+
+        // 2. REGLA DE PUBLICACIÓN: Si el estado es PUBLISH, se evalúa lo demás
         if (this.properties.status.value === KahootStatusEnum.PUBLISH) {
             return this.checkPublishingReadiness();
         }
+
         return Either.makeRight(undefined);
     }
 
@@ -96,7 +121,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             .chain(() => {
                 if (this.properties.slides.size === 0) {
                     return Either.makeLeft(DomainErrorFactory.validation(
-                        context, { slides: ['EMPTY_KAHOOT'] }, "El Kahoot no tiene slides."
+                        context, { slides: ['EMPTY_KAHOOT'] }, "The Kahoot has no slides."
                     ));
                 }
 
@@ -115,21 +140,22 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         return this.checkInvariants();
     }
 
-    public draft(): void {
+    public draft(): Either<ErrorData, void> {
         this.properties.status = new KahootStatus(KahootStatusEnum.DRAFT);
+        return this.checkInvariants();
     }
 
     public changeStatus(newStatus: string): Either<ErrorData, void> {
         const context = this.getContext('changeStatus');
         switch (newStatus) {
             case KahootStatusEnum.DRAFT:
-                this.draft();
-                return Either.makeRight(undefined);
+                return this.draft();
+
             case KahootStatusEnum.PUBLISH:
-                return this.publish();
+                return this.publish(); 
             default:
                 return Either.makeLeft(DomainErrorFactory.validation(
-                    context, { status: ['INVALID_STATUS'] }, "Estado de Kahoot inválido."
+                    context, { status: ['INVALID_STATUS'] }, "Invalid Kahoot status."
                 ));
         }
     }
@@ -137,10 +163,12 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     // --- Comportamientos de Visibilidad ---
     public makePublic(): void {
         this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PUBLIC);
+        this.checkInvariants();
     }
 
     public hide(): void {
         this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PRIVATE);
+        this.checkInvariants();
     }
 
     public changeVisibility(newVisibility: string): Either<ErrorData, void> {
@@ -150,7 +178,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
             case VisibilityStatusEnum.PRIVATE: this.hide(); break;
             default:
                 return Either.makeLeft(DomainErrorFactory.validation(
-                    context, { visibility: ['INVALID_VISIBILITY'] }, "Visibilidad no válida."
+                    context, { visibility: ['INVALID_VISIBILITY'] }, "Invalid visibility."
                 ));
         }
         return Either.makeRight(undefined);
@@ -177,7 +205,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         const context = this.getContext('removeSlide');
         if (!this.properties.slides.delete(slideId.value)) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado para eliminar."
+                context, { slideId: ['NOT_FOUND'] }, "Slide not found to delete."
             ));
         }
         this.reorderSlidesPositions();
@@ -247,8 +275,8 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
         const context = this.getContext('evaluateAnswer');
         const slide = this.getSlideById(submission.getSlideId());
 
-        if (!slide) throw DomainErrorFactory.validation(context, { slideId: ['NOT_FOUND'] }, "Slide no encontrado.");
-        if (this.isDraft()) throw DomainErrorFactory.validation(context, { status: ['IS_DRAFT'] }, "Evaluación prohibida en modo DRAFT.");
+        if (!slide) throw DomainErrorFactory.validation(context, { slideId: ['NOT_FOUND'] }, "Slide not found.");
+        if (this.isDraft()) throw DomainErrorFactory.validation(context, { status: ['IS_DRAFT'] }, "Evaluation prohibited in DRAFT mode.");
 
         return slide.evaluateAnswer(submission);
     }

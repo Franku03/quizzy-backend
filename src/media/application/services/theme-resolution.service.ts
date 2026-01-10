@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\services\theme-resolution.service.ts
+
 import { Injectable, Inject } from "@nestjs/common";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { Either, ErrorData } from "src/core/types";
@@ -13,37 +24,26 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 @Injectable()
 export class ThemeResolutionService implements IThemeEnricher {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
-    private readonly mediaDao: IAssetMetadataDao,
-    
-    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
-    private readonly urlGenerator: IAssetUrlGenerator,
+    @Inject(DaoName.AssetMetadata) private readonly mediaDao: IAssetMetadataDao,
+    @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR) private readonly urlGenerator: IAssetUrlGenerator,
   ) {}
 
   async enrichTheme(assetId: string): Promise<Either<ErrorData, ThemeObject | null>> {
-    return pipeAsync(
-      Either.makeRight<ErrorData, string>(assetId),
+    if (!assetId) return Either.makeRight(null);
 
-      (e) => e.chainAsync(id => {
-          if (!id) {
-              return Promise.resolve(
-                  Either.makeRight<ErrorData, AssetMetadataRecord | null>(null)
-              );
-          }
-          return this.mediaDao.findThemeById(id);
-      }),
-
-      (e) => e.map(record => {
-          if (!record) return null;
-          return this.mapRecordToTheme(record);
-      })
-    );
+    const dbResult = await this.mediaDao.findThemeById(assetId);
+    
+    return dbResult.map(record => {
+      return record 
+        ? this.mapRecordToTheme(record)
+        : { id: assetId, url: 'not-valid', name: 'Name not found' };
+    });
   }
 
   private mapRecordToTheme(record: AssetMetadataRecord): ThemeObject {
     return {
-      id: record.assetId, 
-      url: this.urlGenerator.generateUrl(record.publicId), 
+      id: record.assetId,
+      url: this.urlGenerator.generateUrl(record.publicId),
       name: record.originalName || 'Sin Título'
     };
   }
