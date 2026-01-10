@@ -15,9 +15,7 @@ import { Either, ErrorData, ErrorLayer } from "src/core/types";
 import { IKahootDao } from "src/kahoots/application/ports/i-kahoot.dao.interface";
 import { IAuthorizer } from "../authorizer.interface";
 import { VisibilityStatusEnum } from "src/kahoots/domain/value-objects/kahoot.visibility-status";
-import { KahootSnapshot } from "src/core/domain/snapshots/snapshot.kahoot";
 import { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
-import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { KahootStatusEnum } from "src/kahoots/domain/value-objects/kahoot.status";
 
 interface ValueObject { value: string }
@@ -31,6 +29,7 @@ interface Authorizable {
     properties?: Authorizable; 
 }
 
+// Este tipo ya define que los métodos son opcionales, por eso no necesitas 'any'
 type KahootFetcher = 
     | Partial<Pick<IKahootDao, 'getKahootById' | 'getKahootUserDetail'>>
     & Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
@@ -59,19 +58,36 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
             resourceType: 'Kahoot'
         });
 
-        // REGLA: Si el recurso ya viene validado, evitamos el fetch (Optimización)
-        /*if (validatedResource) {
+        if (validatedResource) {
             return this.validateAccess(validatedResource, userId, operationName, appContext);
-        }*/
+        }
 
-        const fetchMethod = (context as any).getKahootUserDetail?.bind(context)
-            || context.getKahootById?.bind(context)
-            || context.findKahootByIdEither?.bind(context);
+        // --- SELECCIÓN DEL MÉTODO (TYPE-SAFE) ---
+        let fetchMethod;
 
-        console.log('Using fetch method:', fetchMethod?.name);
+        // 1. Prioridad Máxima: Repositorio de Dominio (Commands)
+        // TypeScript sabe que 'findKahootByIdEither' es una propiedad opcional de 'context'.
+        // Al ponerlo en el if, TypeScript confirma que existe dentro del bloque.
+        if (context.findKahootByIdEither) {
+            fetchMethod = context.findKahootByIdEither.bind(context);
+        } 
+        // 2. Lógica para DAOs (Queries)
+        else {
+            const preferDetail = operationName.includes('UserDetail');
+
+            // Si la operación pide detalle explícitamente y el método existe:
+            if (preferDetail && context.getKahootUserDetail) {
+                fetchMethod = context.getKahootUserDetail.bind(context);
+            } 
+            // Si no pide detalle (o no lo tiene), usamos el getById normal:
+            else if (context.getKahootById) {
+                fetchMethod = context.getKahootById.bind(context);
+            }
+        }
+        // ----------------------------------------
 
         if (!fetchMethod) {
-            return Either.makeLeft(new ErrorData('AUTH_CONTEXT_INVALID', 'No search method', ErrorLayer.APPLICATION, appContext));
+            return Either.makeLeft(new ErrorData('AUTH_CONTEXT_INVALID', 'No search method found in context', ErrorLayer.APPLICATION, appContext));
         }
 
         const result = await fetchMethod(finalId, userId);
@@ -84,12 +100,12 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         operationName: string, 
         appContext: any
     ): Either<ErrorData, unknown> {
+        // ... (Tu código de validación se mantiene idéntico) ...
         if (!resource) return Either.makeLeft(AppErrorFactory.notFound(appContext));
 
         const raw = resource as unknown as Authorizable;
         const data = raw.properties || raw;
 
-        // Normalización estructural (Soporta Snapshot, Agregado y ReadModel)
         const authorId = (data.author as { id: string })?.id 
             ?? (data.author as ValueObject)?.value 
             ?? (data.author as string) 
@@ -107,15 +123,12 @@ export class KahootOwnershipAuthorizer implements IAuthorizer<IKahootOwnershipRe
         const isReadOp = /^(get|read|find|list)/i.test(operationName);
         const isSessionOp = /session/i.test(operationName);
 
-        // Regla Estricta: Nadie juega borradores
         if (isDraft && isSessionOp) {
             return Either.makeLeft(AppErrorFactory.forbidden(appContext, "Cannot launch session from draft."));
         }
 
-        // El Owner tiene acceso (salvo sesión en Draft)
         if (isOwner) return Either.makeRight(resource);
 
-        // Acceso para terceros (Público + Publicado)
         const hasAccess = isPublished && isPublic && (isReadOp || isSessionOp);
 
         return hasAccess
