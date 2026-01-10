@@ -55,4 +55,6 @@ export class NotificationMongo extends Document {
 
 export const NotificationSchema = SchemaFactory.createForClass(NotificationMongo);
 
-NotificationSchema.set('id', false);    
+NotificationSchema.set('id', false);
+
+DbMongoSchema(COLLECTION_NAME)(NotificationSchema);    
