@@ -48,7 +48,10 @@ export class ErrorMappingService {
         'UNAUTHORIZED_ACCESS': [HttpStatus.FORBIDDEN, 'You do not have permissions for this action.'],
         'VALIDATION_FAILED': [HttpStatus.BAD_REQUEST, 'The provided data is invalid.'],
         'CONFLICT': [HttpStatus.CONFLICT, 'Conflict in the resource state.'],
-        'INVALID_PARAMETER_LENGTH': [HttpStatus.BAD_REQUEST, 'La longitud del parámetro no es válida.'],
+        'INVALID_PARAMETER_LENGTH': [HttpStatus.BAD_REQUEST, 'The parameter length is not valid.'],
+        'INVALID_CREDENTIALS': [HttpStatus.UNAUTHORIZED, 'Incorrect credentials.'],
+        'ACCOUNT_BLOCKED': [HttpStatus.FORBIDDEN, 'Your account has been blocked. Contact support.'],
+        'ACCOUNT_INACTIVE': [HttpStatus.FORBIDDEN, 'Your account has been deactivated. Contact support.'],
       };
       return domainMap[code] ?? [HttpStatus.BAD_REQUEST, 'Business rule violation.'];
     }

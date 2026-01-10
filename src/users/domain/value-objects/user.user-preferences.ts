@@ -17,7 +17,7 @@ export class UserPreferences extends ValueObject<UserPreferencesProps> {
     }
 
     public static create(theme: string): UserPreferences {
-        const matchedTheme = Object.values(UIThemeEnum).find(theme => theme === theme);
+        const matchedTheme = Object.values(UIThemeEnum).find(t => t === theme);
 
         if (!matchedTheme) {
             throw new InvalidArgumentError(`The theme <${theme}> is invalid. Options: ${Object.values(UIThemeEnum).join(', ')}`);

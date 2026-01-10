@@ -12,7 +12,11 @@ export interface IUserRepository {
 
     findByEmail(email: UserEmail): Promise<Optional<User>>;
 
+    findByUsername(username: UserName): Promise<Optional<User>>;
+
     existsUserByEmail(email: UserEmail): Promise<boolean>;
+
+    findByEmail(email: UserEmail): Promise<Optional<User>>;
 
     existsUserByUsername(username: UserName): Promise<boolean>;
 
