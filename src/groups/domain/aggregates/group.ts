@@ -15,6 +15,8 @@ import { Score } from 'src/core/domain/shared-value-objects/value-objects/value.
 import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot.id';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id';
+import { DomainEvent } from 'src/core/domain/abstractions/domain-event';
+import { KahootAssignedToGroupEvent } from 'src/core/domain/domain-events/kahoot-assigned-to-group.event';
 
 //pending: revisar
 import { GroupMemberRole } from '../value-objects/group.member.role';
@@ -59,11 +61,14 @@ interface GroupProps {
 }
 
 export class Group extends AggregateRoot<GroupProps, GroupId> {
+  private domainEvents: DomainEvent[] = [];
+
   constructor(props: GroupProps, id: GroupId) {
     if (!props.details || !props.adminId || !id) {
       throw new Error("Los detalles del grupo, el adminId y el id son requeridos.");
     }
     super(props, id);
+    this.checkInvariants();
   }
 
   public static create(
@@ -194,6 +199,15 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
         this.id)
     );
 
+    const kahootAssignedEvent = new KahootAssignedToGroupEvent(
+      this.id,
+      kahootId,
+      requesterId,
+      from,
+      to
+    );
+
+    this.record(kahootAssignedEvent);
   }
 
   public markAssignmentAsCompleted(userId: UserId, kahootId: KahootId, attemptId: AttemptId, score: Score): boolean {
@@ -262,6 +276,16 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
   }
 
   protected checkInvariants(): void {
+  }
+
+  protected record(event: DomainEvent): void {
+    this.domainEvents.push(event);
+  }
+
+  public pullDomainEvents(): DomainEvent[] {
+    const events = this.domainEvents.slice();
+    this.domainEvents = [];
+    return events;
   }
 
   public getId(): GroupId {

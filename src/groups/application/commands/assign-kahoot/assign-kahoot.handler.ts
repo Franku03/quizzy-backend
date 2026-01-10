@@ -21,6 +21,8 @@ import { Authorize } from 'src/core/application/aspects/auth/authorization.decor
 import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
+import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
+import type { EventBus } from 'src/core/domain/ports/event-bus.port';
 
 
 @CommandHandler(AssignKahootToGroupCommand)
@@ -33,6 +35,7 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
         private readonly kahootRepository: IKahootRepository,
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
         @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
+        @Inject(EVENT_BUS_TOKEN) private readonly eventBus: EventBus,
     ) { }
 
     @Log()
@@ -92,6 +95,11 @@ export class AssignKahootToGroupHandler implements ICommandHandler<AssignKahootT
             group.assignKahoot(new UserId(command.userId), new KahootId(command.kahootId), command.availableFrom, command.availableUntil);
 
             await this.groupRepository.save(group);
+
+            const events = group.pullDomainEvents();
+            if (events.length > 0) {
+                await this.eventBus.publish(events);
+            }
 
             return Either.makeRight({
                 groupId: group.id.value,
