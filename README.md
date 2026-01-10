@@ -448,7 +448,7 @@ El **Media Module**, Ademas de tener unos endpoints. Presenta el `MediaEnrichmen
 #### 🎯 Visión y Propósito Estratégico
 * **Desacoplamiento Total:** Los agregados de dominio (como `Kahoot` o `Question`) no almacenan URLs de Cloudinary. Esto evita que el dominio dependa de proveedores externos que podrían cambiar en el futuro.
 * **API Unificada:** Proporciona una interfaz única donde el desarrollador no tiene que preocuparse de donde viene el recurso, siendo abstracto.
-* **Optimización del Event Loop:** Al centralizar la resolución de medios, el kernel gestiona las promesas y llamadas asíncronas de forma agrupada, liberando carga al Event Loop de Node.js.
+* **Optimización del Event Loop:** Al centralizar la resolución de medios, el servicio gestiona las promesas y llamadas asíncronas de forma agrupada, liberando carga al Event Loop de Node.js.
 
 > [!IMPORTANT]
 > **Filosofía de Diseño:** Consumir media debe ser una operación de "caja negra". El desarrollador entrega un ID y recibe un objeto listo para pintar en pantalla, sin conocer la complejidad técnica que ocurre detrás.
@@ -481,7 +481,7 @@ El Servicio opera bajo una arquitectura de **Contratos de Comportamiento**. En l
 | Patrón | Implementación Técnica | Beneficio de Ingeniería |
 | :--- | :--- | :--- |
 | **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transoframaciones mas complejas podria requerer methods especificos |
-| **FACTORY** | `EnrichmentHandlerFactory e` | Encapsula el uso de la palabra reservada `new` en la facade. |
+| **FACTORY** | `EnrichmentHandlerFactory` | Encapsula el uso de la palabra reservada `new` en la facade. |
 | **PROXY** | `AssetResolutionProxy` | Control de acceso y optimización de red (Batching). |
 | **FLYWEIGHT** | Gestión de Instancias de URL | Minimiza el impacto en el Garbage Collector al reutilizar strings y objetos de configuración. |
 | **CHAIN OF RESP.** | `EnrichmentHandlers` | Permite añadir lógica de procesamiento (ej. marcas de agua) sin tocar el código existente. |
@@ -512,11 +512,11 @@ export class AnyHandler (Puede ser Query o Command) {
 
 El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arquitectura limpia. Se han aplicado los principios **SOLID** para garantizar que el sistema sea inmune a la degradación de código a medida que el proyecto crece.
 
-* **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El Kernel no es un monolito, sino una suma de especialistas coordinados.
-* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del Kernel nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena.
+* **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El servicio no es un monolito GOD Class, sino una suma de especialistas coordinados.
+* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No bostante ver máas abajo el trade-offs.
 * **LSP (Liskov Substitution Principle):** Todos los Handlers heredan de una base abstracta. El motor de orquestación trata a cualquier `VideoHandler` o `ImageHandler` como un `BaseHandler` genérico, garantizando la sustituibilidad total sin romper el flujo de ejecución.
 * **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo`. Los objetos de dominio solo implementan lo que realmente necesitan.
-* **DIP (Dependency Inversion Principle):** El Kernel depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
+* **DIP (Dependency Inversion Principle):** El Servicio depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
 
 ---
 
@@ -579,7 +579,7 @@ sequenceDiagram
     participant Entity as "TargetObject<T><br>(IHasMediaAssets)"
 
     rect rgb(255, 255, 255)
-        Note over UC, Entity: FLUJO DE ENRIQUECIMIENTO (KERNEL)
+        Note over UC, Entity: FLUJO DE ENRIQUECIMIENTO (MediaEnrichmentService)
         
         UC->>Facade: enrich(target)
         activate Facade
@@ -639,7 +639,7 @@ sequenceDiagram
     participant Snapshot as KahootStylingSnapshot
 
     rect rgb(255, 255, 255)
-        Note over Handler, Snapshot: FLUJO DETALLADO: MEDIA KERNEL MODULE
+        Note over Handler, Snapshot: FLUJO DETALLADO: MediaEnrichmentService
         
         Handler->>Repo: 1. findById(id)
         activate Repo
