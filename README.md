@@ -610,18 +610,19 @@ sequenceDiagram
 %%{init: {
   'theme': 'base',
   'themeVariables': {
-    'background': '#f4f4f5',
-    'mainBkg': '#f4f4f5',
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
     'signalColor': '#009900',
     'signalTextColor': '#000000',
     'actorTextColor': '#000000',
     'noteTextColor': '#000000',
-    'loopTextColor': '#000000',
     'actorLineColor': '#009900',
     'labelBoxBorderColor': '#000000',
     'actorBorder': '#000000',
     'fontSize': '15px',
-    'fontFamily': 'Arial'
+    'fontFamily': 'Segoe UI'
   }
 } }%%
 
@@ -637,78 +638,61 @@ sequenceDiagram
     participant ThemeProxy as ThemeResolutionProxy
     participant Snapshot as KahootStylingSnapshot
 
-    Note over Handler: UseCase Externo
-
-    %% --- INICIO DEL FLUJO ---
-    
-    Note over Handler, Repo: 1. Recuperación del Snapshot
-    Handler->>Repo: findById(id)
-    activate Repo
-    Repo-->>Handler: Return Snapshot
-    deactivate Repo
-
-    Note over Handler, Facade: 2. Enriquecimiento de Medios
-    Handler->>Facade: enrichKahoot(snapshot)
-    activate Facade
-
-    %% FASE DE RECOLECCIÓN
     rect rgb(255, 255, 255)
-        Note over Facade, Snapshot: INTERFACE: IHasMediaAssets
+        Note over Handler, Snapshot: FLUJO DETALLADO: MEDIA KERNEL MODULE
+        
+        Handler->>Repo: 1. findById(id)
+        activate Repo
+        Repo-->>Handler: Return Snapshot (IDs)
+        deactivate Repo
+
+        Handler->>Facade: 2. enrichKahoot(snapshot)
+        activate Facade
+
+        Note over Facade, Snapshot: FASE 1: RECOLECCIÓN (IHasMediaAssets)
         Facade->>Snapshot: getMediaAssetIds()
         activate Snapshot
-        Snapshot-->>Facade: Return [UUIDs]
+        Snapshot-->>Facade: Returns [UUIDs]
         deactivate Snapshot
-    end
 
-    %% FASE DE RESOLUCIÓN (INFRA)
-    Note over Facade, ImgProxy: 3. Resolución Batch (Cache/DB)
-    Facade->>ImgProxy: resolveUrlsBatch(ids)
-    activate ImgProxy
-    ImgProxy-->>Facade: Return Map(UUID -> URL)
-    deactivate ImgProxy
+        Note over Facade, ImgProxy: FASE 2: RESOLUCIÓN BATCH
+        Facade->>ImgProxy: resolveUrlsBatch(ids)
+        activate ImgProxy
+        ImgProxy-->>Facade: Returns Map(UUID -> URL)
+        deactivate ImgProxy
 
-    %% FASE DE CONFIGURACIÓN
-    Facade->>Factory: createThemeHandler() & createAssetHandler()
-    activate Factory
-    Factory-->>Facade: Return Handlers Linked
-    deactivate Factory
+        Facade->>Factory: FASE 3: createChain(urlMap)
+        activate Factory
+        Factory-->>Facade: Chain(Theme -> Asset)
+        deactivate Factory
 
-    %% FASE DE PROCESAMIENTO
-    Facade->>Chain: handle(snapshot)
-    activate Chain
+        Facade->>Chain: FASE 4: handle(snapshot)
+        activate Chain
 
-    %% LÓGICA DE TEMA
-    rect rgb(255, 255, 255)
-        Note over Chain, Snapshot: INTERFACE: IThemeable
-        Chain->>Snapshot: Read themeId
-        
+        Note over Chain, ThemeProxy: Lógica de Temas (IThemeable)
         opt themeId exists
-            Chain->>ThemeProxy: enrichTheme(themeId)
+            Chain->>ThemeProxy: getTheme(themeId)
             activate ThemeProxy
-            ThemeProxy-->>Chain: Return ThemeObject
+            ThemeProxy-->>Chain: Full Theme Object
             deactivate ThemeProxy
-            Chain->>Snapshot: Write theme = ThemeObject
+            Chain->>Snapshot: setInternalTheme(Theme)
         end
-    end
 
-    %% LÓGICA DE ASSETS
-    rect rgb(255, 255, 255)
-        Note over Chain, Snapshot: INTERFACE: IHasMediaAssets
+        Note over Chain, Snapshot: Lógica de Assets (IHasMediaAssets)
         Chain->>Snapshot: applyMediaUrls(urlMap)
         activate Snapshot
-        Note right of Snapshot: Snapshot inyecta las URLs internamente
         Snapshot-->>Chain: void
         deactivate Snapshot
+
+        Chain-->>Facade: Enriched Snapshot
+        deactivate Chain
+
+        Facade-->>Handler: Enriched Data Ready
+        deactivate Facade
     end
-
-    Chain-->>Facade: Enriched Snapshot
-    deactivate Chain
-
-    Facade-->>Handler: Snapshot Ready
-    deactivate Facade
 ```
 ---
-### 🔗 RECURSOS EXTERNOS PARA EL FLUJO DEL SERVICIO
+### 🔗 RECURSOS EXTERNOS PARA EL FLUJO DEL SERVICIO DE ENRIQUECIMIENTO DE MEDIA
 Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/fRfrRr2cxxbeY7vfT7CT?origin=share)**
