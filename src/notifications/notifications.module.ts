@@ -7,13 +7,10 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 import { KahootAssignedListener } from './application/event-listeners/kahoot-assigned.listener';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
-import { KahootAssignedToGroupEvent } from 'src/core/domain/domain-events/kahoot-assigned-to-group.event';
+import { KahootAssignedEvent } from 'src/notifications/application/events/kahoot-assigned.event';
 import { FirebaseNotifierAdapter } from './infrastructure/adapters/firebase-notifier.adapter';
 import { MongoDeviceRepository } from 'src/database/infrastructure/mongo/modules/notifications/device.repository.mongo';
 import { NotifyKahootAssignedUseCase } from './application/use-cases/notify-kahoot-assigned.use-case';
-import type { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
-import type { IKahootRepository } from 'src/kahoots/domain/ports/IKahootRepository';
-import type { IUserRepository } from 'src/users/domain/ports/IUserRepository';
 import type { INotificationRepository } from 'src/notifications/domain/ports/notification.repository.port';
 import type { IDeviceRepository } from 'src/notifications/domain/ports/device.repository.port';
 import type { INotifier } from 'src/notifications/application/ports/notifier.port';
@@ -32,9 +29,6 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
     controllers: [NotificationsController],
     imports: [
         CqrsModule,
-        RepositoryFactoryModule.forFeature(RepositoryName.Group),
-        RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
-        RepositoryFactoryModule.forFeature(RepositoryName.User),
         RepositoryFactoryModule.forFeature(RepositoryName.Notification),
         MongooseModule.forFeature([
             { name: NotificationMongo.name, schema: NotificationSchema },
@@ -57,18 +51,12 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
         {
             provide: NotifyKahootAssignedUseCase,
             useFactory: (
-                groupRepository: IGroupRepository,
-                kahootRepository: IKahootRepository,
-                userRepository: IUserRepository,
                 notificationRepository: INotificationRepository,
                 deviceRepository: IDeviceRepository,
                 notifier: INotifier,
                 idGenerator: IdGenerator<string>,
             ) => {
                 return new NotifyKahootAssignedUseCase(
-                    groupRepository,
-                    kahootRepository,
-                    userRepository,
                     notificationRepository,
                     deviceRepository,
                     notifier,
@@ -76,9 +64,6 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
                 );
             },
             inject: [
-                RepositoryName.Group,
-                RepositoryName.Kahoot,
-                RepositoryName.User,
                 RepositoryName.Notification,
                 'IDeviceRepository',
                 'INotifier',
@@ -107,9 +92,9 @@ export class NotificationsModule implements OnModuleInit {
 
     onModuleInit() {
         this.eventBus.subscribe(
-            KahootAssignedToGroupEvent.name,
-            async (event: KahootAssignedToGroupEvent) => {
-                if (event instanceof KahootAssignedToGroupEvent) {
+            KahootAssignedEvent.name,
+            async (event: KahootAssignedEvent) => {
+                if (event instanceof KahootAssignedEvent) {
                     await this.kahootAssignedListener.on(event);
                 }
             }

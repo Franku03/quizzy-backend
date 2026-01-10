@@ -22,6 +22,10 @@ export class KahootAssignedToGroupEvent extends DomainEvent {
         public readonly assignedBy: UserId,
         public readonly availableFrom: Date,
         public readonly availableUntil: Date,
+        public readonly groupName?: string,
+        public readonly kahootTitle?: string,
+        public readonly assignerName?: string,
+        public readonly memberIds?: string[],
     ) {
         super(KahootAssignedToGroupEvent.name);
     }
