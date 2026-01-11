@@ -132,7 +132,7 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 > [!TIP]
 > 🎨 **[Acceder al Diagrama del Modelo de Dominio](https://lucid.app/lucidchart/ece44902-e188-405b-98a2-99114bfce612/edit?invitationId=inv_5ebb1b27-3046-48d7-bb6f-ddbeccdac5bc&page=5WW8gG8tv4Q4#)**
 > _Plataforma: LucidChart_
-
+> _.Ver iteración 4_
 ---
 
 
@@ -161,7 +161,9 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 La implementación de **Railway Oriented Programming (ROP)** mediante el uso de `Either<L, R>` y `pipeAsync` proporciona beneficios críticos en la optimización del tiempo de ejecución y el aprovechamiento del motor **V8**:
 
 ### 1. Optimización del Compilador (Monomorfismo)
-El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno.
+El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno. En palabras más simple, esto reduce a los polymorphic checks para los que conocen muy a fondo V8.
+
+📌 Diagrama de Arquitectura de Optimización
 
 ### 2. Instanciación vs. Lanzamiento de Excepciones
 Existe una diferencia fundamental en el consumo de recursos entre retornar un valor y lanzar una excepción:
@@ -436,7 +438,11 @@ sequenceDiagram
 Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/w9byiD8Kuq4CRJ47rOU8?origin=share)**
-
+---
+> [!CAUTION]
+> Se Debe Cambiar el sistema para utilizar el interceptor de nest y quitar el throw final, este ha sido un desliz que no se había considerado
+> Actualmente usamos el filter pero el interceptor es lo que recibe todas las request y devuelve todas las response
+> Si alguien decide implementar esto en su proyecto, debe considerarlo para cumplir correctamente la filosfía buscada
 ---
 ## 🚀 Guía para el Desarrollador sobre el sistema de errores 
 
@@ -583,10 +589,10 @@ Las excepciones rompen el flujo de ejecución (como un `GOTO`). Nuestro sistema 
 
 ---
     
-# 🧩 Media Module: MediaEnrichmentService El Serivcio MVP 
+# 🧩 Media Module: MediaEnrichmentService _El Servicio MVP_
 ### *Abstracción de Infraestructura y Enriquecimiento de Dominio*
 
-El **Media Module**, Ademas de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concertl**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
+El **Media Module**, Además de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concern**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
 
 
 #### 🎯 Visión y Propósito Estratégico
@@ -624,7 +630,7 @@ El Servicio opera bajo una arquitectura de **Contratos de Comportamiento**. En l
 
 | Patrón | Implementación Técnica | Beneficio de Ingeniería |
 | :--- | :--- | :--- |
-| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transoframaciones mas complejas podria requerer methods especificos |
+| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transformaciones mas complejas podria requerir métodos específicos |
 | **FACTORY** | `EnrichmentHandlerFactory` | Encapsula el uso de la palabra reservada `new` en la facade. |
 | **PROXY** | `AssetResolutionProxy` | Control de acceso y optimización de red (Batching). |
 | **FLYWEIGHT** | Gestión de Instancias de URL | Minimiza el impacto en el Garbage Collector al reutilizar strings y objetos de configuración. |
@@ -657,9 +663,9 @@ export class AnyHandler (Puede ser Query o Command) {
 El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arquitectura limpia. Se han aplicado los principios **SOLID** para garantizar que el sistema sea inmune a la degradación de código a medida que el proyecto crece.
 
 * **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El servicio no es un monolito GOD Class, sino una suma de especialistas coordinados.
-* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No bostante ver máas abajo el trade-offs.
+* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No obstante ver más abajo el trade-offs.
 * **LSP (Liskov Substitution Principle):** Todos los Handlers heredan de una base abstracta. El motor de orquestación trata a cualquier `VideoHandler` o `ImageHandler` como un `BaseHandler` genérico, garantizando la sustituibilidad total sin romper el flujo de ejecución.
-* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo` (Si quiseran agregar videos). Los objetos de dominio solo implementan lo que realmente necesitan.
+* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo` (Si quisieran agregar videos). Los objetos de dominio solo implementan lo que realmente necesitan.
 * **DIP (Dependency Inversion Principle):** El Servicio depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
 
 ---
@@ -688,7 +694,7 @@ El Media Module ha sido diseñado mecánicamente para ser "amigable" con el comp
 * **Short-Circuiting:** Si un objeto no requiere enriquecimiento, el servicio aplica un cortocircuito inmediato. Esto evita la creación de micro-tareas y promesas innecesarias, manteniendo el **Throughput** del servidor al máximo y optimizando el uso del Event Loop.
 
 > [!NOTE]
-> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/BoilerPlate masivo en una operación de una sola línea. 
+> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/boilerplate masivo en una operación de una sola línea. 
 
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (MediaEnrichmentService)
@@ -852,7 +858,7 @@ Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliz
 | **`domain/`** | **Núcleo de Negocio**: Abstracciones base (`AggregateRoot`, `Entity`, `ValueObject`), Eventos de Dominio y objetos de valor compartidos (IDs, fechas, puntos). |
 | **`application/`** | **Puertos y Orquestación**: Definición de contratos (`ports`), lógica de seguridad (`auth`), decoradores de autorización y la interfaz del Bus de CQRS. |
 | **`infrastructure/`** | **Implementaciones Técnicas**: Adaptadores reales para criptografía, generación de IDs (UUID), y la implementación física de los buses (Memory/Pino). |
-| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factorys, contextos y el `pipe-async` para composición de flujos. |
+| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factories, contextos y el `pipe-async` para composición de flujos. |
 | **`types/`** | **Tipado Funcional**: Tipos base para el control de flujo como `Either.ts` (éxito/error) y `Optional.ts`. |
 | **`nest-js/`** | **Integración**: Decoradores y controladores base específicos para el ciclo de vida de NestJS. |
 
