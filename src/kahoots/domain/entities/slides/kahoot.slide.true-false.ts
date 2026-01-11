@@ -26,6 +26,8 @@ import { createDomainContext } from "src/core/errors/helpers/domain-error-contex
 
 export class TrueFalseSlide extends Slide {
 
+    private static readonly ALLOWED_TEXTS = ['true', 'false'];
+
     private constructor(props: SlideProps, id: SlideId) {
         super(props, id);
     }
@@ -53,8 +55,9 @@ export class TrueFalseSlide extends Slide {
 
     protected checkInitialInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('checkInitialInvariants');
-        const pointsOptional = this.properties.points;
 
+        // 1. VALIDACIÓN DE PUNTOS
+        const pointsOptional = this.properties.points;
         if (!pointsOptional || !pointsOptional.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { points: ['REQUIRED'] }, "Points are mandatory for True/False slides."
@@ -66,20 +69,58 @@ export class TrueFalseSlide extends Slide {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { points: ['INVALID_VALUE'] },
-                `Point value (${pointValue}) is not allowed. Must be: ${SLIDE_POINTS_STD.join(', ')}.`
+                `Point value (${pointValue}) is not allowed.`
             ));
         }
 
-        const optionsOptional = this.properties.options;
-        if (!optionsOptional || !optionsOptional.hasValue() || optionsOptional.getValue().length !== 2) {
-            return Either.makeLeft(DomainErrorFactory.validation(
-                context, { options: ['INVALID_COUNT'] }, "True/False slides must be initialized with exactly two options."
-            ));
-        }
-
-        if (this.properties.description && this.properties.description.hasValue()) {
+        // 2. VALIDACIÓN DE DESCRIPCIÓN
+        if (this.properties.description?.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { description: ['NOT_ALLOWED'] }, "True/False slides do not support descriptions."
+            ));
+        }
+
+        // 3. VALIDACIÓN ESTRUCTURAL DE OPCIONES
+        const optionsOptional = this.properties.options;
+        if (!optionsOptional?.hasValue()) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['REQUIRED'] }, "Options are required."
+            ));
+        }
+
+        const options = optionsOptional.getValue();
+
+        // Regla: Cantidad exacta
+        if (options.length !== 2) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['INVALID_COUNT'] }, "Must have exactly two options."
+            ));
+        }
+
+        // Regla: Contenido específico (True/False) y sin imágenes
+        const uniqueTexts = new Set<string>();
+
+        for (const option of options) {
+            const textLower = option.text.toLowerCase();
+
+            if (option.hasImage()) {
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['IMAGES_NOT_ALLOWED'] }, "Images are not allowed in True/False options."
+                ));
+            }
+
+            if (!TrueFalseSlide.ALLOWED_TEXTS.includes(textLower)) {
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context, { options: ['INVALID_OPTION_TEXT'] }, `Only 'True' and 'False' allowed.`
+                ));
+            }
+            uniqueTexts.add(textLower);
+        }
+
+        // Regla: No duplicados (Asegura que haya uno de cada uno)
+        if (uniqueTexts.size !== 2) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context, { options: ['DUPLICATED_OPTIONS'] }, "Must have one 'True' and one 'False' option."
             ));
         }
 
@@ -97,18 +138,21 @@ export class TrueFalseSlide extends Slide {
 
     public validatePublishingInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('validatePublishing');
-        const optionsArray = this.getOptionsList();
-        const correctOptionsCount = optionsArray.filter(o => o.isCorrect).length;
 
+        // 1. Título obligatorio
         if (!this.properties.question.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context, { question: ['REQUIRED'] }, "True/False slide must have a title."
+                context, { question: ['REQUIRED'] }, "Question title is required."
             ));
         }
 
+        // 2. Exactamente una marcada como correcta
+        const correctOptionsCount = this.getOptionsList().filter(o => o.isCorrect).length;
         if (correctOptionsCount !== 1) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context, { options: ['INVALID_CORRECT_COUNT'] }, "True/False slide must have exactly one (1) correct option."
+                context,
+                { options: ['INVALID_CORRECT_COUNT'] },
+                "Must select exactly one correct option."
             ));
         }
 
