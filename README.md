@@ -132,7 +132,7 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 > [!TIP]
 > 🎨 **[Acceder al Diagrama del Modelo de Dominio](https://lucid.app/lucidchart/ece44902-e188-405b-98a2-99114bfce612/edit?invitationId=inv_5ebb1b27-3046-48d7-bb6f-ddbeccdac5bc&page=5WW8gG8tv4Q4#)**
 > _Plataforma: LucidChart_
-
+> _.Ver iteración 4_
 ---
 
 
@@ -161,7 +161,9 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 La implementación de **Railway Oriented Programming (ROP)** mediante el uso de `Either<L, R>` y `pipeAsync` proporciona beneficios críticos en la optimización del tiempo de ejecución y el aprovechamiento del motor **V8**:
 
 ### 1. Optimización del Compilador (Monomorfismo)
-El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno.
+El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno. En palabras más simple, esto reduce a los polymorphic checks para los que conocen muy a fondo V8.
+
+📌 Diagrama de Arquitectura de Optimización
 
 ### 2. Instanciación vs. Lanzamiento de Excepciones
 Existe una diferencia fundamental en el consumo de recursos entre retornar un valor y lanzar una excepción:
@@ -436,13 +438,161 @@ sequenceDiagram
 Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/w9byiD8Kuq4CRJ47rOU8?origin=share)**
+---
+> [!CAUTION]
+> Se Debe Cambiar el sistema para utilizar el interceptor de nest y quitar el throw final, este ha sido un desliz que no se había considerado
+> Actualmente usamos el filter pero el interceptor es lo que recibe todas las request y devuelve todas las response
+> Si alguien decide implementar esto en su proyecto, debe considerarlo para cumplir correctamente la filosfía buscada
+---
+## 🚀 Guía para el Desarrollador sobre el sistema de errores 
 
+Luego de la justificación previa, es momento de explicar todo, ya que todo el sistema utiliza un sistema de manejo de errores robusto, tipado y agnóstico a la infraestructura, basado en el patrón **Result (Either)** y **Errores Canónicos (`ErrorData`)**.
+
+### Principios
+1.  **No Exceptions:** El objetivo principal es eliminar el uso indiscriminado de excepciones (`throw`).
+2.  **Control Flow:** Los errores fluyen como valores controlados (`Left`) desde el origen hasta la capa de presentación.
+3.  **Traceability:** Cada error lleva consigo un contexto rico (Operación, Actor, Recurso) que se enriquece a medida que sube de capa.
 ---
 
-# 🧩 Media Module: MediaEnrichmentService El Serivcio MVP 
+## 🛠️ Herramientas Principales
+
+Para generar errores estandarizados, utilizamos dos componentes clave: **Factories** (para crear el error) y **Context Helpers** (para describir dónde y por qué ocurrió).
+
+### 1. Factories (¿Qué error crear?)
+Clases estáticas con métodos semánticos. **No instancies `ErrorData` manualmente** a menos que sea estrictamente necesario.
+
+| Capa | Factory | Ubicación | Métodos Comunes |
+| :--- | :--- | :--- | :--- |
+| **Domain** | `DomainErrorFactory` | `src/core/errors/factories/` | `.validation()`, `.notFound()`, `.conflict()`, `.unauthorized()` |
+| **Application** | `AppErrorFactory` | `src/core/errors/factories/` | `.notFound()`, `.forbidden()`, `.unauthorized()` |
+
+### 2. Context Helpers (¿Dónde ocurrió?)
+Ayudan a llenar los metadatos del error (`details`) de forma estructurada y consistente.
+
+| Capa | Helper | Ubicación | Parámetros Clave |
+| :--- | :--- | :--- | :--- |
+| **Domain** | `createDomainContext` | `src/core/errors/helpers/` | `domainObjectType`, `domainObjectId`, `rootAggregateName` |
+| **Application** | `createApplicationContext` | `src/core/errors/helpers/` | `operation`, `resourceTargetId`, `actorId` |
+| **Infra** | `createDatabaseContext` | `src/core/errors/helpers/` | `databaseType`, `collectionOrTable`, `adapterName` |
+
+## 🚀 Implementación: Capa de Dominio
+
+Cuando una regla de negocio falla (ej. validación de formato, estado inválido).
+
+**Flujo:**
+1. Crea el contexto con `createDomainContext`.
+2. Retorna `Either.makeLeft` usando `DomainErrorFactory`.
+
+```typescript
+// Ejemplo: Value Object (SlideType.ts)
+public static create(rawType: string): Either<ErrorData, SlideType> {
+    const context = createDomainContext('SlideType', 'validateType', {
+        domainObjectKind: 'ValueObject'
+    });
+
+    if (!isValid(rawType)) {
+        // ❌ Retornamos Left con el error fabricado
+        return Either.makeLeft(
+            DomainErrorFactory.validation(context, { type: ['INVALID_VALUE'] })
+        );
+    }
+    // ✅ Retornamos Right con el valor validado
+    return Either.makeRight(new SlideType(rawType));
+}
+```
+
+## 🚀 Implementación: Capa de Infraestructura (DAOs - Extensible a otros servicios externos. En el proyecto se puede ver el caso de Cloudinary)
+
+Aquí **no** creamos errores manualmente. Atrapamos errores de librerías externas (Mongo, TypeORM, Axios) y los **mapeamos**.
+
+**Flujo:**
+1. Usa `createDatabaseContext`.
+2. Usa `Either.tryCatch` envolviendo la llamada externa.
+3. Pasa el `Mapper` correspondiente en el callback de error.
+
+```typescript
+// Ejemplo: Mongo DAO
+async getById(id: string): Promise<Either<ErrorData, Kahoot>> {
+    const ctx = this.getCtx('getById', id); 
+    
+    return Either.tryCatch(
+        this.model.findOne({ id }).exec(),
+        (err) => this.mongoErrorMapper.toErrorData(err, ctx) // 👈 Mapper inyectado
+    );
+}
+```
+
+## 📜 Contratos e Interfaces Clave
+
+Si vas a extender el sistema, debes respetar estos contratos:
+
+1.  **`IErrorMapper<TError, TContext>`**
+    *   Interfaz obligatoria para clases que transforman errores externos (ej. `MongoError`) a `ErrorData`.
+    *   *Ubicación:* `src/core/errors/interface/mapper/i-error-mapper.interface.ts`
+
+2.  **Context Interfaces (`IDatabaseErrorContext`, etc.)**
+    *   Definen la estructura de metadatos obligatoria para cada capa.
+    *   *Ubicación:* `src/core/errors/interface/context/`
+
+3.  **`IErrorService`**
+    * Contrato para transformar un `ErrorData` interno en una respuesta HTTP para el cliente.
+    * *Ubicación:* `src/core/errors/interface/mapper/i-error-http-mapper-service.interface.ts`
+    
+## ➕ Cómo agregar una nueva Infraestructura (Ej. Redis)
+
+Si integras una nueva tecnología (ej. Redis, AWS S3), sigue estos pasos:
+
+1.  **Definir Constantes**: Crea un objeto base con `module`, `databaseType` y `collectionOrTable`.
+    ```typescript
+    export const REDIS_BASE = { module: 'cache', databaseType: 'redis', collectionOrTable: 'keys' };
+    ```
+
+2.  **Crear el Mapper**: Implementa `IErrorMapper` para traducir errores nativos de Redis a `ErrorData`.
+    ```typescript
+    export class RedisErrorMapper implements IErrorMapper<unknown, IDatabaseErrorContext> { ... }
+    ```
+
+3.  **Registrar el Token**: Añade el provider en el módulo de infraestructura.
+    ```typescript
+    { provide: ERROR_TOKENS.MAPPERS.REDIS, useClass: RedisErrorMapper }
+    ```
+4.  **Usar en el Adapter**: Inyecta el mapper y usa `Either.tryCatch` junto con `createDatabaseContext`.
+---
+## 💡 ¿Por qué NO usamos `throw`? (La Filosofía)
+
+Quizás te preguntes por qué nos tomamos la molestia de envolver todo en `Either` en lugar de simplemente lanzar excepciones (`throw new Error`). La respuesta es **Seguridad y Honestidad**. Además claro del rendimiento mencionado anteriormente
+
+### 1. Funciones Honestas
+En la programación tradicional, la firma de una función miente.
+*   **Mentira:** `findKahootById(id: KahootId): Promise<Optional<Kahoot>>` -> *Parece que siempre devuelve un kahoot, pero puede explotar.*
+*   **Verdad:** `findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>>` -> *Declara explícitamente: "Puedo fallar, y aquí está el tipo de error que retorno".*
+
+### 2. El Compilador te obliga a programar seguro
+Al usar `Either`, el error es un valor, no un efecto secundario. **No puedes acceder al resultado exitoso sin antes verificar si hubo un error.**
+Esto elimina categorías enteras de bugs causados por olvidar un `try/catch`. Si olvidas manejar el error, **el código no compila**.
+
+### 3. Errores como Flujo de Control (Railroad Oriented Programming)
+Las excepciones rompen el flujo de ejecución (como un `GOTO`). Nuestro sistema trata los errores como datos que fluyen a través de tuberías (`pipeAsync`).
+*   Si todo va bien, el tren sigue por la vía verde (`Right`).
+*   Si algo falla, cambia suavemente a la vía roja (`Left`) llevando el contexto del error, sin romper la aplicación ni anidar bloques `try/catch` infinitos.
+
+> **En resumen:** No dejamos que los errores sean "sorpresas" en tiempo de ejecución. Los convertimos en **decisiones explícitas** en tiempo de desarrollo.
+
+> [!TIP]
+> **Profundiza en la Teoría: Railway Oriented Programming (ROP)**
+>
+> La arquitectura de este proyecto (el uso de `pipeAsync` y el flujo de `Either`) se basa en un concepto funcional llamado **Railway Oriented Programming**.
+>
+> Si quieres entender a fondo la teoría detrás de "las vías del tren" (el camino feliz vs. el camino del error) y por qué este patrón escala mejor que los bloques `try/catch`, te recomendamos encarecidamente esta lectura:
+>
+> 🔗 **[What is Railway Oriented Programming? - LogRocket Blog](https://blog.logrocket.com/what-is-railway-oriented-programming/)**
+
+---
+    
+# 🧩 Media Module: MediaEnrichmentService _El Servicio MVP_
 ### *Abstracción de Infraestructura y Enriquecimiento de Dominio*
 
-El **Media Module**, Ademas de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concertl**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
+El **Media Module**, Además de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concern**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
 
 
 #### 🎯 Visión y Propósito Estratégico
@@ -480,7 +630,7 @@ El Servicio opera bajo una arquitectura de **Contratos de Comportamiento**. En l
 
 | Patrón | Implementación Técnica | Beneficio de Ingeniería |
 | :--- | :--- | :--- |
-| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transoframaciones mas complejas podria requerer methods especificos |
+| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transformaciones mas complejas podria requerir métodos específicos |
 | **FACTORY** | `EnrichmentHandlerFactory` | Encapsula el uso de la palabra reservada `new` en la facade. |
 | **PROXY** | `AssetResolutionProxy` | Control de acceso y optimización de red (Batching). |
 | **FLYWEIGHT** | Gestión de Instancias de URL | Minimiza el impacto en el Garbage Collector al reutilizar strings y objetos de configuración. |
@@ -501,7 +651,7 @@ export class AnyHandler (Puede ser Query o Command) {
     const snapshot = await this.repository.findById(query.id);
     // 2. Servicio: Transformación masiva y enriquecimiento
     // El Servicio maneja internamente la recursividad y la optimización de red
-    return await this.mediaService.enrichKahoot(snapshot);
+    return await this.mediaService.enrich(anyData);
   }
 }
 ```
@@ -513,9 +663,9 @@ export class AnyHandler (Puede ser Query o Command) {
 El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arquitectura limpia. Se han aplicado los principios **SOLID** para garantizar que el sistema sea inmune a la degradación de código a medida que el proyecto crece.
 
 * **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El servicio no es un monolito GOD Class, sino una suma de especialistas coordinados.
-* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No bostante ver máas abajo el trade-offs.
+* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No obstante ver más abajo el trade-offs.
 * **LSP (Liskov Substitution Principle):** Todos los Handlers heredan de una base abstracta. El motor de orquestación trata a cualquier `VideoHandler` o `ImageHandler` como un `BaseHandler` genérico, garantizando la sustituibilidad total sin romper el flujo de ejecución.
-* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo`. Los objetos de dominio solo implementan lo que realmente necesitan.
+* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo` (Si quisieran agregar videos). Los objetos de dominio solo implementan lo que realmente necesitan.
 * **DIP (Dependency Inversion Principle):** El Servicio depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
 
 ---
@@ -526,7 +676,7 @@ El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arqu
 Añadir soporte para un nuevo tipo de medio es un proceso lineal y seguro que no afecta a los módulos existentes:
 1.  **Contrato:** Se define `IHasStreamingVideo` con el método `setVideoUrl()`.
 2.  **Procesador:** Se implementa `VideoEnrichmentHandler` encapsulando la lógica del proveedor (ej. Mux o YouTube).
-3.  **Registro:** Se añade al pipeline en la Factoría. Las imágenes y temas siguen funcionando sin enterarse del cambio.
+3.  **Registro:** Se añade al pipeline en la Factory. Las imágenes y temas siguen funcionando sin enterarse del cambio.
 
 ### ⚖️ El Sacrificio Arquitectónico (Design Trade-offs)
 En ingeniería, toda solución tiene un costo. Para lograr un **OCP** perfecto y una experiencia de desarrollo (DX) superior, hemos aceptado deliberadamente dos sacrificios:
@@ -544,7 +694,7 @@ El Media Module ha sido diseñado mecánicamente para ser "amigable" con el comp
 * **Short-Circuiting:** Si un objeto no requiere enriquecimiento, el servicio aplica un cortocircuito inmediato. Esto evita la creación de micro-tareas y promesas innecesarias, manteniendo el **Throughput** del servidor al máximo y optimizando el uso del Event Loop.
 
 > [!NOTE]
-> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/BoilerPlate masivo en una operación de una sola línea. 
+> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/boilerplate masivo en una operación de una sola línea. 
 
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (MediaEnrichmentService)
@@ -708,7 +858,7 @@ Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliz
 | **`domain/`** | **Núcleo de Negocio**: Abstracciones base (`AggregateRoot`, `Entity`, `ValueObject`), Eventos de Dominio y objetos de valor compartidos (IDs, fechas, puntos). |
 | **`application/`** | **Puertos y Orquestación**: Definición de contratos (`ports`), lógica de seguridad (`auth`), decoradores de autorización y la interfaz del Bus de CQRS. |
 | **`infrastructure/`** | **Implementaciones Técnicas**: Adaptadores reales para criptografía, generación de IDs (UUID), y la implementación física de los buses (Memory/Pino). |
-| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factorías, contextos y el `pipe-async` para composición de flujos. |
+| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factories, contextos y el `pipe-async` para composición de flujos. |
 | **`types/`** | **Tipado Funcional**: Tipos base para el control de flujo como `Either.ts` (éxito/error) y `Optional.ts`. |
 | **`nest-js/`** | **Integración**: Decoradores y controladores base específicos para el ciclo de vida de NestJS. |
 
