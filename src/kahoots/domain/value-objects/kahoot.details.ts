@@ -22,10 +22,33 @@ import { MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH } from "../constants/kahoot.ru
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
+export enum KahootCategoryEnum {
+    MATHEMATICS = 'Mathematics',
+    SCIENCE = 'Science',
+    BIOLOGY = 'Biology',
+    CHEMISTRY = 'Chemistry',
+    PHYSICS = 'Physics',
+    LITERATURE = 'Literature',
+    HISTORY = 'History',
+    GEOGRAPHY = 'Geography',
+    ART = 'Art',
+    MUSIC = 'Music',
+    TECHNOLOGY = 'Technology',
+    SPORTS = 'Sports',
+    LANGUAGES = 'Languages',
+    COMPUTER_SCIENCE = 'Computer Science',
+    SOCIAL_STUDIES = 'Social Studies',
+    PHILOSOPHY = 'Philosophy',
+    ECONOMICS = 'Economics',
+    PSYCHOLOGY = 'Psychology',
+    TRIVIA = 'Trivia',
+    GENERAL_KNOWLEDGE = 'General Knowledge'
+}
+
 interface KahootDetailsProps {
     readonly title: Optional<string>;
     readonly description: Optional<string>;
-    readonly category: Optional<string>;
+    readonly category: Optional<KahootCategoryEnum>;
 }
 
 export class KahootDetails extends ValueObject<KahootDetailsProps> {
@@ -33,6 +56,7 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
     private constructor(props: KahootDetailsProps) {
         super(props);
     }
+
     public static create(
         t?: string,
         d?: string,
@@ -43,37 +67,49 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             domainObjectKind: 'ValueObject'
         });
 
-        // 1. Validaciones usando tipos nativos (más limpio y rápido)
+        // 1. Validaciones base
         if (!t && !d && !c) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context,
-                { generic: ['MISSING_DATA'] },
-                'At least a title, description, or category must be provided.'
+                context, { generic: ['MISSING_DATA'] }, 'At least a title, description, or category must be provided.'
             ));
         }
 
         if (t && t.length > MAX_TITLE_LENGTH) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context,
-                { title: ['TOO_LONG'] },
-                `Title cannot exceed ${MAX_TITLE_LENGTH} characters.`
+                context, { title: ['TOO_LONG'] }, `Title cannot exceed ${MAX_TITLE_LENGTH} characters.`
             ));
         }
 
         if (d && d.length > MAX_DESCRIPTION_LENGTH) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context,
-                { description: ['TOO_LONG'] },
-                `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters.`
+                context, { description: ['TOO_LONG'] }, `Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters.`
             ));
         }
 
-        // 2. Creamos la instancia. 
-        // Si tu clase base ValueObject requiere Optional, los envolvemos aquí:
+        // 2. Normalización y Validación de Categoría
+        let validatedCategory: KahootCategoryEnum | undefined = undefined;
+
+        if (c) {
+            const cleanCategory = c.trim().toLowerCase();
+            // Buscamos el valor real del enum que coincida (case-insensitive)
+            const categoryMatch = Object.values(KahootCategoryEnum).find(
+                (val) => val.toLowerCase() === cleanCategory
+            );
+
+            if (!categoryMatch) {
+                return Either.makeLeft(DomainErrorFactory.validation(
+                    context,
+                    { category: ['INVALID_CATEGORY'] },
+                    `The value '${c}' is not a valid Kahoot category.`
+                ));
+            }
+            validatedCategory = categoryMatch;
+        }
+
         return Either.makeRight(new KahootDetails({
             title: new Optional(t),
             description: new Optional(d),
-            category: new Optional(c)
+            category: new Optional(validatedCategory)
         }));
     }
 
@@ -82,11 +118,11 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             domainObjectKind: 'ValueObject'
         });
 
-        if (!this.properties.title.hasValue() || !this.properties.description.hasValue()) {
+        if (!this.properties.title.hasValue() || !this.properties.description.hasValue() || !this.properties.category.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { publication: ['INCOMPLETE_DETAILS'] },
-                "A title and description are required to publish the Kahoot."
+                "Title, description, and category are required to publish the Kahoot."
             ));
         }
         return Either.makeRight(true);
@@ -94,7 +130,7 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
 
     public get title(): Optional<string> { return this.properties.title; }
     public get description(): Optional<string> { return this.properties.description; }
-    public get category(): Optional<string> { return this.properties.category; }
+    public get category(): Optional<KahootCategoryEnum> { return this.properties.category; }
 
     public getSnapshot(): KahootDetailsSnapshot {
         return {
