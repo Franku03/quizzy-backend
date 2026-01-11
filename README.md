@@ -177,23 +177,50 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 
 ### Estructura de Capas por Módulo
 
-🟡 Domain (Núcleo)
-- entities
-- value-objects
-- aggregates
-- domain-services
-- repositories 
+### 🟡 Domain
+Capa que contiene el corazón del sistema: reglas de negocio, entidades y contratos. Es totalmente independiente de tecnologías externas.
 
-🟣 Application
-- command
-- query
-- application-services
-- dtos
+```bash
+📂 domain/
+├── 📂 entities/        # Objetos con identidad única (aseguran invarianzas)  
+├── 📂 value-objects/   # OBjetos inmutables definidos por sus atributos (aseguran invarianzas) 
+├── 📂 aggregates/      # Conjunto de objetos tratados como una unidad manejados por el Aggregate Root (asegura la invarianza del todo) 
+├── 📂 domain-services/ # Lógica que involucra múltiples entidades
+├── 📂 repositories/    # Definición de interfaces para la persistencia
+└── 📂 factories/       # Lógica de creación para Agregados 
+```
+<br>
 
-🔵 Infrastructure
-- nest-js (controllers, gateways)
-- external-services
-- repositories (Mongoose / TypeORM)
+### 🟣 Application
+Orquesta el flujo de datos y ejecuta los casos de uso, actuando como mediador entre el dominio y la infraestructura.
+
+```bash
+📂 application/
+├── 📂 ports/           # Definen contratos para implmentarse en la capa de infraestructura y cumplir con el principo de dependecia de la Arquitectura Hexagonal
+├── 📂 commands/        # Acciones que modifican el estado (Escritura)
+├── 📂 queries/         # Acciones que consultan datos (Lectura)
+├── 📂 services/        # Orquestadores de dominio
+└── 📂 dtos/            # Objetos de transferencia de datos
+```
+
+<br>
+
+
+### 🔵 Infrastructure
+Contiene las implementaciones técnicas y los detalles de frameworks o bases de datos.
+
+```bash
+📂 infrastructure/
+├── 📂 nest-js/         # Controladores, Gateways (WS) y Módulos
+└── 📂 adapters/        # Implementación real de repositorios, ports de dominio y de app
+```
+
+<br>
+
+### 📝 Nota de Complejidad
+
+> [!NOTE]
+> Esta estructura es a manera muy general y resumida. Existen módulos de mayor complejidad que tienen mas directorios.
 
 ## 🚨 Arquitectura de Errores y Eficiencia en el Motor V8
 
