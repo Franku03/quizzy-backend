@@ -16,16 +16,23 @@ import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/valu
 import type { IUuidGenerationService } from 'src/users/domain/domain-services/i.uuid-generator.interface';
 import type { IPasswordHasher } from 'src/users/domain/domain-services/i.password-hasher.interface';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
-import { Either } from 'src/core/types/either';
-import { ErrorData, ErrorLayer } from 'src/core/types';
+import { Either, ErrorData } from 'src/core/types';
 import { REGISTER_USER_ERROR_CODES } from './register-user.errors';
 import { UserType } from 'src/users/domain/value-objects/user.type';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
-import { UserProfileReadModel } from '../../queries/read-model/get-user-profile.model';
+
+import { RegisterUserResponseDto } from 'src/users/infrastructure/nest-js/response-dtos/user.response.dto';
+
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(RegisterUserCommand)
 export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand> {
-  
+  private readonly useCase: string = 'User registers a new account';
+
   constructor(
     @Inject(RepositoryName.User)
     private readonly userRepository: IUserRepository,
@@ -34,48 +41,70 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
     @Inject('IPasswordHasher')
     private readonly hasher: IPasswordHasher,
     private readonly mediaEnrichmentService: MediaEnrichmentService,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+    private readonly logger: ILogger,
   ) {}
 
-  async execute(command: RegisterUserCommand): Promise<Either<ErrorData, UserProfileReadModel>> {
-    const emailVO = new UserEmail(command.email);
-    const usernameVO = new UserName(command.username);
-
-    const emailExists = await this.userRepository.existsUserByEmail(emailVO);
-    if (emailExists) {
-      return Either.makeLeft(new ErrorData('CONFLICT', REGISTER_USER_ERROR_CODES.USER_EMAIL_ALREADY_EXISTS, ErrorLayer.DOMAIN));
-    }
-
-    const usernameExists = await this.userRepository.existsUserByUsername(usernameVO);
-    if (usernameExists) {
-        return Either.makeLeft(new ErrorData('CONFLICT', REGISTER_USER_ERROR_CODES.USER_USERNAME_ALREADY_EXISTS, ErrorLayer.DOMAIN));
-    }
-
+  @Log()
+  async execute(command: RegisterUserCommand): Promise<Either<ErrorData, RegisterUserResponseDto>> {
     const uuid = this.uuidService.generateIUserId();
     const userId = new UserId(uuid);
-    
+
+    const errorContext = createDomainContext('User', 'registerUser', {
+        domainObjectId: uuid,
+        email: command.email,
+        username: command.username
+    });
+
+    const emailVO = new UserEmail(command.email);
+    if (await this.userRepository.existsUserByEmail(emailVO)) {
+      return Either.makeLeft(
+        DomainErrorFactory.conflict(
+            errorContext,
+            'DUPLICATE',
+            REGISTER_USER_ERROR_CODES.USER_EMAIL_ALREADY_EXISTS
+        )
+      );
+    }
+
+    const usernameVO = new UserName(command.username);
+    if (await this.userRepository.existsUserByUsername(usernameVO)) {
+        return Either.makeLeft(
+            DomainErrorFactory.conflict(
+                errorContext,
+                'DUPLICATE',
+                REGISTER_USER_ERROR_CODES.USER_USERNAME_ALREADY_EXISTS
+            )
+        );
+    }
+
     const plainPassword = new PlainPassword(command.password);
     const hashedPassword = await plainPassword.hash(this.hasher);
-
     const profile = new UserProfileDetails(command.name, '¡Hola! Soy nuevo en Quizzy.', '');
     
-    const date = '2099-12-31'; 
-    const subscription = new UserSubscriptionStatus(SubscriptionState.ACTIVE, SubscriptionPlan.FREE, DateISO.createFrom(date));
+    const infiniteDate = '2099-12-31'; 
+    const subscription = new UserSubscriptionStatus(
+        SubscriptionState.ACTIVE,
+        SubscriptionPlan.FREE,
+        DateISO.createFrom(infiniteDate)
+    );
 
     const user = User.create(
-        userId, emailVO, usernameVO, profile, hashedPassword, command.type as UserType, subscription
+        userId,
+        emailVO,
+        usernameVO,
+        profile,
+        hashedPassword,
+        command.type as UserType,
+        subscription
     );
 
     await this.userRepository.save(user);
 
-    const readModel = new UserProfileReadModel(
-        user.id.value, user.email.value, user.username.value, user.type,
-        user.state, user.roles, user.isAdmin(),
-        { theme: user.userPreferences.themePreference },
-        { name: user.userProfileDetails.name, description: user.userProfileDetails.description, avatarAssetId: user.userProfileDetails.avatarAssetId }
-    );
+    const responseDto = RegisterUserResponseDto.fromDomain(user);
 
-    await this.mediaEnrichmentService.enrich(readModel);
+    const enrichDto = await this.mediaEnrichmentService.enrich(responseDto);
 
-    return Either.makeRight(readModel);
+    return Either.makeRight(enrichDto);
   }
 }

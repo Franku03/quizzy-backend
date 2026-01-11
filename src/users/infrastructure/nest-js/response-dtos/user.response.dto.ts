@@ -1,6 +1,6 @@
 import { User } from "src/users/domain/aggregates/user";
 
-export class UserProfileReadModel {
+export class RegisterUserResponseDto {
     user: {
         id: string;
         email: string;
@@ -18,46 +18,42 @@ export class UserProfileReadModel {
         };
     };
 
-    private _originalAvatarId: string | null;
-
     private constructor(userAggregate: User) {
-        this._originalAvatarId = userAggregate.userProfileDetails.avatarAssetId;
-
         this.user = {
             id: userAggregate.id.value,
             email: userAggregate.email.value,
             username: userAggregate.username.value,
             type: userAggregate.type,
             state: userAggregate.state,
-            isPremium: userAggregate.isUserPremium(),
             preferences: {
                 theme: userAggregate.userPreferences.themePreference,
             },
             userProfileDetails: {
                 name: userAggregate.userProfileDetails.name,
                 description: userAggregate.userProfileDetails.description,
-                avatarAssetUrl: null
-            }
+                avatarAssetUrl: null 
+            },
+            isPremium: userAggregate.isUserPremium(),
         };
 
         Object.defineProperty(this, '_originalAvatarId', {
-          value: userAggregate.userProfileDetails.avatarAssetId,
-          enumerable: false,
-          writable: true
-      });
+            value: userAggregate.userProfileDetails.avatarAssetId,
+            enumerable: false, 
+            writable: true
+        });
     }
 
-
-    static fromDomain(user: User): UserProfileReadModel {
-        return new UserProfileReadModel(user);
+    static fromDomain(user: User): RegisterUserResponseDto {
+        return new RegisterUserResponseDto(user);
     }
-
     
     getMediaAssetIds(): string[] {
-        return this._originalAvatarId ? [this._originalAvatarId] : [];
+        const id = (this as any)._originalAvatarId;
+        return id ? [id] : [];
     }
 
     applyMediaUrls(urlMap: Map<string, string>): void {
-        this.user.userProfileDetails.avatarAssetUrl = urlMap.get(this._originalAvatarId!) || null;
+        const id = (this as any)._originalAvatarId;
+        this.user.userProfileDetails.avatarAssetUrl = urlMap.get(id) || null;
     }
 }

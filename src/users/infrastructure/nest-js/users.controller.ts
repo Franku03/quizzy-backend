@@ -1,6 +1,4 @@
-import { Either } from 'src/core/types/either';
-import { ErrorData } from 'src/core/types';
-import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator'; // Tu decorador Auth
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 
 import { Controller, Post, Body, Get, Patch, Delete, Param, HttpCode, HttpStatus, Inject, forwardRef } from '@nestjs/common';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
@@ -21,12 +19,13 @@ import { DeleteUserCommand } from 'src/users/application/commands/delete-user/de
 import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
 import { RegisterUserCommand } from 'src/users/application/commands/register-user/register-user.command';
 import { GetUserProfileQuery } from 'src/users/application/queries/get-user-profile/get-user-profile.query';
-import { GetPublicProfileQuery } from 'src/users/application/queries/get-public-profile/get-public-profile.query';
-import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
+import { GetPublicProfileIdQuery } from 'src/users/application/queries/get-public-profile-id/get-public-profile-id.query';
 import { UpdateProfileCommand } from 'src/users/application/commands/update-profile/update-profile.command';
+import { GetPublicProfileUsernameQuery } from 'src/users/application/queries/get-public-profile-username/get-public-profile-username.query';
+import { GetAllUsersQuery } from 'src/users/application/queries/get-all-users/get-all-users.query';
 
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
 import { throwResult } from 'src/core/errors/helpers/exception-bridge.helper';
-import { User } from 'src/users/domain/aggregates/user';
 
 @Controller('user')
 export class UsersController {
@@ -42,9 +41,9 @@ export class UsersController {
   async register(@Body() dto: RegisterUserDto) {
     const command = new RegisterUserCommand({ ...dto });
     
-    const userReadModel = throwResult(await this.executor.executeCommand(command));
+    const userDto = await this.executor.executeCommand(command);
     
-    return { user: userReadModel };
+    return userDto;
   }
 
   @Get('profile')
@@ -54,10 +53,9 @@ export class UsersController {
       userId: userId, 
       targetUserId: userId 
   });
-    const result = await this.executor.executeQuery(query);
-    return { 
-        user: throwResult(result) 
-    };
+    const userReadModel = await this.executor.executeQuery(query);
+
+    return userReadModel;
   }
 
   @Patch('profile')
@@ -70,15 +68,36 @@ export class UsersController {
           ...dto
       });
       
-      const userReadModel = throwResult(await this.executor.executeCommand(command));
+      const userDto = await this.executor.executeCommand(command);
       
-      return { user: userReadModel };
+      return userDto;
   }
 
   @Get('profile/id/:id')
   async getPublicProfile(@Param('id') id: string) {
-    const query = new GetPublicProfileQuery({ targetUserId: id });
-      return throwResult(await this.executor.executeQuery(query));
+    const query = new GetPublicProfileIdQuery({ targetUserId: id });
+
+    const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
+  }
+
+  @Get('profile/username/:username')
+  async getPublicProfileUsername(@Param('username') username: string) {
+      const query = new GetPublicProfileUsernameQuery({ username });
+      
+      const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
+  }
+
+  @Get()
+  async getAllUsers() {
+      const query = new GetAllUsersQuery();
+
+      const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
   }
 
   @Post()

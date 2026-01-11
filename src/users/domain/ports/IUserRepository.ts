@@ -16,9 +16,9 @@ export interface IUserRepository {
 
     existsUserByEmail(email: UserEmail): Promise<boolean>;
 
-    findByEmail(email: UserEmail): Promise<Optional<User>>;
-
     existsUserByUsername(username: UserName): Promise<boolean>;
 
     deleteUser(id: UserId): Promise<void>;
+
+    findAll(): Promise<User[]>;
 }

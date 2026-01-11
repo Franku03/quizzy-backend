@@ -48,4 +48,8 @@ export class UserRepositoryPostgres implements IUserRepository {
   async deleteUser(id: UserId): Promise<void> { 
       throw new Error('Postgres no soportado'); 
   }
+
+    async findAll(): Promise<User[]> { 
+        throw new Error('Postgres no soportado'); 
+    }
 }

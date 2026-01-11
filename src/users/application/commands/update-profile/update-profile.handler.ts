@@ -3,13 +3,12 @@ import { ICommandHandler } from 'src/core/application/cqrs/command-handler.inter
 import { Inject } from '@nestjs/common';
 import { UpdateProfileCommand } from './update-profile.command';
 import { Either } from 'src/core/types/either';
-import { ErrorData, ErrorLayer } from 'src/core/types';
+import { ErrorData } from 'src/core/types';
 import type { IUserRepository } from 'src/users/domain/ports/IUserRepository';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { UserProfileDetails } from 'src/users/domain/value-objects/user.profile-details';
 import { UserPreferences } from 'src/users/domain/value-objects/user.user-preferences';
-import { UserProfileReadModel } from '../../queries/read-model/get-user-profile.model';
 import { PlainPassword } from 'src/users/domain/value-objects/user.plain-password';
 import type { IPasswordHasher } from 'src/users/domain/domain-services/i.password-hasher.interface';
 import { UserName } from 'src/users/domain/value-objects/user.user-name';
@@ -18,46 +17,68 @@ import { Authorize } from 'src/core/application/aspects/auth/authorization.decor
 import { UserOwnershipAuthorizer } from 'src/core/application/aspects/auth/strategies/userOwnership.strategy';
 import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
+import { UpdateProfileResponseDto } from 'src/users/infrastructure/nest-js/response-dtos/update-user.response.dto';
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+
 @CommandHandler(UpdateProfileCommand)
 export class UpdateProfileHandler implements ICommandHandler<UpdateProfileCommand> {
+  private readonly useCase: string = 'User updates their profile';
+
   constructor(
     @Inject(RepositoryName.User)
     public readonly userRepo: IUserRepository,
     @Inject('IPasswordHasher')
     private readonly hasher: IPasswordHasher,
     private readonly mediaEnrichmentService: MediaEnrichmentService,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+    private readonly logger: ILogger,
   ) {}
 
   @Authorize(UserOwnershipAuthorizer, 'userRepo')
-  async execute(command: UpdateProfileCommand): Promise<Either<ErrorData, UserProfileReadModel>> {
+  @Log()
+  async execute(command: UpdateProfileCommand): Promise<Either<ErrorData, UpdateProfileResponseDto>> {
+    const errorContext = createDomainContext('User', 'updateProfile', {
+        domainObjectId: command.userId,
+        actorId: command.userId
+    });
+
     const userId = new UserId(command.userId);
     const userOptional = await this.userRepo.findById(userId);
 
     if (!userOptional.hasValue()) {
-       return Either.makeLeft(new ErrorData('RESOURCE_NOT_FOUND', 'User not found', ErrorLayer.DOMAIN));
+       return Either.makeLeft(DomainErrorFactory.notFound(errorContext, 'User not found'));
     }
 
     const user = userOptional.getValue();
 
       if (command.username && command.username !== user.username.value) {
           const newUsernameVO = new UserName(command.username);
-          
-          const exists = await this.userRepo.existsUserByUsername(newUsernameVO);
-          if (exists) {
-              return Either.makeLeft(new ErrorData('CONFLICT', 'USER_USERNAME_ALREADY_EXISTS', ErrorLayer.DOMAIN));
+          if (await this.userRepo.existsUserByUsername(newUsernameVO)) {
+              return Either.makeLeft(DomainErrorFactory.conflict(errorContext, 'DUPLICATE', 'Username already exists'));
           }
 
-          user.changeUserName(newUsernameVO);
+          try {
+            user.changeUserName(newUsernameVO);
+        } catch (invariantError) {
+            return Either.makeLeft(
+                DomainErrorFactory.validation(
+                    errorContext,
+                    { username: [invariantError.message] },
+                    'Username update failed'
+                )
+            );
+        }
       }
 
       if (command.email && command.email !== user.email.value) {
           const newEmailVO = new UserEmail(command.email);
-
-          const exists = await this.userRepo.existsUserByEmail(newEmailVO);
-          if (exists) {
-              return Either.makeLeft(new ErrorData('CONFLICT', 'USER_EMAIL_ALREADY_EXISTS', ErrorLayer.DOMAIN));
+          if (await this.userRepo.existsUserByEmail(newEmailVO)) {
+              return Either.makeLeft(DomainErrorFactory.conflict(errorContext, 'DUPLICATE', 'Email already exists'));
           }
-
           user.changeEmail(newEmailVO);
       }
 
@@ -73,13 +94,15 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
 
       if (command.newPassword) {
         if (!command.currentPassword) {
-            return Either.makeLeft(new ErrorData('VALIDATION_FAILED', 'Current password is required', ErrorLayer.DOMAIN));
+            return Either.makeLeft(DomainErrorFactory.validation(errorContext, { password: ['Current password is required'] }));
         }
-
-        const currentPlain = new PlainPassword(command.currentPassword);
-        const newPlain = new PlainPassword(command.newPassword);
-
-        await user.changePassword(currentPlain, newPlain, this.hasher);
+        try {
+            const currentPlain = new PlainPassword(command.currentPassword);
+            const newPlain = new PlainPassword(command.newPassword);
+            await user.changePassword(currentPlain, newPlain, this.hasher);
+        } catch (error) {
+            return Either.makeLeft(DomainErrorFactory.validation(errorContext, { password: [error.message] }));
+        }
       }
 
       if (command.themePreference) {
@@ -88,17 +111,11 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
       }
 
       await this.userRepo.save(user);
-
-      const readModel = new UserProfileReadModel(
-        user.id.value, user.email.value, user.username.value, user.type,
-        user.state, user.roles, user.isAdmin(),
-        { theme: user.userPreferences.themePreference },
-        { name: user.userProfileDetails.name, description: user.userProfileDetails.description, avatarAssetId: user.userProfileDetails.avatarAssetId }
-    );
       
-    await this.mediaEnrichmentService.enrich(readModel);
-    
-    return Either.makeRight(readModel);
+      const responseDto = UpdateProfileResponseDto.fromDomain(user);
 
+      const enrichDto = await this.mediaEnrichmentService.enrich(responseDto);
+      
+      return Either.makeRight(enrichDto);
   }
 }
