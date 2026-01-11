@@ -14,6 +14,8 @@ import { GroupsModule } from './groups/groups.module'; // De HEAD
 import { AuthModule } from './auth/auth.module';
 import { WellKnownController } from './shared/infrastructure/controllers/well-known.controller';
 import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.module';
+import { NotificationsModule } from './notifications/notifications.module';
+
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.
     ExploreModule,
     AuthModule,
     BackofficeModule,
+    NotificationsModule,
   ],
   controllers: [WellKnownController],
 })

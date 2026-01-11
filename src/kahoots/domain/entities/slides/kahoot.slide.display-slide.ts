@@ -37,33 +37,39 @@ export class DisplaySlide extends Slide {
     }
 
     public static create(props: SlideProps, id: SlideId): Either<ErrorData, DisplaySlide> {
-        props.slideType = new SlideType(SlideTypeEnum.SLIDE);
+        // 1. Validamos el tipo usando el Factory del Value Object
+        const typeResult = SlideType.create(SlideTypeEnum.SLIDE);
+        if (typeResult.isLeft()) return Either.makeLeft(typeResult.getLeft());
+
+        // 2. Asignación directa de propiedades
+        props.slideType = typeResult.getRight();
         props.evalStrategy = new TestKnowledgeEvaluationStrategy();
-        
-        return Slide.checkBaseInvariants(props, 'DisplaySlide')
-            .chain(() => {
-                const instance = new DisplaySlide(props, id);
-                return instance.checkInitialInvariants()
-                    .map(() => instance);
-            });
+
+        // 3. Verificamos los invariantes de la clase base
+        const baseResult = Slide.checkBaseInvariants(props, SlideTypeEnum.SLIDE);
+        if (baseResult.isLeft()) return Either.makeLeft(baseResult.getLeft());
+
+        // 4. Creamos la instancia y ejecutamos las validaciones finales
+        const instance = new DisplaySlide(props, id);
+        return instance.checkInitialInvariants().map(() => instance);
     }
     
     protected checkInitialInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('checkInitialInvariants');
-        
+
         const pointsOptional = this.properties.points;
-        if (pointsOptional && pointsOptional.hasValue()) { 
+        if (pointsOptional && pointsOptional.hasValue()) {
             const pointValue = pointsOptional.getValue().value;
-            
+
             if (pointValue !== 0) {
-                 return Either.makeLeft(DomainErrorFactory.validation(
+                return Either.makeLeft(DomainErrorFactory.validation(
                     context, { points: ['MUST_BE_ZERO'] }, "Display slides must have 0 points."
-                 ));
+                ));
             }
         }
 
         const optionsOptional = this.properties.options;
-        if (optionsOptional && optionsOptional.hasValue()) { 
+        if (optionsOptional && optionsOptional.hasValue()) {
             if (optionsOptional.getValue().length > 0) {
                 return Either.makeLeft(DomainErrorFactory.validation(
                     context, { options: ['NOT_ALLOWED'] }, "Display slides cannot have options."
@@ -73,21 +79,21 @@ export class DisplaySlide extends Slide {
 
         return Either.makeRight(undefined);
     }
-    
+
     public getMaxOptions(): number {
         return 0;
     }
-    
+
     public validatePublishingInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('validatePublishing');
-        
-        if(!this.properties.question.hasValue()){
+
+        if (!this.properties.question.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { question: ['REQUIRED'] }, "Display slide must have a title."
             ));
         }
-        
-        if(!this.properties.description.hasValue()){
+
+        if (!this.properties.description.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { description: ['REQUIRED'] }, "Display slide must have a description."
             ));
@@ -95,7 +101,7 @@ export class DisplaySlide extends Slide {
 
         return Either.makeRight(undefined);
     }
-    
+
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): Either<ErrorData, void> {
         return Either.makeLeft(DomainErrorFactory.validation(
             this.getSlideContext('changeEvaluationStrategy'),

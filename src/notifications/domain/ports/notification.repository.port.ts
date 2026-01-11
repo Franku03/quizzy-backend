@@ -1,7 +1,8 @@
-import { INotification } from "../INotification";
+import { INotification } from '../INotification';
 
 export interface INotificationRepository {
     save(notification: INotification): Promise<void>;
-    markAsRead(id: string): Promise<boolean>;
+    findById(id: string): Promise<INotification | null>;
     findByUserId(userId: string, limit: number, offset: number): Promise<INotification[]>;
+    markAsRead(id: string): Promise<void>;
 }
