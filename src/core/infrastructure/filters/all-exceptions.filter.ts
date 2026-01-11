@@ -74,19 +74,42 @@ export class AllExceptionsFilter implements ExceptionFilter {
   /**
    * Extrae información de infraestructura relevante
    */
-  private getInfraContext(host: ArgumentsHost, type: ContextType): IErrorContext {
+  /*private getInfraContext(host: ArgumentsHost, type: ContextType): IErrorContext {
     if (type === 'http') {
       const ctx = host.switchToHttp();
       const request = ctx.getRequest();
       
       return {
         path: request.url,
+        dirIp: request.ip,
         method: request.method,
         actorId: request.user?.id || request.user?.userId || 'anonymous',
         operation: 'HTTP_REQUEST',
       };
     } 
-    
+    */
+  private getInfraContext(host: ArgumentsHost, type: ContextType): IErrorContext {
+    if (type === 'http') {
+      const ctx = host.switchToHttp();
+      const request = ctx.getRequest();
+      
+      // Capturamos la IP real si estás tras un proxy (como Nginx o Cloudflare)
+      const realIp = request.headers['x-forwarded-for'] || request.ip;
+      
+      // El User-Agent nos dirá si es un bot de escaneo (ej. "sqlmap", "python-requests")
+      const userAgent = request.headers['user-agent'] || 'unknown';
+
+      return {
+        path: request.url,
+        dirIp: realIp,
+        method: request.method,
+        actorId: request.user?.id || request.user?.userId || 'anonymous',
+        operation: 'HTTP_REQUEST',
+        // Te recomiendo añadir estos campos a tu interfaz IErrorContext si es posible:
+        userAgent: userAgent,
+        referer: request.headers['referer'] || 'none',
+      };
+    }
     if (type === 'ws') {
       const wsCtx = host.switchToWs();
       const client = wsCtx.getClient();
