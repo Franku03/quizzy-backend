@@ -976,6 +976,17 @@ Diseñada para ser agnóstica al motor de persistencia, permitiendo alta escalab
 
 ---
 
+<br>
+
+> [!TIP]
+> ### 🏠 Hosting Casero con GitHub Student Pack
+> Gracias al **GitHub Student Developer Pack** (disponible con tu correo **UCAB**), tienes acceso a herramientas premium como un **dominio profesional gratuito** (ej. `.me`, `.tech`, `.app`, `.live`, `.games`).
+> 
+> Puedes vincular este dominio con **Cloudflare Tunnel** y tener total libertad para **elegir y configurar los puertos** que desees exponer. Por ejemplo, puedes mapear el puerto `3000` para la API y el `3003` para WebSockets simultáneamente. Esto permite que el equipo pruebe el backend de forma segura bajo una URL profesional, sin abrir puertos en el router ni exponer tu IP real.
+>
+> Esto en caso que no quieran usar servicios de hosting free como render o railway
+
+<br>
 
 ---
 ## ⚖️ License
