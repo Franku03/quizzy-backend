@@ -35,7 +35,7 @@ interface SlideTypeProps {
 
 export class SlideType extends ValueObject<SlideTypeProps> {
 
-    public constructor(type: SlideTypeEnum) {
+    private constructor(type: SlideTypeEnum) {
         super({ type });
     }
 

@@ -16,7 +16,7 @@ import { Either, ErrorData } from "src/core/types";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { MAX_OPTION_CHARS_TYPEANSWER, SLIDE_POINTS_STD } from "../../constants/kahoot.slide.rules";
 import { Slide, SlideProps } from "./kahoot.slide";
-import { SlideType, SlideTypeEnum } from '../../value-objects/kahoot.slide.type'; 
+import { SlideType, SlideTypeEnum } from '../../value-objects/kahoot.slide.type';
 
 // --- Strategies & Shared ---
 import { EvaluationStrategy } from "../../helpers/i-evalutaion.strategy";
@@ -24,8 +24,8 @@ import { TestKnowledgeEvaluationStrategy } from "../../helpers/test-knowledge.st
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
-export class ShortAnswerSlide extends Slide { 
-    
+export class ShortAnswerSlide extends Slide {
+
     private constructor(props: SlideProps, id: SlideId) {
         super(props, id);
     }
@@ -38,57 +38,59 @@ export class ShortAnswerSlide extends Slide {
     }
 
     public static create(props: SlideProps, id: SlideId): Either<ErrorData, ShortAnswerSlide> {
-        props.slideType = new SlideType(SlideTypeEnum.SHORT_ANSWER); 
-        props.evalStrategy = new TestKnowledgeEvaluationStrategy(); 
+        const typeResult = SlideType.create(SlideTypeEnum.SHORT_ANSWER);
+        if (typeResult.isLeft()) return Either.makeLeft(typeResult.getLeft());
 
-        return Slide.checkBaseInvariants(props, 'ShortAnswerSlide')
-            .chain(() => {
-                const instance = new ShortAnswerSlide(props, id);
-                return instance.checkInitialInvariants()
-                    .map(() => instance);
-            });
+        props.slideType = typeResult.getRight();
+        props.evalStrategy = new TestKnowledgeEvaluationStrategy();
+
+        const baseResult = Slide.checkBaseInvariants(props, SlideTypeEnum.SHORT_ANSWER);
+        if (baseResult.isLeft()) return Either.makeLeft(baseResult.getLeft());
+
+        const instance = new ShortAnswerSlide(props, id);
+        return instance.checkInitialInvariants().map(() => instance);
     }
-    
+
     protected checkInitialInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('checkInitialInvariants');
-        const pointsOptional = this.properties.points; 
-        
-        if (!pointsOptional || !pointsOptional.hasValue()) { 
+        const pointsOptional = this.properties.points;
+
+        if (!pointsOptional || !pointsOptional.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { points: ['REQUIRED'] }, "Points are mandatory for Short Answer slides."
             ));
         }
-        
-        const pointValue = pointsOptional.getValue().value; 
+
+        const pointValue = pointsOptional.getValue().value;
         if (!SLIDE_POINTS_STD.includes(pointValue)) {
             return Either.makeLeft(DomainErrorFactory.validation(
-                context, 
-                { points: ['INVALID_VALUE'] }, 
+                context,
+                { points: ['INVALID_VALUE'] },
                 `Point value (${pointValue}) is not allowed. Must be: ${SLIDE_POINTS_STD.join(', ')}.`
             ));
         }
-        
-        if (this.properties.description && this.properties.description.hasValue()) { 
+
+        if (this.properties.description && this.properties.description.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { description: ['NOT_ALLOWED'] }, "Short Answer slides do not support descriptions."
             ));
         }
-        
+
         const optionsOptional = this.properties.options;
         const maxOption = this.getMaxOptions();
-        
-        if (optionsOptional && optionsOptional.hasValue()) { 
+
+        if (optionsOptional && optionsOptional.hasValue()) {
             const optionsArray = optionsOptional.getValue();
-            
-            if (optionsArray.length > maxOption) { 
+
+            if (optionsArray.length > maxOption) {
                 return Either.makeLeft(DomainErrorFactory.validation(
                     context, { options: ['LIMIT_EXCEEDED'] }, `Short Answer slides cannot exceed ${maxOption} correct answers.`
                 ));
             }
 
-            const invalidOption = optionsArray.find(o => 
-                !o.isWithinLengthLimit(MAX_OPTION_CHARS_TYPEANSWER) || 
-                !o.hasText() || 
+            const invalidOption = optionsArray.find(o =>
+                !o.isWithinLengthLimit(MAX_OPTION_CHARS_TYPEANSWER) ||
+                !o.hasText() ||
                 o.hasImage()
             );
 
@@ -113,11 +115,11 @@ export class ShortAnswerSlide extends Slide {
 
         return Either.makeRight(undefined);
     }
-    
+
     public getMaxOptions(): number {
-        return 4; 
-    } 
-    
+        return 4;
+    }
+
     public changeEvaluationStrategy(newStrategy: EvaluationStrategy): Either<ErrorData, void> {
         this.properties.evalStrategy = newStrategy;
         return Either.makeRight(undefined);
@@ -126,14 +128,14 @@ export class ShortAnswerSlide extends Slide {
     public validatePublishingInvariants(): Either<ErrorData, void> {
         const context = this.getSlideContext('validatePublishing');
         const optionsArray = this.getOptionsList();
-    
-        if(!this.properties.question.hasValue()){
-             return Either.makeLeft(DomainErrorFactory.validation(
+
+        if (!this.properties.question.hasValue()) {
+            return Either.makeLeft(DomainErrorFactory.validation(
                 context, { question: ['REQUIRED'] }, "Short Answer slide must have a title."
-             ));
+            ));
         }
-        
-        if (optionsArray.length < 1) { 
+
+        if (optionsArray.length < 1) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context, { options: ['TOO_FEW_OPTIONS'] }, `Short Answer slide must have between 1 and ${this.getMaxOptions()} correct answers.`
             ));

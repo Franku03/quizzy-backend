@@ -28,7 +28,7 @@ interface KahootStatusProps {
 
 export class KahootStatus extends ValueObject<KahootStatusProps> {
     
-    public constructor(status: KahootStatusEnum) {
+    private constructor(status: KahootStatusEnum) {
         super({ value: status });
     }
 

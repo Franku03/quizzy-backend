@@ -64,8 +64,6 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         command: CreateSessionCommand & IKahootOwnershipRequest 
     ): Promise<Either<ErrorData,CreateSessionResponse>> {
 
-            console.log(command.validatedResource)
-
             // Creamos el id de la sesion y para que la fábrica construya el VO del id de la sesión en base al mismo
             const sessionId = this.idGenerator.generateId()  
 

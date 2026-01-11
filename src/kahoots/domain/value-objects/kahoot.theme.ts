@@ -13,7 +13,7 @@ import { Either, ErrorData } from "src/core/types";
 import { UuidVO } from "src/core/domain/abstractions/vo.id";
 
 export class ThemeId extends UuidVO {
-    public constructor(value: string) {
+    private constructor(value: string) {
         super(value);
     }
 

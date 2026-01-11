@@ -16,6 +16,7 @@ import { WellKnownController } from './shared/infrastructure/controllers/well-kn
 import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
+
 @Module({
   imports: [
     ConfigModule.forRoot({

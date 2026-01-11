@@ -28,7 +28,7 @@ interface VisibilityStatusProps {
 
 export class VisibilityStatus extends ValueObject<VisibilityStatusProps> {
 
-    public constructor(status: VisibilityStatusEnum) {
+    private constructor(status: VisibilityStatusEnum) {
         super({ value: status });
     }
 

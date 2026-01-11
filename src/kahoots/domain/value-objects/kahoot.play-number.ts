@@ -25,7 +25,7 @@ export class PlayNumber extends ValueObject<PlayNumberProps> {
 
     public static readonly ZERO = new PlayNumber(0);
     
-    public constructor(count: number) {
+    private constructor(count: number) {
         super({ count });
     }
 

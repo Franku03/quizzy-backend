@@ -26,7 +26,7 @@ interface QuestionProps {
 
 export class Question extends ValueObject<QuestionProps> {
 
-    public constructor(value: string) {
+    private constructor(value: string) {
         super({ value });
     }
 

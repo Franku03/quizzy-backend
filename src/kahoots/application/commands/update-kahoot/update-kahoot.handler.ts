@@ -69,7 +69,7 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   ) { }
 
   @Log()
-  @Authorize(KahootOwnershipAuthorizer, 'kahootRepository') 
+  @Authorize(KahootOwnershipAuthorizer, 'kahootRepository')
   async execute(
     command: UpdateKahootCommand & IKahootOwnershipRequest
   ): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
@@ -82,8 +82,8 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
 
       // 2. Lógica de Dominio (Mutación controlada por performance)
       k => k.chain(kahoot => this.applyUpdates(kahoot, command))
-      //Agregando contexto de app extra a los posibles errores de dominio
-      .mapLeft(err => err.setContext(appContext)),
+        //Agregando contexto de app extra a los posibles errores de dominio
+        .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
@@ -101,17 +101,15 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
   private applyUpdates(kahoot: Kahoot, command: UpdateKahootCommand): Either<ErrorData, Kahoot> {
     // Railway puro: si uno falla, el resto no se ejecuta.
     return this.processSlidesMap(command.slides || [])
-      .chain(slidesMap => kahoot.replaceSlides(slidesMap)) 
+      .chain(slidesMap => kahoot.replaceSlides(slidesMap))
       .chain(() => KahootFactory.assembleStyling(command.themeId, command.imageId))
       .chain(styling => kahoot.updateStyling(styling))
       .chain(() => VisibilityStatus.create(command.visibility))
       .chain(visibility => {
         kahoot.changeVisibility(visibility.value);
-        const detailsVO = KahootFactory.assembleDetails(command.title, command.description, command.category);
-        return detailsVO.hasValue()
-          ? kahoot.updateDetails(detailsVO.getValue()).map(() => kahoot)
-          : Either.makeRight(kahoot);
+        return KahootFactory.assembleDetails(command.title, command.description, command.category);
       })
+      .chain(details => kahoot.updateDetails(details))
       .chain(() => KahootStatus.create(command.status))
       .chain(status => kahoot.changeStatus(status.value))
       .map(() => kahoot);

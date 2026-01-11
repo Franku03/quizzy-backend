@@ -29,34 +29,30 @@ interface KahootDetailsProps {
 }
 
 export class KahootDetails extends ValueObject<KahootDetailsProps> {
-    
-    public constructor(
-        title: Optional<string>, 
-        description: Optional<string>, 
-        category: Optional<string>
-    ) {
-        super({ title, description, category });
-    }
 
+    private constructor(props: KahootDetailsProps) {
+        super(props);
+    }
     public static create(
-        title: Optional<string>, 
-        description: Optional<string>, 
-        category: Optional<string>
+        t?: string,
+        d?: string,
+        c?: string
     ): Either<ErrorData, KahootDetails> {
-        
+
         const context = createDomainContext('KahootDetails', 'validateDetails', {
             domainObjectKind: 'ValueObject'
         });
 
-        if(!title.hasValue() && !description.hasValue() && !category.hasValue()) {
-             return Either.makeLeft(DomainErrorFactory.validation(
+        // 1. Validaciones usando tipos nativos (más limpio y rápido)
+        if (!t && !d && !c) {
+            return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { generic: ['MISSING_DATA'] },
                 'At least a title, description, or category must be provided.'
-             ));
+            ));
         }
 
-        if (title.hasValue() && title.getValue().length > MAX_TITLE_LENGTH) {
+        if (t && t.length > MAX_TITLE_LENGTH) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { title: ['TOO_LONG'] },
@@ -64,7 +60,7 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             ));
         }
 
-        if (description.hasValue() && description.getValue().length > MAX_DESCRIPTION_LENGTH) {
+        if (d && d.length > MAX_DESCRIPTION_LENGTH) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { description: ['TOO_LONG'] },
@@ -72,7 +68,13 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             ));
         }
 
-        return Either.makeRight(new KahootDetails(title, description, category));
+        // 2. Creamos la instancia. 
+        // Si tu clase base ValueObject requiere Optional, los envolvemos aquí:
+        return Either.makeRight(new KahootDetails({
+            title: new Optional(t),
+            description: new Optional(d),
+            category: new Optional(c)
+        }));
     }
 
     public isValidDetails(): Either<ErrorData, boolean> {
@@ -80,7 +82,7 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             domainObjectKind: 'ValueObject'
         });
 
-        if(!this.properties.title.hasValue() || !this.properties.description.hasValue()) {
+        if (!this.properties.title.hasValue() || !this.properties.description.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { publication: ['INCOMPLETE_DETAILS'] },
@@ -89,7 +91,7 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
         }
         return Either.makeRight(true);
     }
-    
+
     public get title(): Optional<string> { return this.properties.title; }
     public get description(): Optional<string> { return this.properties.description; }
     public get category(): Optional<string> { return this.properties.category; }
