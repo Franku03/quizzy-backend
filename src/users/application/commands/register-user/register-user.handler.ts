@@ -103,8 +103,8 @@ export class RegisterUserHandler implements ICommandHandler<RegisterUserCommand>
 
     const responseDto = RegisterUserResponseDto.fromDomain(user);
 
-    await this.mediaEnrichmentService.enrich(responseDto);
+    const enrichDto = await this.mediaEnrichmentService.enrich(responseDto);
 
-    return Either.makeRight(responseDto);
+    return Either.makeRight(enrichDto);
   }
 }

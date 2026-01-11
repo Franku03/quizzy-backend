@@ -1,6 +1,6 @@
 import { IQuery } from "src/core/application/cqrs/query.interface";
 
-export class GetPublicProfileQuery implements IQuery {
+export class GetPublicProfileIdQuery implements IQuery {
   public readonly targetUserId: string;
 
   constructor(props: { targetUserId: string }) {

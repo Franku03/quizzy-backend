@@ -170,11 +170,11 @@ export class User extends AggregateRoot<UserProps, UserId> {
     );
 
     if (!isMatch) {
-      throw new Error('La contraseña actual es incorrecta.');
+      throw new Error('The actual password is incorrect.');
     }
 
     if (await this.properties.passwordHash.match(newPassword, hasher)) {
-      throw new Error('La nueva contraseña debe ser diferente a la actual.');
+      throw new Error('The new password must be different to the actual one.');
     }
 
     this.properties.passwordHash = await newPassword.hash(hasher);
@@ -210,7 +210,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
 
     if (nextAllowedDateVO.isGreaterThan(todayVO)) {
       throw new Error(
-        `Solo puedes cambiar tu nombre de usuario una vez al año. Podrás hacerlo nuevamente el: ${nextAllowedDateVO.value}`,
+        `You can only change your username once a year. Next update available on: ${nextAllowedDateVO.value}`,
       );
     }
   }
