@@ -39,6 +39,10 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
 
     const { correctAnswerId, optionsId } = result.getRight() ;
 
+
+    // --------- Mappeo de la respuesta, lo anterior es simplemente la optención segura y controlada del snapshot
+
+
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
     const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        
 
