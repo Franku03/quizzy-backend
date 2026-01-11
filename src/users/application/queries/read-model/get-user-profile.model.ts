@@ -18,22 +18,23 @@ export class UserProfileReadModel {
       public readonly userProfileDetails: {
         name: string;
         description: string;
-        avatarAssetId: string;
+        avatarAssetUrl: string | '';
       },
+      public readonly isPremium: boolean
       // Si se quiere agregar suscripción en el futuro, iría aquí
       // public readonly subscription: ...
     ) {}
 
     getMediaAssetIds(): string[] {
-      if (this.userProfileDetails.avatarAssetId) {
-          return [this.userProfileDetails.avatarAssetId];
+      if (this.userProfileDetails.avatarAssetUrl) {
+          return [this.userProfileDetails.avatarAssetUrl];
       }
       return [];
     }
 
     applyMediaUrls(urlMap: Map<string, string>): void {
-      if (this.userProfileDetails.avatarAssetId) {
-          const url = urlMap.get(this.userProfileDetails.avatarAssetId);
+      if (this.userProfileDetails.avatarAssetUrl) {
+          const url = urlMap.get(this.userProfileDetails.avatarAssetUrl);
           if (url) {
               this.avatarUrl = url;
           }

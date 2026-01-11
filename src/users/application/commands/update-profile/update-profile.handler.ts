@@ -93,7 +93,8 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
         user.id.value, user.email.value, user.username.value, user.type,
         user.state, user.roles, user.isAdmin(),
         { theme: user.userPreferences.themePreference },
-        { name: user.userProfileDetails.name, description: user.userProfileDetails.description, avatarAssetId: user.userProfileDetails.avatarAssetId }
+        { name: user.userProfileDetails.name, description: user.userProfileDetails.description, avatarAssetUrl: user.userProfileDetails.avatarAssetId },
+        user.isUserPremium(),
     );
       
     await this.mediaEnrichmentService.enrich(readModel);

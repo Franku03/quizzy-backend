@@ -48,8 +48,9 @@ export class GetUserProfileHandler implements IQueryHandler<GetUserProfileQuery>
       {
         name: user.userProfileDetails.name,
         description: user.userProfileDetails.description,
-        avatarAssetId: user.userProfileDetails.avatarAssetId,
-      }
+        avatarAssetUrl: user.userProfileDetails.avatarAssetId,
+      },
+      user.isUserPremium()
     );
 
     await this.mediaEnrichmentService.enrich(readModel);
