@@ -51,63 +51,103 @@
 
 </div>
 
+<br>
+
+## Dockerización
+
+El backend está diseñado para ser agnóstico a la persistencia, permitiendo el despliegue mediante contenedores con aislamiento de recursos, optimización de logs y un entorno de desarrollo determinista.
+
+> [!TIP]
+> **Zero-Install Development:** El desarrollador **no necesita instalar** Node.js, PostgreSQL o MongoDB en su máquina local. Docker encapsula todas las herramientas y bases de datos, garantizando que el proyecto funcione igual en cualquier computador.
+
+  
+### 🏗️ Estrategia de Servicios
+
+Contamos con una configuración modular que permite levantar el stack de acuerdo al motor de base de datos elegido.
+
+<div align="center">
+
+| Servicio | Imagen | Puerto | Persistencia | Rol |
+| :--- | :--- | :--- | :--- | :--- |
+| **Quizzy Backend** | `node:20-slim` | `3000` / `3003` | N/A | NestJS API & WebSockets |
+| **PostgreSQL** | `postgres:18` | `5432` | `postgres_quizzy` | Persistencia Relacional |
+| **MongoDB** | `mongo:7` | `27017` | `mongo_quizzy` | Persistencia Documental |
+
+</div>
+
+
+## 🛠️ Configuración e Instalación
+
+### 1. Preparación del Entorno
+Antes de ejecutar, configura tus credenciales y preferencias de infraestructura:
+
+1. **Clonar variables:** Crea una copia del archivo `.env.template` y renómbralo a `.env`.
+   ```bash
+   cp .env.template .env
+   ```
+2. Persistencia: Define tu proveedor (Postgres o Mongo). Si usas servicios administrados, coloca la URL en MONGO_CNN o POSTGRES_CNN.
+
+3. Gestión de Media (Cloudinary): Configura los parámetros de tu nube:
+    * CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET.
+
+4. Notificaciones Push (Firebase): Configura el SDK de administración:
+    * FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY.
+
+### 2. Flujos de Ejecución (Elegir un camino)
+
+#### **Opción A: Desarrollo Total en Docker (Recomendado) 🐳**
+Ideal para trabajar con **Hot-Reload** sin instalar herramientas locales (Node, DBs, etc). Docker gestiona todo el ciclo de vida del entorno.
+
+* **Con MongoDB:** `docker compose -f docker-compose.dev.mongo.yaml up -d`
+* **Con PostgreSQL:** `docker compose -f docker-compose.dev.postgres.yaml up -d`
+
+#### **Opción B: Desarrollo Híbrido (Docker DB + Host Node) 💻**
+Ideal si prefieres usar tu terminal local para depurar el código con `yarn`.
+
+1. **Levantar solo la DB:**
+   ```bash
+   # Elige una según tu configuración:
+   docker compose -f docker-compose.local.mongo.yaml up -d
+   docker compose -f docker-compose.local.postgres.yaml up -d
+   ```
+2. **Ejecutar la API:**
+   ```bash
+   yarn install && yarn run start:dev
+   ```
+3. Servidor de Producción
+Levanta únicamente la instancia del servidor optimizada para despliegue final utilizando la imagen productiva compilada:
+
+```bash
+docker compose -f docker-compose.yaml up -d
+```
 ---
-## Configuración del Proyecto 🛠️
 
-```bash
-yarn install
-```
+## 🐳 Ingeniería del Dockerfile 
 
-## Compilar y ejecutar en modo desarrollador 🧠
+ Nuestro `Dockerfile` utiliza el patrón **Multi-stage builds** para separar el entorno de construcción del de ejecución, garantizando imágenes ligeras, seguras y de alto rendimiento:
+1.  **Stage 1 (Deps):** Instalación de dependencias completas con `yarn --frozen-lockfile` sobre una imagen `node:20-slim`.
+2.  **Stage 2 (Builder):** Compilación de TypeScript a JavaScript (`/dist`) eliminando el código fuente innecesario para reducir el peso de la imagen final.
+3.  **Stage 3 (Runner):** Imagen final de producción. Solo incluye el bundle compilado y las dependencias esenciales de ejecución (`--production`), garantizando una superficie de ataque mínima.
 
-### Configurar Variables de Entorno
-1. Crea una copia del archivo `.env.template` y renómbralo a `.env`.
-2. Configura las variables para establecer la conexión con la base de datos elegida (PostgreSQL o MongoDB).
-3. Importante: Si utilizas un cluster de MongoDB Atlas, coloca la URL en la variable `MONGO_CNN`.
+### ⚡ Rendimiento y Control de Recursos
+En el despliegue de servidor (`docker-compose.yaml`), hemos configurado límites de nivel empresarial para garantizar la resiliencia:
+* **Logging:** Driver `json-file` con rotación automática (`max-size: 10k`) para evitar el consumo excesivo de disco por logs acumulados de `Pino`.
+* **Resources:** Capacidad de escalado hasta **8 CPUs** y **24GB de RAM**, optimizado para el motor V8 y permitiendo procesar miles de eventos de WebSockets por segundo durante sesiones masivas de quizzes.
 
-### Levantar Bases de Datos (Docker)
+## 🔍 Configuración de Red y Persistencia
 
-**PostgreSQL**
-```bash
-docker compose -f docker-compose.dev.postgres.yaml up -d
-```
+### 🌐 Red Privada y DNS Interno
+Los servicios están aislados en una red interna de alta velocidad (`quizzy_net`) con driver `bridge`. La aplicación se conecta a las bases de datos usando nombres lógicos (ej. `host: postgres`) en lugar de direcciones IP volátiles.
 
-**MongoDB**
-```bash
-docker compose -f docker-compose.dev.mongo.yaml up -d
-```
+### 💾 Gestión de Volúmenes y Datos
+* **Persistencia Total:** Los archivos `docker-compose.local.*` mapean los datos directamente a tu disco local (`./mongo` o `./postgres`). Esto asegura que los datos sobrevivan incluso si se eliminan o reconstruyen los contenedores.
+* **Aislamiento de node_modules:** Utilizamos volúmenes anónimos para `node_modules` dentro del contenedor, evitando conflictos de arquitectura entre los binarios compilados en Linux (Docker) y tu sistema operativo host (Windows/Mac).
 
-### Ejecutar el Proyecto
+### 📍 Puntos de Acceso
+* **HTTP API:** `http://localhost:3000/api`
+* **WebSockets:** `ws://localhost:3000/multiplayer-sessions`
+* **WS Direct Port:** `3003` (Puerto dedicado para el servidor de sockets configurado en `.env`)
 
-```bash
-# development mode (watch)
-yarn run start:dev
-
-# production mode
-yarn start:prod
-```
-
-## 🚀 Ejecución del Backend con Docker Compose
-
-1. Configurar entorno:
-   - `MONGO_HOST=mongo`
-   - `DB_HOST=postgres`
-
-2. Levantar servicios:
-
-**MongoDB**
-```bash
-docker compose -f docker-compose.local.mongo.yaml up -d
-```
-
-**PostgreSQL**
-```bash
-docker compose -f docker-compose.local.postgres.yaml up -d
-```
-
-3. Acceso:
-- HTTP API: http://localhost:3000/api
-- WebSockets: ws://localhost:3000/multiplayer-sessions
 
 ## 🪛 Correr Tests
 
