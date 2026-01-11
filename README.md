@@ -207,7 +207,7 @@ Orquesta el flujo de datos y ejecuta los casos de uso, actuando como mediador en
 
 
 ### 🔵 Infrastructure
-Contiene las implementaciones técnicas y los detalles de servicios externos
+Contiene las implementaciones técnicas y los detalles de servicios externos.
 
 ```bash
 📂 infrastructure/
@@ -220,7 +220,7 @@ Contiene las implementaciones técnicas y los detalles de servicios externos
 ### 📝 Nota de Complejidad
 
 > [!NOTE]
-> Esta estructura es a manera muy general y resumida. Existen módulos de mayor complejidad que tienen mas directorios.
+> Esta estructura es a manera muy general y resumida. Existen módulos de mayor complejidad que tienen más directorios.
 
 ## 🚨 Arquitectura de Errores y Eficiencia en el Motor V8
 
