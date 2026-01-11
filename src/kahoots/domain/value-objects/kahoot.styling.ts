@@ -29,7 +29,7 @@ interface KahootStylingProps {
 
 export class KahootStyling extends ValueObject<KahootStylingProps> {
     
-    public constructor(imageId: Optional<ImageId>, themeId: ThemeId) {
+    private constructor(imageId: Optional<ImageId>, themeId: ThemeId) {
         super({ imageId, themeId });
     }
 

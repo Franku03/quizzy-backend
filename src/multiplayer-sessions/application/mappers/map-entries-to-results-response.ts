@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\mappers\map-entries-to-results-response.ts
+
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 
@@ -7,19 +18,27 @@ import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.e
 import { getOptionsIdsAndCorrectAnswers, mapHostResultsData, mapPlayerResultsData } from "../helpers";
 
 import { COMMON_ERRORS } from "../commands/common.errors";
+import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
+import { Either } from '../../../core/types/either';
+import { ErrorData } from "src/core/types";
 
-export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionResultsResponse => {
+export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): Either< ErrorData, QuestionResultsResponse > => {
 
     // Primero Obtenemos la slide previa en la sesión o la actual si el progreso nos dice que no hay más slides disponibles
     const slideId = session.hasMoreSlidesLeft() ? session.getPreviousSlideInSession() : session.getCurrentSlideInSession()
       
 
     if( !slideId )
-        throw new Error(COMMON_ERRORS.PREVIOUS_SLIDE_NOT_FOUND);
+        return Either.makeLeft( createSlideNotFoundError("getPreviousSlideSnapshotById | getSlideSnapshotById", kahoot.id.value ) )
 
     // Luego mapeamos las respuestas correctas de la slide previa   
-    const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
+    const result = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
     
+    if( result.isLeft() ) 
+        return Either.makeLeft( result.getLeft() )
+
+    const { correctAnswerId, optionsId } = result.getRight() ;
+
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
     const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        
 
@@ -36,7 +55,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
     })
 
 
-    return {
+    return Either.makeRight ({
 
         type: HostNextPhaseType.QUESTION_RESULTS,
         hostData: {
@@ -44,6 +63,6 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
         },
         playerData: playerData
 
-    };
+    });
 
 }

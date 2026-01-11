@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\infrastructure\repositories\in-memory.session.repository.ts
+
 import { Inject, Injectable } from "@nestjs/common";
 
 import type { ActiveSessionContext, IActiveMultiplayerSessionRepository, IPinRepository,  } from "src/multiplayer-sessions/domain/ports";
@@ -242,6 +253,7 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
                 this.activeSessions.delete(pin);
                 // Se libera el pin de memoria finalmente
                 this.pinRepository.releasePin( pin );
+
             }
 
         }

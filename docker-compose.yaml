@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  quizzy-backend:
+    build: .
+    container_name: quizzy_server
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    # --- AQUÍ VA LA CONFIGURACIÓN DE LOGS ---
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10k"
+        max-file: "1"
+    # ---------------------------------------
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'    
+          memory: 24G   
+    networks:
+      - quizzy_net
+
+networks:
+  quizzy_net:
+    driver: bridge

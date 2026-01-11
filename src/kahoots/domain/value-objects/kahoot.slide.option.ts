@@ -31,7 +31,7 @@ interface OptionProps {
 
 export class Option extends ValueObject<OptionProps> {
     
-    public constructor(text: string, isCorrect: boolean, optionImage: Optional<ImageId>) {
+    private constructor(text: string, isCorrect: boolean, optionImage: Optional<ImageId>) {
         super({ text, isCorrect, optionImage });
     }
 

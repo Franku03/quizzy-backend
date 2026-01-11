@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\mappers\map-to-question-response.ts
+
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from '../../domain/aggregates/multiplayer-session';
 
@@ -10,8 +21,16 @@ import { QuestionStartedResponse } from "../response-dtos/question-started.respo
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.type";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
+import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";
+import { createOptionNotFoundError, createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
+import { Either, ErrorData } from "src/core/types";
 
-export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot: Kahoot, mediaService: MediaEnrichmentService): Promise<QuestionStartedResponse> => {
+export const mapToQuestionResponse = async ( 
+    session: MultiplayerSession, 
+    kahoot: Kahoot, 
+    mediaService: MediaEnrichmentService
+): Promise< Either <ErrorData, QuestionStartedResponse> > => {
+
     
     const currentSlideId = session.getCurrentSlideInSession(); 
 
@@ -20,10 +39,10 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
     // No debería ocurrir dado que el session se basa en un kahoot existente que de paso nos aseguramos que no esté en DRAFT
     // dejo la protección por si acaso y porque TS la exige
     if( !currentSlideSnapshot )
-        throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND)
+        return Either.makeLeft( createSlideNotFoundError("getSlideSnapshotById", kahoot.id.value ) );
 
     if( !currentSlideSnapshot.options )
-        throw new Error(COMMON_ERRORS.NO_OPTIONS)
+        return Either.makeLeft( createOptionNotFoundError("SlideSnapshot.options", kahoot.id.value ) );
 
     currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
 
@@ -50,13 +69,12 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
 
     currentSlideSnapshotClean.options = cleanSnapshotOptions;
 
-    return {
+    return Either.makeRight ({
         type: HostNextPhaseType.QUESTION_STARTED,
         data: {
             state: session.getSessionStateType(),
-            // questionIndex: session.getCurrentSlideIndex(),
             currentSlideData: currentSlideSnapshotClean
         }
-    };
+    });
 
 }

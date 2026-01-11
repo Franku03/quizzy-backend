@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\helpers\map-player-results-data.ts
+
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { ScoreboardEntry } from "src/multiplayer-sessions/domain/value-objects";
@@ -26,7 +37,8 @@ export const mapPlayerResultsData = (
 
     if( playerAnswer ){
 
-        const streak = session.getPlayerById( playerId ).getStreak()
+        // No debería haber problema dado que, si hay una respuesta registrada para el usuario, evidentemente existe en el dominio
+        const streak = session.getPlayerById( playerId )?.getStreak()!
         
         const motivationalMessage = FeedbackGenerator.generate({
             isCorrect: playerAnswer.isCorrect(),

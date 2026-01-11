@@ -1,15 +1,5 @@
-/**
- * MIT License | Copyright (c) 2025
- * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
- * Project: quizzy-backend
- *
- * Full license text available in the LICENSE file at the root of this project.
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
- */
-
-// File: src\core\core.module.ts
-
 import { Global, Module } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 // Tokens
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
@@ -28,8 +18,8 @@ import { QueryBus } from './infrastructure/cqrs/buses/query-bus';
 import { CqrsBootstrapService } from './infrastructure/cqrs/cqrs-bootstrap.service';
 import { CommandQueryExecutorService } from './infrastructure/services/command-query-executor.service';
 import { ErrorMappingService } from './infrastructure/services/global-error-mapping.service';
-import { APP_FILTER } from '@nestjs/core';
 import { AllExceptionsFilter } from './infrastructure/filters/all-exceptions.filter';
+import { ResultInterceptor } from './infrastructure/interceptors/response.interceptor';
 
 @Global()
 @Module({
@@ -41,13 +31,27 @@ import { AllExceptionsFilter } from './infrastructure/filters/all-exceptions.fil
     QueryBus,
     ErrorMappingService,
 
+    // 1. REGISTRO DE CLASES (Para que sean inyectables por nombre)
+    AllExceptionsFilter,
+    ResultInterceptor,
+
+    // 2. VINCULACIÓN CON TOKENS GLOBALES (Uso de la misma instancia)
+    {
+      provide: APP_INTERCEPTOR,
+      useExisting: ResultInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useExisting: AllExceptionsFilter,
+    },
+
     // ID Generator centralizado
     { 
       provide: APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR, 
       useClass: UuidGenerator 
     },
 
-    // Event Bus (Se mantiene normal/original)
+    // Event Bus
     { 
       provide: EVENT_BUS_TOKEN, 
       useClass: InMemoryEventBus 
@@ -59,16 +63,10 @@ import { AllExceptionsFilter } from './infrastructure/filters/all-exceptions.fil
       useClass: PinoLogger,
     },
 
-    // Crypto Service (Agregado para resolver el error)
+    // Crypto Service
     {
       provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
       useClass: NodeCryptoService,
-    },
-
-    // Filtro de excepciones
-    {
-      provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
     },
   ],
   exports: [
@@ -77,6 +75,8 @@ import { AllExceptionsFilter } from './infrastructure/filters/all-exceptions.fil
     ErrorMappingService,
     CommandQueryExecutorService,
     EVENT_BUS_TOKEN,
+    AllExceptionsFilter, // Exportado para acceso externo
+    ResultInterceptor,   // Exportado para acceso externo
     APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR,
     APPLICATION_CORE_TOKENS.UTILS.LOGGER,
     APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,

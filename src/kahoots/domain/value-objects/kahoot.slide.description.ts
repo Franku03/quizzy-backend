@@ -26,7 +26,7 @@ interface DescriptionProps {
 
 export class Description extends ValueObject<DescriptionProps> {
     
-    public constructor(text: string) {
+    private constructor(text: string) {
         super({ description: text });
     }
 

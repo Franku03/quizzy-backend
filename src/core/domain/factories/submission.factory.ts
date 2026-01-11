@@ -20,6 +20,9 @@ import { SlideSnapshot } from "../snapshots/snapshot.slide";
 
 import { Submission } from "../shared-value-objects/parameter-objects/parameter.object.submission";
 import { KahootFactory } from '../../../kahoots/domain/factories/kahoot.factory';
+import { Either, ErrorData } from "src/core/types";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 export class SubmissionFactory {
 
@@ -40,17 +43,22 @@ export class SubmissionFactory {
         slideInfo: SlideSnapshot,
         timeElapsedMs: number,
         answerIndex: string[],
-    ): Submission {
+    ): Either<ErrorData, Submission> {
 
         const optionSnapshot = slideInfo.options;
 
-        if (!optionSnapshot)
-            throw new Error("La Slide no contiene Opciones de Respuesta");
+        if (!optionSnapshot){
+            const error = new Error("La Slide no contiene Opciones de Respuesta");
+            return Either.makeLeft( this.buildSlideErrorData( error, slideId.value ) ) ;
+        }
+
+        if (!slideInfo.pointsValue){
+            const error = new Error("La Slide no da puntos por respuesta");
+            return Either.makeLeft( this.buildSlideErrorData( error, slideId.value ) ) ;
+        }
+
 
         const optQuestionText = new Optional(slideInfo.questionText);
-
-        if (!slideInfo.pointsValue)
-            throw new Error("La Slide no da puntos por respuesta");
 
         const optPointsValue = new Optional(new Points(slideInfo.pointsValue));
 
@@ -94,7 +102,7 @@ export class SubmissionFactory {
 
         const timeElapsed = ResponseTime.fromMilliseconds(timeElapsedMs);
 
-        return new Submission(
+        const submission = new Submission(
             slideId,
             optQuestionText,
             optPointsValue,
@@ -102,6 +110,18 @@ export class SubmissionFactory {
             optAnswerTexts,
             optAnswerIndexes,
             timeElapsed
+        );
+
+        return Either.makeRight( submission );
+
+    }
+
+    private static buildSlideErrorData( error: Error, slideId: string ): ErrorData {
+
+        return DomainErrorFactory.validation(
+            createDomainContext('SubmissionFactory', 'Factory', { actorId: slideId, domainObjectKind: 'Entity', rootAggregateName: 'Kahoot'} ),
+            { optionSnapshot: ['NO_OPTIONS'] },
+            error.message
         );
 
     }

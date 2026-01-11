@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\commands\save-session\save-session.handler.ts
+
 import { Inject } from "@nestjs/common";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
@@ -45,7 +56,7 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
 
             // Procesamos la limpieza y archivado de la sesión
             // Aqui no liberamos el pin, esperamos a que el host cierre la sesion por completo para eso
-            await this.sessionArchiverService.archiveAndClean( session, kahoot );
+            await this.sessionArchiverService.archiveSession( session, kahoot );
 
             // Respuesta guardada con exito
             return Either.makeRight( true );

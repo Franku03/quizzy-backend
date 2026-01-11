@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\commands\player-join\player-join.handler.ts
+
 import { Inject } from "@nestjs/common";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
@@ -7,8 +18,9 @@ import { PlayerFactory } from "src/multiplayer-sessions/domain/factories/player.
 import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
-import type { ActiveSessionContext, IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
@@ -19,8 +31,9 @@ import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update
 import { ErrorData } from "src/core/types";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
-import { Player } from "src/multiplayer-sessions/domain/entity/session.player";
 import { SessionResourcesForPlayerJoin } from "../context/session-resources.context.interface";
+import { Log } from "src/core/application/aspects/logging/log.decorator";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 
 
 @CommandHandler( PlayerJoinCommand )
@@ -32,48 +45,49 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
         @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
         private readonly usersDao: IUserDao,
+
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        private readonly logger: ILogger,
     ){}
 
 
+    @Log()
     async execute(command: PlayerJoinCommand): Promise<Either<ErrorData, LobbyStateUpdateResponse>> {
 
         // Contexto para logs
-        const appContext = createMultiplayerSessionAppContext('playerJoin', undefined, command.userId, command.sessionPin );
+        const appContext = createMultiplayerSessionAppContext('playerJoin', { actorId: command.userId, sessionPin: command.sessionPin });
 
         return pipeAsync<ErrorData, LobbyStateUpdateResponse>(
             
-            // 1. INICIO: Arrancamos con el comando
+            // 1) Arrancamos con el command
             Either.makeRight(command),
 
-            // 2. OBTENER SESIÓN
-            // Necesitamos la sesión Y mantener el comando vivo para los siguientes pasos.
-            // Input: Command -> Output: Promise<Either<Error, ActiveSessionContext>>
+            // 2) obtenemos la sesión del respositorio en memoria
+            // Necesitamos la sesión Y mantenemos el comando vivo para los siguientes pasos.
             cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
 
-            // 3. LÓGICA DE NEGOCIO (Buscar User + Crear Player + Unir)
-            // Aquí manejamos la lógica de "Invitado vs Registrado"
-            // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
+            // 3) Lógica de negocio (Buscar User + Crear Player + Unir)
+            // Aquí manejamos la lógica de Invitado, Registrado, max de usuarios permitidos según usuario
             ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
 
-            // 4. PERSISTENCIA
-            // actualizamos 'lastActivity' en el repo
+            // 4) Actualizar actividad de la sesión ( last activity )
             // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
             ctx => ctx.chainAsync(c => this.persistState(c)),
 
-            // 5. RESPUESTA
+            // 5) Mappear respuesta
             // Mapeamos a la respuesta que espera el Gateway
             ctx => ctx.map(c => mapJoinToLobbyUpdate(c.player, c.sessionCtx.session)),
 
-            // 6. MANEJO DE ERRORES
+            // 6) Mapeo de Errores
             result => result.mapLeft(err => err.setContext(appContext))
         );
     }
 
 
-    // --- MÉTODOS PRIVADOS (PASOS DEL TREN) ---
+    // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Busca la sesión y prepara el contexto combinado.
+     * Busca la sesión y prepara el contexto combinado.
      */
     private async addSessionToContext(
         command: PlayerJoinCommand
@@ -89,57 +103,64 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
     }
 
     /**
-     * Paso 3: Resuelve la identidad (User vs Guest), crea el Player y actualiza la Session.
+     * Resuelve la identidad (User vs Guest), crea el Player y actualiza la Session.
      */
     private async processPlayerJoin(
         ctx: SessionResourcesForPlayerJoin,
     ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
-        const { sessionCtx, command } = ctx; // Desempaquetamos
+
+        const { sessionCtx, command } = ctx;
         const { session } = sessionCtx;
 
-        // A. Buscar usuario (Bifurcación suave)
+        // A) Buscar usuario (Bifurcación suave)
         const userResult = await this.usersDao.getUserById(command.userId);
         const isRegistered = userResult.hasValue();
 
-        // B. Determinar ID y Rol
+        // B) Determinar ID y Rol
         const finalId = isRegistered ? userResult.getValue().id : command.userId;
         const isGuest = !isRegistered;
 
-        // C. Crear Factory Player
+        // C) Crear Factory Player
         const playerResult = PlayerFactory.createPlayerForSession(
             finalId,
             command.nickname,
             isGuest
         );
 
-
-        // D. Lógica de Dominio dentro del MAP
+        // D) Lógica de Dominio dentro del MAP
         // Si playerResult es Left, este bloque se salta y retornamos el Left directamente.
         // Si es Right, ejecutamos la lógica y retornamos el nuevo contexto.
-        return playerResult.map( player => {
+        return playerResult.chain( player => {
+            
             
             if (session.isPlayerAlreadyJoined(player.id)) {
-                session.deletePlayer(player.id);
+                
+                const deleteResult = session.deletePlayer(player.id);
+    
+                if( deleteResult.isLeft() )
+                    return Either.makeLeft( deleteResult.getLeft() );
             }
 
-            // D. Lógica de Dominio (Reingreso)
-            // TODO: Aquí podrías añadir validación: if (!session.canJoin()) return Either.makeLeft(...) De ser asi esto ya no seria un map sino un chain
-            // TODO: Devolver un error si la partida ya no permite conectar usuarios, si estamos en lobby, igual eso se hara toggle una vez empiece
+            // D) Lógica de Dominio (Reingreso)
+            // Aquí se podría añadir validación para hacer return Either.makeLeft(...)
+            // TODO: Devolver un error si la partida ya no permite conectar usuarios (lobby bloqueado o max jugadores plan free)
 
-            session.joinPlayer(player);
+            const joinResult = session.joinPlayer(player);
 
-            // Retornamos la bola de nieve más grande
-            return {
+            // si JoinResult es left entonces se salta este bloque y regresa el error
+            // si es Right devuelve el jugador como venía en la primera llamada
+            return joinResult.map( () => ({
                 sessionCtx: sessionCtx,
                 command: command,
                 player: player
-            };
+            }));
+
         });
     }
 
     /**
-     * Paso 4: Persistencia explicita.
-     * Aunque modifiquemos la sesión en memoria, llamar a updateSession actualiza timestamps.
+     * Persistencia explicita.
+     * llamar a updateSession para actualizar timestamps.
      */
     private async persistState(ctx: SessionResourcesForPlayerJoin ) {
 

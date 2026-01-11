@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\infrastructure\adapters\crypto-generate-pin.ts
+
 import * as crypto from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
@@ -49,7 +60,10 @@ export class CryptoGeneratePinService implements IGeneratePinService {
 
         // After finding a unique PIN, save it to the file immediately
         // IMPORTANTE: Esto ahora también lo añade al Set de RAM del repo para que el siguiente proceso lo vea ocupado
-        await this.fileSystemRepo.saveNewPin(newPin);
+        const result = await this.fileSystemRepo.saveNewPinEither(newPin);
+
+        if( result.isLeft() )
+            return Either.makeLeft( result.getLeft() );
 
         // Return the unique PIN
         return Either.makeRight(newPin);
@@ -77,7 +91,7 @@ export class CryptoGeneratePinService implements IGeneratePinService {
     }
 
 
-     private getCtx(): IInfrastructureErrorContext {
+    private getCtx(): IInfrastructureErrorContext {
         return {
             adapterName: CryptoGeneratePinService.name,
             portName: 'IGeneratePinService',

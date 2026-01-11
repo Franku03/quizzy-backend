@@ -51,64 +51,103 @@
 
 </div>
 
+<br>
+
+## Dockerización
+
+El backend está diseñado para ser agnóstico a la persistencia, permitiendo el despliegue mediante contenedores con aislamiento de recursos, optimización de logs y un entorno de desarrollo determinista.
+
+> [!TIP]
+> **Zero-Install Development:** El desarrollador **no necesita instalar** Node.js, PostgreSQL o MongoDB en su máquina local. Docker encapsula todas las herramientas y bases de datos, garantizando que el proyecto funcione igual en cualquier computador.
+
+  
+### 🏗️ Estrategia de Servicios
+
+Contamos con una configuración modular que permite levantar el stack de acuerdo al motor de base de datos elegido.
+
+<div align="center">
+
+| Servicio | Imagen | Puerto | Persistencia | Rol |
+| :--- | :--- | :--- | :--- | :--- |
+| **Quizzy Backend** | `node:20-slim` | `3000` / `3003` | N/A | NestJS API & WebSockets |
+| **PostgreSQL** | `postgres:18` | `5432` | `postgres_quizzy` | Persistencia Relacional |
+| **MongoDB** | `mongo:7` | `27017` | `mongo_quizzy` | Persistencia Documental |
+
+</div>
+
+
+## 🛠️ Configuración e Instalación
+
+### 1. Preparación del Entorno
+Antes de ejecutar, configura tus credenciales y preferencias de infraestructura:
+
+1. **Clonar variables:** Crea una copia del archivo `.env.template` y renómbralo a `.env`.
+   ```bash
+   cp .env.template .env
+   ```
+2. Persistencia: Define tu proveedor (Postgres o Mongo). Si usas servicios administrados, coloca la URL en MONGO_CNN o POSTGRES_CNN.
+
+3. Gestión de Media (Cloudinary): Configura los parámetros de tu nube:
+    * CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET.
+
+4. Notificaciones Push (Firebase): Configura el SDK de administración:
+    * FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL y FIREBASE_PRIVATE_KEY.
+
+### 2. Flujos de Ejecución (Elegir un camino)
+
+#### **Opción A: Desarrollo Total en Docker (Recomendado) 🐳**
+Ideal para trabajar con **Hot-Reload** sin instalar herramientas locales (Node, DBs, etc). Docker gestiona todo el ciclo de vida del entorno.
+
+* **Con MongoDB:** `docker compose -f docker-compose.dev.mongo.yaml up -d`
+* **Con PostgreSQL:** `docker compose -f docker-compose.dev.postgres.yaml up -d`
+
+#### **Opción B: Desarrollo Híbrido (Docker DB + Host Node) 💻**
+Ideal si prefieres usar tu terminal local para depurar el código con `yarn`.
+
+1. **Levantar solo la DB:**
+   ```bash
+   # Elige una según tu configuración:
+   docker compose -f docker-compose.local.mongo.yaml up -d
+   docker compose -f docker-compose.local.postgres.yaml up -d
+   ```
+2. **Ejecutar la API:**
+   ```bash
+   yarn install && yarn run start:dev
+   ```
+3. Servidor de Producción
+Levanta únicamente la instancia del servidor optimizada para despliegue final utilizando la imagen productiva compilada:
+
+```bash
+docker compose -f docker-compose.yaml up -d
+```
 ---
 
-## Configuración del Proyecto 🛠️
+## 🐳 Ingeniería del Dockerfile 
 
-```bash
-yarn install
-```
+ Nuestro `Dockerfile` utiliza el patrón **Multi-stage builds** para separar el entorno de construcción del de ejecución, garantizando imágenes ligeras, seguras y de alto rendimiento:
+1.  **Stage 1 (Deps):** Instalación de dependencias completas con `yarn --frozen-lockfile` sobre una imagen `node:20-slim`.
+2.  **Stage 2 (Builder):** Compilación de TypeScript a JavaScript (`/dist`) eliminando el código fuente innecesario para reducir el peso de la imagen final.
+3.  **Stage 3 (Runner):** Imagen final de producción. Solo incluye el bundle compilado y las dependencias esenciales de ejecución (`--production`), garantizando una superficie de ataque mínima.
 
-## Compilar y ejecutar en modo desarrollador 🧠
+### ⚡ Rendimiento y Control de Recursos
+En el despliegue de servidor (`docker-compose.yaml`), hemos configurado límites de nivel empresarial para garantizar la resiliencia:
+* **Logging:** Driver `json-file` con rotación automática (`max-size: 10k`) para evitar el consumo excesivo de disco por logs acumulados de `Pino`.
+* **Resources:** Capacidad de escalado hasta **8 CPUs** y **24GB de RAM**, optimizado para el motor V8 y permitiendo procesar miles de eventos de WebSockets por segundo durante sesiones masivas de quizzes.
 
-### Configurar Variables de Entorno
-1. Crea una copia del archivo `.env.template` y renómbralo a `.env`.
-2. Configura las variables para establecer la conexión con la base de datos elegida (PostgreSQL o MongoDB).
-3. Importante: Si utilizas un cluster de MongoDB Atlas, coloca la URL en la variable `MONGO_CNN`.
+## 🔍 Configuración de Red y Persistencia
 
-### Levantar Bases de Datos (Docker)
+### 🌐 Red Privada y DNS Interno
+Los servicios están aislados en una red interna de alta velocidad (`quizzy_net`) con driver `bridge`. La aplicación se conecta a las bases de datos usando nombres lógicos (ej. `host: postgres`) en lugar de direcciones IP volátiles.
 
-**PostgreSQL**
-```bash
-docker compose -f docker-compose.dev.postgres.yaml up -d
-```
+### 💾 Gestión de Volúmenes y Datos
+* **Persistencia Total:** Los archivos `docker-compose.local.*` mapean los datos directamente a tu disco local (`./mongo` o `./postgres`). Esto asegura que los datos sobrevivan incluso si se eliminan o reconstruyen los contenedores.
+* **Aislamiento de node_modules:** Utilizamos volúmenes anónimos para `node_modules` dentro del contenedor, evitando conflictos de arquitectura entre los binarios compilados en Linux (Docker) y tu sistema operativo host (Windows/Mac).
 
-**MongoDB**
-```bash
-docker compose -f docker-compose.dev.mongo.yaml up -d
-```
+### 📍 Puntos de Acceso
+* **HTTP API:** `http://localhost:3000/api`
+* **WebSockets:** `ws://localhost:3000/multiplayer-sessions`
+* **WS Direct Port:** `3003` (Puerto dedicado para el servidor de sockets configurado en `.env`)
 
-### Ejecutar el Proyecto
-
-```bash
-# development mode (watch)
-yarn run start:dev
-
-# production mode
-yarn start:prod
-```
-
-## 🚀 Ejecución del Backend con Docker Compose
-
-1. Configurar entorno:
-   - `MONGO_HOST=mongo`
-   - `DB_HOST=postgres`
-
-2. Levantar servicios:
-
-**MongoDB**
-```bash
-docker compose -f docker-compose.local.mongo.yaml up -d
-```
-
-**PostgreSQL**
-```bash
-docker compose -f docker-compose.local.postgres.yaml up -d
-```
-
-3. Acceso:
-- HTTP API: http://localhost:3000/api
-- WebSockets: ws://localhost:3000/multiplayer-sessions
 
 ## 🪛 Correr Tests
 
@@ -132,36 +171,65 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 > [!TIP]
 > 🎨 **[Acceder al Diagrama del Modelo de Dominio](https://lucid.app/lucidchart/ece44902-e188-405b-98a2-99114bfce612/edit?invitationId=inv_5ebb1b27-3046-48d7-bb6f-ddbeccdac5bc&page=5WW8gG8tv4Q4#)**
 > _Plataforma: LucidChart_
-
+> _.Ver iteración 4_
 ---
 
 
 ### Estructura de Capas por Módulo
 
-🟡 Domain (Núcleo)
-- entities
-- value-objects
-- aggregates
-- domain-services
-- repositories 
+### 🟡 Domain
+Capa que contiene el corazón del sistema: reglas de negocio (invarianzas) mediante el uso de agregados, entidades, value objects y servicios de dominio. Es totalmente independiente de tecnologías externas.
 
-🟣 Application
-- command
-- query
-- application-services
-- dtos
+```bash
+📂 domain/
+├── 📂 entities/        # Objetos con identidad única (aseguran invarianzas)  
+├── 📂 value-objects/   # OBjetos inmutables definidos por sus atributos (aseguran invarianzas) 
+├── 📂 aggregates/      # Conjunto de objetos tratados como una unidad manejados por el Aggregate Root (asegura la invarianza del todo) 
+├── 📂 domain-services/ # Lógica que involucra múltiples entidades
+├── 📂 repositories/    # Definición de interfaces para la persistencia
+└── 📂 factories/       # Lógica de creación para Agregados 
+```
+<br>
 
-🔵 Infrastructure
-- nest-js (controllers, gateways)
-- external-services
-- repositories (Mongoose / TypeORM)
+### 🟣 Application
+Orquesta el flujo de datos y ejecuta los casos de uso, actuando como mediador entre el dominio y la infraestructura.
+
+```bash
+📂 application/
+├── 📂 ports/           # Definen contratos para implmentarse en la capa de infraestructura y cumplir con el principo de dependecia de la Arquitectura Hexagonal
+├── 📂 commands/        # Acciones que modifican el estado (Escritura)
+├── 📂 queries/         # Acciones que consultan datos (Lectura)
+├── 📂 services/        # Orquestadores de dominio
+└── 📂 dtos/            # Objetos de transferencia de datos
+```
+
+<br>
+
+
+### 🔵 Infrastructure
+Contiene las implementaciones técnicas y los detalles de servicios externos.
+
+```bash
+📂 infrastructure/
+├── 📂 nest-js/         # Controladores, Gateways (WS) y Módulos
+└── 📂 adapters/        # Implementación real de repositorios, ports de dominio y de app
+```
+
+<br>
+
+### 📝 Nota de Complejidad
+
+> [!NOTE]
+> Esta estructura es a manera muy general y resumida. Existen módulos de mayor complejidad que tienen más directorios.
 
 ## 🚨 Arquitectura de Errores y Eficiencia en el Motor V8
 
 La implementación de **Railway Oriented Programming (ROP)** mediante el uso de `Either<L, R>` y `pipeAsync` proporciona beneficios críticos en la optimización del tiempo de ejecución y el aprovechamiento del motor **V8**:
 
 ### 1. Optimización del Compilador (Monomorfismo)
-El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno.
+El motor V8 utiliza "Hidden Classes" e "Inline Caching" para optimizar el acceso a objetos. Al garantizar que todos los resultados de las funciones tengan una estructura consistente y predecible (`Either`), el sistema facilita que el compilador **JIT (Just-In-Time)** mantenga el código en su "vía rápida" (Hot Path), alcanzando velocidades de ejecución cercanas al código nativo al evitar la desoptimización por cambios de forma en los objetos de retorno. En palabras más simple, esto reduce a los polymorphic checks para los que conocen muy a fondo V8.
+
+📌 Diagrama de Arquitectura de Optimización
 
 ### 2. Instanciación vs. Lanzamiento de Excepciones
 Existe una diferencia fundamental en el consumo de recursos entre retornar un valor y lanzar una excepción:
@@ -206,9 +274,13 @@ La clase `ErrorData` encapsula toda la información de error de manera estructur
 - **Sanitización Automática**: Protección de campos sensibles del dominio y control jerárquico sobre la propiedad `operation`.
 - **Regla de Operación**: Una vez que un error alcanza la capa `APPLICATION`, el nombre de la operación se vuelve inmutable, previniendo sobrescrituras incorrectas desde capas inferiores.
 
-> [!WARNING]
-> ⚠️ Seguridad en Producción:
->  Para futuras revisiones, se implementará un mecanismo basado en `process.env.NODE_ENV` que eliminará automáticamente el `stackTrace` (evitando referenciar el constructor de error con super) en entornos de producción (`isProd === true`), manteniéndolo únicamente en desarrollo para facilitar el debugging.
+> [!IMPORTANT]
+> ### ✅ Optimización de StackTrace (Finalizado)
+> Se ha implementado con éxito el mecanismo basado en `Error.stackTraceLimit` para la clase `ErrorData`. 
+> 
+> En entornos de producción (`isProd === true`), el sistema elimina el costo computacional de recolectar el stack al invocar `super()`, garantizando máximo rendimiento y seguridad al no filtrar rutas del servidor. El stack trace completo solo se genera en entornos de desarrollo.
+>
+> **Commit:** [`9ccace1d`](https://github.com/Franku03/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e) 
 
 **Formato de Log Estructurado**: El método `toLogString()` genera una representación visualmente clara del error con:
   - Codificación de colores por capa del sistema
@@ -263,7 +335,7 @@ Orquesta la ejecución secuencial de operaciones con mecanismo de cortocircuito:
 ---
 ### 📌 DIAGRAMA DE SECUENCIA (ERRORES / ROP)
  
-> El siguiente diagrama describe el flujo reducido del sistema de errores (UpdateKahootHandler)
+> El siguiente diagrama describe el flujo reducido del sistema de errores
 
 ---
 
@@ -432,12 +504,429 @@ sequenceDiagram
     end
 ```
 
-###
 ### 🔗 RECURSOS EXTERNOS PARA LOS ERRORES
 Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/w9byiD8Kuq4CRJ47rOU8?origin=share)**
+---
+> [!IMPORTANT]
+> ### 🔄 Evolución Arquitectónica: Interceptores sobre Filtros (Completado)
+> El sistema ha sido migrado para utilizar el **`ResultInterceptor`** como gestor principal de respuestas. Se ha eliminado el uso de `throw` para el flujo normal de la aplicación, evitando asi cualquier **Stack Unwinding** Ahora, los controladores retornan un objeto de resultado y el interceptor lo transforma. 
+>
+> **Estado Actual:** Los controladores ya no lanzan excepciones para casos esperados; devuelven resultados que el interceptor procesa. El `AllExceptionsFilter` queda relegado únicamente a errores críticos e inesperados del sistema.
+>
+> **Commit:** [`9ccace1d`](https://github.com/Franku03/quizzy-backend/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e)
 
+> [!NOTE] 
+> Los diagramas de flujo basados en thrown quedan obsoletos frente a este nuevo modelo de Interceptor-Mapping - Siendo lo unico que cambia el throw final.*
+> El archivo se encuentra en `src/core/infraestructure/interceptors/response.interceptor.ts`
+> Además de ello, se evita usar el `command-query.excutor.service.ts` debido a que ahora ya no hace falta encapsular el throw porque hay un retorno explicito
+
+> [!NOTE]
+> **Retrocompatibilidad**: Se mantiene el `AllExceptionsFilter` original para asegurar la estabilidad con módulos heredados, mientras se transiciona completamente al sistema de Interceptores.
+---
+## 🚀 Guía para el Desarrollador sobre el sistema de errores 
+
+Luego de la justificación previa, es momento de explicar todo, ya que todo el sistema utiliza un sistema de manejo de errores robusto, tipado y agnóstico a la infraestructura, basado en el patrón **Result (Either)** y **Errores Canónicos (`ErrorData`)**.
+
+### Principios
+1.  **No Exceptions:** El objetivo principal es eliminar el uso indiscriminado de excepciones (`throw`).
+2.  **Control Flow:** Los errores fluyen como valores controlados (`Left`) desde el origen hasta la capa de presentación.
+3.  **Traceability:** Cada error lleva consigo un contexto rico (Operación, Actor, Recurso) que se enriquece a medida que sube de capa.
+---
+
+## 🛠️ Herramientas Principales
+
+Para generar errores estandarizados, utilizamos dos componentes clave: **Factories** (para crear el error) y **Context Helpers** (para describir dónde y por qué ocurrió).
+
+### 1. Factories (¿Qué error crear?)
+Clases estáticas con métodos semánticos. **No instancies `ErrorData` manualmente** a menos que sea estrictamente necesario.
+
+| Capa | Factory | Ubicación | Métodos Comunes |
+| :--- | :--- | :--- | :--- |
+| **Domain** | `DomainErrorFactory` | `src/core/errors/factories/` | `.validation()`, `.notFound()`, `.conflict()`, `.unauthorized()` |
+| **Application** | `AppErrorFactory` | `src/core/errors/factories/` | `.notFound()`, `.forbidden()`, `.unauthorized()` |
+
+### 2. Context Helpers (¿Dónde ocurrió?)
+Ayudan a llenar los metadatos del error (`details`) de forma estructurada y consistente.
+
+| Capa | Helper | Ubicación | Parámetros Clave |
+| :--- | :--- | :--- | :--- |
+| **Domain** | `createDomainContext` | `src/core/errors/helpers/` | `domainObjectType`, `domainObjectId`, `rootAggregateName` |
+| **Application** | `createApplicationContext` | `src/core/errors/helpers/` | `operation`, `resourceTargetId`, `actorId` |
+| **Infra** | `createDatabaseContext` | `src/core/errors/helpers/` | `databaseType`, `collectionOrTable`, `adapterName` |
+
+## 🚀 Implementación: Capa de Dominio
+
+Cuando una regla de negocio falla (ej. validación de formato, estado inválido).
+
+**Flujo:**
+1. Crea el contexto con `createDomainContext`.
+2. Retorna `Either.makeLeft` usando `DomainErrorFactory`.
+
+```typescript
+// Ejemplo: Value Object (SlideType.ts)
+public static create(rawType: string): Either<ErrorData, SlideType> {
+    const context = createDomainContext('SlideType', 'validateType', {
+        domainObjectKind: 'ValueObject'
+    });
+
+    if (!isValid(rawType)) {
+        // ❌ Retornamos Left con el error fabricado
+        return Either.makeLeft(
+            DomainErrorFactory.validation(context, { type: ['INVALID_VALUE'] })
+        );
+    }
+    // ✅ Retornamos Right con el valor validado
+    return Either.makeRight(new SlideType(rawType));
+}
+```
+
+## 🚀 Implementación: Capa de Infraestructura (DAOs - Extensible a otros servicios externos. En el proyecto se puede ver el caso de Cloudinary)
+
+Aquí **no** creamos errores manualmente. Atrapamos errores de librerías externas (Mongo, TypeORM, Axios) y los **mapeamos**.
+
+**Flujo:**
+1. Usa `createDatabaseContext`.
+2. Usa `Either.tryCatch` envolviendo la llamada externa.
+3. Pasa el `Mapper` correspondiente en el callback de error.
+
+```typescript
+// Ejemplo: Mongo DAO
+async getById(id: string): Promise<Either<ErrorData, Kahoot>> {
+    const ctx = this.getCtx('getById', id); 
+    
+    return Either.tryCatch(
+        this.model.findOne({ id }).exec(),
+        (err) => this.mongoErrorMapper.toErrorData(err, ctx) // 👈 Mapper inyectado
+    );
+}
+```
+
+## 📜 Contratos e Interfaces Clave
+
+Si vas a extender el sistema, debes respetar estos contratos:
+
+1.  **`IErrorMapper<TError, TContext>`**
+    *   Interfaz obligatoria para clases que transforman errores externos (ej. `MongoError`) a `ErrorData`.
+    *   *Ubicación:* `src/core/errors/interface/mapper/i-error-mapper.interface.ts`
+
+2.  **Context Interfaces (`IDatabaseErrorContext`, etc.)**
+    *   Definen la estructura de metadatos obligatoria para cada capa.
+    *   *Ubicación:* `src/core/errors/interface/context/`
+
+3.  **`IErrorService`**
+    * Contrato para transformar un `ErrorData` interno en una respuesta HTTP para el cliente.
+    * *Ubicación:* `src/core/errors/interface/mapper/i-error-http-mapper-service.interface.ts`
+    
+## ➕ Cómo agregar una nueva Infraestructura (Ej. Redis)
+
+Si integras una nueva tecnología (ej. Redis, AWS S3), sigue estos pasos:
+
+1.  **Definir Constantes**: Crea un objeto base con `module`, `databaseType` y `collectionOrTable`.
+    ```typescript
+    export const REDIS_BASE = { module: 'cache', databaseType: 'redis', collectionOrTable: 'keys' };
+    ```
+
+2.  **Crear el Mapper**: Implementa `IErrorMapper` para traducir errores nativos de Redis a `ErrorData`.
+    ```typescript
+    export class RedisErrorMapper implements IErrorMapper<unknown, IDatabaseErrorContext> { ... }
+    ```
+
+3.  **Registrar el Token**: Añade el provider en el módulo de infraestructura.
+    ```typescript
+    { provide: ERROR_TOKENS.MAPPERS.REDIS, useClass: RedisErrorMapper }
+    ```
+4.  **Usar en el Adapter**: Inyecta el mapper y usa `Either.tryCatch` junto con `createDatabaseContext`.
+---
+## 💡 ¿Por qué NO usamos `throw`? (La Filosofía)
+
+Quizás te preguntes por qué nos tomamos la molestia de envolver todo en `Either` en lugar de simplemente lanzar excepciones (`throw new Error`). La respuesta es **Seguridad y Honestidad**. Además claro del rendimiento mencionado anteriormente
+
+### 1. Funciones Honestas
+En la programación tradicional, la firma de una función miente.
+*   **Mentira:** `findKahootById(id: KahootId): Promise<Optional<Kahoot>>` -> *Parece que siempre devuelve un kahoot, pero puede explotar.*
+*   **Verdad:** `findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>>` -> *Declara explícitamente: "Puedo fallar, y aquí está el tipo de error que retorno".*
+
+### 2. El Compilador te obliga a programar seguro
+Al usar `Either`, el error es un valor, no un efecto secundario. **No puedes acceder al resultado exitoso sin antes verificar si hubo un error.**
+Esto elimina categorías enteras de bugs causados por olvidar un `try/catch`. Si olvidas manejar el error, **el código no compila**.
+
+### 3. Errores como Flujo de Control (Railroad Oriented Programming)
+Las excepciones rompen el flujo de ejecución (como un `GOTO`). Nuestro sistema trata los errores como datos que fluyen a través de tuberías (`pipeAsync`).
+*   Si todo va bien, el tren sigue por la vía verde (`Right`).
+*   Si algo falla, cambia suavemente a la vía roja (`Left`) llevando el contexto del error, sin romper la aplicación ni anidar bloques `try/catch` infinitos.
+
+> **En resumen:** No dejamos que los errores sean "sorpresas" en tiempo de ejecución. Los convertimos en **decisiones explícitas** en tiempo de desarrollo.
+
+> [!TIP]
+> **Profundiza en la Teoría: Railway Oriented Programming (ROP)**
+>
+> La arquitectura de este proyecto (el uso de `pipeAsync` y el flujo de `Either`) se basa en un concepto funcional llamado **Railway Oriented Programming**.
+>
+> Si quieres entender a fondo la teoría detrás de "las vías del tren" (el camino feliz vs. el camino del error) y por qué este patrón escala mejor que los bloques `try/catch`, te recomendamos encarecidamente esta lectura:
+>
+> 🔗 **[What is Railway Oriented Programming? - LogRocket Blog](https://blog.logrocket.com/what-is-railway-oriented-programming/)**
+
+---
+    
+# 🧩 Media Module: MediaEnrichmentService _El Servicio MVP_
+### *Abstracción de Infraestructura y Enriquecimiento de Dominio*
+
+El **Media Module**, Además de tener unos endpoints. Presenta el `MediaEnrichmentService` que no es solo un servicio de utilidad; es un servicio que actúa como un **cross cutting concern**. Su existencia resuelve el conflicto entre tener un **Dominio puro** (basado en IDs y lógica de negocio) y las necesidades de una **Interfaz de Usuario** (que requiere URLs firmadas, transformaciones de imagen y metadatos).
+
+
+#### 🎯 Visión y Propósito Estratégico
+* **Desacoplamiento Total:** Los agregados de dominio (como `Kahoot` o `Question`) no almacenan URLs de Cloudinary. Esto evita que el dominio dependa de proveedores externos que podrían cambiar en el futuro.
+* **API Unificada:** Proporciona una interfaz única donde el desarrollador no tiene que preocuparse de donde viene el recurso, siendo abstracto.
+* **Optimización del Event Loop:** Al centralizar la resolución de medios, el servicio gestiona las promesas y llamadas asíncronas de forma agrupada, liberando carga al Event Loop de Node.js.
+
+> [!IMPORTANT]
+> **Filosofía de Diseño:** Consumir media debe ser una operación de "caja negra". El desarrollador entrega un ID y recibe un objeto listo para pintar en pantalla, sin conocer la complejidad técnica que ocurre detrás.
+
+---
+
+## 🏛️ Arquitectura Interna y Mecanismos de Eficiencia
+
+El Servicio opera bajo una arquitectura de **Contratos de Comportamiento**. En lugar de acoplarse a clases específicas, utiliza interfaces situadas en `src/core/domain/abstractions`. Cualquier objeto que implemente estos contratos puede ser "procesado" por el Servicio.
+
+
+### 🔄 El Ciclo de Vida del Enriquecimiento
+
+1.  **Harvesting (Fase de Recolección):**
+    El `MediaEnrichmentService` realiza una inspección profunda (Introspection) del objeto. Si el objeto implementa `IHasMediaAssets`, el servicio extrae todos los UUIDs. Esto permite que, incluso en objetos anidados (como un Kahoot con múltiples preguntas), se obtengan todos los requerimientos de una sola vez.
+
+2.  **Resolution (Proxy y y FlyWeight):**
+    Aquí entra en juego el **AssetResolutionProxy**. En lugar de disparar 20 peticiones HTTP, el Proxy agrupa los IDs únicos.
+    * **Mecanismo Flyweight:** Si varios elementos comparten la misma imagen de portada, el Proxy solo la resuelve una vez y clona la referencia de la URL, ahorrando memoria RAM de forma masiva.
+    * **Caché Transparente:** Implementa una capa de persistencia volátil que evita re-consultar bases de datos para recursos estáticos frecuentes.
+
+3.  **Injection (Pipeline de Handlers):**
+    Utilizamos una **Cadena de Responsabilidad (Chain of Responsibility)** para que el proceso sea modular.
+    * **ThemeHandler:** Resuelve colores, tipografías y estilos del tema.
+    * **AssetHandler:** Inyecta las URLs finales de Cloudinary en los campos correspondientes.
+    * **ValidationHandler:** Asegura que los recursos resueltos sean válidos y seguros para el cliente.
+
+### 🛠️ Patrones de Diseño 
+
+| Patrón | Implementación Técnica | Beneficio de Ingeniería |
+| :--- | :--- | :--- |
+| **FACADE** | `MediaEnrichmentService` | Reduce la carga cognitiva del desarrollador al exponer un solo método `enrich()`. En caso de transformaciones mas complejas podria requerir métodos específicos |
+| **FACTORY** | `EnrichmentHandlerFactory` | Encapsula el uso de la palabra reservada `new` en la facade. |
+| **PROXY** | `AssetResolutionProxy` | Control de acceso y optimización de red (Batching). |
+| **FLYWEIGHT** | Gestión de Instancias de URL | Minimiza el impacto en el Garbage Collector al reutilizar strings y objetos de configuración. |
+| **CHAIN OF RESP.** | `EnrichmentHandlers` | Permite añadir lógica de procesamiento (ej. marcas de agua) sin tocar el código existente. |
+
+---
+
+## 🚀 Guía de Ingeniería para el Desarrollador
+
+### 1. Integración en la Capa de Aplicación
+El uso del MediaEnrichmentService es obligatorio antes de que cualquier dato salga de la API. Esto garantiza que el Frontend nunca reciba un ID interno de base de datos donde debería ir una imagen.
+
+```typescript
+// Ejemplo en un Handler
+export class AnyHandler (Puede ser Query o Command) {
+  async execute(query: queryParameterObject) {
+    Persistencia: Obtenemos el Dato
+    const snapshot = await this.repository.findById(query.id);
+    // 2. Servicio: Transformación masiva y enriquecimiento
+    // El Servicio maneja internamente la recursividad y la optimización de red
+    return await this.mediaService.enrich(anyData);
+  }
+}
+```
+
+---
+
+## 🏛️ Principios SOLID
+
+El **MediaEnrichmentService`** no es solo una utilidad, es un manifiesto de arquitectura limpia. Se han aplicado los principios **SOLID** para garantizar que el sistema sea inmune a la degradación de código a medida que el proyecto crece.
+
+* **SRP (Single Responsibility Principle):** Cada `EnrichmentHandler` tiene una única razón para cambiar. El `AssetHandler` solo conoce la lógica de URLs, mientras que el `ThemeHandler` se especializa en estilos visuales. El servicio no es un monolito GOD Class, sino una suma de especialistas coordinados.
+* **OCP (Open/Closed Principle):** El sistema está **abierto a la extensión pero cerrado a la modificación**. La lógica central del servicio nunca se toca; para añadir capacidades, simplemente se inyectan nuevos eslabones a la cadena. No obstante ver más abajo el trade-offs.
+* **LSP (Liskov Substitution Principle):** Todos los Handlers heredan de una base abstracta. El motor de orquestación trata a cualquier `VideoHandler` o `ImageHandler` como un `BaseHandler` genérico, garantizando la sustituibilidad total sin romper el flujo de ejecución.
+* **ISP (Interface Segregation Principle):** En lugar de una interfaz "Gorda" de Media, fragmentamos los contratos en interfaces pequeñas: `IHasMediaAssets`, `IHasTheme` o `IHasVideo` (Si quisieran agregar videos). Los objetos de dominio solo implementan lo que realmente necesitan.
+* **DIP (Dependency Inversion Principle):** El Servicio depende de abstracciones, no de implementaciones. La infraestructura (Cloudinary, MongoDB) se inyecta en tiempo de ejecución, permitiendo cambiar proveedores sin alterar la lógica de negocio.
+
+---
+
+## 🚀 Extensibilidad y Compromisos de Diseño
+
+### El Camino de la Extensión (Ejemplo: Streaming Video)
+Añadir soporte para un nuevo tipo de medio es un proceso lineal y seguro que no afecta a los módulos existentes:
+1.  **Contrato:** Se define `IHasStreamingVideo` con el método `setVideoUrl()`.
+2.  **Procesador:** Se implementa `VideoEnrichmentHandler` encapsulando la lógica del proveedor (ej. Mux o YouTube).
+3.  **Registro:** Se añade al pipeline en la Factory. Las imágenes y temas siguen funcionando sin enterarse del cambio.
+
+### ⚖️ El Sacrificio Arquitectónico (Design Trade-offs)
+En ingeniería, toda solución tiene un costo. Para lograr un **OCP** perfecto y una experiencia de desarrollo (DX) superior, hemos aceptado deliberadamente dos sacrificios:
+
+* **Complejidad en la Facade:** La `MediaEnrichmentService` asume la responsabilidad de orquestar múltiples sub-servicios. Es el "punto caliente" de configuración, pero es el precio a pagar para que el resto de la aplicación disfrute de una simplicidad total (una sola línea de código para enriquecer).
+* **Verbocidad en la Factory:** La `EnrichmentHandlerFactory` introduce un nivel adicional de indirección y código repetitivo (*boilerplate*). Sin embargo, este es el sacrificio necesario para desacoplar la **creación** de la **ejecución**, permitiendo que el sistema sea testeable y escalable.
+
+---
+
+## ⚡ Optimización para el Motor V8 (Node.js)
+
+El Media Module ha sido diseñado mecánicamente para ser "amigable" con el compilador JIT de V8, maximizando el rendimiento en entornos de alta concurrencia:
+
+* **Monomorfismo de Retorno:** Los handlers devuelven estructuras de datos con formas (*shapes*) consistentes. Esto permite que V8 optimice las **Hidden Classes** de los objetos, evitando la desoptimización del código en el "Hot Path".
+* **Short-Circuiting:** Si un objeto no requiere enriquecimiento, el servicio aplica un cortocircuito inmediato. Esto evita la creación de micro-tareas y promesas innecesarias, manteniendo el **Throughput** del servidor al máximo y optimizando el uso del Event Loop.
+
+> [!NOTE]
+> El MediaEnrichmentService transforma una tarea que normalmente causaría un Dont Dry/boilerplate masivo en una operación de una sola línea. 
+
+---
+### 📌 DIAGRAMA DE SECUENCIA (MediaEnrichmentService)
+ 
+> El siguiente diagrama describe el flujo reducido del servicio de enriquecimiento de media
+
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
+    'signalColor': '#009900',
+    'signalTextColor': '#000000',
+    'actorTextColor': '#000000',
+    'noteTextColor': '#000000',
+    'actorLineColor': '#009900',
+    'labelBoxBorderColor': '#000000',
+    'actorBorder': '#000000',
+    'fontSize': '16px',
+    'fontFamily': 'Segoe UI'
+  }
+} }%%
+
+sequenceDiagram
+    autonumber
+    
+    participant UC as AnyUseCase
+    participant Facade as MediaEnrichmentService
+    participant Entity as "TargetObject<T><br>(IHasMediaAssets)"
+
+    rect rgb(255, 255, 255)
+        Note over UC, Entity: FLUJO DE ENRIQUECIMIENTO (MediaEnrichmentService)
+        
+        UC->>Facade: enrich(target)
+        activate Facade
+
+        Note over Facade, Entity: 1. Protocolo de Extracción (Harvesting)
+        Facade->>Entity: getMediaAssetIds()
+        activate Entity
+        Entity-->>Facade: Returns [ "uuid-1", "uuid-2" ]
+        deactivate Entity
+
+        Note over Facade, Entity: 2. Resolución Masiva (Proxy/Batch)
+        Facade->>Facade: Resolve URLs (Batch & Cache)
+
+        Note over Facade, Entity: 3. Protocolo de Inyección (Enrichment)
+        Facade->>Entity: applyMediaUrls( {uuid: url} )
+        activate Entity
+        Entity-->>Facade: void
+        deactivate Entity
+
+        Facade-->>UC: target (Enriched Object)
+        deactivate Facade 
+    end
+```
+---
+> El siguiente diagrama describe el flujo completo de ejecución, del servicio).
+---
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'background': '#ffffff',
+    'mainBkg': '#ffffff',
+    'primaryColor': '#e1f5fe',
+    'secondaryColor': '#f1f8e9',
+    'signalColor': '#009900',
+    'signalTextColor': '#000000',
+    'actorTextColor': '#000000',
+    'noteTextColor': '#000000',
+    'actorLineColor': '#009900',
+    'labelBoxBorderColor': '#000000',
+    'actorBorder': '#000000',
+    'fontSize': '15px',
+    'fontFamily': 'Segoe UI'
+  }
+} }%%
+
+sequenceDiagram
+    autonumber
+    
+    participant Handler as GetKahootByIdHandler
+    participant Facade as MediaEnrichmentService
+    participant Factory as EnrichmentHandlerFactory
+    participant Chain as Handlers (Chain)
+    participant Repo as KahootRepository
+    participant ImgProxy as AssetResolutionProxy
+    participant ThemeProxy as ThemeResolutionProxy
+    participant Snapshot as KahootStylingSnapshot
+
+    rect rgb(255, 255, 255)
+        Note over Handler, Snapshot: FLUJO DETALLADO: MediaEnrichmentService
+        
+        Handler->>Repo: 1. findById(id)
+        activate Repo
+        Repo-->>Handler: Return Snapshot (IDs)
+        deactivate Repo
+
+        Handler->>Facade: 2. enrichKahoot(snapshot)
+        activate Facade
+
+        Note over Facade, Snapshot: FASE 1: RECOLECCIÓN (IHasMediaAssets)
+        Facade->>Snapshot: getMediaAssetIds()
+        activate Snapshot
+        Snapshot-->>Facade: Returns [UUIDs]
+        deactivate Snapshot
+
+        Note over Facade, ImgProxy: FASE 2: RESOLUCIÓN BATCH
+        Facade->>ImgProxy: resolveUrlsBatch(ids)
+        activate ImgProxy
+        ImgProxy-->>Facade: Returns Map(UUID -> URL)
+        deactivate ImgProxy
+
+        Facade->>Factory: FASE 3: createChain(urlMap)
+        activate Factory
+        Factory-->>Facade: Chain(Theme -> Asset)
+        deactivate Factory
+
+        Facade->>Chain: FASE 4: handle(snapshot)
+        activate Chain
+
+        Note over Chain, ThemeProxy: Lógica de Temas (IThemeable)
+        opt themeId exists
+            Chain->>ThemeProxy: getTheme(themeId)
+            activate ThemeProxy
+            ThemeProxy-->>Chain: Full Theme Object
+            deactivate ThemeProxy
+            Chain->>Snapshot: setInternalTheme(Theme)
+        end
+
+        Note over Chain, Snapshot: Lógica de Assets (IHasMediaAssets)
+        Chain->>Snapshot: applyMediaUrls(urlMap)
+        activate Snapshot
+        Snapshot-->>Chain: void
+        deactivate Snapshot
+
+        Chain-->>Facade: Enriched Snapshot
+        deactivate Chain
+
+        Facade-->>Handler: Enriched Data Ready
+        deactivate Facade
+    end
+```
+---
+### 🔗 RECURSOS EXTERNOS PARA EL FLUJO DEL SERVICIO DE ENRIQUECIMIENTO DE MEDIA
+Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliza el siguiente enlace:
+
+> 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/fRfrRr2cxxbeY7vfT7CT?origin=share)**
 ---
 
 ## 📁 Guía de Directorios
@@ -450,7 +939,7 @@ Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliz
 | **`domain/`** | **Núcleo de Negocio**: Abstracciones base (`AggregateRoot`, `Entity`, `ValueObject`), Eventos de Dominio y objetos de valor compartidos (IDs, fechas, puntos). |
 | **`application/`** | **Puertos y Orquestación**: Definición de contratos (`ports`), lógica de seguridad (`auth`), decoradores de autorización y la interfaz del Bus de CQRS. |
 | **`infrastructure/`** | **Implementaciones Técnicas**: Adaptadores reales para criptografía, generación de IDs (UUID), y la implementación física de los buses (Memory/Pino). |
-| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factorías, contextos y el `pipe-async` para composición de flujos. |
+| **`errors/`** | **Gestión de Fallos (ROP)**: Sistema centralizado de errores con factories, contextos y el `pipe-async` para composición de flujos. |
 | **`types/`** | **Tipado Funcional**: Tipos base para el control de flujo como `Either.ts` (éxito/error) y `Optional.ts`. |
 | **`nest-js/`** | **Integración**: Decoradores y controladores base específicos para el ciclo de vida de NestJS. |
 
@@ -487,6 +976,17 @@ Diseñada para ser agnóstica al motor de persistencia, permitiendo alta escalab
 
 ---
 
+<br>
+
+> [!TIP]
+> ### 🏠 Hosting Casero con GitHub Student Pack
+> Gracias al **GitHub Student Developer Pack** (disponible con tu correo **UCAB**), tienes acceso a herramientas premium como un **dominio profesional gratuito** (ej. `.me`, `.tech`, `.app`, `.live`, `.games`).
+> 
+> Puedes vincular este dominio con **Cloudflare Tunnel** y tener total libertad para **elegir y configurar los puertos** que desees exponer. Por ejemplo, puedes mapear el puerto `3000` para la API y el `3003` para WebSockets simultáneamente. Esto permite que el equipo pruebe el backend de forma segura bajo una URL profesional, sin abrir puertos en el router ni exponer tu IP real.
+>
+> Esto en caso que no quieran usar servicios de hosting free como render o railway
+
+<br>
 
 ---
 ## ⚖️ License
