@@ -52,7 +52,6 @@
 </div>
 
 ---
-
 ## Configuración del Proyecto 🛠️
 
 ```bash
@@ -208,9 +207,13 @@ La clase `ErrorData` encapsula toda la información de error de manera estructur
 - **Sanitización Automática**: Protección de campos sensibles del dominio y control jerárquico sobre la propiedad `operation`.
 - **Regla de Operación**: Una vez que un error alcanza la capa `APPLICATION`, el nombre de la operación se vuelve inmutable, previniendo sobrescrituras incorrectas desde capas inferiores.
 
-> [!WARNING]
-> ⚠️ Seguridad en Producción:
->  Para futuras revisiones, se implementará un mecanismo basado en `process.env.NODE_ENV` que eliminará automáticamente el `stackTrace` (evitando referenciar el constructor de error con super) en entornos de producción (`isProd === true`), manteniéndolo únicamente en desarrollo para facilitar el debugging.
+> [!IMPORTANT]
+> ### ✅ Optimización de StackTrace (Finalizado)
+> Se ha implementado con éxito el mecanismo basado en `Error.stackTraceLimit` para la clase `ErrorData`. 
+> 
+> En entornos de producción (`isProd === true`), el sistema elimina el costo computacional de recolectar el stack al invocar `super()`, garantizando máximo rendimiento y seguridad al no filtrar rutas del servidor. El stack trace completo solo se genera en entornos de desarrollo.
+>
+> **Commit:** [`9ccace1d`](https://github.com/TU_USUARIO/Franku03/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e) 
 
 **Formato de Log Estructurado**: El método `toLogString()` genera una representación visualmente clara del error con:
   - Codificación de colores por capa del sistema
@@ -439,10 +442,21 @@ Para una experiencia visual mejorada y acceso a la edición del diagrama, utiliz
 
 > 🎨 **[Acceder al Diagrama en Eraser.io](https://app.eraser.io/workspace/w9byiD8Kuq4CRJ47rOU8?origin=share)**
 ---
-> [!CAUTION]
-> Se Debe Cambiar el sistema para utilizar el interceptor de nest y quitar el throw final, este ha sido un desliz que no se había considerado
-> Actualmente usamos el filter pero el interceptor es lo que recibe todas las request y devuelve todas las response
-> Si alguien decide implementar esto en su proyecto, debe considerarlo para cumplir correctamente la filosfía buscada
+> [!IMPORTANT]
+> ### 🔄 Evolución Arquitectónica: Interceptores sobre Filtros (Completado)
+> El sistema ha sido migrado para utilizar el **`ResultInterceptor`** como gestor principal de respuestas. Se ha eliminado el uso de `throw` para el flujo normal de la aplicación, evitando asi cualquier **Stack Unwinding** Ahora, los controladores retornan un objeto de resultado y el interceptor lo transforma. 
+>
+> **Estado Actual:** Los controladores ya no lanzan excepciones para casos esperados; devuelven resultados que el interceptor procesa. El `AllExceptionsFilter` queda relegado únicamente a errores críticos e inesperados del sistema.
+>
+> **Commit:** [`9ccace1d`](https://github.com/Franku03/quizzy-backend/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e)
+
+> [!NOTE] 
+> Los diagramas de flujo basados en thrown quedan obsoletos frente a este nuevo modelo de Interceptor-Mapping - Siendo lo unico que cambia el throw final.*
+> El archivo se encuentra en `src/core/infraestructure/interceptors/response.interceptor.ts`
+> Además de ello, se evita usar el `command-query.excutor.service.ts` debido a que ahora ya no hace falta encapsular el throw porque hay un retorno explicito
+
+> [!NOTE]
+> **Retrocompatibilidad**: Se mantiene el `AllExceptionsFilter` original para asegurar la estabilidad con módulos heredados, mientras se transiciona completamente al sistema de Interceptores.
 ---
 ## 🚀 Guía para el Desarrollador sobre el sistema de errores 
 
