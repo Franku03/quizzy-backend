@@ -178,7 +178,7 @@ Para una comprensión visual profunda de las entidades, agregados y sus relacion
 ### Estructura de Capas por Módulo
 
 ### 🟡 Domain
-Capa que contiene el corazón del sistema: reglas de negocio, entidades y contratos. Es totalmente independiente de tecnologías externas.
+Capa que contiene el corazón del sistema: reglas de negocio (invarianzas) mediante el uso de agregados, entidades, value objects y servicios de dominio. Es totalmente independiente de tecnologías externas.
 
 ```bash
 📂 domain/
@@ -207,7 +207,7 @@ Orquesta el flujo de datos y ejecuta los casos de uso, actuando como mediador en
 
 
 ### 🔵 Infrastructure
-Contiene las implementaciones técnicas y los detalles de frameworks o bases de datos.
+Contiene las implementaciones técnicas y los detalles de servicios externos
 
 ```bash
 📂 infrastructure/
