@@ -12,8 +12,14 @@ import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.typ
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";
 import { createOptionNotFoundError, createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
+import { Either, ErrorData } from "src/core/types";
 
-export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot: Kahoot, mediaService: MediaEnrichmentService): Promise<QuestionStartedResponse> => {
+export const mapToQuestionResponse = async ( 
+    session: MultiplayerSession, 
+    kahoot: Kahoot, 
+    mediaService: MediaEnrichmentService
+): Promise< Either <ErrorData, QuestionStartedResponse> > => {
+
     
     const currentSlideId = session.getCurrentSlideInSession(); 
 
@@ -22,12 +28,10 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
     // No debería ocurrir dado que el session se basa en un kahoot existente que de paso nos aseguramos que no esté en DRAFT
     // dejo la protección por si acaso y porque TS la exige
     if( !currentSlideSnapshot )
-        throw createSlideNotFoundError("getSlideSnapshotById", kahoot.id.value ) 
-        // throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND)
+        return Either.makeLeft( createSlideNotFoundError("getSlideSnapshotById", kahoot.id.value ) );
 
     if( !currentSlideSnapshot.options )
-        throw createOptionNotFoundError("SlideSnapshot.options", kahoot.id.value ) 
-        // throw new Error(COMMON_ERRORS.NO_OPTIONS)
+        return Either.makeLeft( createOptionNotFoundError("SlideSnapshot.options", kahoot.id.value ) );
 
     currentSlideSnapshot = await mediaService.enrichSlide( currentSlideSnapshot );
 
@@ -54,13 +58,12 @@ export const mapToQuestionResponse = async ( session: MultiplayerSession, kahoot
 
     currentSlideSnapshotClean.options = cleanSnapshotOptions;
 
-    return {
+    return Either.makeRight ({
         type: HostNextPhaseType.QUESTION_STARTED,
         data: {
             state: session.getSessionStateType(),
-            // questionIndex: session.getCurrentSlideIndex(),
             currentSlideData: currentSlideSnapshotClean
         }
-    };
+    });
 
 }

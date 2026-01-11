@@ -12,7 +12,11 @@ export class SessionArchiverService {
     async archiveSession( session: MultiplayerSession, kahoot: Kahoot ): Promise<Either< ErrorData, void> > {
 
         // validamos que todo este en orden antes de guardar y que no hayan inconsistencia
-        session.validateAllInvariantsForCompletion();
+        const isValidToArchive = session.validateAllInvariantsForCompletion();
+
+        if( isValidToArchive.isLeft() )
+            return isValidToArchive 
+        
 
         const result = await this.historyRepo.archiveSessionEither(session, kahoot);
 
@@ -20,8 +24,6 @@ export class SessionArchiverService {
             return result 
         
         return Either.makeRight( undefined );
-        // No borramos en memoria aun pues el host debe cerrar partida para eso
-        // Liberamos el recurso de memoria
-        // await this.activeRepo.deleteSession( session.getSessionPin() );
+ 
     }
 }

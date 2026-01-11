@@ -1,8 +1,7 @@
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
 import { COMMON_ERRORS } from '../../common.errors';
-import { createApplicationContext } from 'src/core/errors/helpers/app-error-context.helper';
-import { AppErrorFactory } from 'src/core/errors/factories/app-error.factory';
+
 export const createSlideNotFoundError = (operation: string, aggregateId?: string, actorId?: string ) => {
 
     const ctx = createDomainContext(
@@ -51,23 +50,29 @@ export const createOptionNotFoundError = (operation: string, aggregateId?: strin
 };
 
 
-export const createResponseNotGeneratedError = (operation: string, actorId?: string, resourceId?: string, resourceTypeId?: string ) => {
+export const createNoValidOptionFound = (operation: string, aggregateId?: string, actorId?: string ) => {
 
-    const ctx = createApplicationContext(
+    const ctx = createDomainContext(
+        'Kahoot',
         operation,
         {
+            rootAggregateName: 'Kahoot',
+            rootAggregateId: aggregateId,
+            domainObjectKind: 'AggregateRoot',
             actorId: actorId,
-            resourceTargetId: resourceId,
-            resourceType:resourceTypeId,
         }
     );
 
 
-    return AppErrorFactory.notFound(
-        ctx
+    return DomainErrorFactory.notFound(
+        ctx,
+        COMMON_ERRORS.NO_VALID_OPTION
     )
 
+
+
 };
+
 
 export const createInvalidTransitionStateError = (operation: string, aggregateId?: string, sessionPin?: string) => {
 

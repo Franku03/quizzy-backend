@@ -12,13 +12,23 @@ export const mapPlayerEndData = ( session: MultiplayerSession, entry: Scoreboard
 
     const rank = entry.getRank()
 
-    return {
+    return player 
+    
+    ? {
         state: state,
         rank: rank,         
         totalScore: player.getScore(),   
         isPodium: rank >= 1 && rank <= 3,    
         isWinner: rank === 1,     
         finalStreak: player.getStreak(),
+    }
+    : { // Caso raro donde un cliente no estaba registrado en el domain
+        state: state,
+        rank: rank,         
+        totalScore: 0,   
+        isPodium: rank >= 1 && rank <= 3,    
+        isWinner: rank === 1,     
+        finalStreak: 0,
     }
 
 }

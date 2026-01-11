@@ -8,29 +8,35 @@ import { getOptionsIdsAndCorrectAnswers, isHost, mapHostResultsData, mapPlayerRe
 import { SyncStateCommand } from "../commands";
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { SyncType } from "../response-dtos/enums/sync-type.enum";
+import { Either } from "src/core/types";
+import { ErrorData } from '../../../core/errors/error.type';
+import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 
 export const mapResultsToSyncState = ( 
     session: MultiplayerSession, 
     kahoot: Kahoot,
     userInfo: SyncStateCommand 
-): SyncStateResponse => {
+): Either< ErrorData,SyncStateResponse> => {
     
     // Primero Obtenemos la slide previa en la sesión o la actual si el progreso nos dice que no hay más slides disponibles
     const slideId = session.hasMoreSlidesLeft() ? session.getPreviousSlideInSession() : session.getCurrentSlideInSession()
 
     if( !slideId )
-        throw new Error(COMMON_ERRORS.PREVIOUS_SLIDE_NOT_FOUND);
+        return Either.makeLeft( createSlideNotFoundError("getPreviousSlideSnapshotById | getSlideSnapshotById", kahoot.id.value ) )
 
     // mapeamos las respuestas correctas de la slide previa   
+    const result = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
 
-    const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
+    if( result.isLeft() ) 
+        return Either.makeLeft( result.getLeft() )
 
+    const { correctAnswerId, optionsId } = result.getRight() ;
 
     if( isHost( userInfo.userId , session.getHostId().value ) ) {
 
         const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        
 
-        return { type: SyncType.HOST_RESULTS, data: {...hostData } };
+        return Either.makeRight({ type: SyncType.HOST_RESULTS, data: {...hostData } });
 
     } else {
 
@@ -38,7 +44,7 @@ export const mapResultsToSyncState = (
 
         const playerData = mapPlayerResultsData( session, slideId, entry, { correctAnswerId, optionsId } );        
 
-        return { type:SyncType.PLAYER_RESULTS, data: { ...playerData } };
+        return Either.makeRight({ type:SyncType.PLAYER_RESULTS, data: { ...playerData } });
 
     }
 

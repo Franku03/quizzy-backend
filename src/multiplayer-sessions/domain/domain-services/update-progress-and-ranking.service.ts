@@ -2,6 +2,9 @@ import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "../aggregates/multiplayer-session";
 
 import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
+import { Either, ErrorData } from "src/core/types";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 
 // Servicio Orquestador que genera cambios en MultiplayerSessions apoyandose de kahoot
 export class UpdateSessionProgressAndRankingService {
@@ -9,13 +12,18 @@ export class UpdateSessionProgressAndRankingService {
     public updateSessionProgressAndRanking(
        kahoot: Kahoot,
        session: MultiplayerSession, 
-    ): void {
+    ): Either< ErrorData, void > {
 
 
         // Actualizamos progreso y ranking de la sesion
         const slideId = session.getCurrentSlideInSession();
 
         const slideResult = session.getSlideResultsBySlideId( slideId );
+
+        if( !slideResult ){
+            const error = new Error("No hay resultados asociados a la slide solicitada")
+            return Either.makeLeft( this.buildUpdateRankingProgressErrorData( error ) );
+        }
 
         session.updatePlayersScores( slideResult );
 
@@ -40,7 +48,20 @@ export class UpdateSessionProgressAndRankingService {
             session.completeProgess(); 
 
         };
+
+        return Either.makeRight( undefined );
           
+
+    }
+
+
+    private buildUpdateRankingProgressErrorData( error: Error ): ErrorData {
+
+        return DomainErrorFactory.validation(
+            createDomainContext('updateSessionProgressAndRanking', 'DomainService', { domainObjectKind: 'DomainService', rootAggregateName: 'MultiplayerSession'} ),
+            {},
+            error.message
+        );
 
     }
 

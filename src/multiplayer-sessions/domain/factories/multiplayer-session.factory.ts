@@ -12,6 +12,7 @@ import { Optional } from "src/core/types/optional";
 import { DateISO } from "src/core/domain/shared-value-objects/value-objects/value.object.date";
 
 import { PlayerIdValue, SlideIdValue } from "../types/id-value.types";
+import { Either, ErrorData } from "src/core/types";
 
 interface KahootInfo {
     kahootId: KahootId,
@@ -29,7 +30,7 @@ export class MultiplayerSessionFactory {
         pin: string,
         // pinGenerationService: IGeneratePinService,
         // pinVerificationService: IVerifyAvailablePinService,
-    ): MultiplayerSession {
+    ): Either<ErrorData,MultiplayerSession> {
 
         // Lógica de creación de la info del kahoot
         // Creamos el idUser del host y verificamos que el kahoot le corresponda
@@ -46,7 +47,11 @@ export class MultiplayerSessionFactory {
 
         const sessionId = new MultiplayerSessionId( sessionIdString );
 
-        const sessionPin = SessionPin.create( pin );
+        const sessionPinResult = SessionPin.create( pin );
+
+        // Retornamos error en caso de pin inválido
+        if( sessionPinResult.isLeft() )
+            return Either.makeLeft( sessionPinResult.getLeft() );
 
         const initialGameState = SessionState.createAsLobby();
 
@@ -69,12 +74,10 @@ export class MultiplayerSessionFactory {
 
         const hollowCurrentQuestionStartTime = new Date();
 
-        Date.now();
-
-        return new MultiplayerSession({
+        const session = new MultiplayerSession({
             hostId: hostId,
             kahootId: kahootInfo.kahootId,
-            sessionPin: sessionPin,
+            sessionPin: sessionPinResult.getRight(), // Si llegamos aca sabemos que el pin es válido
             startedAt: startedAt,
             completedAt: hollowCompletedAt, 
             currentQuestionStartTime: hollowCurrentQuestionStartTime, // Por defecto 0
@@ -84,6 +87,9 @@ export class MultiplayerSessionFactory {
             players: hollowPlayerMap,
             playersAnswers: hollowAnswersMap
         }, sessionId );
+
+        // creación exitosa
+        return Either.makeRight( session );
 
     }
 

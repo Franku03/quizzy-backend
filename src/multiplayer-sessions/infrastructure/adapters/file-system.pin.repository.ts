@@ -1,13 +1,29 @@
 import * as fs from 'fs/promises';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
+import { Either, ErrorData } from 'src/core/types';
+import { FileSystemPinRepositoryErrorContext, FileSystemPinRepositoryErrorMapper } from '../errors/file-system-pin-repository.error.mapper';
+import { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import { IInfrastructureErrorContext } from 'src/core/errors/interface/context/i-error-infraestructure-context.interface';
 
 @Injectable()
 export class FileSystemPinRepository implements IPinRepository, OnModuleInit {
 
     private readonly PIN_FILE_PATH = 'active_pins.txt'
     private readonly memoryCache = new Set<string>();
+    private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> = new FileSystemPinRepositoryErrorMapper()
+    
+    private getCtx( operation: string, pin?: string ): FileSystemPinRepositoryErrorContext {
+        return {
+            operation: operation,
+            sessionPin: pin,
+            adapterName: FileSystemPinRepository.name,
+            portName: 'IPinRepository',
+            module: "multiplayer-sessions"
+        }
+    }
 
+    // Monta en cache los pins que hayan quedado anteriormente en la sesión cuando se inicia la aplicación
     async onModuleInit() {
         try {
             const fileContent = await fs.readFile(this.PIN_FILE_PATH, { encoding: 'utf-8' });
@@ -55,10 +71,43 @@ export class FileSystemPinRepository implements IPinRepository, OnModuleInit {
 
         } catch (error: any) {
             if (error.code === 'ENOENT') {
-                console.error(`Error: PIN no encontrado en ${this.PIN_FILE_PATH}. No se puede liberar el PIN ${pinToRemove}.`);
+                console.error(`❌ Error: PIN no encontrado en ${this.PIN_FILE_PATH}. No se puede liberar el PIN ${pinToRemove}.`);
                 return;
             }
             throw error; // Re-lanzar otros errores del sistema de archivos
         }
     }
+
+    public async getActivePinsEither(): Promise< Either< ErrorData, Set<string> > >{
+
+        const ctx = this.getCtx('getActivePins');
+
+        return Either.tryCatch( 
+            this.getActivePins(), 
+            ( err ) => this.errorMapper.toErrorData( err , ctx ) 
+        );
+
+    }
+
+    public async saveNewPinEither(pin: string): Promise< Either< ErrorData, void >> {
+
+        const ctx = this.getCtx('saveNewPin');
+
+        return Either.tryCatch(
+            this.saveNewPin( pin ),
+            ( err ) => this.errorMapper.toErrorData( err , ctx ) 
+        )
+
+    }
+
+    public async releasePinEither(pinToRemove: string): Promise< Either< ErrorData, void> >{
+        const ctx = this.getCtx('releasePin');
+
+        return Either.tryCatch(
+            this.releasePin( pinToRemove ),
+            ( err ) => this.errorMapper.toErrorData( err , ctx ) 
+        );
+
+    }
+
 }

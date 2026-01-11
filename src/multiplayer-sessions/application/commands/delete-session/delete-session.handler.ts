@@ -40,25 +40,23 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
     async execute(command: DeleteSessionCommand): Promise<Either<ErrorData, boolean>> {
 
         // Contexto para logs
-        const appContext = createMultiplayerSessionAppContext('deleteSession', undefined, undefined, command.sessionPin);
+        const appContext = createMultiplayerSessionAppContext('deleteSession', { sessionPin: command.sessionPin });
 
         return pipeAsync<ErrorData, boolean>(
             
-            // 1. INICIO
             Either.makeRight(command),
 
-            // 2. LIBERAR PIN (Side Effect)
-            // Lo hacemos primero para asegurar que el PIN quede libre sí o sí.
+            // 1) Liberar PIN
+            // Lo hacemos primero para asegurar que el PIN quede libre, si la sesion queda perdida en memoria el repo la acabara limpiando a la hora
             cmd => cmd.chainAsync(c => this.releasePinStep(c)),
 
-            // 3. BORRAR SESIÓN (Lógica Condicional)
-            // Busca y borra si existe.
+            // 2) Borrar sesion: Busca y borra si existe.
             ctx => ctx.chainAsync(c => this.processSessionDeletion(c)),
 
-            // 4. RESPUESTA
+            // 3) Obtenemos confirmación
             ctx => ctx.map(c => c.wasDeleted),
 
-            // 5. ERRORES
+            // 4) Mappear errores
             result => result.mapLeft(err => err.setContext(appContext))
         );
     }
@@ -66,30 +64,23 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
     // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Liberar el PIN
-     * Intentamos liberar el PIN. Si falla, decidimos si es crítico o no.
-     * Generalmente, si no se puede liberar el PIN, es un error del sistema.
+     * Liberar el PIN
      */
     private async releasePinStep(
         command: DeleteSessionCommand
     ): Promise<Either<ErrorData, DeleteSessionContext>> {
-        try {
-            // Asumo que releasePin podría ser async en un futuro (DB real)
-            await this.pinRepository.releasePin(command.sessionPin);
-            
-            // Inicializamos el contexto con wasDeleted en false por defecto
-            return Either.makeRight({
-                command,
-                wasDeleted: false
-            });
-        } catch (error) {
-            // Usamos el helper seguro que discutimos antes
-            return Either.makeLeft(new ErrorData( "Pin Liberation Error", error.message, ErrorLayer.APPLICATION ));
-        }
+        const result = await this.pinRepository.releasePinEither(command.sessionPin);
+
+        // Inicializamos el contexto con wasDeleted en false por defecto
+        return result.map( () => ({
+            command,
+            wasDeleted: false
+        }))
+     
     }
 
     /**
-     * Paso 3: Procesar el borrado de la sesión
+     * Procesar el borrado de la sesión
      * Encapsula la lógica de "Buscar -> Verificar -> Borrar"
      */
     private async processSessionDeletion(
@@ -97,25 +88,20 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
     ): Promise<Either<ErrorData, DeleteSessionContext>> {
         const { command } = ctx;
 
-        try {
-            // 1. Buscamos si existe (usamos findByPin normal o Either, aquí el normal es más cómodo)
-            // Nota: Si tu repo findByPin devuelve null cuando no existe:
-            const sessionWrapper = await this.sessionRepository.findByPin(command.sessionPin);
+        // 1) Buscamos el pin, la version sin Either resulta más cómoda ya que si no existe, podemos devolver Right con deleted en false
+        const sessionWrapper = await this.sessionRepository.findByPin(command.sessionPin);
 
-            // 2. Si no existe, no hacemos nada y retornamos éxito (idempotencia)
-            if (!sessionWrapper) {
-                return Either.makeRight({ ...ctx, wasDeleted: false });
-            }
-
-            // 3. Si existe, la borramos
-            await this.sessionRepository.deleteSession(command.sessionPin);
-
-            // 4. Retornamos que sí hubo borrado
-            return Either.makeRight({ ...ctx, wasDeleted: true });
-
-        } catch (error) {
-            return Either.makeLeft(new ErrorData( "Delete Error", error.message, ErrorLayer.APPLICATION ));
+        // 2) Si no existe, no hacemos nada y retornamos éxito (idempotencia)
+        if (!sessionWrapper) {
+            return Either.makeRight({ ...ctx, wasDeleted: false });
         }
+
+        // 3) Si existe, la borramos
+        const result = await this.sessionRepository.deleteSessionEither(command.sessionPin);
+
+        // 4) Afirmamos que borramos la sesion
+        return result.map( () => ({ ...ctx, wasDeleted: true }) )
+
     }
 
     // async execute(command: DeleteSessionCommand): Promise<Either<Error, boolean>> {

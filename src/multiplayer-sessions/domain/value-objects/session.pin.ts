@@ -1,4 +1,7 @@
 import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
+import { Either, ErrorData } from "src/core/types";
 
 interface SessionPinProps {
     sessionPin: string
@@ -16,13 +19,20 @@ export class SessionPin extends ValueObject<SessionPinProps> {
     }
 
     
-    public static create( pin: string ){
+    public static create( pin: string ): Either<ErrorData, SessionPin>{
+
+        const context = createDomainContext('SessionPin', 'validateOption', {
+            domainObjectKind: 'ValueObject'
+        });
         
         if( !SessionPin.isPinValid( pin ) )
-            throw new Error('El pin debe tener de 6 a 10 dígitos');
-                
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { pin: ['INVALID_PIN'] },
+                'El pin debe tener de 6 a 10 dígitos'
+            ));                
 
-        return new SessionPin( pin );
+        return Either.makeRight( new SessionPin( pin ) ) ;
 
     }
 

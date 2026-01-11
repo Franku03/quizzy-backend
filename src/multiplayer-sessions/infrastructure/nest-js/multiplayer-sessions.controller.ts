@@ -47,33 +47,4 @@ export class MultiplayerSessionsController {
 
   }
 
-  // private handleError( error: Error ): never {
-
-  //     const message = error.message
-
-  //     // Mapeo de códigos de error a excepciones HTTP
-  //     if (message.startsWith(CREATE_SESSION_ERRORS.KAHOOT_NOT_FOUND)) {
-  //       throw new NotFoundException('El Kahoot no existe');
-  //     }
-      
-  //     if (message.startsWith(CREATE_SESSION_ERRORS.USER_UNAUTHORIZED)) {
-  //       throw new UnauthorizedException('El usuario autenticado (Host) no tiene permisos para crear una sesión con el Kahoot solcitado.');
-  //     }
-      
-  //     if (message.startsWith(QR_TOKEN_ERRORS.QR_NOT_FOUND)) {
-  //       throw new NotFoundException("El código QR o token no está asociado a una sesión activa.");
-  //     }
-
-  //     // Si es un BadRequestException de Nest (de validación de entrada), re-lanzarlo
-  //     if (error instanceof BadRequestException ) {
-  //       throw new BadRequestException( message );
-  //     }
-
-  //     // ! Error en consola para debugeo, quitar en produccion
-  //     const logger = new Logger('Multiplayer-Session-Controller');
-  //     logger.error( error );
-
-  //     throw new InternalServerErrorException( message ); // throw unhandled error
-  // }
-
 }

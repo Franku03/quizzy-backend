@@ -39,25 +39,23 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
     async execute(command: SyncStateCommand): Promise<Either<ErrorData, SyncStateResponse>> {
 
         // Contexto para logs
-        const appContext = createMultiplayerSessionAppContext('syncState', undefined, command.userId, command.sessionPin);
+        const appContext = createMultiplayerSessionAppContext('syncState', { actorId: command.userId, sessionPin: command.sessionPin });
 
         return pipeAsync<ErrorData, SyncStateResponse>(
             
-            // 1. INICIO
             Either.makeRight(command),
 
-            // 2. CARGAR SESIÓN (Async)
             cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
 
-            // 3. ESTRATEGIA DE ESTADO (Async/Sync mixto)
+            // 3) Estrategia de sincronización según estado
             // Aquí delegamos la creación de la respuesta según el estado actual
             ctx => ctx.chainAsync(c => this.dispatchStateStrategy(c)),
 
-            // 4. RESULTADO FINAL
+            // 4) Mapeamos el resultado final
             // Como es lectura, no hay persistencia. Solo devolvemos lo generado.
             ctx => ctx.map(c => c.response!),
 
-            // 5. ERRORES
+            // 5) Mappeo de errores
             result => result.mapLeft(err => err.setContext(appContext))
         );
     }
@@ -65,7 +63,7 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
     // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Cargar Sesión
+     * Cargar Sesión
      */
     private async loadSessionContext(
         command: SyncStateCommand
@@ -79,7 +77,7 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
     }
 
     /**
-     * Paso 3: Dispatcher (Router de Estados)
+     * Dispatcher (Router de Estados)
      */
     private async dispatchStateStrategy(
         ctx: SyncStateContext
@@ -109,69 +107,56 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
     // --- MANEJADORES DE ESTADO ESPECÍFICOS ---
 
     /**
-     * Estrategia: LOBBY (Sync)
+     * Estrategia: LOBBY
      */
     private handleLobbyState(ctx: SyncStateContext): Either<ErrorData, SyncStateContext> {
+        
         const { sessionCtx, command } = ctx;
-        try {
-            const res = mapLobbyToSyncState(sessionCtx.session, command);
-            return Either.makeRight({ ...ctx, response: res });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+        const res = mapLobbyToSyncState(sessionCtx.session, command);
+        return Either.makeRight({ ...ctx, response: res });
+  
     }
 
     /**
-     * Estrategia: QUESTION (Async - Requiere MediaService)
+     * Estrategia: QUESTION
      */
     private async handleQuestionState(ctx: SyncStateContext): Promise<Either<ErrorData, SyncStateContext>> {
-        const { sessionCtx, command } = ctx;
-        try {
-            // 1. Necesitamos datos enriquecidos de la pregunta actual
-            const questionData = await mapToQuestionResponse(
-                sessionCtx.session, 
-                sessionCtx.kahoot, 
-                this.mediaService
-            );
 
-            // 2. Construimos la respuesta de sincronización usando esos datos
-            const res = mapQuestionToSyncState(
-                sessionCtx.session, 
-                sessionCtx.kahoot, 
-                questionData, 
-                command
-            );
+        const { sessionCtx, command } = ctx;
+
+        const questionDataRes = await mapToQuestionResponse( sessionCtx.session, sessionCtx.kahoot, this.mediaService );
+
+        return questionDataRes.chain( ( questionData ) => {
+
+            const res = mapQuestionToSyncState( sessionCtx.session, sessionCtx.kahoot, questionData, command);
 
             return Either.makeRight({ ...ctx, response: res });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+
+        })
+  
     }
 
     /**
-     * Estrategia: RESULTS (Sync)
+     * Estrategia: RESULTS
      */
     private handleResultsState(ctx: SyncStateContext): Either<ErrorData, SyncStateContext> {
         const { sessionCtx, command } = ctx;
-        try {
-            const res = mapResultsToSyncState(sessionCtx.session, sessionCtx.kahoot, command);
-            return Either.makeRight({ ...ctx, response: res });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+
+        const res = mapResultsToSyncState(sessionCtx.session, sessionCtx.kahoot, command);
+
+        return res.map( res => ( {...ctx, response: res} ));
+ 
     }
 
     /**
-     * Estrategia: END (Sync)
+     * Estrategia: END
      */
     private handleEndState(ctx: SyncStateContext): Either<ErrorData, SyncStateContext> {
+        
         const { sessionCtx, command } = ctx;
-        try {
-            const res = mapEndToSyncState(sessionCtx.session, command);
-            return Either.makeRight({ ...ctx, response: res });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+        const res = mapEndToSyncState(sessionCtx.session, command);
+        return Either.makeRight({ ...ctx, response: res });
+
     }
 
     
