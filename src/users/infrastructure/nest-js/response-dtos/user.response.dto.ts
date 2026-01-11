@@ -7,8 +7,6 @@ export class RegisterUserResponseDto {
         username: string;
         type: string;
         state: string;
-        roles: string[];
-        isAdmin: boolean;
         isPremium: boolean;
         preferences: {
             theme: string;
@@ -27,8 +25,6 @@ export class RegisterUserResponseDto {
             username: userAggregate.username.value,
             type: userAggregate.type,
             state: userAggregate.state,
-            roles: userAggregate.roles,
-            isAdmin: userAggregate.isAdmin(),
             preferences: {
                 theme: userAggregate.userPreferences.themePreference,
             },
