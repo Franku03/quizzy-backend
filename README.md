@@ -213,7 +213,7 @@ La clase `ErrorData` encapsula toda la información de error de manera estructur
 > 
 > En entornos de producción (`isProd === true`), el sistema elimina el costo computacional de recolectar el stack al invocar `super()`, garantizando máximo rendimiento y seguridad al no filtrar rutas del servidor. El stack trace completo solo se genera en entornos de desarrollo.
 >
-> **Commit:** [`9ccace1d`](https://github.com/TU_USUARIO/Franku03/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e) 
+> **Commit:** [`9ccace1d`](https://github.com/Franku03/commit/9ccace1d05661045de2e52f2e20eceaae2c6d45e) 
 
 **Formato de Log Estructurado**: El método `toLogString()` genera una representación visualmente clara del error con:
   - Codificación de colores por capa del sistema
