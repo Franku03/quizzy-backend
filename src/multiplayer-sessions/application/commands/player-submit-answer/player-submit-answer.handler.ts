@@ -44,35 +44,30 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     async execute(command: PlayerSubmitAnswerCommand): Promise<Either<ErrorData, PlayerSubmitAnswerResponse>> {
 
         // Contexto para logs (incluimos sessionPin y questionId)
-        const appContext = createMultiplayerSessionAppContext('submitAnswer', undefined , command.userId, command.sessionPin);
+        const appContext = createMultiplayerSessionAppContext('submitAnswer', { actorId: command.userId, sessionPin: command.sessionPin });
 
         return pipeAsync<ErrorData, PlayerSubmitAnswerResponse>(
             
-            // 1. INICIO
             Either.makeRight(command),
 
-            // 2. CARGAR SESIÓN
-            // Input: Command -> Output: Promise<Either<Error, { command, sessionCtx }>>
             cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
 
-            // 3. VALIDAR SLIDE
+            // 3) Validar slide antes de seguir
             // Buscamos el slide y verificamos que exista. Si no, devolvemos Left.
             // Input: Context -> Output: Promise<Either<Error, Context + SlideInfo>>
             ctx => ctx.chain(c => this.validateAndLoadSlide(c)),
 
-            // 4. CONSTRUIR Y EVALUAR
+            // 4) Construir Submission y evaluar para registrar resultado
             // Usamos Factory + Servicio de Dominio
             // Input: Context -> Output: Promise<Either<Error, Context + Submission>>
             ctx => ctx.chain(c => this.processSubmission(c)),
 
-            // 5. PERSISTIR
-            // Actualizamos la sesión en memoria (lastActivity)
+            // 5) Actualizamos la sesión en memoria (lastActivity)
             ctx => ctx.chainAsync(c => this.persistState(c)),
 
-            // 6. RESPUESTA
-            // Calculamos el número de respuestas y respondemos
-            ctx => ctx.map(c => ({ 
-                numberOfSubmissions: c.sessionCtx.session.getNumberOfAnswersForASlide( c.slideId )
+            // 6) Respuesta - Calculamos el número de respuestas hasta ahora para notificar al host
+            ctx => ctx.map( (c: PlayerSubmitContextWithSlide ) => ({ 
+                numberOfSubmissions: c.sessionCtx.session.getNumberOfAnswersForASlide( c.slideId ) ?? 0 // Si llega 0 quiere decir que hubo un error con la slide solicitada
             })),
 
             // 7. ERRORES
@@ -83,7 +78,7 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Cargar Sesión
+     * Cargar Sesión
      */
     private async loadSessionContext(
         command: PlayerSubmitAnswerCommand
@@ -97,25 +92,21 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     }
 
     /**
-     * Paso 3: Validar Slide (Transformar Nullable a Either)
+     * Validar Slide (Transformar Nullable a Either)
      */
     private validateAndLoadSlide(
         ctx: PlayerSubmitContextWithSession
     ): Either<ErrorData, PlayerSubmitContextWithSlide> {
         const { command, sessionCtx } = ctx;
         
-        // Creamos el VO
         const slideId = new SlideId(command.questionId);
         
-        // Buscamos en el Kahoot
         const slideSnapshot = sessionCtx.kahoot.getSlideSnapshotById(slideId);
 
-        // Convertimos un "posible null" en un flujo de decisión explícito
         if (!slideSnapshot) {
             return Either.makeLeft( createSlideNotFoundError("getSlideSnapshotById", sessionCtx.kahoot.id.value, command.userId ) );
         }
 
-        // Si existe, lo agregamos a la bola de nieve y seguimos
         return Either.makeRight({
             ...ctx,
             slideId,
@@ -124,16 +115,15 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     }
 
     /**
-     * Paso 4: Factory + Servicio de Dominio
+     * Procesar submit del usuario con Factory + Servicio de Dominio
      */
     private processSubmission(
         ctx: PlayerSubmitContextWithSlide
     ): Either<ErrorData, PlayerSubmitContextWithSlide> {
+        
         const { command, sessionCtx, slideId, slideSnapshot } = ctx;
         const { session, kahoot } = sessionCtx;
 
-        // 1. Construir la sumisión (Factory)
-        // devuelve un Either<ErrorData, Submission> Error-> slide con datos faltantes (improbable)
         const playerSubmissionResult = SubmissionFactory.buildDomainSubmission(
             slideId,
             slideSnapshot,
@@ -141,12 +131,9 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
             command.answerId,
         );
 
-        // 2. Encadenamos. Usamos chain (síncrono) porque la factory es síncrona.
-        return playerSubmissionResult.chain(playerSubmission => {
+        // 2) Encadenamos - Usamos chain (síncrono) porque la factory era síncrona.
+        return playerSubmissionResult.chain( playerSubmission => {
             
-            try {
-                // 3. ZONA DE PELIGRO: Ejecutar Servicio de Dominio
-                // Aunque devuelva Either, tú sabes que el agregado interno puede hacer THROW.
                 const evaluationResult = this.playerSubmissionEvaluationService.evaluatePlayerSubmission(
                     kahoot,
                     session,
@@ -154,22 +141,17 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
                     slideId
                 );
 
-                // Si llegamos aquí, no hubo excepción.
                 // Mapeamos el Either resultante del servicio (Left o Right) al contexto.
                 return evaluationResult.map(() => ctx);
 
-            } catch (aggregateError) {
-                // 4. RED DE SEGURIDAD
-                // Si algún agregado lanzó una excepción la atrapamos aquí
-                return Either.makeLeft(aggregateError as ErrorData); 
-            }
+ 
         });
     }
 
     /**
-     * Paso 5: Persistir
+     * actualizar actividad
      */
-    private async persistState( ctx: PlayerSubmitContextWithSlide ) {
+    private async persistState( ctx: PlayerSubmitContextWithSlide ): Promise<Either< ErrorData, PlayerSubmitContextWithSlide >> {
         // Usamos updateSession para renovar actividad
         const saveResult = await this.sessionRepository.updateSessionEither(ctx.sessionCtx.session.getSessionPin());
         

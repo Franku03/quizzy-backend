@@ -18,10 +18,7 @@ import { Either } from '../../../../core/types/either';
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { ErrorData } from "src/core/types";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
-import { StartGameContext } from "../context/session-resources.context.interface";
-import { createResponseNotGeneratedError } from "../context/errors/create-handler-errors.error";
-
-
+import { StartGameContextWithoutResponse, StartGameContextWithResponse } from "../context/session-resources.context.interface";
 
 
 @CommandHandler( HostStartGameCommand )
@@ -42,33 +39,30 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
     async execute(command: HostStartGameCommand): Promise<Either<ErrorData, QuestionStartedResponse>> {
 
         // Contexto para logs
-        const appContext = createMultiplayerSessionAppContext('startGame', undefined, undefined, command.sessionPin);
+        const appContext = createMultiplayerSessionAppContext('startGame',{ sessionPin: command.sessionPin } );
 
         return pipeAsync<ErrorData, QuestionStartedResponse>(
             
-            // 1. INICIO
             Either.makeRight(command),
 
-            // 2. CARGAR SESIÓN (Async)
             cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
 
-            // 3. LÓGICA DE DOMINIO: INICIAR PARTIDA (Sync - Modifica estado)
+            // 1) Lógica de dominio: iniciar partida
             ctx => ctx.chain(c => this.startSessionDomainLogic(c)),
 
-            // 4. GENERAR RESPUESTA & ENRIQUECIMIENTO (Async - Usa MediaService)
+            // 2) Mappear respuseta y enriquecer con urls
             ctx => ctx.chainAsync(c => this.buildInitialResponse(c)),
 
-            // 5. INICIALIZAR TABLA DE RESULTADOS (Sync - Usa datos de la respuesta)
-            ctx => ctx.chain(c => this.initSlideTracking(c)),
+            // 3) Iniciarlizar tabla de resultados
+            ctx => ctx.chain(c => this.initSlideResultsTracking(c)),
 
-            // 6. PERSISTENCIA (Async - Guardar cambios de estado)
+            // 4) Actualizar cambios en la BD
             ctx => ctx.chainAsync(c => this.persistState(c)),
 
-            // 7. MAPEO FINAL
-            // Extraemos la respuesta que generamos en el paso 4
+            // 5) Mappeo final - Extraemos la respuesta que generamos en el paso 4
             ctx => ctx.map(c => c.response!),
 
-            // 8. ERRORES
+            // 6) Mappeo de errores
             result => result.mapLeft(err => err.setContext(appContext))
         );
     }
@@ -76,11 +70,11 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
     // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Cargar Sesión
+     * Cargar Sesión
      */
     private async loadSessionContext(
         command: HostStartGameCommand
-    ): Promise<Either<ErrorData, StartGameContext>> {
+    ): Promise<Either<ErrorData, StartGameContextWithoutResponse>> {
         const result = await this.sessionRepository.findByPinEither(command.sessionPin);
         
         return result.map(sessionCtx => ({
@@ -90,79 +84,62 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
     }
 
     /**
-     * Paso 3: Lógica de Dominio (Start Session)
-     * Protegido contra excepciones del Agregado
+     * Iniciar sesión a nivel de dominio
      */
     private startSessionDomainLogic(
-        ctx: StartGameContext
-    ): Either<ErrorData, StartGameContext> {
+        ctx: StartGameContextWithoutResponse
+    ): Either<ErrorData, StartGameContextWithoutResponse > {
         const { session } = ctx.sessionCtx;
 
-        try {
-            // Cambio de estado: Lobby -> Question
-            session.startSession();
-            return Either.makeRight(ctx);
-
-        } catch (error) {
-            // Capturamos reglas de negocio (ej: "No hay suficientes jugadores")
-            return Either.makeLeft(error as ErrorData);
-        }
+        return session.startSession()
+                    .map(() => ctx );
+ 
     }
 
     /**
-     * Paso 4: Construir Respuesta (Async por MediaService)
+     * Mappear Respuesta 
      */
     private async buildInitialResponse(
-        ctx: StartGameContext
-    ): Promise<Either<ErrorData, StartGameContext>> {
+        ctx: StartGameContextWithoutResponse
+    ): Promise<Either<ErrorData, StartGameContextWithResponse>> {
         const { sessionCtx } = ctx;
 
-        try {
-            // Generamos la respuesta enriquecida
-            const res = await mapToQuestionResponse(
-                sessionCtx.session, 
-                sessionCtx.kahoot, 
-                this.mediaService
-            );
+        // Generamos la respuesta enriquecida
+        const res = await mapToQuestionResponse(
+            sessionCtx.session, 
+            sessionCtx.kahoot, 
+            this.mediaService
+        );
 
-            // La guardamos en el contexto
-            return Either.makeRight({
-                ...ctx,
-                response: res
-            });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+        return res.map( res => ({
+            ...ctx,
+            response: res
+        }));
+
     }
 
     /**
-     * Paso 5: Inicializar Tracking de Resultados
-     * Depende de que el paso 4 haya generado la respuesta con el ID del slide
+     * Inicializar Tracking de Resultados
      */
-    private initSlideTracking(
-        ctx: StartGameContext
-    ): Either<ErrorData, StartGameContext> {
+    private initSlideResultsTracking(
+        ctx: StartGameContextWithResponse
+    ): Either<ErrorData, StartGameContextWithResponse> {
+
         const { sessionCtx, response } = ctx;
 
-        // TS lo exige (aunque por el flujo sabemos que existe)
-        if (!response) return Either.makeLeft( createResponseNotGeneratedError("enrichSlide"));
+        const currentSlideId = new SlideId(response.data.currentSlideData.id);
+        
+        // Iniciamos VO de resultados para la slide
+        sessionCtx.session.startSlideResults(currentSlideId);
+        
+        return Either.makeRight(ctx);
 
-        try {
-            const currentSlideId = new SlideId(response.data.currentSlideData.id);
-            
-            // Side effect en la sesión - iniciamos VO de resultados para la slide
-            sessionCtx.session.startSlideResults(currentSlideId);
-            
-            return Either.makeRight(ctx);
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
     }
 
     /**
-     * Paso 6: Persistir el nuevo estado (Started + Slide Results)
+     * Actualizar actividad en la sesión
      */
-    private async persistState(ctx: StartGameContext) {
+    private async persistState(ctx: StartGameContextWithResponse) {
         const saveResult = await this.sessionRepository.updateSessionEither(
             ctx.sessionCtx.session.getSessionPin()
         );

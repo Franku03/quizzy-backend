@@ -26,7 +26,8 @@ export const mapPlayerResultsData = (
 
     if( playerAnswer ){
 
-        const streak = session.getPlayerById( playerId ).getStreak()
+        // No debería haber problema dado que, si hay una respuesta registrada para el usuario, evidentemente existe en el dominio
+        const streak = session.getPlayerById( playerId )?.getStreak()!
         
         const motivationalMessage = FeedbackGenerator.generate({
             isCorrect: playerAnswer.isCorrect(),

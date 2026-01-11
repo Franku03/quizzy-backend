@@ -10,6 +10,22 @@ export enum COMMON_ERRORS {
         SESSION_NOT_ACCEPTING_CONNECTIONS = "El host ha bloqueado las conexiones de nuevos jugadores a la sesión",
         USER_NOT_IN_SESSION = "La partida ya ha comenzado y el usuario no forma parte de la sesión activa",
         RESOURCE_NOT_FOUND = "El recurso solicitado no pudo ser encontrado",
+
+        // Errores Legacy 
+        // CREATE_SESSION_ERRORS
+        KAHOOT_NOT_FOUND = "El Kahoot solicitado no existe",
+        USER_UNAUTHORIZED= "El usuario autenticado (Host) no tiene permisos para crear una sesión con el Kahoot solicitado.",
+        KAHOOT_IS_DRAFT = "El Kahoot solicitado está en modo borrador y no puede ser utilizado para crear una sesión multiplayer.",
+
+        // QR_TOKEN_ERRORS
+        QR_NOT_FOUND = "El código QR o token no está asociado a una sesión activa.",
+
+        //HOST_NEXT_PHASE_ERRORS
         SESSION_INVALID_STATE = "La sesion se encuentra en un estado desde el cual no se permite avanzar",
+
+        //HOST_START_GAME_ERRORS
+        SESSION_ALREADY_BEGUN = "La sesion ya comenzó, la partida no está en su punto de inicio",
+        NO_SLIDES = "El kahoot solicitado no tiene slides",
+
 
 }

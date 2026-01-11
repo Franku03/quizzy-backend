@@ -8,19 +8,26 @@ import { getOptionsIdsAndCorrectAnswers, mapHostResultsData, mapPlayerResultsDat
 
 import { COMMON_ERRORS } from "../commands/common.errors";
 import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
+import { Either } from '../../../core/types/either';
+import { ErrorData } from "src/core/types";
 
-export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): QuestionResultsResponse => {
+export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot: Kahoot ): Either< ErrorData, QuestionResultsResponse > => {
 
     // Primero Obtenemos la slide previa en la sesión o la actual si el progreso nos dice que no hay más slides disponibles
     const slideId = session.hasMoreSlidesLeft() ? session.getPreviousSlideInSession() : session.getCurrentSlideInSession()
       
 
     if( !slideId )
-        throw createSlideNotFoundError("getPreviousSlideSnapshotById | getSlideSnapshotById", kahoot.id.value ) 
+        return Either.makeLeft( createSlideNotFoundError("getPreviousSlideSnapshotById | getSlideSnapshotById", kahoot.id.value ) )
 
     // Luego mapeamos las respuestas correctas de la slide previa   
-    const { correctAnswerId, optionsId } = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
+    const result = getOptionsIdsAndCorrectAnswers( kahoot, slideId );
     
+    if( result.isLeft() ) 
+        return Either.makeLeft( result.getLeft() )
+
+    const { correctAnswerId, optionsId } = result.getRight() ;
+
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
     const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        
 
@@ -37,7 +44,7 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
     })
 
 
-    return {
+    return Either.makeRight ({
 
         type: HostNextPhaseType.QUESTION_RESULTS,
         hostData: {
@@ -45,6 +52,6 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
         },
         playerData: playerData
 
-    };
+    });
 
 }

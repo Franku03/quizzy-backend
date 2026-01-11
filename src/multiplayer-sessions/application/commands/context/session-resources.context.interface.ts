@@ -17,7 +17,7 @@ import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
 import { SyncStateCommand } from "../sync-state/sync-state.command";
 import { DeleteSessionCommand } from "../delete-session/delete-session.command";
 
-// Create Session
+// * Create Session
 export interface SessionResourcesForCreation {
 
     // Pasos iniciales, indispensables
@@ -33,7 +33,7 @@ export interface SessionResourcesForCreation {
 
 }
 
-// PlayerJoin
+//* PlayerJoin
 export interface SessionResourcesForPlayerJoin {
 
     // Indispensable todo el flujo
@@ -45,7 +45,7 @@ export interface SessionResourcesForPlayerJoin {
 
 }
 
-// PlayerSubmitAnswer
+// * PlayerSubmitAnswer
 export interface PlayerSubmitContextWithSession {
     command: PlayerSubmitAnswerCommand;
     sessionCtx: ActiveSessionContext; // Trae session y kahoot
@@ -59,16 +59,21 @@ export interface PlayerSubmitContextWithSlide {
 }
 
 
-// HostStartGame
-
-export interface StartGameContext {
+// * HostStartGame
+export interface StartGameContextWithoutResponse {
     command: HostStartGameCommand;
     sessionCtx: ActiveSessionContext;
-    response?: QuestionStartedResponse; // Se llena en el paso intermedio
+}
+
+export interface StartGameContextWithResponse {
+    command: HostStartGameCommand;
+    sessionCtx: ActiveSessionContext;
+    response: QuestionStartedResponse; 
 }
 
 
-// Contexto acumulativo
+
+// * HostNextPhase
 export interface NextPhaseContext {
     command: HostNextPhaseCommand;
     sessionCtx: ActiveSessionContext;
@@ -77,13 +82,14 @@ export interface NextPhaseContext {
 }
 
 
-// Contexto acumulativo
+// * SyncState
 export interface SyncStateContext {
     command: SyncStateCommand;
     sessionCtx: ActiveSessionContext; // Garantizamos que tenemos la sesión
     response?: SyncStateResponse;     // Lo llenaremos en la fase de estrategia
 }
 
+// * DeleteSession
 export interface DeleteSessionContext {
     command: DeleteSessionCommand;
     wasDeleted: boolean; // Para saber qué responder al final

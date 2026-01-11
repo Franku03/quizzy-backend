@@ -10,12 +10,24 @@ export const mapPlayerLobbyData = ( session: MultiplayerSession, userId: string 
 
     const player = session.getPlayerById( playerId );
 
-    return { 
+
+    return player 
+    
+    ?{ 
 
         state: state,
         nickname: player.getPlayerNickname(),
         score: player.getScore(),
         connectedBefore: false, // Es false porque asumimos aca que el usuario se acaba de conectar por primera vez bajo ese nickname
+
+    }
+    
+    : { // No deberia pasar pero un usuario no registrado deberia obtener algo así
+
+        state: state,
+        nickname: "UNREGISTERED",
+        score: 0,
+        connectedBefore: false,
 
     }; 
 

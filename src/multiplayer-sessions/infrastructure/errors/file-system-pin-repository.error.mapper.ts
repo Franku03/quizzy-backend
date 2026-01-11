@@ -2,11 +2,10 @@ import { IInfrastructureErrorContext } from 'src/core/errors/interface/context/i
 import { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 
-export interface InMemoryActiveSessionRepositoryErrorContext extends IInfrastructureErrorContext {
+export interface FileSystemPinRepositoryErrorContext extends IInfrastructureErrorContext {
 
     operation: string,
     sessionPin?: string,
-    token?: string,
 
 }
 
@@ -16,7 +15,7 @@ export const REPOSITORY_ERRORS = {
     DELETE_FAILED: 'DELETE_FAILED'
 };
 
-export class InMemoryActiveSessionRepositoryErrorMapper implements IErrorMapper<unknown, InMemoryActiveSessionRepositoryErrorContext> {
+export class FileSystemPinRepositoryErrorMapper implements IErrorMapper<unknown, FileSystemPinRepositoryErrorContext> {
 
     public toErrorData(error: unknown, context: IInfrastructureErrorContext): ErrorData {
 
@@ -26,7 +25,7 @@ export class InMemoryActiveSessionRepositoryErrorMapper implements IErrorMapper<
         const safeError = error instanceof Error ? error : undefined;
         
         return new ErrorData(
-            "MEMORY_ERROR",
+            "FILE_SYSTEM_READ_ERROR",
             message,
             ErrorLayer.INFRASTRUCTURE,
             baseDetails, 

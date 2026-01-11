@@ -49,7 +49,10 @@ export class CryptoGeneratePinService implements IGeneratePinService {
 
         // After finding a unique PIN, save it to the file immediately
         // IMPORTANTE: Esto ahora también lo añade al Set de RAM del repo para que el siguiente proceso lo vea ocupado
-        await this.fileSystemRepo.saveNewPin(newPin);
+        const result = await this.fileSystemRepo.saveNewPinEither(newPin);
+
+        if( result.isLeft() )
+            return Either.makeLeft( result.getLeft() );
 
         // Return the unique PIN
         return Either.makeRight(newPin);
@@ -77,7 +80,7 @@ export class CryptoGeneratePinService implements IGeneratePinService {
     }
 
 
-     private getCtx(): IInfrastructureErrorContext {
+    private getCtx(): IInfrastructureErrorContext {
         return {
             adapterName: CryptoGeneratePinService.name,
             portName: 'IGeneratePinService',

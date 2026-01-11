@@ -23,7 +23,7 @@ export const mapHostResultsData = (
 
     const stats = {
 
-        totalAnswers: session.getNumberOfAnswersForASlide( slideId ),
+        totalAnswers: session.getNumberOfAnswersForASlide( slideId ) ?? 0, // No deberia ocurrir si llegamos aca, pero protegemos de undefined
         distribution: session.calculateAnswerDistributionForASlide( slideId, options.optionsId )
 
     }

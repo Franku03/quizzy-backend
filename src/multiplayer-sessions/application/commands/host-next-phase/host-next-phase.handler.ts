@@ -57,32 +57,27 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     @Log()
     async execute(command: HostNextPhaseCommand): Promise<Either<ErrorData, HostNextPhaseResponse>> {
 
-        const appContext = createMultiplayerSessionAppContext('nextPhase', undefined, undefined, command.sessionPin);
+        const appContext = createMultiplayerSessionAppContext('nextPhase', { sessionPin: command.sessionPin });
 
         return pipeAsync<ErrorData, HostNextPhaseResponse>(
             
-            // 1. INICIO
             Either.makeRight(command),
 
-            // 2. CARGAR SESIÓN
             cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
 
-            // 3. ACTUALIZAR RANKING (Si aplica)
-            // Lógica: Si estamos en QUESTION, calculamos puntajes ANTES de cambiar de fase.
+            // 3) Actualizar Ranking solo si estamos en QUESTIONS, calculamos puntajes antes de cambiar de estado
             ctx => ctx.chain(c => this.updateScoresIfNecessary(c)),
 
-            // 4. TRANSICIONAR ESTADO (Core Logic)
-            // Ejecuta session.advanceToNextPhase() y guarda el tipo de transición
+            // 4) Avanzamos de fase/estado en la partida
             ctx => ctx.chain(c => this.advancePhase(c)),
 
-            // 5. MANEJAR TRANSICIÓN (Switch Gigante: Respuesta + Persistencia)
-            // Aquí es donde los caminos se bifurcan (Memoria vs Archivo)
+            // 5) Manejar transición y respuesta al usuario
             ctx => ctx.chainAsync(c => this.handleTransitionStrategy(c)),
 
-            // 6. RESULTADO FINAL
+            // 6) Resultado Final
             ctx => ctx.map(c => c.response!),
 
-            // 7. ERRORES
+            // 7) Mappear errores
             result => result.mapLeft(err => err.setContext(appContext))
         );
     }
@@ -90,7 +85,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     // --- MÉTODOS PRIVADOS ---
 
     /**
-     * Paso 2: Cargar Sesión
+     * Cargar Sesión
      */
     private async loadSessionContext(
         command: HostNextPhaseCommand
@@ -104,7 +99,7 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     }
 
     /**
-     * Paso 3: Actualizar Scores (Sync)
+     * Actualizar Scores
      * Verifica pre-condición y ejecuta servicio de dominio si es necesario.
      */
     private updateScoresIfNecessary(
@@ -112,19 +107,20 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     ): Either<ErrorData, NextPhaseContext> {
         const { session, kahoot } = ctx.sessionCtx;
 
-        try {
-            // "Si la sesión ESTÁ en pregunta, significa que vamos a salir de ella hacia resultados"
-            if (session.getSessionState().isQuestion()) {
-                this.updateProgressAndRankingService.updateSessionProgressAndRanking(kahoot, session);
-            }
-            return Either.makeRight(ctx);
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
+
+        if (session.getSessionState().isQuestion()) {
+
+            const updateResult = this.updateProgressAndRankingService.updateSessionProgressAndRanking(kahoot, session);
+            return updateResult.map( () => ctx )
+
         }
+
+        return Either.makeRight(ctx);
+   
     }
 
     /**
-     * Paso 4: Avanzar Fase (Sync)
+     * Avanzar Fase
      * Muta el estado de la sesión y retorna el ENUM de lo que pasó.
      */
     private advancePhase(
@@ -132,22 +128,18 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     ): Either<ErrorData, NextPhaseContext> {
         const { session } = ctx.sessionCtx;
 
-        try {
-            // El agregado valida si la transición es legal
-            const transitionResult = session.advanceToNextPhase();
-            
-            return Either.makeRight({
-                ...ctx,
-                transitionType: transitionResult.state
-            });
-        } catch (error) {
-             // Captura error: SESSION_INVALID_STATE, etc.
-            return Either.makeLeft(error as ErrorData);
-        }
+        // El agregado valida si la transición es legal
+        const transitionResult = session.advanceToNextPhase();
+
+        return transitionResult.map( ( transitionResult ) => ({
+            ...ctx,
+            transitionType: transitionResult.state
+        }));
+        
     }
 
     /**
-     * Paso 5: Estrategia de Transición (Async)
+     * Estrategia de Transición
      * Combina Generación de Respuesta + Persistencia Específica
      */
     private async handleTransitionStrategy(
@@ -174,53 +166,44 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
     private async handleToQuestion(ctx: NextPhaseContext): Promise<Either<ErrorData, NextPhaseContext>> {
         const { sessionCtx } = ctx;
-        try {
-            // 1. Generar Respuesta (Async)
-            const response = await mapToQuestionResponse(sessionCtx.session, sessionCtx.kahoot, this.mediaService);
-            
-            // 2. Persistir en Memoria (Async)
-            await this.sessionRepository.updateSessionEither(sessionCtx.session.getSessionPin());
 
-            return Either.makeRight({ ...ctx, response });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+            const response = await mapToQuestionResponse(sessionCtx.session, sessionCtx.kahoot, this.mediaService);
+
+            return response.chainAsync( async ( response ) => {
+
+                // Actualizamos actividad de la sesion
+                const result = await this.sessionRepository.updateSessionEither(sessionCtx.session.getSessionPin());
+
+                return result.map(() => ({ ...ctx, response }))
+
+            } )
+            
     }
 
     private async handleToResults(ctx: NextPhaseContext): Promise<Either<ErrorData, NextPhaseContext>> {
-        const { sessionCtx } = ctx;
-        try {
-            // 1. Generar Respuesta (Sync)
-            const response = mapEntriesToResultsResponse(sessionCtx.session, sessionCtx.kahoot);
-            
-            // 2. Persistir en Memoria (Async)
-            // Aunque el mapa sea sync, guardar es async.
-            await this.sessionRepository.updateSessionEither(sessionCtx.session.getSessionPin());
 
-            return Either.makeRight({ ...ctx, response });
-        } catch (error) {
-            return Either.makeLeft(error as ErrorData);
-        }
+        const { sessionCtx } = ctx;
+
+        const response = mapEntriesToResultsResponse(sessionCtx.session, sessionCtx.kahoot);
+        
+        return response.chainAsync( async ( response ) => {
+
+            // Actualizamos actividad de la sesion
+            const result = await this.sessionRepository.updateSessionEither(sessionCtx.session.getSessionPin());
+
+            return result.map(() => ({ ...ctx, response }))
+
+        } )
+   
     }
 
     private async handleToEnd(ctx: NextPhaseContext): Promise<Either<ErrorData, NextPhaseContext>> {
         const { sessionCtx } = ctx;
       
-        // 1. Generar Respuesta (Sync) - IMPORTANTE: Hacerlo ANTES de archivar/borrar
-        // Una vez archivado, el objeto session podría ser limpiado o invalidado según implementación.
         const response = mapFinalScoreboard(sessionCtx.session);
 
-        // 2. Archivar y Limpiar (Async - Destructive)
-        // Persiste en BD
-        try {
-            const res = await this.sessionArchiverService.archiveSession(sessionCtx.session, sessionCtx.kahoot);
-            return res.map( () => ({ ...ctx, response }) );
-            
-        } catch (error) {
-           return Either.makeLeft( new ErrorData( "Invariant violation", error.message, ErrorLayer.APPLICATION ) )
-        }
-
-   
+        const res = await this.sessionArchiverService.archiveSession(sessionCtx.session, sessionCtx.kahoot);
+        return res.map( () => ({ ...ctx, response }) );      
     }
 
     // async execute(command: HostNextPhaseCommand): Promise<Either<Error, HostNextPhaseResponse >> {

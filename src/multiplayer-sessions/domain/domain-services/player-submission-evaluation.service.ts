@@ -32,15 +32,27 @@ export class PlayerSubmissionEvaluationService {
             return Either.makeLeft( this.buildEvaluationErrorData( error, tempId.value ) ) ;
         }
 
-        const playerId = session.getPlayerById( tempId ).id;
+        // Creamos el id temporal del jugador
+        const playerId = session.getPlayerById( tempId )?.id;
+
+        // Nos aseguramos que se encuentre en la partida
+        if( !playerId ){
+            const error = new Error("El jugador no se encuentra en la partida");;
+            return Either.makeLeft( this.buildEvaluationErrorData( error, tempId.value ) ) ;
+        }
 
         // ? Momento donde se evalua la respuesta
         const result = kahoot.evaluateAnswer( playerSubmission );
 
+        // Creamos la respuesta del jugador
         const playerEvaluation = SessionPlayerAnswer.create( result, playerId );
 
         // * Anadimos la respuesta a su respectivo SlideResults
-        session.addPlayerAnswer( slideId, playerEvaluation );
+        const addResult =  session.addPlayerAnswer( slideId, playerEvaluation );
+
+        if( addResult.isLeft() ){
+            return Either.makeLeft( addResult.getLeft() ) ;
+        }  
 
         return Either.makeRight( undefined );
     }
@@ -50,7 +62,7 @@ export class PlayerSubmissionEvaluationService {
 
         return DomainErrorFactory.validation(
             createDomainContext('evaluatePlayerSubmission', 'DomainService', { actorId: playerId, domainObjectKind: 'Entity', rootAggregateName: 'MultiplayerSession'} ),
-            { hasAnswered: ['PLAYER_ALREADY_SUBMIT_ANSWER'] },
+            {},
             error.message
         );
 

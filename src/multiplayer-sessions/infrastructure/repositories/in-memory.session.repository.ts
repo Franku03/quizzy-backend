@@ -242,6 +242,7 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
                 this.activeSessions.delete(pin);
                 // Se libera el pin de memoria finalmente
                 this.pinRepository.releasePin( pin );
+
             }
 
         }

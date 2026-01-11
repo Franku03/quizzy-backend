@@ -1,17 +1,21 @@
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
-import { COMMON_ERRORS } from "../commands/common.errors";
+import { Either, ErrorData } from "src/core/types";
+import { createNoValidOptionFound, createOptionNotFoundError, createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 
-export const getOptionsIdsAndCorrectAnswers = ( kahoot: Kahoot, slideId: SlideId )  => { 
+export const getOptionsIdsAndCorrectAnswers = ( 
+    kahoot: Kahoot, 
+    slideId: SlideId 
+): Either<ErrorData,{ correctAnswerId: string[], optionsId: string [] }>  => { 
 
     
     const currentSlideSnapshot = kahoot.getSlideSnapshotById( slideId );
 
     if( !currentSlideSnapshot )
-        throw new Error(COMMON_ERRORS.SLIDE_NOT_FOUND);
+        return Either.makeLeft( createSlideNotFoundError( "getSlideSnapshotById", kahoot.id.value ) )
 
     if( !currentSlideSnapshot.options )
-        throw new Error(COMMON_ERRORS.NO_OPTIONS);
+        return Either.makeLeft( createOptionNotFoundError( "getSlideSnapshotById", kahoot.id.value ) )
 
     const correctAnswerId: string[] = []
     const optionsId: string[] = []
@@ -27,12 +31,13 @@ export const getOptionsIdsAndCorrectAnswers = ( kahoot: Kahoot, slideId: SlideId
     });
 
     if( correctAnswerId.length === 0)
-        throw new Error(COMMON_ERRORS.NO_VALID_OPTION);
+        return Either.makeLeft( createNoValidOptionFound( "getOptionsIdsAndCorrectAnswers ", kahoot.id.value ) )
 
-    return {
+
+    return Either.makeRight({
         correctAnswerId,
         optionsId
-    }
+    })
 
 
 }
