@@ -15,6 +15,7 @@ export class VerifyPinCommand implements ICommand {
 
     constructor(
         public readonly sessionPin: string,
+        public readonly userId: string,
     ){}
 
 }

@@ -12,6 +12,7 @@
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects";
 import { PlayerScoreboardEntry } from "./types/player-scoreboard-entry.interface";
 import { HostNextPhaseType } from "./enums/host-next-phase-type.enum";
+import { PlayerResponseData } from "./types/player-response-data.interface";
 
 export interface HostEndGameResponse {
     state: SessionStateType, 
@@ -21,7 +22,7 @@ export interface HostEndGameResponse {
 }
 
 // Payload para el JUGADOR (Su resultado final)
-export interface PlayerEndGameResponse {
+export interface PlayerEndGameResponse extends PlayerResponseData {
     state: SessionStateType,
     rank: number;          // "Quedaste en el puesto 15"
     totalScore: number;    // "Hiciste 12,000 puntos"

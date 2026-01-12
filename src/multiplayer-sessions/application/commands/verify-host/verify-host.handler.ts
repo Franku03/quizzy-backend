@@ -17,8 +17,13 @@ import { InMemoryActiveSessionRepository } from 'src/multiplayer-sessions/infras
 import type { IActiveMultiplayerSessionRepository } from 'src/multiplayer-sessions/domain/ports';
 import { VerifyHostCommand } from './verify-host.command';
 
-import { Either } from 'src/core/types';
+import { Either, ErrorData } from 'src/core/types';
 import { COMMON_ERRORS } from '../common.errors';
+import { createMultiplayerSessionAppContext } from '../context/base-multiplayer-session-context';
+import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
 
 
 @CommandHandler( VerifyHostCommand )
@@ -30,21 +35,26 @@ export class VerifyHostHandler implements ICommandHandler< VerifyHostCommand > {
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        
     ){}
 
-    async execute(command: VerifyHostCommand ): Promise< void > {
+    @Log()
+    async execute(command: VerifyHostCommand ): Promise< Either< ErrorData, void > >{
 
+        const ctx = createMultiplayerSessionAppContext("verifyHost", { sessionPin: command.sessionPin, actorId: command.hostId  });
+        
         // Cargamos el agregado session desde el repositorio en memoria
         const sessionWrapper = await this.sessionRepository.findByPin( command.sessionPin );
 
         if( !sessionWrapper )
-            throw new Error(COMMON_ERRORS.SESSION_NOT_FOUND);
-
+            return Either.makeLeft( DomainErrorFactory.notFound( ctx, COMMON_ERRORS.SESSION_NOT_FOUND) );
+            
         if( sessionWrapper.session.getHostId().value !== command.hostId )
-            throw new Error(COMMON_ERRORS.USER_NOT_AUTHORIZED);
+            return Either.makeLeft( DomainErrorFactory.unauthorized( ctx, COMMON_ERRORS.USER_NOT_AUTHORIZED) );
 
         // La sesión efectivamente está en memoria
-        return;
+        return Either.makeRight( undefined );
 
     }
 

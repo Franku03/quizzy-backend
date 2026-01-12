@@ -51,17 +51,15 @@ export interface ServerToClientEvents {
 
 
    // Errores
-  [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
-  [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
-  [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
-  
-  /*
+  // [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
+  // [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
+  // [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
+
   [ServerErrorEvents.FATAL_ERROR]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.CONNECTION_ERROR]: (payload: ISocketErrorPayload) => void;
   [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: ISocketErrorPayload) => void;
   [ServerErrorEvents.SYNC_ERROR]: (payload: ISocketErrorPayload) => void;
-  */
-
-  // ... más eventos que el servidor emite
+  
 }
 
 // Eventos que los Clientes envían al Servidor
@@ -69,11 +67,14 @@ export interface ClientToServerEvents {
 
   [ClientEvents.CLIENT_READY]: () => void;
 
-  [PlayerUserEvents.PLAYER_JOIN]: (payload: {}) => void;
+  [PlayerUserEvents.PLAYER_JOIN]: (payload: { nickname: string }) => void;
   [PlayerUserEvents.PLAYER_SUBMIT_ANSWER]: (payload: PlayerSubmitAnswerDto ) => void;
 
-  [HostUserEvents.HOST_START_GAME]: (payload: {}) => void;
-  // ... más eventos que el cliente emite
+  [HostUserEvents.HOST_START_GAME]: (payload: {}) => void; // Se queda con JSON vacio por compatibilidad, pero no tendría por qué pasarle payload siquiera
+  [HostUserEvents.HOST_NEXT_PHASE]: () => void;
+  [HostUserEvents.HOST_END_SESSION]: () => void;
+
+
 }
 
 
