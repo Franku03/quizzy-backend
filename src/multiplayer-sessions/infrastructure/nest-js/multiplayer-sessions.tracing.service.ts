@@ -174,11 +174,7 @@ export class MultiplayerSessionsTracingService {
         if(!room)
             return false;
 
-        console.log('wooooooooola')
-
         const client = room[ clientId ];
-
-        console.log('Comprobacion', client !== undefined);
 
         return client !== undefined;
 

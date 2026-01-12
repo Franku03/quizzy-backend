@@ -522,8 +522,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
             if( result.additionalData ){
 
-              // Si no nos llego la data adicional quiere decir que a penas el jugador esta haciendo client_ready por primera vez
-              client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER' });
+              // Si no nos llego la data adicional quiere decir que a penas el jugador esta haciendo client_ready por primera vez, le enviamos el fondo de la partida
+              client.emit( ServerEvents.PLAYER_CONNECTED_TO_SERVER , { status: 'IN_LOBBY - CONNECTED TO SERVER', theme: result.theme! });
 
             } else {
 
@@ -534,7 +534,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
               // Marcamos que el usuario ya estaba conectado de antes en la partida
               playerLobbyUpdate.connectedBefore = true;
-              client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, playerLobbyUpdate as PlayerLobbyUpdateResponse );
+              client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { ...playerLobbyUpdate, theme: result.theme } as PlayerLobbyUpdateResponse );
 
               // registramos de nuevo su nombre en el servicio de traza       
               this.tracingWsService.registerClientNickname( client );
@@ -552,11 +552,11 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             break;
 
           case( SyncType.PLAYER_RESULTS ):
-            client.emit( ServerEvents.PLAYER_RESULTS, result.data as QuestionResultsPlayerResponse );
+            client.emit( ServerEvents.PLAYER_RESULTS, {...result.data, theme: result.theme } as QuestionResultsPlayerResponse );
             break;
 
           case( SyncType.QUESTION_STARTED ):
-            client.emit( ServerEvents.QUESTION_STARTED, { ...result.data, ...result.additionalData } as QuestionStartedResponse );
+            client.emit( ServerEvents.QUESTION_STARTED, { ...result.data, ...result.additionalData, theme: result.theme } as QuestionStartedResponse );
             break;
 
           case( SyncType.HOST_END_GAME ):
@@ -564,14 +564,13 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
             break;                
 
           case( SyncType.PLAYER_END_GAME ):
-            client.emit( ServerEvents.PLAYER_GAME_END, result.data as PlayerEndGameResponse );
+            client.emit( ServerEvents.PLAYER_GAME_END, { ...result.data, theme: result.theme } as PlayerEndGameResponse );
             break;
 
 
         }
 
         return Either.makeRight( undefined );
-
 
     }
     

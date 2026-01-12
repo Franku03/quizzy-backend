@@ -27,13 +27,14 @@ import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents, ClientEvents } from '../enums/websocket.events.enum';
 
 import { SessionRoles } from "../enums/session-roles.enum";
+import { ThemeObject } from "src/core/types/theme.object";
 
 
 // Eventos que el Servidor envía a los Clientes
 export interface ServerToClientEvents { 
    // Eventos exitosos
   [ServerEvents.HOST_CONNECTED_SUCCESS]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
-  [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
+  [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER', theme: ThemeObject }) => void;
   [ServerEvents.HOST_LOBBY_UPDATE]: (payload: HostLobbyUpdateResponse) => void;
   [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerLobbyUpdateResponse ) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 

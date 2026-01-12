@@ -7,7 +7,10 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
+
 // File: src\multiplayer-sessions\application\response-dtos\create-session.response.dto.ts
+
+import { SessionTheme } from "./types/session-theme.interface";
 
 export interface CreateSessionResponse {
 
@@ -17,10 +20,6 @@ export interface CreateSessionResponse {
     // Kahoot Info (para el host que creo la sesion)
     quizTitle: string, 
     coverImageUrl: string;
-    theme: {
-        id: string;
-        url: string;
-        name: string;
-    } | null;
+    theme: SessionTheme
 
 }
