@@ -10,4 +10,5 @@
 // File: src\database\infrastructure\mongo\modules\multiplayer-session\index.ts
 
 export * from './multiplayer-session.repository.mongo';
+export * from './multiplayer-session.dao.mongo';
 export * from './constants/multiplayer-session.mongo-constants';

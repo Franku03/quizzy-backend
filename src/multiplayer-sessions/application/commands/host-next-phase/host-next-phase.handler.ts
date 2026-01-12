@@ -60,7 +60,6 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
         this.sessionArchiverService = new SessionArchiverService(
             this.sessionSavingRepository,
-            this.sessionRepository
         )
     }
 

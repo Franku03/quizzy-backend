@@ -49,7 +49,7 @@ export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSes
 
   async archiveSessionEither( session: MultiplayerSession, kahoot: Kahoot ): Promise<Either<ErrorData, void>> {
 
-    const ctx = this.getCtx('save', session.id.value);
+    const ctx = this.getCtx('archiveSession', session.id.value);
 
     const sessionData = this.mapToPersistence( session, kahoot );
 
@@ -151,15 +151,15 @@ export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSes
           slidePosition: currentSlideSnapshot?.position ?? 0,
           numberOfSubmissions: slideResult.getPlayersAnswers().length,
           questionData: currentSlideSnapshot ? {
-            questionText: currentSlideSnapshot.questionText,
-            basePoints: currentSlideSnapshot.pointsValue, 
+            questionText: currentSlideSnapshot.questionText ?? "",
+            basePoints: currentSlideSnapshot.pointsValue ?? 0, 
             timeLimit: currentSlideSnapshot.timeLimitSeconds,
             optionsContent: optionsSnapshot
           } : {
             questionText: '',
             basePoints: 0,
             timeLimit: 0,
-            correctAnswerIndices: []
+            optionsContent: []
           },
 
           submissions: submissions,

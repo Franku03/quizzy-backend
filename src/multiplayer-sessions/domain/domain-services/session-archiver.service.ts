@@ -11,13 +11,12 @@
 
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "../aggregates/multiplayer-session";
-import { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "../ports";
+import { IMultiplayerSessionHistoryRepository } from "../ports";
 import { Either, ErrorData } from "src/core/types";
 
 export class SessionArchiverService {
     constructor(
         private historyRepo: IMultiplayerSessionHistoryRepository,
-        private activeRepo: IActiveMultiplayerSessionRepository
     ){}
 
     async archiveSession( session: MultiplayerSession, kahoot: Kahoot ): Promise<Either< ErrorData, void> > {

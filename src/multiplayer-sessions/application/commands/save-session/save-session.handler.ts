@@ -38,7 +38,6 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
     ){
         this.sessionArchiverService = new SessionArchiverService(
             this.sessionSavingRepository,
-            this.sessionRepository
         );
     }
 
