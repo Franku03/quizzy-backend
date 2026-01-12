@@ -118,11 +118,18 @@ export class KahootDetails extends ValueObject<KahootDetailsProps> {
             domainObjectKind: 'ValueObject'
         });
 
-        if (!this.properties.title.hasValue() || !this.properties.description.hasValue() || !this.properties.category.hasValue()) {
+        /*if (!this.properties.title.hasValue() || !this.properties.description.hasValue() || !this.properties.category.hasValue()) {
             return Either.makeLeft(DomainErrorFactory.validation(
                 context,
                 { publication: ['INCOMPLETE_DETAILS'] },
                 "Title, description, and category are required to publish the Kahoot."
+            ));
+        }*/
+       if (!this.properties.title.hasValue() || !this.properties.category.hasValue()) {
+            return Either.makeLeft(DomainErrorFactory.validation(
+                context,
+                { publication: ['INCOMPLETE_DETAILS'] },
+                "Title and category are required to publish the Kahoot."
             ));
         }
         return Either.makeRight(true);

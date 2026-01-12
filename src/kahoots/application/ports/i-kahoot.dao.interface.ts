@@ -11,9 +11,10 @@
 
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { Either, ErrorData } from 'src/core/types'; 
+import { KahootUserDetailReadModel } from '../dtos/kahoot-user-detail.read.model.dto';
 
 export interface IKahootDao {
   getKahootById(id: string): Promise<Either<ErrorData, KahootSnapshot | null>>;
   getKahootValidationDataByKahootId(id: string): Promise<Either<ErrorData, {userId: string, visibility: string} | null>>; 
-  getKahootUserDetail(kahootId: string,userId: string)
+  getKahootUserDetail(kahootId: string,userId: string): Promise<Either<ErrorData, KahootUserDetailReadModel | null>>
 }

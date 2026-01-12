@@ -65,6 +65,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
 
     const appContext = createKahootAppContext('createKahoot', kahootId, command.userId);
 
+    console.log('command', JSON.stringify(command));
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. Crear el Agregado
       KahootFactory.createFromInput({ 
@@ -77,7 +78,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
       })
       // 2. Manejo de Errores de Dominio (Agregar contexto adicional)
       .mapLeft(err => err.setContext(appContext)),
-
+      
       // 3. Persistencia (Guardar el estado original con IDs)
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
       
