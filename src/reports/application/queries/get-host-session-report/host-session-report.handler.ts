@@ -5,6 +5,7 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 import { GetDetailedHostReportQuery } from "./host-session-report.query";
 
 import { Authorize } from "src/core/application/aspects/auth/authorization.decorator";
+import { SessionHostAuthorizer } from "src/core/application/aspects/auth/strategies/sessionHostOwnership.strategy";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
 
 import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
@@ -24,7 +25,7 @@ export class GetDetailedHostReportHandler implements IQueryHandler<GetDetailedHo
   ) { }
 
   @Log()
-  // @Authorize( SessionOwnershipAuthorizer, 'multiplayerSessionDao')
+  @Authorize( SessionHostAuthorizer, 'sessionDao')
   async execute(
     query: GetDetailedHostReportQuery 
   ): Promise<Either<ErrorData, HostSessionDetailsReadModel>> {

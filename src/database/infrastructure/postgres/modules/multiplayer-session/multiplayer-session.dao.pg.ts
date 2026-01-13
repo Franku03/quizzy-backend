@@ -168,4 +168,44 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
 
   }
 
+
+  async isUserSessionHost(userId: string, sessionId: string): Promise<Either<ErrorData, boolean>> {
+    const ctx = this.getCtx('isUserSessionHost', sessionId, { userId });
+
+    const result = await Either.tryCatch(
+        this.repo.count({
+        where: { 
+            sessionId: sessionId, 
+            hostId: userId 
+        }
+        }),
+        (err) => this.pgErrorMapper.toErrorData(err, ctx)
+    );
+
+    if (result.isLeft()) return Either.makeLeft(result.getLeft());
+
+    // Si el conteo es mayor a 0, significa que el usuario es el host
+    return Either.makeRight(result.getRight() > 0);
+  }
+
+
+  async isUserSessionPlayer(userId: string, sessionId: string): Promise<Either<ErrorData, boolean>> {
+    const ctx = this.getCtx('isUserSessionPlayer', sessionId, { userId });
+
+    const result = await Either.tryCatch(
+        this.repo.createQueryBuilder('session')
+        .where('session.sessionId = :sessionId', { sessionId })
+        // Buscamos si el ID del jugador existe dentro de la lista de objetos 'players'
+        .andWhere('session.players @> :playerFilter', { 
+            playerFilter: JSON.stringify([{ playerId: userId }]) 
+        })
+        .getCount(),
+        (err) => this.pgErrorMapper.toErrorData(err, ctx)
+    );
+
+    if (result.isLeft()) return Either.makeLeft(result.getLeft());
+
+    return Either.makeRight(result.getRight() > 0);
+  }
+
 }

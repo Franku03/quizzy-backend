@@ -103,4 +103,39 @@ export class MultiplayerSessionsDaoMongo implements IMultiplayerSessionDao {
 
     return Either.makeRight(new UserGameReportDetails(results, meta));
   }
+
+
+  async isUserSessionHost(userId: string, sessionId: string): Promise<Either<ErrorData, boolean>> {
+    const ctx = this.getCtx('isUserSessionHost', sessionId, { userId });
+
+    const result = await Either.tryCatch(
+      this.model.exists({ 
+        sessionId: sessionId, 
+        hostId: userId 
+      }).exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+
+    if (result.isLeft()) return Either.makeLeft(result.getLeft());
+
+    // transforma el objeto (o null) en un booleano puro
+    return Either.makeRight(!!result.getRight());
+  }
+
+
+  async isUserSessionPlayer(userId: string, sessionId: string): Promise<Either<ErrorData, boolean>> {
+    const ctx = this.getCtx('isUserSessionPlayer', sessionId, { userId });
+
+    const result = await Either.tryCatch(
+      this.model.exists({
+        sessionId: sessionId,
+        'players.playerId': userId // Mongo busca dentro del array automáticamente
+      }).exec(),
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+    );
+
+    if (result.isLeft()) return Either.makeLeft(result.getLeft());
+
+    return Either.makeRight(!!result.getRight());
+  }
 }

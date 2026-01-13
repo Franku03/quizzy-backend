@@ -7,13 +7,14 @@ import { PlayerSessionDetailsReadModel } from "../read-models/player.session.det
 
 import type { IMultiplayerSessionDao } from "src/reports/application/ports/i-multiplayer-session.dao.interface";
 import { Authorize } from "src/core/application/aspects/auth/authorization.decorator";
+import { SessionPlayerAuthorizer } from "src/core/application/aspects/auth/strategies/sessionPlayerOwnership.strategy";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
+import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
 import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
-import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
+import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { Either, ErrorData } from "src/core/types";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
-import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
 @QueryHandler(GetDetailedPlayerReportQuery)
 export class GetDetailedPlayerReportHandler implements IQueryHandler<GetDetailedPlayerReportQuery> {
@@ -25,6 +26,7 @@ export class GetDetailedPlayerReportHandler implements IQueryHandler<GetDetailed
   ) { }
 
   @Log()
+  @Authorize( SessionPlayerAuthorizer, 'sessionDao')
   async execute(
     query: GetDetailedPlayerReportQuery
   ): Promise<Either<ErrorData, PlayerSessionDetailsReadModel>> {
