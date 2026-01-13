@@ -55,6 +55,10 @@ export class MultiplayerSessionHistoryPostgresRepository implements IMultiplayer
 
   }
 
+  // ==========================================
+  // * HELPERS PRIVADOS
+  // ==========================================
+
   private mapToPersistence(session: MultiplayerSession, kahoot: Kahoot): MultiplayerSessionEntity {
     const props = session.props();
     const sessionData = this.generateSessionJsonData(session, kahoot);

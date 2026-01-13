@@ -18,7 +18,7 @@ import type { IActiveMultiplayerSessionRepository } from 'src/multiplayer-sessio
 import { VerifyConnectionAvailabilityCommand } from './verify-connection-availability.command';
 
 import { Either, ErrorData } from 'src/core/types';
-import { COMMON_ERRORS } from '../common.errors';
+import { COMMON_ERRORS } from '../context/errors/common.errors';
 import { PlayerId } from 'src/multiplayer-sessions/domain/value-objects';
 
 import { createMultiplayerSessionAppContext } from '../context/base-multiplayer-session-context';

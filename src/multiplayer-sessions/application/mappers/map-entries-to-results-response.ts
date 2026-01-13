@@ -17,7 +17,7 @@ import { QuestionResultsPlayerResponse, QuestionResultsResponse } from "../respo
 import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
 import { getOptionsIdsAndCorrectAnswers, mapHostResultsData, mapPlayerResultsData } from "../helpers";
 
-import { COMMON_ERRORS } from "../commands/common.errors";
+import { COMMON_ERRORS } from "../commands/context/errors/common.errors";
 import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 import { Either } from '../../../core/types/either';
 import { ErrorData } from "src/core/types";

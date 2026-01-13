@@ -22,7 +22,7 @@ import { SessionArchiverService } from "src/multiplayer-sessions/domain/domain-s
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
 
-import { COMMON_ERRORS } from "../common.errors";
+import { COMMON_ERRORS } from "../context/errors/common.errors";
 
 // Este caso de uso es utilizado cuando el host decide finalizar la partida antes de que se hayan mostrado todas las preguntas
 @CommandHandler( SaveSessionCommand )

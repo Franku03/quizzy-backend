@@ -65,6 +65,7 @@ export class MultiplayerSessionEntity {
   })
   totalProgress: SessionProgress;
 
+  @Index('idx_session_players_gin', { synchronize: false }) // Aquí le dices a TypeORM: "No intentes sincronizarlo tú"
   @Column({
     type: 'jsonb',
     default: [],

@@ -17,7 +17,7 @@ import { SyncStateResponse } from "../response-dtos";
 import { getOptionsIdsAndCorrectAnswers, isHost, mapHostResultsData, mapPlayerResultsData } from "../helpers";
 
 import { SyncStateCommand } from "../commands";
-import { COMMON_ERRORS } from "../commands/common.errors";
+import { COMMON_ERRORS } from "../commands/context/errors/common.errors";
 import { SyncType } from "../response-dtos/enums/sync-type.enum";
 import { Either } from "src/core/types";
 import { ErrorData } from '../../../core/errors/error.type';

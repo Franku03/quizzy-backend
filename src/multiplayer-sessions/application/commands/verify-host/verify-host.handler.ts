@@ -18,7 +18,7 @@ import type { IActiveMultiplayerSessionRepository } from 'src/multiplayer-sessio
 import { VerifyHostCommand } from './verify-host.command';
 
 import { Either, ErrorData } from 'src/core/types';
-import { COMMON_ERRORS } from '../common.errors';
+import { COMMON_ERRORS } from '../context/errors/common.errors';
 import { createMultiplayerSessionAppContext } from '../context/base-multiplayer-session-context';
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
