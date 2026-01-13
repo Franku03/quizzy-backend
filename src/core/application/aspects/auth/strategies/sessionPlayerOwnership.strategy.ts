@@ -18,7 +18,7 @@ export class SessionPlayerAuthorizer implements IAuthorizer<IRequestWithUserAsPl
     const userId = request.userId;
     const sessionId = request.sessionId;
 
-    const errorContext = createApplicationContext('getDetailedHostReport', {
+    const errorContext = createApplicationContext('getDetailedPlayerReport', {
         actorId: userId,
         resourceTargetId: sessionId 
     });

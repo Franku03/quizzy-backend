@@ -47,7 +47,7 @@ export class MultiplayerSessionPgMapper implements MultiplayerSessionMapper<Mult
         };
     });
 
-    const startedAt = new Date( session.timeDetails.startedAt )
+    const startedAt = new Date( session.timeDetails.startedAt ) // En el jsonb la fecha se guarda como un string, por eso hay que convertirla de vuelta a Date para que TS no reclame 
     
     return new HostSessionDetailsReadModel(
         session.sessionId,
@@ -116,14 +116,18 @@ export class MultiplayerSessionPgMapper implements MultiplayerSessionMapper<Mult
 
     const playerInRanking = session.ranking.find(r => r.playerId === userId);
 
+    // Lógica de determinación de tipo
+    const isHost = session.hostId === userId;
+    const type = isHost ? GameType.MULTIPLAYER_HOST : GameType.MULTIPLAYER_PLAYER
+
     return {
         kahootId: session.kahootId,
         gameId: session.sessionId,
-        gameType: GameType.MULTIPLAYER_HOST,
+        gameType: type,
         title: session.kahoot?.title ?? 'Kahoot sin título',
         completionDate: session.timeDetails.completedAt,
-        finalScore: playerInRanking?.score ?? 0,
-        rankingPosition: playerInRanking?.rank ?? 0
+        finalScore: isHost ? undefined : playerInRanking?.score ?? 0,
+        rankingPosition: isHost? undefined : playerInRanking?.rank ?? 0
     }
   }
 }

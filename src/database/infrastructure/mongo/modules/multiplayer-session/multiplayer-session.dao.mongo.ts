@@ -77,19 +77,27 @@ export class MultiplayerSessionsDaoMongo implements IMultiplayerSessionDao {
     const ctx = this.getCtx('getUserSessionDetailsById', "List", { userId });
     const skip = (page - 1) * limit;
 
-    const result = await Either.tryCatch(
+    // CAMBIO IMPORTANTE: Filtro $or
+    const filter = {
+      $or: [
+        { hostId: userId },               // Es el anfitrión
+        { 'players.playerId': userId }    // O es un jugador
+      ]
+    };
+
+  const result = await Either.tryCatch(
       Promise.all([
-        this.model.find({ 'players.playerId': userId })
+        this.model.find(filter) // Usamos el filtro definido arriba
           .sort({ 'timeDetails.startedAt': -1 })
           .skip(skip)
           .limit(limit)
           .lean()
           .exec(),
-        this.model.countDocuments({ 'players.playerId': userId }).exec()
+        this.model.countDocuments(filter).exec() // El count también debe usar el mismo filtro
       ]),
       (err) => this.mongoErrorMapper.toErrorData(err, ctx)
     );
-
+    
     if (result.isLeft()) return Either.makeLeft(result.getLeft());
     const [sessions, total] = result.getRight();
 

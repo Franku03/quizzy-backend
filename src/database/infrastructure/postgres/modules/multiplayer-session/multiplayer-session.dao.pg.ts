@@ -1,7 +1,7 @@
 // --- NestJS & TypeORM ---
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 // --- Core Logic & Types ---
 import { ErrorData, Either } from 'src/core/types';
@@ -133,9 +133,15 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
         // El operador @> busca si el JSON de la derecha está contenido en la columna players
         // Proyectamos el valor del JSON a un alias para que TypeORM lo reconozca
         .addSelect("session.time_details->>'startedAt'", "started_at_sort")
-        .where(`session.players @> :playerFilter`, { 
-            playerFilter: JSON.stringify([{ playerId: userId }]) 
-        })
+        // Primero abrimos paréntesis para encapsular las condiciones OR si tuvieras otros AND antes
+        .where(
+            new Brackets((qb) => {
+                qb.where(`session.hostId = :userId`, { userId })
+                    .orWhere(`session.players @> :playerFilter`, { 
+                        playerFilter: JSON.stringify([{ playerId: userId }]) 
+                    });
+            })
+        )
         // Ordenamos por el alias plano
         .orderBy("started_at_sort", "DESC")
         .take(limit)
