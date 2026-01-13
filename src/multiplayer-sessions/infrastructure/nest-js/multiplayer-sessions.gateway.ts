@@ -204,7 +204,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // * Desconexión de jugador
       // solo hacemos esta notificacion en caso de que el jugador ya haya confirmado que esta sincronizado,
-      // ue tenga nickname registrado (hizo player_join) y la sala exista
+      // que tenga nickname registrado (hizo player_join) y la sala exista
       const validPlayerDisconnectionToNotify = role === SessionRoles.PLAYER && !this.readyTimeouts.has( client.id ) && nickname && roomExists
 
       if ( validPlayerDisconnectionToNotify ) {
@@ -246,7 +246,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
       this.logger.log(`Cliente Desconectado: [${client.id}: ${ client.data.role }]`);
-      this.tracingWsService.logConnectedClients(); // Imprimimos de nuevo el loggin en memoria
 
     }
 
@@ -299,8 +298,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // Una vez sincronizado con éxito, lo registramos oficialmente en la traza/juego
       this.tracingWsService.registerClient(client);
-
-      if (client.data.role === SessionRoles.HOST)  this.tracingWsService.logConnectedClients(); // Si es host imprimos en consola 
+      this.tracingWsService.logConnectedClients(); // Imprimimos de nuevo el loggin en memoria
 
     }
 
@@ -568,7 +566,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         }
 
-        this.tracingWsService.logConnectedClients(); // Imprimimos en consola para dejar constancia del regreso
         return Either.makeRight( undefined );
 
     }

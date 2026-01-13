@@ -21,8 +21,10 @@ import { Either } from '../../../../core/types/either';
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
+import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
 
 import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';
@@ -43,7 +45,10 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject(DaoName.User) // Inyectamos el DAO usando el Token del Catálogo
+        @Inject( MutexSessionConcurrencyManager ) 
+        private readonly concurrencyManager: ISessionConcurrencyManager,
+
+        @Inject(DaoName.User)
         private readonly usersDao: IUserDao,
 
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
@@ -57,30 +62,37 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
         // Contexto para logs
         const appContext = createMultiplayerSessionAppContext('playerJoin', { actorId: command.userId, sessionPin: command.sessionPin });
 
-        return pipeAsync<ErrorData, LobbyStateUpdateResponse>(
-            
-            // 1) Arrancamos con el command
-            Either.makeRight(command),
 
-            // 2) obtenemos la sesión del respositorio en memoria
-            // Necesitamos la sesión Y mantenemos el comando vivo para los siguientes pasos.
-            cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
+        return this.concurrencyManager.runInSequence( command.sessionPin, async () => {
 
-            // 3) Lógica de negocio (Buscar User + Crear Player + Unir)
-            // Aquí manejamos la lógica de Invitado, Registrado, max de usuarios permitidos según usuario
-            ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
+            return pipeAsync<ErrorData, LobbyStateUpdateResponse>(
+                
+                // 1) Arrancamos con el command
+                Either.makeRight(command),
+    
+                // 2) obtenemos la sesión del respositorio en memoria
+                // Necesitamos la sesión Y mantenemos el comando vivo para los siguientes pasos.
+                cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
+    
+                // 3) Lógica de negocio (Buscar User + Crear Player + Unir)
+                // Aquí manejamos la lógica de Invitado, Registrado, max de usuarios permitidos según usuario
+                ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
+    
+                // 4) Actualizar actividad de la sesión ( last activity )
+                // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
+                ctx => ctx.chainAsync(c => this.persistState(c)),
+    
+                // 5) Mappear respuesta
+                // Mapeamos a la respuesta que espera el Gateway
+                ctx => ctx.map(c => mapJoinToLobbyUpdate(c.player, c.sessionCtx.session)),
+    
+                // 6) Mapeo de Errores
+                result => result.mapLeft(err => err.setContext(appContext))
+            );
 
-            // 4) Actualizar actividad de la sesión ( last activity )
-            // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
-            ctx => ctx.chainAsync(c => this.persistState(c)),
 
-            // 5) Mappear respuesta
-            // Mapeamos a la respuesta que espera el Gateway
-            ctx => ctx.map(c => mapJoinToLobbyUpdate(c.player, c.sessionCtx.session)),
+        })
 
-            // 6) Mapeo de Errores
-            result => result.mapLeft(err => err.setContext(appContext))
-        );
     }
 
 

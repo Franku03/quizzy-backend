@@ -18,9 +18,11 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 import { HostStartGameCommand } from "./host-start-game.command";
 import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
+import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { mapToQuestionResponse } from "../../mappers";
 
@@ -32,6 +34,7 @@ import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { StartGameContextWithoutResponse, StartGameContextWithResponse } from "../context/session-resources.context.interface";
 
 
+
 @CommandHandler( HostStartGameCommand )
 export class HostStartGameHandler implements ICommandHandler<HostStartGameCommand> {
 
@@ -39,6 +42,9 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
+        @Inject( MutexSessionConcurrencyManager ) 
+        private readonly concurrencyManager: ISessionConcurrencyManager,
+        
         private readonly mediaService: MediaEnrichmentService,
 
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
@@ -52,30 +58,35 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
         // Contexto para logs
         const appContext = createMultiplayerSessionAppContext('startGame',{ sessionPin: command.sessionPin } );
 
-        return pipeAsync<ErrorData, QuestionStartedResponse>(
-            
-            Either.makeRight(command),
+        return this.concurrencyManager.runInSequence( command.sessionPin, async () => {
+ 
+            return pipeAsync<ErrorData, QuestionStartedResponse>(
+                
+                Either.makeRight(command),
+    
+                cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+    
+                // 1) Lógica de dominio: iniciar partida
+                ctx => ctx.chain(c => this.startSessionDomainLogic(c)),
+    
+                // 2) Mappear respuseta y enriquecer con urls
+                ctx => ctx.chainAsync(c => this.buildInitialResponse(c)),
+    
+                // 3) Iniciarlizar tabla de resultados
+                ctx => ctx.chain(c => this.initSlideResultsTracking(c)),
+    
+                // 4) Actualizar cambios en la BD
+                ctx => ctx.chainAsync(c => this.persistState(c)),
+    
+                // 5) Mappeo final - Extraemos la respuesta que generamos en el paso 4
+                ctx => ctx.map(c => c.response!),
+    
+                // 6) Mappeo de errores
+                result => result.mapLeft(err => err.setContext(appContext))
+            );
 
-            cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+        })
 
-            // 1) Lógica de dominio: iniciar partida
-            ctx => ctx.chain(c => this.startSessionDomainLogic(c)),
-
-            // 2) Mappear respuseta y enriquecer con urls
-            ctx => ctx.chainAsync(c => this.buildInitialResponse(c)),
-
-            // 3) Iniciarlizar tabla de resultados
-            ctx => ctx.chain(c => this.initSlideResultsTracking(c)),
-
-            // 4) Actualizar cambios en la BD
-            ctx => ctx.chainAsync(c => this.persistState(c)),
-
-            // 5) Mappeo final - Extraemos la respuesta que generamos en el paso 4
-            ctx => ctx.map(c => c.response!),
-
-            // 6) Mappeo de errores
-            result => result.mapLeft(err => err.setContext(appContext))
-        );
     }
 
     // --- MÉTODOS PRIVADOS ---

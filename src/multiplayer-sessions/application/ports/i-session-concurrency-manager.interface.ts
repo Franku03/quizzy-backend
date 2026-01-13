@@ -1,5 +1,7 @@
 
-export interface SessionConcurrencyManager {
+// Interfaz necesaria para lograr capa de acoplamiento abstracto con cual sea la herramienta que se utilice para manejar las condiciones
+// de carrera generadas por el await en una WS API
+export interface ISessionConcurrencyManager {
 
     /**
      * Ejecuta una tarea de forma exclusiva para un PIN específico.
@@ -11,6 +13,6 @@ export interface SessionConcurrencyManager {
      * Limpieza de locks cuando la partida termina (para no llenar la RAM)
      * 
      */
-    releaseLockResource(sessionPin: string);
+    deleteSessionLock(sessionPin: string): void
     
 }

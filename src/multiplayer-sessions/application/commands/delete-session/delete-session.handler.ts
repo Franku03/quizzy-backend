@@ -28,6 +28,8 @@ import { ErrorData, ErrorLayer } from "src/core/types";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { DeleteSessionContext } from "../context/session-resources.context.interface";
+import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 
 // Este caso de uso es utilizado para borrar una sesion que pudo haber quedado en memoria tras finalizar una sesion de manera repentina
 @CommandHandler( DeleteSessionCommand )
@@ -38,6 +40,8 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
+        @Inject( MutexSessionConcurrencyManager ) 
+        private readonly concurrencyManager: ISessionConcurrencyManager,
 
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
         private readonly logger: ILogger,
@@ -109,6 +113,9 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
 
         // 3) Si existe, la borramos
         const result = await this.sessionRepository.deleteSessionEither(command.sessionPin);
+
+        // 4) Limpiamos el candado, ya no hace falta pues la sesión va a ser cerrada
+        this.concurrencyManager.deleteSessionLock( command.sessionPin );
 
         // 4) Afirmamos que borramos la sesion
         return result.map( () => ({ ...ctx, wasDeleted: true }) )

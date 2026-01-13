@@ -19,11 +19,13 @@ import { HostNextPhaseResponse } from '../../response-dtos/types/host-next-phase
 import { StateTransitionsTypes } from "src/multiplayer-sessions/domain/types";
 import { SessionArchiverService, UpdateSessionProgressAndRankingService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 
 import { mapEntriesToResultsResponse, mapFinalScoreboard, mapToQuestionResponse } from "../../mappers";
 
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
+import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
@@ -31,7 +33,7 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
-import { ErrorData, ErrorLayer } from "src/core/types";
+import { ErrorData } from "src/core/types";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { NextPhaseContext } from "../context/session-resources.context.interface";
@@ -47,9 +49,11 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
         @Inject( InMemoryActiveSessionRepository )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
+        @Inject( MutexSessionConcurrencyManager ) 
+        private readonly concurrencyManager: ISessionConcurrencyManager,
+
         @Inject(RepositoryName.MultiplayerSession)
         private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
-
         
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
         private readonly logger: ILogger,
@@ -69,27 +73,34 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
 
         const appContext = createMultiplayerSessionAppContext('nextPhase', { sessionPin: command.sessionPin });
 
-        return pipeAsync<ErrorData, HostNextPhaseResponse>(
-            
-            Either.makeRight(command),
+        return this.concurrencyManager.runInSequence( command.sessionPin, async () => {
 
-            cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
 
-            // 3) Actualizar Ranking solo si estamos en QUESTIONS, calculamos puntajes antes de cambiar de estado
-            ctx => ctx.chain(c => this.updateScoresIfNecessary(c)),
+            return pipeAsync<ErrorData, HostNextPhaseResponse>(
+                
+                Either.makeRight(command),
+    
+                cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+    
+                // 3) Actualizar Ranking solo si estamos en QUESTIONS, calculamos puntajes antes de cambiar de estado
+                ctx => ctx.chain(c => this.updateScoresIfNecessary(c)),
+    
+                // 4) Avanzamos de fase/estado en la partida
+                ctx => ctx.chain(c => this.advancePhase(c)),
+    
+                // 5) Manejar transición y respuesta al usuario
+                ctx => ctx.chainAsync(c => this.handleTransitionStrategy(c)),
+    
+                // 6) Resultado Final
+                ctx => ctx.map(c => c.response!),
+    
+                // 7) Mappear errores
+                result => result.mapLeft(err => err.setContext(appContext))
+            );
 
-            // 4) Avanzamos de fase/estado en la partida
-            ctx => ctx.chain(c => this.advancePhase(c)),
 
-            // 5) Manejar transición y respuesta al usuario
-            ctx => ctx.chainAsync(c => this.handleTransitionStrategy(c)),
+        })
 
-            // 6) Resultado Final
-            ctx => ctx.map(c => c.response!),
-
-            // 7) Mappear errores
-            result => result.mapLeft(err => err.setContext(appContext))
-        );
     }
 
     // --- MÉTODOS PRIVADOS ---
