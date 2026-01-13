@@ -82,8 +82,8 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
 
       // 2. Lógica de Dominio (Mutación controlada por performance)
       k => k.chain(kahoot => this.applyUpdates(kahoot, command))
-      //Agregando contexto de app extra a los posibles errores de dominio
-      .mapLeft(err => err.setContext(appContext)),
+        //Agregando contexto de app extra a los posibles errores de dominio
+        .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
