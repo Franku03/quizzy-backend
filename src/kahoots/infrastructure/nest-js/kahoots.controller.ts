@@ -89,7 +89,7 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<void> {
     const command = new DeleteKahootCommand({ id, userId });
-    await this.commandBus.execute(command);
+    return await this.commandBus.execute(command);
   }
 
   @Get(':id')
