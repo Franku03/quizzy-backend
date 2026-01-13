@@ -11,7 +11,7 @@
 
 import { KahootOwnershipAuthorizer } from "src/core/application/aspects/auth/strategies/kahootOwnership.strategy";
 import { Either, ErrorData } from "src/core/types";
-import { KahootSecurityMother } from "test/kahoots/object-mothers/authorization-strategys/kahoowOwnership.strategy.mother";
+import { KahootSecurityMother } from "test/kahoots/object-mothers/application/authorization-strategys/kahoowOwnership.strategy.mother";
 
 /**
  * API de soporte para las pruebas unitarias del caso de uso de seguridad (autorización).

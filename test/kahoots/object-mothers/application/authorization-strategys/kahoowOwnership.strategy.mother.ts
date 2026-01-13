@@ -7,7 +7,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
-// File: test\kahoots\object-mothers\authorization-strategys\kahoowOwnership.strategy.mother.ts
+// File: test\kahoots\object-mothers\application\authorization-strategys\kahoowOwnership.strategy.mother.ts
 
 import { KahootStatusEnum } from "src/kahoots/domain/value-objects/kahoot.status";
 import { VisibilityStatusEnum } from "src/kahoots/domain/value-objects/kahoot.visibility-status";
