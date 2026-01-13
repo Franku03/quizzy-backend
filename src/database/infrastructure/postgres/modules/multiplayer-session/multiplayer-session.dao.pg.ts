@@ -8,8 +8,9 @@ import { ErrorData, Either } from 'src/core/types';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 
 // --- Read Models & Snapshots ---
-
-
+import { HostSessionDetailsReadModel } from 'src/reports/application/queries/read-models/host.session.details.read.model';
+import { PlayerSessionDetailsReadModel } from 'src/reports/application/queries/read-models/player.session.details.read.model';
+import { Meta, UserGameReportDetails, UserResult } from 'src/reports/application/queries/read-models/user.report.detailts.read.model';
 
 // --- Application Ports ---
 import { IMultiplayerSessionDao } from 'src/reports/application/ports/i-multiplayer-session.dao.interface';
@@ -27,9 +28,7 @@ import { MULTIPLAYER_SESSIONS_POSTGRES_BASE } from './constants/multiplayer-sess
 import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
-import { HostSessionDetailsReadModel } from 'src/reports/application/queries/read-models/host.session.details.read.model';
-import { PlayerSessionDetailsReadModel } from 'src/reports/application/queries/read-models/player.session.details.read.model';
-import { Meta, UserGameReportDetails, UserResult } from 'src/reports/application/queries/read-models/user.report.detailts.read.model';
+import type { MultiplayerSessionMapper } from 'src/reports/application/ports/i-multiplayer-session-mapper';
 import { MultiplayerSessionPgMapper } from './mappers/session.pg.mapper';
 
 @DaoPostgres(DaoName.MultiplayerSession)
@@ -39,7 +38,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
   private readonly contextBase = MULTIPLAYER_SESSIONS_POSTGRES_BASE;
   private readonly adapterName = MultiplayerSessionsDaoPostgres.name;
   private readonly portName = 'IMultiplayerSessionDao';
-  private readonly mapper: MultiplayerSessionPgMapper =  new MultiplayerSessionPgMapper();
+  private readonly mapper: MultiplayerSessionMapper<MultiplayerSessionEntity, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult > =  new MultiplayerSessionPgMapper();
 
   constructor(
     @InjectRepository(MultiplayerSessionEntity)
@@ -47,6 +46,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     
     @Inject(ERROR_TOKENS.MAPPERS.POSTGRES)
     private readonly pgErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+
   ) {}
 
   // ==========================================
@@ -86,7 +86,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     if(!session) 
         return Either.makeRight( null );
 
-    return Either.makeRight( this.mapper.mapHostDetails( session ));
+    return Either.makeRight( this.mapper.mapHostDetails( session ) as HostSessionDetailsReadModel );
 
   }
 
@@ -111,7 +111,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     if(!session) 
         return Either.makeRight( null );
 
-    return Either.makeRight( this.mapper.mapPlayerDetails( session, playerId ) );
+    return Either.makeRight( this.mapper.mapPlayerDetails( session, playerId ) as PlayerSessionDetailsReadModel);
 
   }
 
@@ -122,7 +122,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     page: number = 1
   ): Promise<Either<ErrorData, UserGameReportDetails| null>> {
 
-    const ctx = this.getCtx('getUserSessionDetailsById', "Not Given", { userId: userId });
+    const ctx = this.getCtx('getUserSessionDetailsById', "List", { userId: userId });
 
     const skip = (page - 1) * limit;
 
@@ -151,7 +151,7 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     const [sessions, total] = res.getRight();
 
     const results: UserResult[] = sessions.map(session => {
-        return this.mapper.mapUserDetails( session, userId );
+        return this.mapper.mapUserDetails( session, userId ) as UserResult;
     });
 
     const totalPages = Math.ceil(total / limit);

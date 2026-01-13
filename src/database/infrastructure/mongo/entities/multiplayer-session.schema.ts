@@ -137,8 +137,14 @@ export class MultiplayerSessionMongo extends Document {
   @Prop({ required: true, index: true })
   public hostId: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true, index: true }) // Para obtener el título en futuras consultas, otra técnica sería guardar directamente el título en el documento
   public kahootId: string;
+
+  @Prop({ 
+    required: true, 
+    default: 'Título no disponible (Sesión antigua)' 
+  })
+  public kahootTitle: string;
 
   @Prop({
     required: true,

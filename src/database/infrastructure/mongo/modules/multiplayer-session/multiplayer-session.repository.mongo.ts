@@ -167,6 +167,8 @@ export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSes
         };
       });
 
+      const kahootDetails = kahoot.details.hasValue() ? kahoot.details.getValue() : undefined;
+      const kahootTitle = kahootDetails?.title.hasValue() ? kahootDetails.title.getValue() : "Kahoot sin título";
 
       const sessionData = {
 
@@ -174,6 +176,7 @@ export class MultiplayerSessionHistoryMongoRepository implements IMultiplayerSes
         hostId: props.hostId.value,
         kahootId: props.kahootId.value,
         sessionPin: props.sessionPin.getPin(),
+        kahootTitle: kahootTitle ?? "Kahoot sin título",
         
         timeDetails: {
           startedAt: props.startedAt.value,

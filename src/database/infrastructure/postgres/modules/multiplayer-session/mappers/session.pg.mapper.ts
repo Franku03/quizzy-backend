@@ -4,22 +4,35 @@ import { PlayerSessionDetailsReadModel, QuestionResult } from "src/reports/appli
 import { GameType, UserResult } from "src/reports/application/queries/read-models/user.report.detailts.read.model";
 import { MultiplayerSessionMapper } from "src/reports/application/ports/i-multiplayer-session-mapper";
 
-export class MultiplayerSessionPgMapper implements MultiplayerSessionMapper<MultiplayerSessionEntity, HostSessionDetailsReadModel | UserResult | (PlayerSessionDetailsReadModel | null)> {
+export class MultiplayerSessionPgMapper implements MultiplayerSessionMapper<MultiplayerSessionEntity, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult > {
 
   /**
    * Transforma una MultiplayerSessionEntity (Postgres) en un HostSessionDetailsReadModel (Aplicación)
    */
   public mapHostDetails(session: MultiplayerSessionEntity): HostSessionDetailsReadModel {
 
-    // Transformar Ranking
+    // 1. Crear un mapa de aciertos por jugador (Paso previo ultra eficiente)
+    // Clave: playerId, Valor: cantidad de respuestas correctas
+    const correctAnswersCountMap = new Map<string, number>();
+
+    session.slideResults.forEach(slide => {
+        slide.submissions.forEach(submission => {
+            if (submission.isAnswerCorrect) {
+                const currentCount = correctAnswersCountMap.get(submission.playerId) ?? 0;
+                correctAnswersCountMap.set(submission.playerId, currentCount + 1);
+            }
+        });
+    });
+
+    // 2. Transformar Ranking usando el mapa que acabamos de crear
     const playerRanking: PlayerRanking[] = session.ranking.map(entry => {
-    const playerSnap = session.players.find(p => p.playerId === entry.playerId);
-    return {
-        position: entry.rank,
-        username: entry.nickname,
-        score: entry.score,
-        correctAnswers: playerSnap?.answersSubmitted ?? 0
-    };
+        return {
+            position: entry.rank,
+            username: entry.nickname,
+            score: entry.score,
+            // Consultamos el mapa. Si no aparece, es que tuvo 0 aciertos.
+            correctAnswers: correctAnswersCountMap.get(entry.playerId) ?? 0
+        };
     });
 
     // Transformar Análisis de Preguntas
