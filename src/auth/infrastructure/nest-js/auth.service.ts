@@ -11,7 +11,6 @@ import { User } from 'src/users/domain/aggregates/user';
 import { Either } from 'src/core/types/either';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -135,24 +134,25 @@ export class AuthService {
     };
 
     return {
+      token: this.jwtService.sign(payload),
       user: {
         id: user.id.value,
         email: user.email.value,
         username: user.username.value,
         type: user.type,
         state: user.state, // Nuevo: incluir estado
-        roles: payload.roles,
-        isAdmin: user.isAdmin(), // Método helper para compatibilidad
-        profile: {
-          name: user.userProfileDetails.name,
-          description: user.userProfileDetails.description,
-          avatarAssetId: user.userProfileDetails.avatarAssetId,
-        },
+        // roles: payload.roles,
+        // isAdmin: user.isAdmin(), // Método helper para compatibilidad
         preferences: {
           theme: user.userPreferences.themePreference
        },
+        userProfileDetails: {
+          name: user.userProfileDetails.name,
+          description: user.userProfileDetails.description,
+          avatarAssetUrl: null,
+        },
+        isPremium: user.isUserPremium(),
       },
-      token: this.jwtService.sign(payload),
     };
   }
 

@@ -15,5 +15,6 @@ export const ERROR_TOKENS = {
         CLOUDINARY: Symbol('CLOUDINARY_ERROR_MAPPER'),
         POSTGRES: Symbol('POSTGRES_ERROR_MAPPER'),
         PIN: Symbol('PIN_GENERATOR_ERROR_MAPPER'),
+        MEMORYREPO: Symbol('MEMORYREPO_ERROR_MAPPER'),
     }
 };

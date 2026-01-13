@@ -19,12 +19,11 @@ import {
   Param,
   Delete,
   Get,
-  UseGuards,
   Inject,
 } from '@nestjs/common';
 
 // Core & Types
-import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
+import { CommandBus, QueryBus } from 'src/core/infrastructure/cqrs';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import type { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
@@ -49,9 +48,9 @@ import { GetKahootUserDetailById } from 'src/kahoots/application/queries/get-kah
 export class KahootController {
 
   constructor(
-    private readonly executor: CommandQueryExecutorService,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
 
-    // Inyección por Tokens para desacoplar de la implementación concreta
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.CREATE_KAHOOT_REQUEST)
     private readonly createMapper: IMapper<CreateKahootInput, CreateKahootCommand>,
 
@@ -67,7 +66,7 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<KahootHandlerResponseDto> {
     const command = this.createMapper.map({ dto, userId });
-    return await this.executor.executeCommand<KahootHandlerResponseDto>(command);
+    return await this.commandBus.execute(command);
   }
 
   @Put(':id')
@@ -79,7 +78,7 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<KahootHandlerResponseDto> {
     const command = this.updateMapper.map({ dto, id, userId });
-    return await this.executor.executeCommand<KahootHandlerResponseDto>(command);
+    return await this.commandBus.execute(command);
   }
 
   @Delete(':id')
@@ -90,7 +89,7 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<void> {
     const command = new DeleteKahootCommand({ id, userId });
-    await this.executor.executeCommand<void>(command);
+    return await this.commandBus.execute(command);
   }
 
   @Get(':id')
@@ -101,10 +100,10 @@ export class KahootController {
     @GetUserId() userId?: string
   ): Promise<KahootHandlerResponseDto> {
     const query = new GetKahootByIdQuery({ kahootId, userId });
-    return await this.executor.executeQuery<KahootHandlerResponseDto>(query);
+    return await this.queryBus.execute(query);
   }
 
-  @Get('inspect/:idKahoot') // Usando el path exacto que pediste
+  @Get('inspect/:idKahoot') 
   @Auth()
   @HttpCode(HttpStatus.OK)
   async inspectKahoot(
@@ -112,6 +111,6 @@ export class KahootController {
     @GetUserId() userId: string
   ): Promise<KahootUserDetailReadModel> {
     const query = new GetKahootUserDetailById({ kahootId, userId });
-    return await this.executor.executeQuery<KahootUserDetailReadModel>(query);
+    return await this.queryBus.execute(query);
   }
 }

@@ -67,7 +67,7 @@ export class GetKahootByIdHandler implements IQueryHandler<GetKahootByIdQuery> {
 
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. PERFORMANCE: Usamos directamente el Snapshot inyectado por el Authorizer
-      Either.makeRight(query.validatedResource as KahootSnapshot),
+      Either.makeRight<ErrorData,KahootSnapshot>(query.validatedResource as KahootSnapshot),
 
       // 2. Enriquecimiento: Ya no necesitamos
       res => res.mapAsync(snapshot => this.mediaService.enrichKahoot(snapshot)),

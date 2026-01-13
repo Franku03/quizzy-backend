@@ -58,6 +58,14 @@ export class Either<TLeft, TRight> {
         return Either.makeRight<TLeft, TNewRight>(fn(this.getRight()));
     }
 
+    /** Ejecuta un efecto secundario y retorna el Either original. */
+    tap(fn: (val: TRight) => void): Either<TLeft, TRight> {
+        if (this.isRight()) {
+            fn(this.getRight());
+        }
+        return this;
+    }
+
     /** Transforma el valor Left mediante una función; mantiene el Right si existe */
     mapLeft<TNewLeft>(fn: (err: TLeft) => TNewLeft): Either<TNewLeft, TRight> {
         if (this.isRight()) return Either.makeRight<TNewLeft, TRight>(this.getRight());

@@ -136,12 +136,24 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
 
     // --- Comportamientos de Estado (Life Cycle) ---
     public publish(): Either<ErrorData, void> {
-        this.properties.status = new KahootStatus(KahootStatusEnum.PUBLISH);
+        // 1. Usamos el factory del VO en lugar de 'new'
+        const statusResult = KahootStatus.create(KahootStatusEnum.PUBLISH);
+
+        // 2. Si el VO falla, retornamos el error (Fail-Fast)
+        if (statusResult.isLeft()) return Either.makeLeft(statusResult.getLeft());
+
+        // 3. Asignación segura y validación de invariantes del Agregado
+        this.properties.status = statusResult.getRight();
         return this.checkInvariants();
     }
 
     public draft(): Either<ErrorData, void> {
-        this.properties.status = new KahootStatus(KahootStatusEnum.DRAFT);
+        // 1. Usamos el factory del VO
+        const statusResult = KahootStatus.create(KahootStatusEnum.DRAFT);
+
+        if (statusResult.isLeft()) return Either.makeLeft(statusResult.getLeft());
+
+        this.properties.status = statusResult.getRight();
         return this.checkInvariants();
     }
 
@@ -152,7 +164,7 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
                 return this.draft();
 
             case KahootStatusEnum.PUBLISH:
-                return this.publish(); 
+                return this.publish();
             default:
                 return Either.makeLeft(DomainErrorFactory.validation(
                     context, { status: ['INVALID_STATUS'] }, "Invalid Kahoot status."
@@ -161,14 +173,18 @@ export class Kahoot extends AggregateRoot<KahootProps, KahootId> {
     }
 
     // --- Comportamientos de Visibilidad ---
-    public makePublic(): void {
-        this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PUBLIC);
-        this.checkInvariants();
+    public makePublic(): Either<ErrorData, void> {
+        const visibilityResult = VisibilityStatus.create(VisibilityStatusEnum.PUBLIC);
+        if (visibilityResult.isLeft()) return Either.makeLeft(visibilityResult.getLeft());
+        this.properties.visibility = visibilityResult.getRight();
+        return this.checkInvariants();
     }
 
-    public hide(): void {
-        this.properties.visibility = new VisibilityStatus(VisibilityStatusEnum.PRIVATE);
-        this.checkInvariants();
+    public hide(): Either<ErrorData, void> {
+        const visibilityResult = VisibilityStatus.create(VisibilityStatusEnum.PRIVATE);
+        if (visibilityResult.isLeft()) return Either.makeLeft(visibilityResult.getLeft());
+        this.properties.visibility = visibilityResult.getRight();
+        return this.checkInvariants();
     }
 
     public changeVisibility(newVisibility: string): Either<ErrorData, void> {

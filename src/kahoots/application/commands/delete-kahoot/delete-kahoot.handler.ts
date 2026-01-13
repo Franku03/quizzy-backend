@@ -25,6 +25,7 @@ import { Kahoot } from 'src/kahoots/domain/aggregates/kahoot';
 import { DeleteKahootCommand } from './delete-kahoot.command';
 import { AttemptCleanupService } from '../../services/attempt-clear.service';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { createKahootAppContext } from '../context/base-kahoot-context';
 
 @CommandHandler(DeleteKahootCommand)
 export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand> {
@@ -42,9 +43,12 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand>
     command: DeleteKahootCommand & IKahootOwnershipRequest
   ): Promise<Either<ErrorData, void>> {
 
+    const appContext = createKahootAppContext('deleteKahoot', command.kahootId, command.userId);
+
     return pipeAsync<ErrorData, void>(
       // 1. Recuperación: Usamos el recurso ya validado por el Authorizer
-      Either.makeRight(command.validatedResource as Kahoot),
+      Either.makeRight<ErrorData,Kahoot>(command.validatedResource as Kahoot)
+        .mapLeft(err => err.setContext(appContext)),
 
       // 2. Ejecución del borrado
       k => k.chainAsync(kahoot => this.kahootRepository.deleteKahootEither(kahoot.id.value)),

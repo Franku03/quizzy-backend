@@ -117,4 +117,24 @@ export class UserRepositoryMongo implements IUserRepository {
       throw new Error(`Error deleting user: ${error.message}`);
     }
   }
+  
+  async findAll(): Promise<User[]> {
+    try {
+      const documents = await this.userModel.find().exec();
+      const validUsers: User[] = [];
+
+      for (const doc of documents) {
+        try {
+            const user = UserMapper.toDomain(doc);
+            validUsers.push(user);
+        } catch (innerError) {
+        }
+      }
+
+      return validUsers;
+    } catch (error) {
+      throw new Error(`Error fetching all users: ${error.message}`);
+    }
+  }
+  
 }

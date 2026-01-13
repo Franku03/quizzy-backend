@@ -21,7 +21,10 @@ import { CoreModule } from 'src/core/core.module';
 import { RegisterUserHandler } from './application/commands/register-user/register-user.handler';
 import { UpdateProfileHandler } from './application/commands/update-profile/update-profile.handler';
 import { GetUserProfileHandler } from './application/queries/get-user-profile/get-user-profile.handler';
-import { GetPublicProfileHandler } from './application/queries/get-public-profile/get-public-profile.handler';
+import { GetPublicProfileIdHandler } from './application/queries/get-public-profile-id/get-public-profile-id.handler';
+import { GetPublicProfileUsernameHandler } from './application/queries/get-public-profile-username/get-public-profile-username.handler';
+import { GetAllUsersHandler } from './application/queries/get-all-users/get-all-users.handler';
+
 import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
 @Module({
@@ -42,7 +45,9 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
     RegisterUserHandler,
     UpdateProfileHandler,
     GetUserProfileHandler,
-    GetPublicProfileHandler,
+    GetPublicProfileIdHandler,
+    GetPublicProfileUsernameHandler,
+    GetAllUsersHandler,
     {
       provide: 'IUuidGenerationService',
       useClass: UuidGeneratorService,

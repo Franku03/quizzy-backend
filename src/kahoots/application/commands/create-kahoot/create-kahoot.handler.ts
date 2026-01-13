@@ -46,7 +46,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
   constructor(
     @Inject(RepositoryName.Kahoot)
     private readonly kahootRepository: IKahootRepository,
-  
+
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.RESPONSE_MAPPER)
     private readonly kahootMapper: IMapper<KahootSnapshot, KahootHandlerResponseDto>,
 
@@ -58,29 +58,29 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
     @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
   ) { }
 
-  @Log() 
+  @Log()
   async execute(command: CreateKahootCommand): Promise<Either<ErrorData, KahootHandlerResponseDto>> {
     const kahootId = this.idGenerator.generateId();
     const slidesWithIds = this.processSlidesWithIds(command.slides || []);
 
     const appContext = createKahootAppContext('createKahoot', kahootId, command.userId);
-
+    
     return pipeAsync<ErrorData, KahootHandlerResponseDto>(
       // 1. Crear el Agregado
-      KahootFactory.createFromInput({ 
-        ...command, 
-        id: kahootId, 
-        authorId: command.userId, 
-        slides: slidesWithIds, 
-        createdAt: new Date().toISOString(), 
-        playCount: 0 
+      KahootFactory.createFromInput({
+        ...command,
+        id: kahootId,
+        authorId: command.userId,
+        slides: slidesWithIds,
+        createdAt: new Date().toISOString(),
+        playCount: 0
       })
-      // 2. Manejo de Errores de Dominio (Agregar contexto adicional)
-      .mapLeft(err => err.setContext(appContext)),
+        // 2. Manejo de Errores de Dominio (Agregar contexto adicional)
+        .mapLeft(err => err.setContext(appContext)),
 
       // 3. Persistencia (Guardar el estado original con IDs)
       k => k.tapChainAsync(kahoot => this.kahootRepository.saveKahootEither(kahoot)),
-      
+
       // 4. Extraer Snapshot (Raw Data con IDs)
       k => k.map(kahoot => kahoot.getSnapshot()),
 
@@ -110,7 +110,7 @@ export class CreateKahootHandler implements ICommandHandler<CreateKahootCommand>
         options: slide.options?.map(opt => ({
           text: opt.text,
           isCorrect: opt.isCorrect,
-          optionImage: opt.optionImage 
+          optionImage: opt.optionImage
         }))
       };
     });

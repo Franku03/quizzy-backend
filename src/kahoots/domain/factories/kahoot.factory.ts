@@ -100,10 +100,10 @@ export class KahootFactory {
     }
 
     private static buildOptionFromSnapshot(snap: OptionSnapshot): Either<ErrorData, Option> {
-        const imgVO = snap.optionImageId 
-            ? new Optional(new ImageId(snap.optionImageId)) 
+        const imgVO = snap.optionImageId
+            ? new Optional(new ImageId(snap.optionImageId))
             : new Optional<ImageId>();
-            
+
         return Option.create(snap.optionText || "", snap.isCorrect, imgVO);
     }
 
@@ -166,23 +166,28 @@ export class KahootFactory {
     public static createFromInput(input: KahootInput): Either<ErrorData, Kahoot> {
         return this.processSlides(input.slides, (s, p) => this.buildSlideFromInput(s, p)).chain(slidesMap =>
             this.assembleStyling(input.themeId, input.imageId).chain(styling =>
-                KahootId.create(input.id).chain(kId =>
-                    UserId.create(input.authorId).chain(authorId =>
-                        KahootStatus.create(input.status).chain(status =>
-                            VisibilityStatus.create(input.visibility).chain(visibility =>
-                                PlayNumber.create(input.playCount).chain(playCount => {
-                                    const createdAtVO = input.createdAt ? DateISO.createFrom(input.createdAt) : DateISO.generate();
-                                    return Kahoot.create({
-                                        author: authorId,
-                                        createdAt: createdAtVO,
-                                        styling,
-                                        details: this.assembleDetails(input.title, input.description, input.category),
-                                        visibility,
-                                        status,
-                                        playCount,
-                                        slides: slidesMap
-                                    }, kId);
-                                })
+                this.assembleDetails(input.title, input.description, input.category).chain(details =>
+                    KahootId.create(input.id).chain(kId =>
+                        UserId.create(input.authorId).chain(authorId =>
+                            KahootStatus.create(input.status).chain(status =>
+                                VisibilityStatus.create(input.visibility).chain(visibility =>
+                                    PlayNumber.create(input.playCount).chain(playCount => {
+                                        const createdAtVO = input.createdAt
+                                            ? DateISO.createFrom(input.createdAt)
+                                            : DateISO.generate();
+
+                                        return Kahoot.create({
+                                            author: authorId,
+                                            createdAt: createdAtVO,
+                                            styling,
+                                            details: new Optional(details),
+                                            visibility,
+                                            status,
+                                            playCount,
+                                            slides: slidesMap
+                                        }, kId);
+                                    })
+                                )
                             )
                         )
                     )
@@ -194,21 +199,23 @@ export class KahootFactory {
     public static reconstructFromSnapshot(snapshot: KahootSnapshot): Either<ErrorData, Kahoot> {
         return this.processSlides(snapshot.slides, (s, p) => this.buildSlideFromSnapshot(s, p)).chain(slidesMap =>
             this.assembleStyling(snapshot.styling.themeId, snapshot.styling.imageId).chain(styling =>
-                KahootId.create(snapshot.id).chain(kId =>
-                    UserId.create(snapshot.authorId).chain(authorId =>
-                        KahootStatus.create(snapshot.status).chain(status =>
-                            VisibilityStatus.create(snapshot.visibility).chain(visibility =>
-                                PlayNumber.create(snapshot.playCount).chain(playCount =>
-                                    Kahoot.create({
-                                        author: authorId,
-                                        createdAt: DateISO.createFrom(snapshot.createdAt),
-                                        styling,
-                                        details: this.assembleDetails(snapshot.details?.title, snapshot.details?.description, snapshot.details?.category),
-                                        visibility,
-                                        status,
-                                        playCount,
-                                        slides: slidesMap
-                                    }, kId)
+                this.assembleDetails(snapshot.details?.title, snapshot.details?.description, snapshot.details?.category).chain(details =>
+                    KahootId.create(snapshot.id).chain(kId =>
+                        UserId.create(snapshot.authorId).chain(authorId =>
+                            KahootStatus.create(snapshot.status).chain(status =>
+                                VisibilityStatus.create(snapshot.visibility).chain(visibility =>
+                                    PlayNumber.create(snapshot.playCount).chain(playCount =>
+                                        Kahoot.create({
+                                            author: authorId,
+                                            createdAt: DateISO.createFrom(snapshot.createdAt),
+                                            styling,
+                                            details: new Optional(details),
+                                            visibility,
+                                            status,
+                                            playCount,
+                                            slides: slidesMap
+                                        }, kId)
+                                    )
                                 )
                             )
                         )
@@ -221,7 +228,7 @@ export class KahootFactory {
     // --- Lógica de Soporte ---
 
     private static assembleSlideProps(
-        pos: number, time: number, pts: number | undefined, ques: string | undefined, 
+        pos: number, time: number, pts: number | undefined, ques: string | undefined,
         img: string | undefined, desc: string | undefined, opts: Option[]
     ): Either<ErrorData, SlideProps> {
         return TimeLimitSeconds.create(time).chain(timeVO =>
@@ -279,12 +286,13 @@ export class KahootFactory {
         return Either.makeRight(map);
     }
 
-    public static assembleDetails(t?: string, d?: string, c?: string): Optional<KahootDetails> {
-        if (!t && !d && !c) return new Optional<KahootDetails>();
-        return new Optional(new KahootDetails(
-            new Optional(t?.trim() || undefined),
-            new Optional(d?.trim() || undefined),
-            new Optional(c?.trim() || undefined)
-        ));
+    public static assembleDetails(t?: string, d?: string, c?: string): Either<ErrorData, KahootDetails> {
+        const title = t?.trim();
+        const description = d?.trim();
+        const coverUrl = c?.trim();
+
+        // Delegamos al VO. Nota: Si el VO pide Optional<string>, 
+        // asegúrate de que KahootDetails.create acepte strings planos o haz la conversión ahí.
+        return KahootDetails.create(title, description, coverUrl);
     }
 }

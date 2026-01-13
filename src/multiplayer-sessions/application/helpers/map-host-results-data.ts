@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\helpers\map-host-results-data.ts
+
 import { MultiplayerSession } from "src/multiplayer-sessions/domain/aggregates/multiplayer-session";
 import { SlideId } from "src/core/domain/shared-value-objects/id-objects/kahoot.slide.id";
 import { PlayerScoreboardEntry } from "../response-dtos/types/player-scoreboard-entry.interface";
@@ -23,7 +34,7 @@ export const mapHostResultsData = (
 
     const stats = {
 
-        totalAnswers: session.getNumberOfAnswersForASlide( slideId ),
+        totalAnswers: session.getNumberOfAnswersForASlide( slideId ) ?? 0, // No deberia ocurrir si llegamos aca, pero protegemos de undefined
         distribution: session.calculateAnswerDistributionForASlide( slideId, options.optionsId )
 
     }

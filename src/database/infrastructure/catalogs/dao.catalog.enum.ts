@@ -18,6 +18,7 @@ export enum DaoName {
   SoloAttempt = 'SoloAttemptDao',
   Explore = 'ExploreDao',
   AssetMetadata = 'AssetMetadataDao',
+  MultiplayerSession = 'MultiplayerSession',
 }
 
 export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
@@ -28,4 +29,6 @@ export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
   [DaoName.SoloAttempt]: 'DB_SOLOATTEMPT_DAO_TYPE',
   [DaoName.Explore]: 'DB_EXPLORE_DAO_TYPE',
   [DaoName.AssetMetadata]: 'DB_ASSETMETADATA_DAO_TYPE',
+  [DaoName.MultiplayerSession]: 'DB_MULTIPLAYERSESSION_DAO_TYPE',
+
 };

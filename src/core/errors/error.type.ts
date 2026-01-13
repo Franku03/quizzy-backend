@@ -29,7 +29,28 @@ export class ErrorData extends Error {
         details?: IErrorContext,
         innerError?: Error
     ) {
+        const isProd = process.env.IS_PROD === 'true';
+        const originalLimit = Error.stackTraceLimit;
+
+        /**
+         * OPTIMIZACIÓN CRÍTICA:
+         * Si es producción, bajamos el límite a 0 ANTES del super() 
+         * para que el motor V8 no pierda ciclos de CPU recolectando el stack.
+         */
+        if (isProd) {
+            Error.stackTraceLimit = 0;
+        }
+
         super(message);
+
+        // Restauramos el límite original inmediatamente
+        if (isProd) {
+            Error.stackTraceLimit = originalLimit;
+            // Opcionalmente limpiamos el stack por seguridad
+            this.stack = undefined;
+        }
+
+        // Metadatos del error
         this.name = 'ErrorData';
         this.errorId = randomUUID();
         this.code = code;
@@ -38,64 +59,67 @@ export class ErrorData extends Error {
         this.details = details;
         this.innerError = innerError;
 
-        if (innerError && innerError.stack) {
-            this.stackTrace = innerError.stack;
-        } else {
-            this.stackTrace = this.stack;
+        /**
+         * GESTIÓN DEL STACKTRACE:
+         * En desarrollo, priorizamos el error original (innerError) 
+         * si existe, de lo contrario usamos el actual.
+         */
+        if (!isProd) {
+            this.stackTrace = innerError?.stack || this.stack;
         }
     }
 
 
-public setContext(newDetails: Record<string, any>): this {
-    const currentDetails = this.details || {};
-    const mergedDetails = { ...currentDetails };
+    public setContext(newDetails: Record<string, any>): this {
+        const currentDetails = this.details || {};
+        const mergedDetails = { ...currentDetails };
 
-    // Definimos el peso de las capas para comparar jerarquía
-    const layerPriority: Record<string, number> = {
-        'DOMAIN': 1,
-        'APPLICATION': 2,
-        'INFRASTRUCTURE': 3
-    };
+        // Definimos el peso de las capas para comparar jerarquía
+        const layerPriority: Record<string, number> = {
+            'DOMAIN': 1,
+            'APPLICATION': 2,
+            'INFRASTRUCTURE': 3
+        };
 
-    for (const key in newDetails) {
-        const newValue = newDetails[key];
-        if (newValue === undefined || newValue === null) continue;
+        for (const key in newDetails) {
+            const newValue = newDetails[key];
+            if (newValue === undefined || newValue === null) continue;
 
-        if (key === 'operation') {
-            // REGLA DE ORO:
-            // Solo permitimos que el Filter (INFRA) o el Decorador (APP) 
-            // cambien la operación si la capa del error es INFERIOR.
-            // Una vez que el error llega a APPLICATION, la operación se vuelve SAGRADA.
-            
-            const isAtApplicationOrHigher = layerPriority[this.layer] >= layerPriority['APPLICATION'];
-            const alreadyHasOperation = !!mergedDetails[key];
+            if (key === 'operation') {
+                // REGLA DE ORO:
+                // Solo permitimos que el Filter (INFRA) o el Decorador (APP) 
+                // cambien la operación si la capa del error es INFERIOR.
+                // Una vez que el error llega a APPLICATION, la operación se vuelve SAGRADA.
 
-            if (isAtApplicationOrHigher && alreadyHasOperation) {
-                // Si el error ya está en nivel APP y ya tiene nombre, 
-                // NO dejamos que nadie (ni el Filter) lo cambie.
+                const isAtApplicationOrHigher = layerPriority[this.layer] >= layerPriority['APPLICATION'];
+                const alreadyHasOperation = !!mergedDetails[key];
+
+                if (isAtApplicationOrHigher && alreadyHasOperation) {
+                    // Si el error ya está en nivel APP y ya tiene nombre, 
+                    // NO dejamos que nadie (ni el Filter) lo cambie.
+                    continue;
+                }
+
+                mergedDetails[key] = newValue;
                 continue;
             }
-            
+
+            // Protección de campos de identidad del dominio
+            const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
+            if (protectedFields.includes(key) && mergedDetails[key]) continue;
+
             mergedDetails[key] = newValue;
-            continue;
         }
 
-        // Protección de campos de identidad del dominio
-        const protectedFields = ['domainObjectType', 'domainObjectKind', 'domainObjectId'];
-        if (protectedFields.includes(key) && mergedDetails[key]) continue;
+        // Prefijo de mensaje (Kahoot -> ...)
+        if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
+            // @ts-ignore
+            this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
+        }
 
-        mergedDetails[key] = newValue;
+        (this.details as any) = mergedDetails;
+        return this;
     }
-
-    // Prefijo de mensaje (Kahoot -> ...)
-    if (newDetails.rootAggregateName && !this.message.startsWith(newDetails.rootAggregateName)) {
-        // @ts-ignore
-        this.message = `${newDetails.rootAggregateName} -> ${this.message}`;
-    }
-
-    (this.details as any) = mergedDetails;
-    return this;
-}
     public toLogString(): string {
         const SEPARATOR_RED_DARK = '\x1b[31m======================================================================\x1b[0m';
         const CYAN = '\x1b[36m';

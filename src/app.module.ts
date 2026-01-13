@@ -15,9 +15,15 @@ import { AuthModule } from './auth/auth.module';
 import { WellKnownController } from './shared/infrastructure/controllers/well-known.controller';
 import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'), 
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -32,7 +38,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     GroupsModule, 
     MediaModule,
     ExploreModule,
-    UsersModule,
     AuthModule,
     BackofficeModule,
     NotificationsModule,

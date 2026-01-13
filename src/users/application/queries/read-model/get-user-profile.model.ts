@@ -1,42 +1,63 @@
-import { IHasMediaAssets } from 'src/core/domain/abstractions/media.assets.interface';
+import { User } from "src/users/domain/aggregates/user";
 
 export class UserProfileReadModel {
+    user: {
+        id: string;
+        email: string;
+        username: string;
+        type: string;
+        state: string;
+        isPremium: boolean;
+        preferences: {
+            theme: string;
+        };
+        userProfileDetails: {
+            name: string;
+            description: string;
+            avatarAssetUrl: string | null;
+        };
+    };
 
-    public avatarUrl?: string;
+    private _originalAvatarId: string | null;
 
-    constructor(
-      public readonly id: string,
-      public readonly email: string,
-      public readonly username: string,
-      public readonly type: string,
-      public readonly state: string,
-      public readonly roles: string[],
-      public readonly isAdmin: boolean,
-      public readonly preferences: {
-        theme: string;
-      },
-      public readonly userProfileDetails: {
-        name: string;
-        description: string;
-        avatarAssetId: string;
-      },
-      // Si se quiere agregar suscripción en el futuro, iría aquí
-      // public readonly subscription: ...
-    ) {}
+    private constructor(userAggregate: User) {
+        this._originalAvatarId = userAggregate.userProfileDetails.avatarAssetId;
 
+        this.user = {
+            id: userAggregate.id.value,
+            email: userAggregate.email.value,
+            username: userAggregate.username.value,
+            type: userAggregate.type,
+            state: userAggregate.state,
+            isPremium: userAggregate.isUserPremium(),
+            preferences: {
+                theme: userAggregate.userPreferences.themePreference,
+            },
+            userProfileDetails: {
+                name: userAggregate.userProfileDetails.name,
+                description: userAggregate.userProfileDetails.description,
+                avatarAssetUrl: null
+            }
+        };
+
+        Object.defineProperty(this, '_originalAvatarId', {
+          value: userAggregate.userProfileDetails.avatarAssetId,
+          enumerable: false,
+          writable: true
+      });
+    }
+
+
+    static fromDomain(user: User): UserProfileReadModel {
+        return new UserProfileReadModel(user);
+    }
+
+    
     getMediaAssetIds(): string[] {
-      if (this.userProfileDetails.avatarAssetId) {
-          return [this.userProfileDetails.avatarAssetId];
-      }
-      return [];
+        return this._originalAvatarId ? [this._originalAvatarId] : [];
     }
 
     applyMediaUrls(urlMap: Map<string, string>): void {
-      if (this.userProfileDetails.avatarAssetId) {
-          const url = urlMap.get(this.userProfileDetails.avatarAssetId);
-          if (url) {
-              this.avatarUrl = url;
-          }
-      }
+        this.user.userProfileDetails.avatarAssetUrl = urlMap.get(this._originalAvatarId!) || null;
     }
-  }
+}

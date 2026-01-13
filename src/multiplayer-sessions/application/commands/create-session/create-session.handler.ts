@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\commands\create-session\create-session.handler.ts
+
 import { Inject } from "@nestjs/common";
 
 import { CommandHandler } from "src/core/infrastructure/cqrs";
@@ -6,7 +17,6 @@ import { CreateSessionCommand } from "./create-session.command";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
-import { SessionResourcesForCreation } from "../context/session-resources.context.interface";
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
@@ -17,17 +27,20 @@ import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";
 import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
 import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
-import { CreateSessionResponse } from "../../response-dtos/create-session.response.dto";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
-import { Either } from '../../../../core/types/either';
+
+
+import { CreateSessionResponse } from "../../response-dtos/create-session.response.dto";
+import { SessionResourcesForCreation } from "../context/session-resources.context.interface";
+import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 
 import { IKahootOwnershipRequest, KahootOwnershipAuthorizer } from "src/core/application/aspects/auth/strategies/kahootOwnership.strategy";
 import { Authorize } from "src/core/application/aspects/auth/authorization.decorator";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
-import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
 
+import { Either } from '../../../../core/types/either';
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { ErrorData } from "src/core/types";
 
@@ -64,43 +77,36 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
         command: CreateSessionCommand & IKahootOwnershipRequest 
     ): Promise<Either<ErrorData,CreateSessionResponse>> {
 
-            console.log(command.validatedResource)
-
             // Creamos el id de la sesion y para que la fábrica construya el VO del id de la sesión en base al mismo
             const sessionId = this.idGenerator.generateId()  
 
-            // 1 Creamos el contexto de error (para saber dónde falló si algo pasa)
-            const appContext = createMultiplayerSessionAppContext('createSession', sessionId , command.userId );
+            // Creamos el contexto de error (para saber dónde falló si algo pasa)
+            const appContext = createMultiplayerSessionAppContext('createSession', { actorId: command.id, aggregateId: sessionId } );
 
             return pipeAsync<ErrorData, CreateSessionResponse>(
-                // PASO INICIAL: Arrancamos el riel con el Kahoot validado
-                Either.makeRight(command.validatedResource as Kahoot)
-                ,
+                // INICIO: Arrancamos karril con kahoot validado
+                Either.makeRight(command.validatedResource as Kahoot),
 
-                // PASO 1: Generar Contexto
+                // 1) Generar Contexto
                 // prepareSessionContext retorna Promise<Either>, así que usamos chainAsync
                 // Input: Kahoot -> Output: Promise<Either<Error, Context>>
                 k => k.chainAsync( kahoot => this.prepareSessionContext( kahoot, sessionId ) ),
 
-
-                // PASO 2: Crear Sesión (Factory)
-                // createSessionWithFactory retorna un valor, así que usamos map (NO chain)
-                // Usamos 'map' porque la fábrica es síncrona y confiamos en que no fallará si los datos previos están bien.
-                ctx => ctx.map( (ctx:SessionResourcesForCreation) => this.createSessionWithFactory( ctx, command ) ),
+                // 2) Crear Sesión (Factory)
+                // createSessionWithFactory retorna un valor, así que usamos map 
+                // Usamos chain porque la fábrica es síncrona, pero posee validaciones que pueden devolver error
+                ctx => ctx.chain( (ctx:SessionResourcesForCreation) => this.createSessionWithFactory( ctx, command ) ),
                     
-
-                // PASO 3: Enriquecer (Media Service)
-                // enrichSession retorna Promise<Either>, usamos chainAsync (NO mapAsync)
-                // y queremos seguir en el riel derecho.
+                // 3) Enriquecer (Media Service)
+                // enrichSession retorna Promise<Either>, usamos chainAsync
                 ctx => ctx.chainAsync(( ctx: SessionResourcesForCreation ) => this.enrichSession( ctx )),
 
-                // PASO 5: Persistencia (Guardar y obtener QR)
+                // 5) Registrar en Memoria (Guardar y obtener QR)
                 // Input: Context -> Output: Promise<Context>
-                // saveSession retorna Promise<string> (el token). Si falla, debería lanzar excepción 
-                // que capturaremos o debería devolver Either. Asumiremos tryCatch implícito del pipe o éxito.
+                // saveSession retorna Promise<string> (el token). Si falla, devuelve left
                 ctx => ctx.chainAsync(( ctx: SessionResourcesForCreation ) => this.saveSession( ctx ) ),
 
-                // PASO 6: Mapeo Final (Construir respuesta)
+                // 6) Mapeo Final (Construir respuesta)
                 // Input: Context Completo -> Output: CreateSessionResponse
                 ctx => ctx.map( ( ctx: SessionResourcesForCreation ) => ({
                     sessionPin: ctx.pin,
@@ -111,7 +117,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 })),
 
 
-                // USO DEL APP CONTEXT
+                // 7) Contexto en caso de error
                 // Esto intercepta cualquier Left que haya ocurrido arriba y le pega la etiqueta del contexto
                 result => result.mapLeft( err => {
                     return err.setContext(appContext);
@@ -148,14 +154,17 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
     private createSessionWithFactory(
         ctx: SessionResourcesForCreation, 
         command: CreateSessionCommand 
-    ): SessionResourcesForCreation {
-        const session = MultiplayerSessionFactory.createMultiplayerSession(
+    ): Either<ErrorData, SessionResourcesForCreation> {
+
+        const sessionResult = MultiplayerSessionFactory.createMultiplayerSession(
             ctx.kahoot,
             command.userId,
             ctx.sessionId,
             ctx.pin
         );
-        return { ...ctx, session }; // Acumulamos la sesión en la bola de nieve
+
+        return sessionResult.map( session => ({ ...ctx, session })) // Acumulamos la sesión en la bola de nieve
+
     }
 
 
@@ -171,17 +180,17 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
     }
 
   /**
-     * Guardamos la session en el repositorio en memoria
+     * Guardamos la session en el repositorio en memoria y obtenemos el id del token
      */
     private async saveSession(
         ctx: SessionResourcesForCreation, 
     ): Promise<Either<ErrorData, SessionResourcesForCreation>> {
-        const qrToken = await this.sessionRepository.saveSession({
+        const qrToken = await this.sessionRepository.saveSessionEither({
             session: ctx.session!,
             kahoot: ctx.kahoot,
             sessionStyling: ctx.styling!
         });
-        return Either.makeRight({ ...ctx, qrToken });
+        return qrToken.map( ( qrToken ) => ({ ...ctx, qrToken }) ) ;
     }
 
 }
