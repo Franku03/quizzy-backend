@@ -124,7 +124,11 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
         
         const { sessionCtx, command } = ctx;
         const res = mapLobbyToSyncState(sessionCtx.session, command);
-        return Either.makeRight({ ...ctx, response: res });
+
+        //Adjuntamos el theme Enriquecido durante el create session a la respuesta
+        const enrichedRes = { ...res,  theme: sessionCtx.sessionStyling.theme || { id: '', url: '', name: '' } }
+
+        return Either.makeRight({ ...ctx, response: enrichedRes });
   
     }
 
@@ -141,7 +145,12 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
 
             const res = mapQuestionToSyncState( sessionCtx.session, sessionCtx.kahoot, questionData, command);
 
-            return Either.makeRight({ ...ctx, response: res });
+            const enrichedRes = {
+                 ...res,  
+                 theme: sessionCtx.sessionStyling.theme || { id: '', url: '', name: '' } 
+            }
+
+            return Either.makeRight({ ...ctx, response: enrichedRes });
 
         })
   
@@ -155,7 +164,15 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
 
         const res = mapResultsToSyncState(sessionCtx.session, sessionCtx.kahoot, command);
 
-        return res.map( res => ( {...ctx, response: res} ));
+        // enriquecemos con map pq este mapper retorna un Either
+        const enrichedRes = res.map( res => ( {
+            ...res,
+            theme: sessionCtx.sessionStyling.theme || { id: '', url: '', name: '' }
+        }));
+
+        return enrichedRes.map( enrichedRes => ({ ...ctx, response: enrichedRes }) )
+
+
  
     }
 
@@ -166,7 +183,8 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
         
         const { sessionCtx, command } = ctx;
         const res = mapEndToSyncState(sessionCtx.session, command);
-        return Either.makeRight({ ...ctx, response: res });
+        const enrichedRes = { ...res,  theme: sessionCtx.sessionStyling.theme || { id: '', url: '', name: '' } }
+        return Either.makeRight({ ...ctx, response: enrichedRes });
 
     }
 

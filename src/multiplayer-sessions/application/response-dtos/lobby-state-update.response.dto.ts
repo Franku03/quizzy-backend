@@ -10,8 +10,7 @@
 // File: src\multiplayer-sessions\application\response-dtos\lobby-state-update.response.dto.ts
 
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects"
-import { SlideSnapshotWithoutAnswers } from "./types/slide-without-answers.interface";
-
+import { SessionTheme } from "./types/session-theme.interface";
 
 interface PlayerData {
     
@@ -27,6 +26,7 @@ export interface PlayerLobbyUpdateResponse {
     nickname: string,
     score: number,
     connectedBefore: boolean, 
+    theme?: SessionTheme  // Para caso de sincronización y recuperar imagen de fondo
 }
 
 export interface HostLobbyUpdateResponse {

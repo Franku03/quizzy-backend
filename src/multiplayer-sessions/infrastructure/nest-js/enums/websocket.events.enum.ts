@@ -62,6 +62,8 @@ export enum ServerErrorEvents {
 
     SYNC_ERROR = "sync_error",
     FATAL_ERROR = "fatal_error",
+
+    CONNECTION_ERROR = "connection_error",
     UNAVAILABLE_SESSION = "unnavailable_session",
     GAME_ERROR = "game_error",
 

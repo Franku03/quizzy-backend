@@ -27,13 +27,14 @@ import { PlayerSubmitAnswerDto } from "../dtos/player-submit-answer.dto";
 import { HostUserEvents, PlayerUserEvents, ServerErrorEvents, ServerEvents, ClientEvents } from '../enums/websocket.events.enum';
 
 import { SessionRoles } from "../enums/session-roles.enum";
+import { ThemeObject } from "src/core/types/theme.object";
 
 
 // Eventos que el Servidor envía a los Clientes
 export interface ServerToClientEvents { 
    // Eventos exitosos
   [ServerEvents.HOST_CONNECTED_SUCCESS]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
-  [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER' }) => void;
+  [ServerEvents.PLAYER_CONNECTED_TO_SERVER]: (payload: { status: 'IN_LOBBY - CONNECTED TO SERVER', theme: ThemeObject }) => void;
   [ServerEvents.HOST_LOBBY_UPDATE]: (payload: HostLobbyUpdateResponse) => void;
   [ServerEvents.PLAYER_CONNECTED_TO_SESSION]: (payload: PlayerLobbyUpdateResponse ) => void;  
   [ServerEvents.QUESTION_STARTED]:(payload: QuestionStartedResponse) => void; 
@@ -51,17 +52,15 @@ export interface ServerToClientEvents {
 
 
    // Errores
-  [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
-  [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
-  [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
-  
-  /*
+  // [ServerErrorEvents.FATAL_ERROR]: (payload: { statusCode: number, message: string }) => void;
+  // [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: { statusCode: number, message: string }) => void;
+  // [ServerErrorEvents.SYNC_ERROR]: (payload: { statusCode: number, message: string }) => void;
+
   [ServerErrorEvents.FATAL_ERROR]: (payload: ISocketErrorPayload) => void;
+  [ServerErrorEvents.CONNECTION_ERROR]: (payload: ISocketErrorPayload) => void;
   [ServerErrorEvents.UNAVAILABLE_SESSION]: (payload: ISocketErrorPayload) => void;
   [ServerErrorEvents.SYNC_ERROR]: (payload: ISocketErrorPayload) => void;
-  */
-
-  // ... más eventos que el servidor emite
+  
 }
 
 // Eventos que los Clientes envían al Servidor
@@ -69,11 +68,14 @@ export interface ClientToServerEvents {
 
   [ClientEvents.CLIENT_READY]: () => void;
 
-  [PlayerUserEvents.PLAYER_JOIN]: (payload: {}) => void;
+  [PlayerUserEvents.PLAYER_JOIN]: (payload: { nickname: string }) => void;
   [PlayerUserEvents.PLAYER_SUBMIT_ANSWER]: (payload: PlayerSubmitAnswerDto ) => void;
 
-  [HostUserEvents.HOST_START_GAME]: (payload: {}) => void;
-  // ... más eventos que el cliente emite
+  [HostUserEvents.HOST_START_GAME]: (payload: {}) => void; // Se queda con JSON vacio por compatibilidad, pero no tendría por qué pasarle payload siquiera
+  [HostUserEvents.HOST_NEXT_PHASE]: () => void;
+  [HostUserEvents.HOST_END_SESSION]: () => void;
+
+
 }
 
 
