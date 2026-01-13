@@ -9,7 +9,7 @@
 
 // File: test\kahoots\clean-tests\application\authorization-strategys\kahootOwnserhip.strategy.spec.ts
 
-import { KahootSecurityTestAPI } from "../../../apis/application/authorization-strategys/kahootOwnership.strategy.testing.api";
+import { KahootSecurityTestAPI } from "../../../apis/application/authorization-strategies/kahootOwnership.strategy.testing.api";
 
 /**
  * Suite de pruebas para KahootOwnershipAuthorizer.
