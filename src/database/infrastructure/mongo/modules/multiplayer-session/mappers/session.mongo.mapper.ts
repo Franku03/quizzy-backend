@@ -90,7 +90,7 @@ export class MultiplayerSessionMongoMapper implements MultiplayerSessionMapper<M
     return {
       kahootId: session.kahootId,
       gameId: session.sessionId,
-      gameType: GameType.MULTIPLAYER,
+      gameType: GameType.MULTIPLAYER_HOST,
       title: session.kahootTitle  ?? 'Kahoot sin título (Histórico)',
       completionDate: session.timeDetails.completedAt,
       finalScore: playerInRanking?.score ?? 0,

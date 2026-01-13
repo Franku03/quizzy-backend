@@ -18,7 +18,7 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 import { HostStartGameCommand } from "./host-start-game.command";
 import { QuestionStartedResponse } from "../../response-dtos/question-started.response.dto";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";

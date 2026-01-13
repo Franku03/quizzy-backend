@@ -22,7 +22,7 @@ import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessio
 import type { IUserDao } from "src/users/application/queries/ports/users.dao.port";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 
 import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';

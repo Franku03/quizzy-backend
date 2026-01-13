@@ -23,7 +23,7 @@ import type { IActiveMultiplayerSessionRepository, IMultiplayerSessionHistoryRep
 import { mapEntriesToResultsResponse, mapFinalScoreboard, mapToQuestionResponse } from "../../mappers";
 
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';

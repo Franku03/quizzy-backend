@@ -119,7 +119,7 @@ export class MultiplayerSessionPgMapper implements MultiplayerSessionMapper<Mult
     return {
         kahootId: session.kahootId,
         gameId: session.sessionId,
-        gameType: GameType.MULTIPLAYER,
+        gameType: GameType.MULTIPLAYER_HOST,
         title: session.kahoot?.title ?? 'Kahoot sin título',
         completionDate: session.timeDetails.completedAt,
         finalScore: playerInRanking?.score ?? 0,

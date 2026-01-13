@@ -17,7 +17,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 
-import { InMemoryActiveSessionRepository  } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository  } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 
 import { GetPinWithQrTokenResponse } from "../../response-dtos/get-pin-with-qr-token.response.dto";
 import { GetPinWithQrTokenCommand } from "./get-pin-with-qr-token.command";

@@ -10,7 +10,7 @@
 // File: src\multiplayer-sessions\application\commands\save-session\save-session.handler.ts
 
 import { Inject } from "@nestjs/common";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 

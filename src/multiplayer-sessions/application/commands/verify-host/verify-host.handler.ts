@@ -13,7 +13,7 @@ import { Inject } from '@nestjs/common';
 import { ICommandHandler } from 'src/core/application/cqrs';
 import { CommandHandler } from 'src/core/infrastructure/cqrs';
 
-import { InMemoryActiveSessionRepository } from 'src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository';
+import { InMemoryActiveSessionRepository } from 'src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository';
 import type { IActiveMultiplayerSessionRepository } from 'src/multiplayer-sessions/domain/ports';
 import { VerifyHostCommand } from './verify-host.command';
 

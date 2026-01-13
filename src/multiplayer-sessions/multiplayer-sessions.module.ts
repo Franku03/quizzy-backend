@@ -34,11 +34,15 @@ import {
   VerifyPinHandler
 } from './application/commands';
 
-import { InMemoryActiveSessionRepository } from './infrastructure/repositories/in-memory.session.repository';
 
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
-import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
-import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
+import { 
+  CryptoGeneratePinService, 
+  FileSystemPinRepository, 
+  InMemoryActiveSessionRepository, 
+  MutexSessionConcurrencyManager 
+} from './infrastructure/adapters';
+
 import { AuthModule } from 'src/auth/auth.module';
 
 
@@ -60,6 +64,7 @@ import { AuthModule } from 'src/auth/auth.module';
     CryptoGeneratePinService,
     FileSystemPinRepository,
     UuidGenerator,
+    MutexSessionConcurrencyManager,
     //Commands
     CreateSessionHandler,
     GetPinWithQrTokenHandler,

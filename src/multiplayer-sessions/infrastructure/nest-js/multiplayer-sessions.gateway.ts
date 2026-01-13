@@ -421,7 +421,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     }
 
     // --------------------------------------------------------------------------
-    // * Método privado para gestionar cierres de sesión de manera segura o procedimientos de envio de eventos
+    // * Método privado para gestionar cierres de sesión de manera segura
     // --------------------------------------------------------------------------
     private async closeSession( roomPin: string ){
 
@@ -542,8 +542,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
               // Notificamos al host
               await this.handleRoomHostNotification( client.data.roomPin, hostLobbyUpdate, ServerEvents.HOST_LOBBY_UPDATE);
 
-              this.tracingWsService.logConnectedClients(); // Imprimimos en consola para dejar constancia del regreso
-
             }
           }
 
@@ -570,6 +568,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
         }
 
+        this.tracingWsService.logConnectedClients(); // Imprimimos en consola para dejar constancia del regreso
         return Either.makeRight( undefined );
 
     }

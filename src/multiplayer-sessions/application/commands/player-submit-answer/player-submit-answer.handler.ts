@@ -13,7 +13,7 @@ import { Inject } from "@nestjs/common";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { PlayerSubmitAnswerCommand } from "./player-submit-answer.command";

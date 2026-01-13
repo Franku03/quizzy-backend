@@ -16,7 +16,7 @@ import { ICommandHandler } from "src/core/application/cqrs";
 import { CreateSessionCommand } from "./create-session.command";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";

@@ -1,6 +1,7 @@
 export enum GameType {
 
-    MULTIPLAYER = "Multiplayer",
+    MULTIPLAYER_HOST = "Multiplayer_host",
+    MULTIPLAYER_PLAYER = "Multplayer_player",
     SINGLEPLAYER = "Singleplayer",
 
 }

@@ -16,7 +16,7 @@ import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects";
 
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
+import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
 import { SyncStateCommand } from "./sync-state.command";
