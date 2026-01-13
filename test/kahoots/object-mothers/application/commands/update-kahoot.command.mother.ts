@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: test\kahoots\object-mothers\application\commands\update-kahoot.command.mother.ts
+
 import { UpdateKahootCommand } from 'src/kahoots/application/commands/update-kahoot/update-kahoot.command';
 import { KahootSlideCommand } from 'src/kahoots/application/commands/base/base-kahoot-slide.command';
 import { KahootOptionCommand } from 'src/kahoots/application/commands/base/base-kahoot-option.command';

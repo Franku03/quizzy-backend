@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: test\kahoots\object-mothers\application\queries\get-kahoot-user-detail.query.mother.ts
+
 import { KahootUserDetailReadModel } from "src/kahoots/application/dtos/kahoot-user-detail.read.model.dto";
 import { GetKahootUserDetailById } from "src/kahoots/application/queries/get-kahoot-preview-by-id/get-kahoot-user-detail-by-id.query";
 
