@@ -44,7 +44,7 @@ export class DeleteKahootHandler implements ICommandHandler<DeleteKahootCommand>
 
     return pipeAsync<ErrorData, void>(
       // 1. Recuperación: Usamos el recurso ya validado por el Authorizer
-      Either.makeRight(command.validatedResource as Kahoot),
+      Either.makeRight<ErrorData,Kahoot>(command.validatedResource as Kahoot),
 
       // 2. Ejecución del borrado
       k => k.chainAsync(kahoot => this.kahootRepository.deleteKahootEither(kahoot.id.value)),

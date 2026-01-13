@@ -51,7 +51,7 @@ export class GetKahootUserDetailHandler implements IQueryHandler<GetKahootUserDe
 
     return pipeAsync<ErrorData, KahootUserDetailReadModel>(
       // 1. PERFORMANCE: Usamos el ReadModel ya inyectado (traído y mapeado por el Aspect)
-      Either.makeRight(query.validatedResource),
+      Either.makeRight<ErrorData,KahootUserDetailReadModel>(query.validatedResource),
 
       // 2. Enriquecimiento: Firmamos las URLs de los assets multimedia
       // Usamos mapAsync para mantener la estructura del "tren" Either
