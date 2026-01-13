@@ -41,7 +41,7 @@ describe('CreateKahootHandler (Clean Architecture Specification)', () => {
      * Escenario: Violación de Regla de Negocio.
      * Valida que el Agregado de Dominio rechace la creación si falta la respuesta correcta.
      */
-    it('debería rechazar la creación cuando no hay respuestas correctas', async () => {
+    it('debería rechazar la creación cuando un slide de seleccion simple no tiene respuestas correctas', async () => {
         await api
             .givenTheSystemIsReadyToStoreData()
             .givenAKahootCreationRequestWithoutCorrectAnswers() // Comando inválido
