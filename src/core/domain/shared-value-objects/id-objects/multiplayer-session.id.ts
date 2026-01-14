@@ -9,10 +9,10 @@
 
 // File: src\core\domain\shared-value-objects\id-objects\multiplayer-session.id.ts
 
-import { UuidVO } from "../../abstractions/vo.id";
+import { UuidVO } from '../../abstractions/vo.id';
 
 export class MultiplayerSessionId extends UuidVO {
-    public constructor(id: string) {
-        super(id);
-    } 
+  public constructor(id: string) {
+    super(id);
+  }
 }

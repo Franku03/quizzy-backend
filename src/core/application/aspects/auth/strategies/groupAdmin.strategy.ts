@@ -23,20 +23,30 @@ export interface IRequestWithGroupAndUser {
   operationName?: string;
 }
 
-export class GroupAdminAuthorizer implements IAuthorizer<IRequestWithGroupAndUser, IGroupsDao> {
-  async authorize(request: IRequestWithGroupAndUser, context: IGroupsDao): Promise<Either<ErrorData, void>> {
+export class GroupAdminAuthorizer implements IAuthorizer<
+  IRequestWithGroupAndUser,
+  IGroupsDao
+> {
+  async authorize(
+    request: IRequestWithGroupAndUser,
+    context: IGroupsDao,
+  ): Promise<Either<ErrorData, void>> {
     const groupId = request.groupId;
     const userId = request.userId || request.adminId;
 
-    const errorContext = createDomainContext('Group', request.operationName || 'authorize', {
-      domainObjectId: groupId,
-      actorId: userId,
-      userId: userId,
-    });
+    const errorContext = createDomainContext(
+      'Group',
+      request.operationName || 'authorize',
+      {
+        domainObjectId: groupId,
+        actorId: userId,
+        userId: userId,
+      },
+    );
 
     if (!userId) {
       return Either.makeLeft(
-        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
+        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN),
       );
     }
 
@@ -44,11 +54,10 @@ export class GroupAdminAuthorizer implements IAuthorizer<IRequestWithGroupAndUse
 
     if (!isAdmin) {
       return Either.makeLeft(
-        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
+        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN),
       );
     }
 
     return Either.makeRight(undefined);
   }
 }
-

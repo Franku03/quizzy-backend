@@ -15,7 +15,7 @@ import { ICryptoService } from 'src/core/application/ports/crypto/i-crypto.inter
 
 @Injectable()
 export class NodeCryptoService implements ICryptoService {
-    calculateSha256(buffer: Buffer): string {
-        return crypto.createHash('sha256').update(buffer).digest('hex');
-    }
+  calculateSha256(buffer: Buffer): string {
+    return crypto.createHash('sha256').update(buffer).digest('hex');
+  }
 }

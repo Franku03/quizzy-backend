@@ -95,7 +95,7 @@ export class CqrsBootstrapService implements OnModuleInit {
     const isCommand = type === 'COMMAND';
     const typeTag = isCommand ? `${yellow}CMD${reset}` : `${cyan}QRY${reset}`;
     const nameColor = isCommand ? yellow : cyan;
-    
+
     // Ajuste de espacio para que todo quede en línea
     const padding = ' '.repeat(Math.max(0, 38 - name.length));
 
@@ -104,20 +104,17 @@ export class CqrsBootstrapService implements OnModuleInit {
 
     console.log(
       `${header} ${gray}●${reset} ` +
-      `${bold}${typeTag}${reset} ` +
-      `${nameColor}${name}${reset} ` +
-      `${padding}${magenta}❯❯❯${reset} ` +
-      `${magenta}${handler}${reset} ` +
-      `${yellow}+${diff}ms${reset}`
+        `${bold}${typeTag}${reset} ` +
+        `${nameColor}${name}${reset} ` +
+        `${padding}${magenta}❯❯❯${reset} ` +
+        `${magenta}${handler}${reset} ` +
+        `${yellow}+${diff}ms${reset}`,
     );
   }
 
   private prettyError(type: string, name: string, error: any) {
     const reset = '\x1b[0m';
     const red = '\x1b[31m';
-    console.warn(
-      `${red}  ✖ [${type}_ERR]${reset} Error en: ${name}`,
-      error,
-    );
+    console.warn(`${red}  ✖ [${type}_ERR]${reset} Error en: ${name}`, error);
   }
 }

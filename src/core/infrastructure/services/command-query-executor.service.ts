@@ -32,10 +32,10 @@ export class CommandQueryExecutorService {
   }
 
   async executeCommandsInParallel<T>(commands: any[]): Promise<T[]> {
-    return Promise.all(commands.map(cmd => this.executeCommand<T>(cmd)));
+    return Promise.all(commands.map((cmd) => this.executeCommand<T>(cmd)));
   }
 
   async executeQueriesInParallel<T>(queries: any[]): Promise<T[]> {
-    return Promise.all(queries.map(query => this.executeQuery<T>(query)));
+    return Promise.all(queries.map((query) => this.executeQuery<T>(query)));
   }
 }

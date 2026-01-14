@@ -9,13 +9,13 @@
 
 // File: src\core\infrastructure\adapters\idgenerator\uuid-generator.ts
 
-import { Injectable } from '@nestjs/common'
-import { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface'
-import { v4 as uuidv4 } from 'uuid'
+import { Injectable } from '@nestjs/common';
+import { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UuidGenerator implements IdGenerator<string> {
-    generateId(): string {
-        return uuidv4()
-    }
+  generateId(): string {
+    return uuidv4();
+  }
 }

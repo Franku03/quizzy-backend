@@ -10,9 +10,8 @@
 // File: src\kahoots\application\dtos\kahoot.slide.option.handler.response.dto.ts
 
 export class OptionHandlerResponseDto {
-    id: string; 
-    text: string | null;
-    mediaId: string | null; 
-    isCorrect: boolean;
+  id: string;
+  text: string | null;
+  mediaId: string | null;
+  isCorrect: boolean;
 }
-

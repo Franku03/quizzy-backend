@@ -7,7 +7,13 @@
 // File: src\core\infrastructure\interceptors\result.interceptor.ts
 
 // --- Externals & Core ---
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+  Logger,
+} from '@nestjs/common';
 import { map } from 'rxjs/operators';
 import { Response } from 'express';
 import { Either } from 'src/core/types/either';
@@ -41,7 +47,7 @@ export class ResultInterceptor implements NestInterceptor {
         if (type === 'http') {
           const res: Response = context.switchToHttp().getResponse();
           const mapped = this.errorMappingService.toClientResponse(errorData);
-          
+
           if (!res.headersSent) {
             res.status(mapped.status).json(mapped);
           }
@@ -51,7 +57,7 @@ export class ResultInterceptor implements NestInterceptor {
         if (type === 'ws') {
           const client = context.switchToWs().getClient();
           const mappedWs = this.errorMappingService.toSocketResponse(errorData);
-          
+
           if (client?.emit) {
             client.emit(mappedWs.event, mappedWs.data);
           }

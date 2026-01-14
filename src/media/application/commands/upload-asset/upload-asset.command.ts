@@ -15,6 +15,6 @@ export class UploadAssetCommand implements ICommand {
   constructor(
     public readonly fileBuffer: Buffer,
     public readonly mimeType: string,
-    public readonly originalName: string
+    public readonly originalName: string,
   ) {}
 }

@@ -9,10 +9,10 @@
 
 // File: src\core\errors\interface\context\i-external-service.context.ts
 
-import { IInfrastructureErrorContext } from "./i-error-infraestructure-context.interface";
+import { IInfrastructureErrorContext } from './i-error-infraestructure-context.interface';
 
 export interface IExternalServiceErrorContext extends IInfrastructureErrorContext {
-    serviceName: string;
-    resourceId?: string;
-    provider?: string; 
+  serviceName: string;
+  resourceId?: string;
+  provider?: string;
 }

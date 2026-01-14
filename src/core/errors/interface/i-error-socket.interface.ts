@@ -11,14 +11,14 @@
 
 // 1. El payload (lo que recibe el cliente)
 export interface ISocketErrorResponse {
-    statusCode: number;
-    message: string;
-    error: string;
-    errorId: string; 
+  statusCode: number;
+  message: string;
+  error: string;
+  errorId: string;
 }
 
 // 2. El envoltorio (lo que usa el backend para saber qué emitir)
 export interface IMappedSocketError {
-    event: string;
-    data: ISocketErrorResponse;
+  event: string;
+  data: ISocketErrorResponse;
 }

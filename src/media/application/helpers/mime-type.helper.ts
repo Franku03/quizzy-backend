@@ -18,16 +18,16 @@ export class MimeTypeHelper {
 
   static getCategory(mimeType: string): string {
     const [type] = mimeType.split('/');
-    
-    const categories = {
-      'image': 'image',
-      'video': 'video',
-      'audio': 'audio',
-      'application': 'document',
-      'text': 'document',
-      'font': 'document'
+
+    const categories: Record<string, string> = {
+      image: 'image',
+      video: 'video',
+      audio: 'audio',
+      application: 'document',
+      text: 'document',
+      font: 'document',
     };
-    
+
     return categories[type] || 'other';
   }
 

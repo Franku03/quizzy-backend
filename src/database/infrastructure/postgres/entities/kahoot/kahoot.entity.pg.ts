@@ -9,7 +9,14 @@
 
 // File: src\database\infrastructure\postgres\entities\kahoot\kahoot.entity.pg.ts
 
-import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { SlideEntity } from './slide.entitity.pg';
 import { DbPostgresEntity } from '../../registries/db-model-postgres.registry';
 

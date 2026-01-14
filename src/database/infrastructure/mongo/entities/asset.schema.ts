@@ -15,7 +15,7 @@ import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
 import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
 
 // Database Collection Name
-const COLLECTION_NAME: string = 'asset_metadata';
+const COLLECTION_NAME = 'asset_metadata';
 
 @DbMongoDocument(COLLECTION_NAME)
 @Schema({
