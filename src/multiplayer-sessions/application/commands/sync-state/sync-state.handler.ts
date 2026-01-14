@@ -16,7 +16,6 @@ import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { SessionStateType } from "src/multiplayer-sessions/domain/value-objects";
 
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
 import { SyncStateCommand } from "./sync-state.command";
@@ -31,13 +30,14 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 import { SyncStateContext } from "../context/session-resources.context.interface";
 import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
+import { createInvalidSyncStateError } from "../context/errors/create-handler-errors.error";
 
 
 @CommandHandler( SyncStateCommand )
 export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
@@ -56,15 +56,15 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
             
             Either.makeRight(command),
 
-            cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+            cmd => cmd.chainAsync((c: SyncStateCommand) => this.loadSessionContext(c)),
 
             // 3) Estrategia de sincronización según estado
             // Aquí delegamos la creación de la respuesta según el estado actual
-            ctx => ctx.chainAsync(c => this.dispatchStateStrategy(c)),
+            ctx => ctx.chainAsync((c: SyncStateContext) => this.dispatchStateStrategy(c)),
 
             // 4) Mapeamos el resultado final
             // Como es lectura, no hay persistencia. Solo devolvemos lo generado.
-            ctx => ctx.map(c => c.response!),
+            ctx => ctx.map((c: SyncStateContext) => c.response!),
 
             // 5) Mappeo de errores
             result => result.mapLeft(err => err.setContext(appContext))
@@ -111,7 +111,7 @@ export class SyncStateHandler implements ICommandHandler<SyncStateCommand> {
 
             default:
                 // Caso defensivo por si entra un estado corrupto o nuevo no implementado
-                return Either.makeLeft(new Error(`Estado de sesión desconocido o no manejado: ${currentState}`) as ErrorData);
+                return Either.makeLeft( createInvalidSyncStateError( "SyncState", ctx.sessionCtx.session.id.value, ctx.command.sessionPin ));
         }
     }
 

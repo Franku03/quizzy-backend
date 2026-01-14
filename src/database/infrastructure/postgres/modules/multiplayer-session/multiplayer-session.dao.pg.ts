@@ -29,6 +29,7 @@ import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-
 import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error-database.context';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import type { MultiplayerSessionMapper } from 'src/reports/application/ports/i-multiplayer-session-mapper';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import { MultiplayerSessionPgMapper } from './mappers/session.pg.mapper';
 
 @DaoPostgres(DaoName.MultiplayerSession)
@@ -38,7 +39,6 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
   private readonly contextBase = MULTIPLAYER_SESSIONS_POSTGRES_BASE;
   private readonly adapterName = MultiplayerSessionsDaoPostgres.name;
   private readonly portName = 'IMultiplayerSessionDao';
-  private readonly mapper: MultiplayerSessionMapper<MultiplayerSessionEntity, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult > =  new MultiplayerSessionPgMapper();
 
   constructor(
     @InjectRepository(MultiplayerSessionEntity)
@@ -47,8 +47,10 @@ export class MultiplayerSessionsDaoPostgres implements IMultiplayerSessionDao {
     @Inject(ERROR_TOKENS.MAPPERS.POSTGRES)
     private readonly pgErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
 
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_PG_READ)
+    private readonly mapper: MultiplayerSessionMapper<MultiplayerSessionEntity, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult >
   ) {}
-
+  
   // ==========================================
   // HELPERS PRIVADOS
   // ==========================================

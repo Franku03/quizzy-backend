@@ -15,11 +15,14 @@ import type { ActiveSessionContext, IActiveMultiplayerSessionRepository, IPinRep
 
 import type { IdGenerator } from "src/core/application/ports/idgenerator/i-id-generator.interface";
 import type { IErrorMapper } from "src/core/errors/interface/mapper/i-error-mapper.interface";
-import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
+
+
 import { Either, ErrorData } from "src/core/types";
 import { IInfrastructureErrorContext } from "src/core/errors/interface/context/i-error-infraestructure-context.interface";
-import { InMemoryActiveSessionRepositoryErrorContext, InMemoryActiveSessionRepositoryErrorMapper, REPOSITORY_ERRORS } from '../errors/in-memory-session-respository.error.mapper';
-import { FileSystemPinRepository } from "./file-system.pin.repository";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
+import { InMemoryActiveSessionRepositoryErrorContext, REPOSITORY_ERRORS } from '../errors/in-memory-session-respository.error.mapper';
+import { ERROR_TOKENS } from "src/core/errors/dependecy-tokens/application-core-erros.tokens";
+
 
 type sessionPin = string
 
@@ -50,20 +53,20 @@ export class InMemoryActiveSessionRepository implements IActiveMultiplayerSessio
     private readonly qrTokens = new Map<qrToken, QrTokenData>();
 
     // Configuración: Los tokens QR expiran rápido (ej. 10 minutos) - Esto es bueno por seguridad, el QR no debería ser eterno. (TTL -> Time To Live)
-    private readonly QR_TTL = 10 * 60 * 1000;
-
-    private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> = new InMemoryActiveSessionRepositoryErrorMapper()
-    
+    private readonly QR_TTL = 10 * 60 * 1000;    
 
     constructor(
-        @Inject( UuidGenerator )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR )
         private readonly IdGenerator: IdGenerator<string>,
         
-        @Inject( FileSystemPinRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.PIN_REPO )
         private readonly pinRepository: IPinRepository,
+
+        @Inject( ERROR_TOKENS.MAPPERS.MEMORY )
+        private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> 
     ) {
-        // Limpiador de sesiones no usadas automático cada 10 minutos - cambio a 30 por testeo
-        setInterval(() => this.cleanupUnusedSessions(), 30 * 60 * 1000);
+        // Limpiador de sesiones no usadas automático cada 20 minutos
+        setInterval(() => this.cleanupUnusedSessions(), 20 * 60 * 1000);
 
         // limpiador de códigos qr cada 5 minutos
         setInterval(() => this.cleanupExpiredTokens(), 5 * 60 * 1000);

@@ -10,7 +10,6 @@
 // File: src\multiplayer-sessions\application\commands\save-session\save-session.handler.ts
 
 import { Inject } from "@nestjs/common";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
@@ -23,8 +22,10 @@ import { RepositoryName } from "src/database/infrastructure/catalogs/repository.
 import { Either } from '../../../../core/types/either';
 
 import { COMMON_ERRORS } from "../context/errors/common.errors";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 
-// Este caso de uso es utilizado cuando el host decide finalizar la partida antes de que se hayan mostrado todas las preguntas
+// Este caso de uso será utilizado cuando el host decida finalizar la partida antes de que se hayan mostrado todas las preguntas
+// Corresponde a un evento en la ws api que aún no se implementa
 @CommandHandler( SaveSessionCommand )
 export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
 
@@ -33,7 +34,7 @@ export class SaveSessionHandler implements ICommandHandler<SaveSessionCommand> {
     constructor(
         @Inject(RepositoryName.MultiplayerSession)
         private readonly sessionSavingRepository: IMultiplayerSessionHistoryRepository,
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO)
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
     ){
         this.sessionArchiverService = new SessionArchiverService(

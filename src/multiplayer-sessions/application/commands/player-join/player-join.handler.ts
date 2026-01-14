@@ -23,9 +23,6 @@ import type { IUserDao } from "src/users/application/queries/ports/users.dao.por
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
-import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
-
 import { mapJoinToLobbyUpdate } from "../../mappers";
 import { PlayerJoinCommand } from './player-join.command';
 import { LobbyStateUpdateResponse } from "../../response-dtos/lobby-state-update.response.dto";
@@ -42,10 +39,10 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject( MutexSessionConcurrencyManager ) 
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER ) 
         private readonly concurrencyManager: ISessionConcurrencyManager,
 
         @Inject(DaoName.User)
@@ -72,19 +69,19 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
     
                 // 2) obtenemos la sesión del respositorio en memoria
                 // Necesitamos la sesión Y mantenemos el comando vivo para los siguientes pasos.
-                cmd => cmd.chainAsync(cmd => this.addSessionToContext(cmd)),
+                cmd => cmd.chainAsync((cmd: PlayerJoinCommand) => this.addSessionToContext(cmd)),
     
                 // 3) Lógica de negocio (Buscar User + Crear Player + Unir)
                 // Aquí manejamos la lógica de Invitado, Registrado, max de usuarios permitidos según usuario
-                ctx => ctx.chainAsync(ctx => this.processPlayerJoin(ctx) ),
+                ctx => ctx.chainAsync((ctx: SessionResourcesForPlayerJoin) => this.processPlayerJoin(ctx) ),
     
                 // 4) Actualizar actividad de la sesión ( last activity )
                 // Input: Context -> Output: Promise<Either<Error, { sessionCtx, player }>>
-                ctx => ctx.chainAsync(c => this.persistState(c)),
+                ctx => ctx.chainAsync((c: SessionResourcesForPlayerJoin) => this.persistState(c)),
     
                 // 5) Mappear respuesta
                 // Mapeamos a la respuesta que espera el Gateway
-                ctx => ctx.map(c => mapJoinToLobbyUpdate(c.player, c.sessionCtx.session)),
+                ctx => ctx.map((c: SessionResourcesForPlayerJoin )=> mapJoinToLobbyUpdate( c.player!, c.sessionCtx.session)),
     
                 // 6) Mapeo de Errores
                 result => result.mapLeft(err => err.setContext(appContext))
@@ -174,7 +171,7 @@ export class PlayerJoinHandler implements ICommandHandler<PlayerJoinCommand> {
      * Persistencia explicita.
      * llamar a updateSession para actualizar timestamps.
      */
-    private async persistState(ctx: SessionResourcesForPlayerJoin ) {
+    private async persistState(ctx: SessionResourcesForPlayerJoin ): Promise<Either<ErrorData, SessionResourcesForPlayerJoin>> {
 
         const saveResult = await this.sessionRepository.updateSessionEither( ctx.sessionCtx.session.getSessionPin() );
         

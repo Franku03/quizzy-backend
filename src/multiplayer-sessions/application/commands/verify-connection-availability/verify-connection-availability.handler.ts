@@ -34,10 +34,11 @@ export class VerifyConnectionAvailabilityHandler implements ICommandHandler< Ver
 
     constructor(
 
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        private readonly logger: ILogger,
 
     ){}
 

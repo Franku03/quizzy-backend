@@ -10,26 +10,22 @@
 // File: src\multiplayer-sessions\application\commands\delete-session\delete-session.handler.ts
 
 import { Inject } from "@nestjs/common";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
 import { DeleteSessionCommand } from "./delete-session.command";
 
 import type { IActiveMultiplayerSessionRepository, IPinRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 
-import { Either } from '../../../../core/types/either';
-
-import { FileSystemPinRepository } from "src/multiplayer-sessions/infrastructure/adapters/file-system.pin.repository";
-import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import { Log } from "src/core/application/aspects/logging/log.decorator";
-import { ErrorData, ErrorLayer } from "src/core/types";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 import { createMultiplayerSessionAppContext } from "../context/base-multiplayer-session-context";
-import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 import { DeleteSessionContext } from "../context/session-resources.context.interface";
-import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
-import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
+
+import { Either, ErrorData } from "src/core/types";
+import { pipeAsync } from "src/core/errors/helpers/pipe-async";
 
 // Este caso de uso es utilizado para borrar una sesion que pudo haber quedado en memoria tras finalizar una sesion de manera repentina
 @CommandHandler( DeleteSessionCommand )
@@ -37,16 +33,16 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
 
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject( MutexSessionConcurrencyManager ) 
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER ) 
         private readonly concurrencyManager: ISessionConcurrencyManager,
 
-        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.LOGGER ) 
         private readonly logger: ILogger,
 
-        @Inject( FileSystemPinRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.PIN_REPO )
         private readonly pinRepository: IPinRepository,
     ){}
 
@@ -63,13 +59,13 @@ export class DeleteSessionHandler implements ICommandHandler<DeleteSessionComman
 
             // 1) Liberar PIN
             // Lo hacemos primero para asegurar que el PIN quede libre, si la sesion queda perdida en memoria el repo la acabara limpiando a la hora
-            cmd => cmd.chainAsync(c => this.releasePinStep(c)),
+            cmd => cmd.chainAsync((c: DeleteSessionCommand) => this.releasePinStep(c)),
 
             // 2) Borrar sesion: Busca y borra si existe.
-            ctx => ctx.chainAsync(c => this.processSessionDeletion(c)),
+            ctx => ctx.chainAsync((c: DeleteSessionContext) => this.processSessionDeletion(c)),
 
             // 3) Obtenemos confirmación
-            ctx => ctx.map(c => c.wasDeleted),
+            ctx => ctx.map((c: DeleteSessionContext) => c.wasDeleted),
 
             // 4) Mappear errores
             result => result.mapLeft(err => err.setContext(appContext))

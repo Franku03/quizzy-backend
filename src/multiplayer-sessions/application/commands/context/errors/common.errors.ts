@@ -21,6 +21,7 @@ export enum COMMON_ERRORS {
         SESSION_NOT_ACCEPTING_CONNECTIONS = "El host ha bloqueado las conexiones de nuevos jugadores a la sesión",
         USER_NOT_IN_SESSION = "La partida ya ha comenzado y el usuario no forma parte de la sesión activa",
         RESOURCE_NOT_FOUND = "El recurso solicitado no pudo ser encontrado",
+        SESSION_INVALID_SYNC_STATE = "La sesion se encuentra en un estado para el cual no se puede sincronizar",
 
         // Errores Legacy 
         // CREATE_SESSION_ERRORS

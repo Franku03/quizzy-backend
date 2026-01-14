@@ -21,8 +21,6 @@ import { QuestionStartedResponse } from "../../response-dtos/question-started.re
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
-import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { mapToQuestionResponse } from "../../mappers";
 
@@ -39,10 +37,10 @@ import { StartGameContextWithoutResponse, StartGameContextWithResponse } from ".
 export class HostStartGameHandler implements ICommandHandler<HostStartGameCommand> {
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject( MutexSessionConcurrencyManager ) 
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER ) 
         private readonly concurrencyManager: ISessionConcurrencyManager,
         
         private readonly mediaService: MediaEnrichmentService,
@@ -64,22 +62,22 @@ export class HostStartGameHandler implements ICommandHandler<HostStartGameComman
                 
                 Either.makeRight(command),
     
-                cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+                cmd => cmd.chainAsync((c: HostStartGameCommand) => this.loadSessionContext(c)),
     
                 // 1) Lógica de dominio: iniciar partida
-                ctx => ctx.chain(c => this.startSessionDomainLogic(c)),
+                ctx => ctx.chain((c: StartGameContextWithResponse) => this.startSessionDomainLogic(c)),
     
                 // 2) Mappear respuseta y enriquecer con urls
-                ctx => ctx.chainAsync(c => this.buildInitialResponse(c)),
+                ctx => ctx.chainAsync((c: StartGameContextWithoutResponse) => this.buildInitialResponse(c)),
     
                 // 3) Iniciarlizar tabla de resultados
-                ctx => ctx.chain(c => this.initSlideResultsTracking(c)),
+                ctx => ctx.chain((c: StartGameContextWithResponse )=> this.initSlideResultsTracking(c)),
     
                 // 4) Actualizar cambios en la BD
-                ctx => ctx.chainAsync(c => this.persistState(c)),
+                ctx => ctx.chainAsync((c: StartGameContextWithResponse ) => this.persistState(c)),
     
                 // 5) Mappeo final - Extraemos la respuesta que generamos en el paso 4
-                ctx => ctx.map(c => c.response!),
+                ctx => ctx.map((c: StartGameContextWithResponse) => c.response!),
     
                 // 6) Mappeo de errores
                 result => result.mapLeft(err => err.setContext(appContext))

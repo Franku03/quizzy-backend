@@ -298,6 +298,8 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // Una vez sincronizado con éxito, lo registramos oficialmente en la traza/juego
       this.tracingWsService.registerClient(client);
+      // registramos de nuevo su nombre en el servicio de traza       
+      if( client.data.role === SessionRoles.PLAYER ) this.tracingWsService.registerClientNickname( client );
       this.tracingWsService.logConnectedClients(); // Imprimimos de nuevo el loggin en memoria
 
     }
@@ -533,9 +535,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
               // Marcamos que el usuario ya estaba conectado de antes en la partida
               playerLobbyUpdate.connectedBefore = true;
               client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { ...playerLobbyUpdate, theme: result.theme } as PlayerLobbyUpdateResponse );
-
-              // registramos de nuevo su nombre en el servicio de traza       
-              this.tracingWsService.registerClientNickname( client );
           
               // Notificamos al host
               await this.handleRoomHostNotification( client.data.roomPin, hostLobbyUpdate, ServerEvents.HOST_LOBBY_UPDATE);

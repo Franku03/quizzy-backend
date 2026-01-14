@@ -14,10 +14,8 @@ import { Inject } from "@nestjs/common";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
-import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
+import type { ActiveSessionContext, IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
-
-import { InMemoryActiveSessionRepository  } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
 
 import { GetPinWithQrTokenResponse } from "../../response-dtos/get-pin-with-qr-token.response.dto";
 import { GetPinWithQrTokenCommand } from "./get-pin-with-qr-token.command";
@@ -36,10 +34,11 @@ import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/a
 export class GetPinWithQrTokenHandler implements ICommandHandler<GetPinWithQrTokenCommand> {
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        private readonly logger: ILogger,
         
     ){}
 
@@ -59,11 +58,11 @@ export class GetPinWithQrTokenHandler implements ICommandHandler<GetPinWithQrTok
 
             // 2) Buscamos usando el token
             // Recibe el string del paso anterior. Retorna Promise<Either>, así que usamos chainAsync.
-            eitherToken => eitherToken.chainAsync( token => this.sessionRepository.findByTemporalTokenEither(token)),
+            eitherToken => eitherToken.chainAsync( (token: string) => this.sessionRepository.findByTemporalTokenEither(token)),
 
             // 3) Extraemos lo que nos interesa (el PIN)
             // Si el repo devolvió Left (Not Found), este paso se salta automáticamente.
-            ctx => ctx.map( ctx => ({ sessionPin: ctx.session.getSessionPin() }) ),
+            ctx => ctx.map( (ctx: ActiveSessionContext) => ({ sessionPin: ctx.session.getSessionPin() }) ),
 
             // 4) Contexto o traducción de errores
             result => result.mapLeft( err => {

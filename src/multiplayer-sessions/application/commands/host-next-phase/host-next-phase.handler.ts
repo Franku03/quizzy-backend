@@ -24,8 +24,6 @@ import type { ISessionConcurrencyManager } from "../../ports/i-session-concurren
 import { mapEntriesToResultsResponse, mapFinalScoreboard, mapToQuestionResponse } from "../../mappers";
 
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository";
-import { MutexSessionConcurrencyManager } from "src/multiplayer-sessions/infrastructure/adapters";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import { Either } from '../../../../core/types/either';
@@ -46,10 +44,10 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
     private readonly sessionArchiverService: SessionArchiverService;
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
-        @Inject( MutexSessionConcurrencyManager ) 
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER ) 
         private readonly concurrencyManager: ISessionConcurrencyManager,
 
         @Inject(RepositoryName.MultiplayerSession)
@@ -80,19 +78,19 @@ export class HostNextPhaseHandler implements ICommandHandler<HostNextPhaseComman
                 
                 Either.makeRight(command),
     
-                cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+                cmd => cmd.chainAsync((c: HostNextPhaseCommand) => this.loadSessionContext(c)),
     
                 // 3) Actualizar Ranking solo si estamos en QUESTIONS, calculamos puntajes antes de cambiar de estado
-                ctx => ctx.chain(c => this.updateScoresIfNecessary(c)),
+                ctx => ctx.chain((c: NextPhaseContext) => this.updateScoresIfNecessary(c)),
     
                 // 4) Avanzamos de fase/estado en la partida
-                ctx => ctx.chain(c => this.advancePhase(c)),
+                ctx => ctx.chain((c: NextPhaseContext) => this.advancePhase(c)),
     
                 // 5) Manejar transición y respuesta al usuario
-                ctx => ctx.chainAsync(c => this.handleTransitionStrategy(c)),
+                ctx => ctx.chainAsync((c: NextPhaseContext) => this.handleTransitionStrategy(c)),
     
                 // 6) Resultado Final
-                ctx => ctx.map(c => c.response!),
+                ctx => ctx.map((c: NextPhaseContext) => c.response!),
     
                 // 7) Mappear errores
                 result => result.mapLeft(err => err.setContext(appContext))
