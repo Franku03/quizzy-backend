@@ -27,6 +27,7 @@ import { UnblockUserCommand } from 'src/backoffice/application/commands/unblock-
 import { GiveAdminCommand } from 'src/backoffice/application/commands/give-admin/give-admin.command';
 import { RemoveAdminCommand } from 'src/backoffice/application/commands/remove-admin/remove-admin.command';
 import { DeleteUserCommand } from 'src/backoffice/application/commands/delete-user/delete-user.command';
+import { BackofficeNotificationPaginationReadModel } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
 @Controller('backoffice')
 export class BackofficeController {
   constructor(
@@ -136,7 +137,7 @@ export class BackofficeController {
     };
   }
 
-  // Obtener lista mensajes masivos enviados (TODO TOMAR LOS QUERY PARAMS)
+  // Obtener lista mensajes masivos enviados
   @HttpCode(200)
   @Auth(ValidRoles.ADMIN)
   @Get('massNotifications')
@@ -144,8 +145,12 @@ export class BackofficeController {
     @GetUserId() adminId: string,
     @Query() paginationDto: BackofficeMassNotificationPaginationDto,
   ) {
-    return {
-      message: `admin with id ${adminId} tried to inspect notificatiosn list`,
-    };
+    const response: Either<
+      ErrorData,
+      BackofficeNotificationPaginationReadModel
+    > = await this.queryBus.execute(
+      paginationDto.toGetMassNotificationsQuery(),
+    );
+    return response;
   }
 }

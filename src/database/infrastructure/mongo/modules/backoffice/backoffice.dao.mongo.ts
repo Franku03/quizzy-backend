@@ -12,7 +12,11 @@ import { UserMongo } from '../../entities/users.schema';
 import { Model, FilterQuery } from 'mongoose';
 import { GetBackofficeUsersQuery } from 'src/backoffice/application/queries/get-backoffice-users/get-backoffice-users.query';
 import { GetMassNotificationsQuery } from 'src/backoffice/application/queries/get-mass-notifications/get-mass-notificactions.query';
-import { BackofficeNotificationPaginationReadModel } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
+import {
+  BackofficeNotificationPaginationReadModel,
+  BackofficeNotificationReadModel,
+  NotificationSender,
+} from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
 import {
   BackOfficeUserPaginationReadModel,
   BackOfficeUserReadModel,
@@ -21,6 +25,7 @@ import {
 import { UserRole } from 'src/users/domain/value-objects/user.roles';
 import { UserState } from 'src/users/domain/value-objects/user.state';
 import { OrderByEnum } from 'src/backoffice/infrastructure/nestjs/dtos/backoffice-user-pagination.dto';
+import { MassNotificationMongo } from '../../entities/mass-notification.schema';
 
 // Interface para el documento plano de usuario
 interface UserLeanDocument {
@@ -56,6 +61,8 @@ export class BackofficeDaoMongo implements IBackofficeDao {
 
   constructor(
     @InjectModel(UserMongo.name) private readonly userModel: Model<UserMongo>,
+    @InjectModel(MassNotificationMongo.name)
+    private readonly massNotificationModel: Model<MassNotificationMongo>,
     //Injectar notifications.schema.ts
   ) {}
 
@@ -214,9 +221,156 @@ export class BackofficeDaoMongo implements IBackofficeDao {
     }
   }
 
-  getMassNotifications(
+  async getMassNotifications(
     query: GetMassNotificationsQuery,
   ): Promise<Either<ErrorData, BackofficeNotificationPaginationReadModel>> {
-    throw new Error('Method not implemented.');
+    const ctx = this.getCtx('getMassNotifications', {
+      filters: {
+        userId: query.userId,
+        limit: query.limit,
+        page: query.page,
+        orderBy: query.orderBy,
+        order: query.order,
+      },
+    });
+
+    try {
+      // Construir query de filtrado
+      const filter: FilterQuery<MassNotificationMongo> = {};
+
+      if (query.userId) {
+        // Filtrar por el autor de la notificación
+        filter.authorId = query.userId;
+      }
+
+      // Calcular paginación
+      const limit = Math.min(query.limit || 20, 50); // Máximo 50 como en el Query
+      const page = query.page || 1;
+      const skip = (page - 1) * limit;
+
+      // Construir sort
+      const sort: Record<string, 1 | -1> = {};
+
+      // Mapear orderBy a campos reales de MongoDB
+      const fieldMapping: Record<OrderByEnum, string> = {
+        [OrderByEnum.CREATED_AT]: 'createdAt',
+        [OrderByEnum.NAME]: 'createdAt', // Temporalmente usar createdAt hasta implementar join
+        [OrderByEnum.USERTYPE]: 'createdAt', // Temporalmente usar createdAt hasta implementar join
+        [OrderByEnum.UPDATED_AT]: 'createdAt', // created_at ya que no hay updated_at
+      };
+
+      const orderBy = query.orderBy || OrderByEnum.CREATED_AT;
+      const order = query.order || 'asc';
+      const mongoField = fieldMapping[orderBy] || 'createdAt';
+      sort[mongoField] = order === 'desc' ? -1 : 1;
+
+      // Ejecutar las consultas en paralelo
+      const [totalCount, documents] = await Promise.all([
+        // Contar total de documentos
+        this.massNotificationModel.countDocuments(filter).exec(),
+        // Obtener documentos paginados
+        this.massNotificationModel
+          .find(filter)
+          .sort(sort)
+          .skip(skip)
+          .limit(limit)
+          .lean<any[]>()
+          .exec(),
+      ]);
+
+      // Mapear documentos a BackofficeNotificationReadModel
+      const notificationReadModels = await Promise.all(
+        documents.map(async (doc) => {
+          // Buscar información del autor
+          let sender: NotificationSender = {
+            id: doc.authorId,
+            name: 'Unknown Author',
+            email: 'unknown@example.com',
+            imageUrl: null,
+          };
+
+          if (doc.authorId) {
+            const author = await this.userModel
+              .findOne({ userId: doc.authorId, isDeleted: false })
+              .lean<UserLeanDocument>()
+              .exec();
+
+            if (author) {
+              // Usar avatarUrl de la interface UserLeanDocument
+              sender = {
+                id: doc.authorId,
+                name: author.profile?.name || 'Unknown',
+                email: author.email || 'unknown@example.com',
+                imageUrl: author.profile?.avatarUrl || null,
+              };
+            }
+          }
+
+          return new BackofficeNotificationReadModel(
+            doc.massMessageId,
+            doc.content.title,
+            doc.content.message,
+            doc.createdAt
+              ? doc.createdAt.toISOString()
+              : new Date().toISOString(),
+            sender,
+          );
+        }),
+      );
+
+      // Calcular información de paginación
+      const totalPages = Math.ceil(totalCount / limit);
+      const paginationInfo = new PaginationInfo(
+        page,
+        limit,
+        totalCount,
+        totalPages,
+      );
+
+      // Crear modelo de paginación
+      const paginationReadModel = new BackofficeNotificationPaginationReadModel(
+        notificationReadModels,
+        paginationInfo,
+      );
+
+      return Either.makeRight(paginationReadModel);
+    } catch (error) {
+      // Manejar errores
+      const errorData = this.mongoErrorMapper.toErrorData(error, ctx);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async verifyIfUserIsAdmin(
+    userId: string,
+  ): Promise<Either<ErrorData, boolean>> {
+    const ctx = this.getCtx('verifyIfUserIsAdmin', {
+      userId,
+    });
+
+    try {
+      // Buscar el usuario por userId
+      const user = await this.userModel
+        .findOne({
+          userId: userId,
+          isDeleted: false,
+        })
+        .lean()
+        .exec();
+
+      // Si el usuario no existe o está eliminado, devolver false
+      if (!user) {
+        return Either.makeRight(false);
+      }
+
+      // Verificar si el usuario tiene el rol ADMIN
+      const isAdmin =
+        Array.isArray(user.roles) && user.roles.includes(UserRole.ADMIN);
+
+      return Either.makeRight(isAdmin);
+    } catch (error) {
+      const errorData = this.mongoErrorMapper.toErrorData(error, ctx);
+      return Either.makeLeft(errorData);
+    }
   }
 }

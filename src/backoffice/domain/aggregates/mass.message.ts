@@ -25,6 +25,7 @@ export class MassMessage extends AggregateRoot<
   protected checkInvariants(): void {
     throw new Error('Method not implemented.');
   }
+
   private constructor(props: MassMessageProps, id: MassMessageId) {
     super(props, id);
   }
@@ -74,13 +75,70 @@ export class MassMessage extends AggregateRoot<
   public get massMessageId(): MassMessageId {
     return this.properties.massMessageId;
   }
+
   public get authorId(): UserId {
     return this.properties.author;
   }
+
   public get createdAt(): DateISO {
     return this.properties.createdAt;
   }
+
   public get filter(): Filters {
     return this.properties.filter;
+  }
+
+  public get content(): MessageContent {
+    return this.properties.content;
+  }
+
+  // --- Métodos para acceder a los datos del contenido ---
+
+  /**
+   * Obtiene el título del mensaje
+   */
+  public getTitle(): string {
+    return this.properties.content.gettitle();
+  }
+
+  /**
+   * Obtiene el cuerpo del mensaje
+   */
+  public getMessage(): string {
+    return this.properties.content.getmessage();
+  }
+
+  /**
+   * Obtiene los datos del filtro
+   */
+  public getFilterSendToAdmins(): boolean {
+    return this.properties.filter.getSendToAdmins();
+  }
+
+  public getFilterSendToRegularUsers(): boolean {
+    return this.properties.filter.getSendToRegularUsers();
+  }
+
+  /**
+   * Método para obtener un snapshot del mensaje (útil para persistencia)
+   */
+  public getSnapshot(): {
+    massMessageId: string;
+    authorId: string;
+    title: string;
+    message: string;
+    sendToAdmins: boolean;
+    sendToRegularUsers: boolean;
+    createdAt: string;
+  } {
+    return {
+      massMessageId: this.massMessageId.value,
+      authorId: this.authorId.value,
+      title: this.getTitle(),
+      message: this.getMessage(),
+      sendToAdmins: this.getFilterSendToAdmins(),
+      sendToRegularUsers: this.getFilterSendToRegularUsers(),
+      createdAt: this.createdAt.value,
+    };
   }
 }

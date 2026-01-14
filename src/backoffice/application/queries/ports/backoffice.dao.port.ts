@@ -12,4 +12,6 @@ export interface IBackofficeDao {
   getMassNotifications(
     query: GetMassNotificationsQuery,
   ): Promise<Either<ErrorData, BackofficeNotificationPaginationReadModel>>;
+
+  verifyIfUserIsAdmin(userId: string): Promise<Either<ErrorData, boolean>>;
 }

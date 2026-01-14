@@ -12,6 +12,8 @@ import { DeleteUserHandler } from 'src/backoffice/application/commands/delete-us
 import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetBackofficeUsersHandler } from 'src/backoffice/application/queries/get-backoffice-users/get-backoffice-users.handler';
+import { GetMassNotificationsHandler } from 'src/backoffice/application/queries/get-mass-notifications/get-mass-notifications.handler';
+import { VerifyIfUserIsAdminService } from './domain-services/verify-if-user-is-admin.service';
 
 @Module({
   imports: [
@@ -27,9 +29,14 @@ import { GetBackofficeUsersHandler } from 'src/backoffice/application/queries/ge
     RemoveAdminHandler,
     DeleteUserHandler,
     GetBackofficeUsersHandler,
+    GetMassNotificationsHandler,
     {
       provide: 'IDeletedUserHasher',
       useClass: DeleteUserHasherService,
+    },
+    {
+      provide: 'IVerifyIfUserIsAdminService',
+      useClass: VerifyIfUserIsAdminService,
     },
   ],
 })
