@@ -32,7 +32,7 @@ interface Authorizable {
   properties?: Authorizable;
 }
 
-type KahootFetcher = Partial<
+export type KahootFetcher = Partial<
   Pick<IKahootDao, 'getKahootById' | 'getKahootUserDetail'>
 > &
   Partial<Pick<IKahootRepository, 'findKahootByIdEither'>>;
@@ -45,7 +45,7 @@ export interface IKahootOwnershipRequest {
 }
 
 // Definimos el tipo de la función de búsqueda para que no sea 'any'
-type FetchFunction = (
+export type FetchFunction = (
   id: string,
   uId: string,
 ) => Promise<Either<ErrorData, unknown>>;
