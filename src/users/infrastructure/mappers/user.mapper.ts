@@ -1,17 +1,17 @@
-import { User } from '../../domain/aggregates/user';
+import { User } from 'src/users/domain/aggregates/user';
 import { UserMongo } from 'src/database/infrastructure/mongo/entities/users.schema';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
-import { UserEmail } from '../../domain/value-objects/user.email';
-import { UserName } from '../../domain/value-objects/user.user-name';
-import { UserProfileDetails } from '../../domain/value-objects/user.profile-details';
-import { HashedPassword } from '../../domain/value-objects/user.hashed-password';
-import { UserPreferences } from '../../domain/value-objects/user.user-preferences';
-import { UserType } from '../../domain/value-objects/user.type';
-import { UserSubscriptionStatus } from '../../domain/value-objects/user.user-subscription-status';
-import { SubscriptionState } from '../../domain/value-objects/user.subscription-state';
-import { SubscriptionPlan } from '../../domain/value-objects/user.subscription-plan';
-import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
+import { UserEmail } from 'src/users/domain/value-objects/user.email';
+import { UserName } from 'src/users/domain/value-objects/user.user-name';
+import { UserProfileDetails } from 'src/users/domain/value-objects/user.profile-details';
+import { HashedPassword } from 'src/users/domain/value-objects/user.hashed-password';
+import { UserPreferences } from 'src/users/domain/value-objects/user.user-preferences';
+import { UserType } from 'src/users/domain/value-objects/user.type';
+import { UserSubscriptionStatus } from 'src/users/domain/value-objects/user.user-subscription-status';
+import { SubscriptionState } from 'src/users/domain/value-objects/user.subscription-state';
+import { SubscriptionPlan } from 'src/users/domain/value-objects/user.subscription-plan';
 import { UserFavorites } from 'src/users/domain/value-objects/user.favorite-kahoots';
+import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
 import { UserState } from 'src/users/domain/value-objects/user.state';
 import { UserRole } from 'src/users/domain/value-objects/user.roles';
 
@@ -22,17 +22,17 @@ export class UserMapper {
     const username = new UserName(raw.username);
     const passwordHash = new HashedPassword(raw.passwordHash);
     const type = raw.type as UserType;
-    const favorites = UserFavorites.fromPrimitives(raw.favoriteKahoots || []);
 
     const profile = new UserProfileDetails(
       raw.profile.name,
       raw.profile.description,
-      raw.profile.avatarUrl,
+      raw.profile.avatarAssetId || '',
     );
 
     const subscriptionExpiresIso = new Date(raw.subscription.expiresAt)
       .toISOString()
       .split('T')[0];
+
     const subscription = new UserSubscriptionStatus(
       raw.subscription.state as SubscriptionState,
       raw.subscription.plan as SubscriptionPlan,
@@ -49,6 +49,8 @@ export class UserMapper {
       lastUsernameUpdate = DateISO.createFrom(updateIso);
     }
 
+    const favorites = UserFavorites.fromPrimitives(raw.favoriteKahoots || []);
+
     return User.reconstitute(
       {
         email,
@@ -60,7 +62,6 @@ export class UserMapper {
         subscriptionStatus: subscription,
         lastUsernameUpdate,
         favorites,
-        deviceTokens: raw.deviceTokens || [],
         state: raw.state as UserState, // Cambiado de isBlocked
         roles: raw.roles as UserRole[], // Cambiado de isAdmin
         isDeleted: raw.isDeleted,
@@ -80,11 +81,10 @@ export class UserMapper {
       lastUsernameUpdate: user.lastUsernameUpdate
         ? new Date(user.lastUsernameUpdate.value)
         : undefined,
-      deviceTokens: user.deviceTokens,
       profile: {
         name: user.userProfileDetails.name,
         description: user.userProfileDetails.description,
-        avatarUrl: user.userProfileDetails.avatarImageURL,
+        avatarAssetId: user.userProfileDetails.avatarAssetId,
       },
       subscription: {
         state: user.subscriptionStatus.state,

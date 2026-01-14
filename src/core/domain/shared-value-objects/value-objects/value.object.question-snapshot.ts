@@ -1,5 +1,16 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\domain\shared-value-objects\value-objects\value.object.question-snapshot.ts
+
 import { ValueObject } from 'src/core/domain/abstractions/value.object';
-import { Points } from './value.object.points'; 
+import { Points } from './value.object.points';
 import { TimeLimitSeconds } from './value.object.time-limit-seconds';
 import { GLOBAL_MAX_QUESTION_LENGTH } from './../constants/global-kahoot-constants';
 
@@ -10,29 +21,30 @@ interface QuestionSnapshotProps {
 }
 
 export class QuestionSnapshot extends ValueObject<QuestionSnapshotProps> {
-  
   public constructor(props: QuestionSnapshotProps) {
     super(props);
-    
-    // Invariant checks 
+
+    // Invariant checks
     if (!props.questionText || props.questionText.trim().length === 0) {
       throw new Error('Question text cannot be empty.');
     }
     if (props.questionText.length > GLOBAL_MAX_QUESTION_LENGTH) {
-      throw new Error(`Question text cannot exceed ${GLOBAL_MAX_QUESTION_LENGTH} characters.`);
+      throw new Error(
+        `Question text cannot exceed ${GLOBAL_MAX_QUESTION_LENGTH} characters.`,
+      );
     }
   }
 
   // Factory Method (used by clients to pass direct parameters instead of props object)
   public static create(
-    questionText: string, 
-    basePoints: Points, 
-    timeLimit: TimeLimitSeconds
+    questionText: string,
+    basePoints: Points,
+    timeLimit: TimeLimitSeconds,
   ): QuestionSnapshot {
     return new QuestionSnapshot({
       questionText: questionText,
       basePoints: basePoints,
-      timeLimit: timeLimit
+      timeLimit: timeLimit,
     });
   }
 

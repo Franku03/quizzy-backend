@@ -1,4 +1,15 @@
-import { Injectable } from '@nestjs/common';
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\infrastructure\nest-js\multiplayer-sessions.tracing.service.ts
+
+import { Injectable, Logger } from '@nestjs/common';
 import { SessionRoles } from './enums/session-roles.enum';
 import { SessionSocket } from './interfaces/socket-definitions.interface';
 
@@ -24,6 +35,8 @@ interface ConnectedClients {
 @Injectable()
 export class MultiplayerSessionsTracingService {
 
+    private readonly logger: Logger = new Logger('QuizzySessions');
+    
     private availableRooms: Map<string, ConnectedClients> = new Map<string, ConnectedClients>();
 
 
@@ -153,6 +166,21 @@ export class MultiplayerSessionsTracingService {
 
     }
 
+
+    roomHasClient( roomPin: string, clientId: string ): boolean {
+
+        const room = this.getRoom( roomPin );
+
+        if(!room)
+            return false;
+
+        const client = room[ clientId ];
+
+        return client !== undefined;
+
+    }
+
+
     getRoomHostSocketId( roomPin: string ): string | undefined {
         const room = this.getRoom( roomPin );
 
@@ -163,22 +191,6 @@ export class MultiplayerSessionsTracingService {
             return room["host"]?.socket.id;
 
         return undefined;
-    }
-
-    
-    // --------------------------------------------------------------------------
-    // * Métodos de loggeo
-    // --------------------------------------------------------------------------
-
-    logConnectedClients(): void {
-
-        const availableRooms = this.getAvailableRooms();
-
-        availableRooms.forEach( room => {
-            console.log( room );
-        });
-    
-
     }
 
     // --------------------------------------------------------------------------
@@ -206,5 +218,58 @@ export class MultiplayerSessionsTracingService {
 
         return room;
     }
+
+
+    // --------------------------------------------------------------------------
+    // * Métodos de loggeo
+    // --------------------------------------------------------------------------
+
+    logConnectedClients(): void {
+        if (this.availableRooms.size === 0) {
+            this.logger.log('🦕 No hay salas activas en este momento.');
+            return;
+        }
+
+        this.availableRooms.forEach((clients, pin) => {
+            const entries = Object.entries(clients);
+            const hostData = clients['host'];
+            // Filtramos los que no sean 'host' y existan para obtener la lista de jugadores
+            const players = entries.filter(([id, data]) => id !== 'host' && data !== undefined);
+
+            let output = `\n`;
+            output += `================================================================\n`;
+            output += `🏠 SESIÓN ACTIVA - PIN: ${pin}\n`;
+            output += `================================================================\n`;
+
+            // --- SECCIÓN DEL HOST ---
+            if (hostData) {
+            output += `👑 HOST DETAILS\n`;
+            output += `   ID Usuario:  ${hostData.userId}\n`;
+            output += `   Socket ID:   ${hostData.socketId}\n`;
+            output += `   Status:      Conectado\n`;
+            } else {
+            output += `⚠️ HOST:        No detectado (Sala huérfana)\n`;
+            }
+
+            output += `----------------------------------------------------------------\n`;
+
+            // --- SECCIÓN DE JUGADORES ---
+            output += `👥 PLAYERS (${players.length})\n`;
+            if (players.length > 0) {
+            players.forEach(([socketId, data]) => {
+                const nickname = data?.nickname || 'Anonymous';
+                // Mostramos los primeros 8 caracteres del socketId para no saturar
+                output += `   • [${socketId.substring(0, 8)}...] Nickname: ${nickname}\n`;
+            });
+            } else {
+            output += `   (Aún no hay jugadores unidos)\n`;
+            }
+
+            output += `================================================================`;
+
+            this.logger.log(output);
+        });
+    }
+
 
 }

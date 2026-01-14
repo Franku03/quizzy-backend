@@ -12,11 +12,18 @@ import { ReportsModule } from './reports/reports.module';
 import { ExploreModule } from './explore/explore.module';
 import { GroupsModule } from './groups/groups.module'; // De HEAD
 import { AuthModule } from './auth/auth.module';
-import { WellKnownController } from './shared/infrastructure/controllers/well-known.controller';
+import { WellKnownController } from './core/infrastructure/controllers/well-known.controller';
 import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -28,14 +35,15 @@ import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.
     MultiplayerSessionsModule,
     SoloAttemptsModule,
     LibraryModule,
-    GroupsModule, 
+    GroupsModule,
     MediaModule,
     ExploreModule,
     AuthModule,
     BackofficeModule,
+    NotificationsModule,
   ],
   controllers: [WellKnownController],
 })
 export class AppModule {
-  constructor() {}
+  constructor() { }
 }

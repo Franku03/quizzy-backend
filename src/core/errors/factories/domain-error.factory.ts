@@ -1,95 +1,101 @@
-// src/shared/errors/domain-error.factory.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\errors\factories\domain-error.factory.ts
+
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { IDomainErrorContext } from '../interface/context/i-error-domain.context';
 
 export class DomainErrorFactory {
+  /**
+   * Crea ErrorData: Recurso no encontrado (Ej: 404).
+   * Se usa cuando una Entidad o Agregado referenciado no existe.
+   */
+  static notFound(context: IDomainErrorContext, message?: string): ErrorData {
+    const defaultMsg = `${context.domainObjectType} with ID "${context.domainObjectId}" not found.`;
 
-    /**
-     * Crea ErrorData: Recurso no encontrado (Ej: 404).
-     * Se usa cuando una Entidad o Agregado referenciado no existe.
-     */
-    static notFound(
-        context: IDomainErrorContext,
-        message?: string
-    ): ErrorData {
-        const defaultMsg = `${context.domainObjectType} with ID "${context.domainObjectId}" not found.`;
+    return new ErrorData(
+      'RESOURCE_NOT_FOUND',
+      message ?? defaultMsg,
+      ErrorLayer.DOMAIN,
+      { ...context, errorCategory: 'NOT_FOUND' },
+    );
+  }
 
-        return new ErrorData(
-            "RESOURCE_NOT_FOUND",
-            message || defaultMsg,
-            ErrorLayer.DOMAIN,
-            { ...context, errorCategory: 'NOT_FOUND' }
-        );
-    }
+  /**
+   * Crea ErrorData: Acceso no autorizado (Ej: 403).
+   * Se usa cuando el actor (usuario) no cumple las reglas de propiedad/permisos.
+   */
+  static unauthorized(
+    context: IDomainErrorContext,
+    message?: string,
+  ): ErrorData {
+    const defaultMsg = `Actor ${context.actorId} not authorized to ${context.intendedAction} resource ${context.domainObjectType}.`;
 
-    /**
-     * Crea ErrorData: Acceso no autorizado (Ej: 403).
-     * Se usa cuando el actor (usuario) no cumple las reglas de propiedad/permisos.
-     */
-    static unauthorized(
-        context: IDomainErrorContext,
-        message?: string
-    ): ErrorData {
-        const defaultMsg = `Actor ${context.actorId} not authorized to ${context.intendedAction} resource ${context.domainObjectType}.`;
+    return new ErrorData(
+      'UNAUTHORIZED_ACCESS',
+      message ?? defaultMsg,
+      ErrorLayer.DOMAIN,
+      { ...context, errorCategory: 'UNAUTHORIZED' },
+    );
+  }
 
-        return new ErrorData(
-            "UNAUTHORIZED_ACCESS",
-            message || defaultMsg,
-            ErrorLayer.DOMAIN,
-            { ...context, errorCategory: 'UNAUTHORIZED' }
-        );
-    }
+  /**
+   * Crea ErrorData: Fallo de validación de reglas de negocio (Ej: 400).
+   * Se usa cuando un VO o una regla de negocio compleja falla.
+   */
+  // src/shared/errors/domain-error.factory.ts
 
-    /**
-     * Crea ErrorData: Fallo de validación de reglas de negocio (Ej: 400).
-     * Se usa cuando un VO o una regla de negocio compleja falla.
-     */
-    // src/shared/errors/domain-error.factory.ts
+  static validation(
+    context: IDomainErrorContext,
+    validationDetails: Record<string, string[]>,
+    message?: string,
+  ): ErrorData {
+    const kind = context.domainObjectKind ?? 'Object';
+    const fields = Object.keys(validationDetails).join(', ');
 
-    static validation(
-        context: IDomainErrorContext,
-        validationDetails: Record<string, string[]>,
-        message?: string
-    ): ErrorData {
-        const kind = context.domainObjectKind || 'Object';
-        const fields = Object.keys(validationDetails).join(', ');
+    // Construcción de un mensaje jerárquico
+    // Si tenemos rootAggregateName, el mensaje dirá: "Validation failed for Kahoot -> ValueObject "VisibilityStatus"..."
+    const breadcrumb = context.rootAggregateName
+      ? `${context.rootAggregateName} -> `
+      : '';
 
-        // Construcción de un mensaje jerárquico
-        // Si tenemos rootAggregateName, el mensaje dirá: "Validation failed for Kahoot -> ValueObject "VisibilityStatus"..."
-        const breadcrumb = context.rootAggregateName
-            ? `${context.rootAggregateName} -> `
-            : '';
+    const defaultMsg = `Validation failed for ${breadcrumb}${kind} "${context.domainObjectType}". Invalid fields: [${fields}]`;
 
-        const defaultMsg = `Validation failed for ${breadcrumb}${kind} "${context.domainObjectType}". Invalid fields: [${fields}]`;
+    return new ErrorData(
+      'INVALID_DATA',
+      message ?? defaultMsg,
+      ErrorLayer.DOMAIN,
+      {
+        ...context,
+        validationDetails,
+        errorCategory: 'VALIDATION',
+      },
+    );
+  }
 
-        return new ErrorData(
-            "INVALID_DATA",
-            message || defaultMsg,
-            ErrorLayer.DOMAIN,
-            {
-                ...context,
-                validationDetails,
-                errorCategory: 'VALIDATION'
-            }
-        );
-    }
+  /**
+   * Crea ErrorData: Conflicto de estado (Ej: 409).
+   * Se usa para errores como duplicados, estado incorrecto o conflictos de concurrencia optimista.
+   */
+  static conflict(
+    context: IDomainErrorContext,
+    conflictType: 'DUPLICATE' | 'STATE' | 'CONCURRENCY',
+    message?: string,
+  ): ErrorData {
+    const defaultMsg = `${conflictType} conflict in ${context.domainObjectType}.`;
 
-    /**
-     * Crea ErrorData: Conflicto de estado (Ej: 409).
-     * Se usa para errores como duplicados, estado incorrecto o conflictos de concurrencia optimista.
-     */
-    static conflict(
-        context: IDomainErrorContext,
-        conflictType: 'DUPLICATE' | 'STATE' | 'CONCURRENCY',
-        message?: string
-    ): ErrorData {
-        const defaultMsg = `${conflictType} conflict in ${context.domainObjectType}.`;
-
-        return new ErrorData(
-            `${conflictType}_CONFLICT`,
-            message || defaultMsg,
-            ErrorLayer.DOMAIN,
-            { ...context, conflictType, errorCategory: 'CONFLICT' }
-        );
-    }
+    return new ErrorData(
+      `${conflictType}_CONFLICT`,
+      message ?? defaultMsg,
+      ErrorLayer.DOMAIN,
+      { ...context, conflictType, errorCategory: 'CONFLICT' },
+    );
+  }
 }

@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\users\users.repository.mongo.ts
+
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -220,6 +231,20 @@ export class UserRepositoryMongo implements IUserRepository {
     }
   }
 
+  async findByUsername(username: UserName): Promise<Optional<User>> {
+    try {
+      const document = await this.userModel
+        .findOne({ username: username.value })
+        .exec();
+
+      return document 
+        ? new Optional(UserMapper.toDomain(document)) 
+        : new Optional();
+    } catch (error) {
+      throw new Error(`Error finding user by Username: ${error.message}`);
+    }
+  }
+
   async existsUserByEmail(email: UserEmail): Promise<boolean> {
     try {
       const exists = await this.userModel
@@ -250,4 +275,24 @@ export class UserRepositoryMongo implements IUserRepository {
       throw new Error(`Error deleting user: ${error.message}`);
     }
   }
+  
+  async findAll(): Promise<User[]> {
+    try {
+      const documents = await this.userModel.find().exec();
+      const validUsers: User[] = [];
+
+      for (const doc of documents) {
+        try {
+            const user = UserMapper.toDomain(doc);
+            validUsers.push(user);
+        } catch (innerError) {
+        }
+      }
+
+      return validUsers;
+    } catch (error) {
+      throw new Error(`Error fetching all users: ${error.message}`);
+    }
+  }
+  
 }

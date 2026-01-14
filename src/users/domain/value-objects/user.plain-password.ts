@@ -21,7 +21,7 @@ export class PlainPassword extends ValueObject<PlainPasswordProps> {
     
     private static ensureIsSecure(value: string): void {
         if (value.length < 6) {
-            throw new InvalidArgumentError("La contraseña debe tener al menos 6 caracteres.");
+            throw new InvalidArgumentError("The password must be at least 6 characters long.");
         }
     }
 

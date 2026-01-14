@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\infrastructure\nest-js\media.module.ts
+
 import { Module, Scope } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
@@ -38,89 +49,87 @@ import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-acc
 import { MediaController } from './media.controller';
 
 @Module({
-    controllers: [MediaController],
-    imports: [
-        CoreModule,
-        ConfigModule,
-        DaoFactoryModule.forFeature(DaoName.AssetMetadata),
-    ],
-    providers: [
-        CommandQueryExecutorService,
-        UploadAssetHandler,
+  controllers: [MediaController],
+  imports: [
+    CoreModule,
+    ConfigModule,
+    DaoFactoryModule.forFeature(DaoName.AssetMetadata),
+  ],
+  providers: [
+    CommandQueryExecutorService,
+    UploadAssetHandler,
 
-        // --- Orquestación y Factorías ---
-        MediaEnrichmentService,
-        EnrichmentHandlerFactory,
-        {
-            provide: AssetEnrichmentHandler,
-            useClass: AssetEnrichmentHandler,
-            scope: Scope.TRANSIENT,
-        },
-        {
-            provide: ThemeEnrichmentHandler,
-            useClass: ThemeEnrichmentHandler,
-            scope: Scope.TRANSIENT,
-        },
+    // --- Orquestación y Factorías ---
+    MediaEnrichmentService,
+    EnrichmentHandlerFactory,
+    {
+      provide: AssetEnrichmentHandler,
+      useClass: AssetEnrichmentHandler,
+      scope: Scope.TRANSIENT,
+    },
+    {
+      provide: ThemeEnrichmentHandler,
+      useClass: ThemeEnrichmentHandler,
+      scope: Scope.TRANSIENT,
+    },
 
-        // --- API Query Proxies (Listados/Colecciones) ---
-        {
-            provide: MEDIA_TOKENS.RAW_THEME_LIST_QUERY_HANDLER,
-            useClass: GetThemesHandler,
-        },
+    // --- API Query Proxies (Listados/Colecciones) ---
+    {
+      provide: MEDIA_TOKENS.RAW_THEME_LIST_QUERY_HANDLER,
+      useClass: GetThemesHandler,
+    },
 
-        ThemeListProxy,
+    ThemeListProxy,
 
-        // --- Sistema de Resolución de Imágenes (Proxy Pattern) ---
-        {
-            provide: MEDIA_TOKENS.RAW_IMAGE_URL_ENRICHER,
-            useClass: AssetResolutionService,
-        },
-        {
-            provide: MEDIA_TOKENS.IMAGE_URL_ENRICHER,
-            useClass: AssetResolutionProxy, 
-        },
+    // --- Sistema de Resolución de Imágenes (Proxy Pattern) ---
+    {
+      provide: MEDIA_TOKENS.RAW_IMAGE_URL_ENRICHER,
+      useClass: AssetResolutionService,
+    },
+    {
+      provide: MEDIA_TOKENS.IMAGE_URL_ENRICHER,
+      useClass: AssetResolutionProxy,
+    },
 
-        // --- Sistema de Resolución de Temas (Proxy Pattern) ---
-        {
-            provide: MEDIA_TOKENS.RAW_THEME_ENRICHER,
-            useClass: ThemeResolutionService,
-        },
-        {
-            provide: MEDIA_TOKENS.THEME_ENRICHER,
-            useClass: ThemeResolutionProxy, 
-        },
+    // --- Sistema de Resolución de Temas (Proxy Pattern) ---
+    {
+      provide: MEDIA_TOKENS.RAW_THEME_ENRICHER,
+      useClass: ThemeResolutionService,
+    },
+    {
+      provide: MEDIA_TOKENS.THEME_ENRICHER,
+      useClass: ThemeResolutionProxy,
+    },
 
-        // --- Infraestructura y Adaptadores ---
-        {
-            provide: MEDIA_TOKENS.ASSET_URL_GENERATOR,
-            useClass: CloudinaryUrlGeneratorAdapter
-        },
-        {
-            provide: MEDIA_TOKENS.ASSET_STORAGE_SERVICE,
-            useClass: CloudinaryStorageAdapter
-        },
-        {
-            provide: ERROR_TOKENS.MAPPERS.CLOUDINARY,
-            useClass: CloudinaryErrorMapper
-        },
-        {
-            provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
-            useClass: NodeCryptoService
-        },
-        {
-            provide: MEDIA_TOKENS.CLOUDINARY_CONFIG,
-            useFactory: () => {
-                cloudinary.config({
-                    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-                    api_key: process.env.CLOUDINARY_API_KEY,
-                    api_secret: process.env.CLOUDINARY_API_SECRET,
-                });
-                return cloudinary;
-            }
-        },
-    ],
-    exports: [
-        MediaEnrichmentService,
-    ]
+    // --- Infraestructura y Adaptadores ---
+    {
+      provide: MEDIA_TOKENS.ASSET_URL_GENERATOR,
+      useClass: CloudinaryUrlGeneratorAdapter,
+    },
+    {
+      provide: MEDIA_TOKENS.ASSET_STORAGE_SERVICE,
+      useClass: CloudinaryStorageAdapter,
+    },
+    {
+      provide: ERROR_TOKENS.MAPPERS.CLOUDINARY,
+      useClass: CloudinaryErrorMapper,
+    },
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,
+      useClass: NodeCryptoService,
+    },
+    {
+      provide: MEDIA_TOKENS.CLOUDINARY_CONFIG,
+      useFactory: () => {
+        cloudinary.config({
+          cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+          api_key: process.env.CLOUDINARY_API_KEY,
+          api_secret: process.env.CLOUDINARY_API_SECRET,
+        });
+        return cloudinary;
+      },
+    },
+  ],
+  exports: [MediaEnrichmentService],
 })
-export class MediaModule { }
+export class MediaModule {}

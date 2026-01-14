@@ -14,11 +14,15 @@ export interface IUserRepository {
 
     findByEmail(email: UserEmail): Promise<Optional<User>>;
 
+    findByUsername(username: UserName): Promise<Optional<User>>;
+
     existsUserByEmail(email: UserEmail): Promise<boolean>;
 
     existsUserByUsername(username: UserName): Promise<boolean>;
 
     deleteUser(id: UserId): Promise<void>;
+
+    findAll(): Promise<User[]>;
 
     // ==========================================
     // MÉTODOS EITHER PARA BACKOFFICE

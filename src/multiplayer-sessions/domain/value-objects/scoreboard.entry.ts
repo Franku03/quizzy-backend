@@ -1,4 +1,14 @@
-import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\domain\value-objects\scoreboard.entry.ts
+
 import { PlayerId } from "./player.id";
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { validateNicknameInvariants } from "../helpers/validate-nickname-invariants";
@@ -32,7 +42,7 @@ export class ScoreboardEntry extends ValueObject<ScoreboardEntryProps>{
 
         if( !nicknameValidation.isValid ) {
 
-            throw new Error( nicknameValidation.error );
+            throw new Error( nicknameValidation.errorMessage );
 
         } 
 

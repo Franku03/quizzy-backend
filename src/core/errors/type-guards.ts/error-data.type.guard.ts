@@ -1,5 +1,16 @@
-import { ErrorData } from "../error.type";
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
 
-export function isErrorData(error: any): error is ErrorData {
-    return error instanceof ErrorData;
+// File: src\core\errors\type-guards.ts\error-data.type.guard.ts
+
+import { ErrorData } from '../error.type';
+
+export function isErrorData(error: unknown): error is ErrorData {
+  return error instanceof ErrorData;
 }

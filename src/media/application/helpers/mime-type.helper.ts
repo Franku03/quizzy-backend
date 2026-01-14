@@ -1,4 +1,14 @@
-// src/media/domain/helpers/mime-type.helper.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\helpers\mime-type.helper.ts
+
 export class MimeTypeHelper {
   static getFormat(mimeType: string): string {
     // image/jpeg -> jpeg
@@ -8,16 +18,16 @@ export class MimeTypeHelper {
 
   static getCategory(mimeType: string): string {
     const [type] = mimeType.split('/');
-    
-    const categories = {
-      'image': 'image',
-      'video': 'video',
-      'audio': 'audio',
-      'application': 'document',
-      'text': 'document',
-      'font': 'document'
+
+    const categories: Record<string, string> = {
+      image: 'image',
+      video: 'video',
+      audio: 'audio',
+      application: 'document',
+      text: 'document',
+      font: 'document',
     };
-    
+
     return categories[type] || 'other';
   }
 

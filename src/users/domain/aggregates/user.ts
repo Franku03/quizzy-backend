@@ -26,7 +26,6 @@ interface UserProps {
   subscriptionStatus: UserSubscriptionStatus;
   lastUsernameUpdate?: DateISO;
   favorites: UserFavorites;
-  deviceTokens: string[];
   state: UserState; // Reemplaza isBlocked
   roles: UserRole[]; // Reemplaza isAdmin (array de roles)
   isDeleted: boolean;
@@ -65,7 +64,6 @@ export class User extends AggregateRoot<UserProps, UserId> {
       subscriptionStatus,
       lastUsernameUpdate: undefined,
       favorites: UserFavorites.createEmpty(),
-      deviceTokens: [],
       state,
       roles,
       isDeleted,
@@ -172,11 +170,11 @@ export class User extends AggregateRoot<UserProps, UserId> {
     );
 
     if (!isMatch) {
-      throw new Error('La contraseña actual es incorrecta.');
+      throw new Error('The actual password is incorrect.');
     }
 
     if (await this.properties.passwordHash.match(newPassword, hasher)) {
-      throw new Error('La nueva contraseña debe ser diferente a la actual.');
+      throw new Error('The new password must be different to the actual one.');
     }
 
     this.properties.passwordHash = await newPassword.hash(hasher);
@@ -212,14 +210,8 @@ export class User extends AggregateRoot<UserProps, UserId> {
 
     if (nextAllowedDateVO.isGreaterThan(todayVO)) {
       throw new Error(
-        `Solo puedes cambiar tu nombre de usuario una vez al año. Podrás hacerlo nuevamente el: ${nextAllowedDateVO.value}`,
+        `You can only change your username once a year. Next update available on: ${nextAllowedDateVO.value}`,
       );
-    }
-  }
-
-  public registerDeviceToken(token: string): void {
-    if (!this.properties.deviceTokens.includes(token)) {
-      this.properties.deviceTokens.push(token);
     }
   }
 
@@ -244,7 +236,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
       profile: {
         name: this.properties.userProfileDetails.name,
         description: this.properties.userProfileDetails.description,
-        avatarUrl: this.properties.userProfileDetails.avatarImageURL,
+        avatarAssetId: this.properties.userProfileDetails.avatarAssetId,
       },
       type: this.properties.type,
       subscription: {
@@ -256,7 +248,6 @@ export class User extends AggregateRoot<UserProps, UserId> {
         theme: this.properties.userPreferences.themePreference,
       },
       favorites: this.properties.favorites.toPrimitives(),
-      deviceTokens: this.properties.deviceTokens,
       state: this.properties.state, // Cambiado de isBlocked
       roles: this.properties.roles, // Cambiado de isAdmin
       deletedAt: new Date().toISOString(),
@@ -288,7 +279,7 @@ export class User extends AggregateRoot<UserProps, UserId> {
       profile: {
         name: this.properties.userProfileDetails.name,
         description: this.properties.userProfileDetails.description,
-        avatarUrl: this.properties.userProfileDetails.avatarImageURL,
+        avatarAssetId: this.properties.userProfileDetails.avatarAssetId,
       },
       type: this.properties.type,
       subscription: {
@@ -300,7 +291,6 @@ export class User extends AggregateRoot<UserProps, UserId> {
         theme: this.properties.userPreferences.themePreference,
       },
       favorites: this.properties.favorites.toPrimitives(),
-      deviceTokens: this.properties.deviceTokens,
       state: this.properties.state, // Cambiado de isBlocked
       roles: this.properties.roles, // Cambiado de isAdmin
       deletedAt: new Date().toISOString(),
@@ -353,10 +343,6 @@ export class User extends AggregateRoot<UserProps, UserId> {
 
   get favorites(): UserFavorites {
     return this.properties.favorites;
-  }
-
-  get deviceTokens(): string[] {
-    return this.properties.deviceTokens;
   }
 
   get state(): UserState {

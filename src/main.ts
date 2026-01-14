@@ -1,30 +1,28 @@
-// src/main.ts
 import './database/infrastructure/mongo/modules/adapters-mongo.imports';
 import './database/infrastructure/postgres/modules/adapters-postgres.imports';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 
+// Importamos las clases para recuperarlas del contenedor
 import { AllExceptionsFilter } from './core/infrastructure/filters/all-exceptions.filter';
-import { ErrorMappingService } from './core/infrastructure/services/global-error-mapping.service';
+import { ResultInterceptor } from './core/infrastructure/interceptors/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // 1. HABILITA CORS (CRÍTICO para Render)
+  // 1. CONFIGURACIÓN GLOBAL
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  // 2. Global prefix
   app.setGlobalPrefix('api', {
     exclude: [{ path: '.well-known/assetlinks.json', method: RequestMethod.GET }],
   });
 
-  // 3. Global pipes (Maneja fallos de validación de entrada antes de llegar al handler)
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -33,19 +31,27 @@ async function bootstrap() {
     }),
   );
 
-  //  4. REGISTRO GLOBAL DEL FILTRO DE EXCEPCIONES
+  // 2. EXTRACCIÓN DINÁMICA DE COMPONENTES
+  // Al usar CoreModule con useExisting, esto funciona perfectamente:
+  const filterName = app.get(AllExceptionsFilter).constructor.name;
+  const interceptorName = app.get(ResultInterceptor).constructor.name;
 
-  const errorMappingService = app.get(ErrorMappingService);
-  app.useGlobalFilters(new AllExceptionsFilter(errorMappingService));
-
+  // 3. INICIO DEL SERVIDOR
   const port = process.env.PORT || 3000;
+  const dbType = process.env.DB_GLOBAL_TYPE || 'mongo';
+
   await app.listen(port);
 
-  const dbType = process.env.DB_GLOBAL_TYPE || 'mongo';
-  printQuizzyBanner(port, dbType);
+  // 4. IMPRESIÓN DEL BANNER
+  printQuizzyBanner(port, dbType, filterName, interceptorName);
 }
 
-function printQuizzyBanner(port: string | number, dbType: string) {
+function printQuizzyBanner(
+  port: string | number, 
+  dbType: string, 
+  filter: string, 
+  interceptor: string
+) {
   const reset = '\x1b[0m';
   const green = '\x1b[32m';
   const yellow = '\x1b[33m';
@@ -64,16 +70,17 @@ function printQuizzyBanner(port: string | number, dbType: string) {
   const dbIcon = dbType === 'mongo' ? '🍃' : '🐘';
 
   const header = `${green}[Quizzy]${reset} ${gray}- ${reset}${timestamp}    ${green}LOG ${reset}${yellow}[Bootstrap]${reset}`;
-
   const line = `${green}================================================================${reset}`;
 
   console.log(`${header} ${line}`);
   console.log(`${header} 🚀 ${bold}App running on port:${reset}     ${yellow}${port}${reset}`);
   console.log(`${header} ${dbIcon} ${bold}Database Type:${reset}          ${dbColor}${dbName}${reset}`);
   console.log(`${header} 🕹️  ${bold}WS Server port:${reset}         ${yellow}${port}${reset}`);
-  console.log(`${header} 📁 ${bold}Global prefix:${reset}          ${magenta}/api${reset}`);
-  console.log(`${header} 🌐 ${bold}CORS enabled:${reset}           ${green}true${reset}`);
-  console.log(`${header} ✅ ${bold}Exception Filter:${reset}       ${gray}AllExceptionsFilter${reset}`);
+  console.log(`${header} 📁 ${bold}Global prefix:${reset}           ${magenta}/api${reset}`);
+  console.log(`${header} 🌐 ${bold}CORS enabled:${reset}            ${green}true${reset}`);
+  console.log(`${header} 🛡️  ${bold}Exception Filter:${reset}       ${gray}${filter}${reset}`);
+  console.log(`${header} 🔄 ${bold}Response Interceptor:${reset}   ${gray}${interceptor}${reset}`);
   console.log(`${header} ${line}`);
 }
+
 bootstrap();

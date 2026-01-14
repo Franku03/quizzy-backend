@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\catalogs\repository.catalog.enum.ts
+
 // Enum para Repositories
 export enum RepositoryName {
   User = 'UserRepository',
@@ -6,6 +17,8 @@ export enum RepositoryName {
   Group = 'GroupRepository',
   MultiplayerSession = 'MultiplayerSessionRepository',
   MassMessage = 'MassMessageRepository',
+  Notification = 'NotificationRepository',
+  Device = 'DeviceRepository'
 }
 
 export const REPOSITORY_OVERRIDE_ENV_MAP: Record<RepositoryName, string> = {
@@ -15,4 +28,6 @@ export const REPOSITORY_OVERRIDE_ENV_MAP: Record<RepositoryName, string> = {
   [RepositoryName.Group]: 'DB_GROUP_REPO_TYPE',
   [RepositoryName.MultiplayerSession]: 'DB_MULTIPLAYERSESSION_REPO_TYPE',
   [RepositoryName.MassMessage]: 'DB_MASS_MESSAGE_REPO_TYPE',
+  [RepositoryName.Notification]: 'DB_NOTIFICATION_REPO_TYPE',
+  [RepositoryName.Device]: 'DB_DEVICE_REPO_TYPE'
 };

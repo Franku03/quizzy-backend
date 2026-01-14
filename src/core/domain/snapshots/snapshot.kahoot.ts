@@ -1,7 +1,21 @@
-import { IHasMediaAssets } from "../abstractions/media.assets.interface";
-import { KahootDetailsSnapshot } from "./snapshot.kahoot.details";
-import { KahootStylingSnapshotData, KahootStylingSnapshot } from "./snapshot.kahoot.styling";
-import { SlideSnapshotData, SlideSnapshot } from "./snapshot.slide";
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\domain\snapshots\snapshot.kahoot.ts
+
+import { IHasMediaAssets } from '../abstractions/media.assets.interface';
+import { KahootDetailsSnapshot } from './snapshot.kahoot.details';
+import {
+  KahootStylingSnapshotData,
+  KahootStylingSnapshot,
+} from './snapshot.kahoot.styling';
+import { SlideSnapshotData, SlideSnapshot } from './snapshot.slide';
 
 export interface KahootSnapshotData {
   id: string;
@@ -25,7 +39,7 @@ export class KahootSnapshot implements IHasMediaAssets {
     public playCount: number,
     public styling: KahootStylingSnapshot,
     public slides: SlideSnapshot[] = [],
-    public details?: KahootDetailsSnapshot
+    public details?: KahootDetailsSnapshot,
   ) {}
 
   public static fromRaw(data: KahootSnapshotData): KahootSnapshot {
@@ -37,20 +51,21 @@ export class KahootSnapshot implements IHasMediaAssets {
       data.status,
       data.playCount,
       KahootStylingSnapshot.fromRaw(data.styling),
-      data.slides?.map(s => SlideSnapshot.fromRaw(s)) || [],
-      data.details
+      data.slides?.map((s) => SlideSnapshot.fromRaw(s)) ?? [],
+      data.details,
     );
   }
 
   public getMediaAssetIds(): string[] {
     const ids = this.styling.getMediaAssetIds();
-    this.slides.forEach(s => ids.push(...s.getMediaAssetIds()));
+    this.slides.forEach((s) => ids.push(...s.getMediaAssetIds()));
     return [...new Set(ids)];
   }
 
   public applyMediaUrls(urlMap: Map<string, string>): void {
     this.styling.applyMediaUrls(urlMap);
-    this.slides.forEach(s => s.applyMediaUrls(urlMap));
+    this.slides.forEach((s) => {
+      s.applyMediaUrls(urlMap);
+    });
   }
-  
 }

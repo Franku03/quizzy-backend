@@ -1,119 +1,138 @@
-import { Body, Controller, Post, Get, Patch, Delete, Param, HttpCode, HttpStatus, ConflictException, BadRequestException, InternalServerErrorException, NotFoundException 
-} from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
-import { CreateUserDto } from './dtos/create-user.dto';
-import { CreateUserCommand } from 'src/users/application/commands/create-user/create-user.command';
-import { Either } from 'src/core/types/either';
-import { CREATE_USER_ERROR_CODES } from 'src/users/application/commands/create-user/create-user.errors';
-import { InvalidArgumentError } from 'src/users/domain/errors/invalid.argument.error';
-import { GetUserByIdQuery } from 'src/users/application/queries/get-user-by-id/get-user-by-id.query';
-import { ChangeUsernameDto } from './dtos/change-username.dto';
-import { ChangeUsernameCommand } from 'src/users/application/commands/change-username/change-username.command';
-import { UserNotFoundError } from 'src/users/domain/errors/user-not-found.error';
-import { CHANGE_USERNAME_ERRORS } from 'src/users/application/commands/change-username/change-username.errors';
-import { DeleteUserCommand } from 'src/users/application/commands/delete-user/delete-user.command';
+import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 
-@Controller('users')
+import { Controller, Post, Body, Get, Patch, Delete, Param, HttpCode, HttpStatus, Inject, forwardRef } from '@nestjs/common';
+import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
+
+import { AuthService } from 'src/auth/infrastructure/nest-js/auth.service';
+
+// DTOs
+import { CreateUserDto } from './dtos/create-user.dto';
+import { ChangeUsernameDto } from './dtos/change-username.dto';
+import { RegisterUserDto } from './dtos/register-user.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
+
+// Commands & Queries
+import { CreateUserCommand } from 'src/users/application/commands/create-user/create-user.command';
+import { GetUserByIdQuery } from 'src/users/application/queries/get-user-by-id/get-user-by-id.query';
+import { ChangeUsernameCommand } from 'src/users/application/commands/change-username/change-username.command';
+import { DeleteUserCommand } from 'src/users/application/commands/delete-user/delete-user.command';
+import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
+import { RegisterUserCommand } from 'src/users/application/commands/register-user/register-user.command';
+import { GetUserProfileQuery } from 'src/users/application/queries/get-user-profile/get-user-profile.query';
+import { GetPublicProfileIdQuery } from 'src/users/application/queries/get-public-profile-id/get-public-profile-id.query';
+import { UpdateProfileCommand } from 'src/users/application/commands/update-profile/update-profile.command';
+import { GetPublicProfileUsernameQuery } from 'src/users/application/queries/get-public-profile-username/get-public-profile-username.query';
+import { GetAllUsersQuery } from 'src/users/application/queries/get-all-users/get-all-users.query';
+
+import { GetUserId } from 'src/core/nest-js/decorators/get-user-id.decorator';
+import { throwResult } from 'src/core/errors/helpers/exception-bridge.helper';
+
+@Controller('user')
 export class UsersController {
   
   constructor(
-    private readonly commandBus: CommandBus,
-    private readonly queryBus: QueryBus,
+    private readonly executor: CommandQueryExecutorService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() dto: RegisterUserDto) {
+    const command = new RegisterUserCommand({ ...dto });
+    
+    const userDto = await this.executor.executeCommand(command);
+    
+    return userDto;
+  }
+
+  @Get('profile')
+  @Auth()
+  async getUserProfile(@GetUserId() userId: string) {
+    const query = new GetUserProfileQuery({ 
+      userId: userId, 
+      targetUserId: userId 
+  });
+    const userReadModel = await this.executor.executeQuery(query);
+
+    return userReadModel;
+  }
+
+  @Patch('profile')
+  @Auth()
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(@GetUserId() userId: string, @Body() dto: UpdateProfileDto) {
+      const command = new UpdateProfileCommand({
+          userId: userId, 
+          targetUserId: userId,
+          ...dto
+      });
+      
+      const userDto = await this.executor.executeCommand(command);
+      
+      return userDto;
+  }
+
+  @Get('profile/id/:id')
+  async getPublicProfile(@Param('id') id: string) {
+    const query = new GetPublicProfileIdQuery({ targetUserId: id });
+
+    const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
+  }
+
+  @Get('profile/username/:username')
+  async getPublicProfileUsername(@Param('username') username: string) {
+      const query = new GetPublicProfileUsernameQuery({ username });
+      
+      const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
+  }
+
+  @Get()
+  async getAllUsers() {
+      const query = new GetAllUsersQuery();
+
+      const userReadModel = await this.executor.executeQuery(query);
+
+      return userReadModel;
+  }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateUserDto) {
-    const command = new CreateUserCommand(
-        dto.email,
-        dto.username,
-        dto.password
-    );
+    const command = new CreateUserCommand(dto.email, dto.username, dto.password);
 
-    const result: Either<Error, string> = await this.commandBus.execute(command);
-
-    if (result.isRight()) {
-        return { 
-            message: 'User created successfully', 
-            userId: result.getRight()
-        };
-    } else {
-        this.handleError(result.getLeft());
-    }
+    const userId = await this.executor.executeCommand<string>(command);
+    
+    return { 
+        message: 'User created successfully', 
+        userId: userId
+    };
   }
 
   @Get(':id')
   async getUserById(@Param('id') id: string) {
     const query = new GetUserByIdQuery(id);
-    const result = await this.queryBus.execute(query);
-
-    if (result.isRight()) {
-      return result.getRight();
-    } else {
-      this.handleError(result.getLeft());
-    }
+    return await this.executor.executeQuery<UserReadModel>(query);
   }
 
   @Patch(':id/username')
-    async changeUsername(
-        @Param('id') id: string,
-        @Body() dto: ChangeUsernameDto
-    ) {
-        const command = new ChangeUsernameCommand(id, dto.newUsername);
-        const result = await this.commandBus.execute(command);
-
-        if (result.isRight()) {
-            return { message: 'Username updated successfully' };
-        } else {
-            this.handleError(result.getLeft());
-        }
-    }
+  async changeUsername(
+    @Param('id') id: string,
+    @Body() dto: ChangeUsernameDto
+  ) {
+    const command = new ChangeUsernameCommand(id, dto.newUsername);
+    await this.executor.executeCommand(command);
+    return { message: 'Username updated successfully' };
+  }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteUser(@Param('id') id: string) {
     const command = new DeleteUserCommand(id);
-    const result = await this.commandBus.execute(command);
-
-    if (result.isRight()) {
-      return { message: 'User deleted successfully' };
-    } else {
-      this.handleError(result.getLeft());
-    }
+    await this.executor.executeCommand(command);
   }
-
-  private handleError(error: Error): never {
-
-  if (error instanceof UserNotFoundError) {
-      throw new NotFoundException(error.message);
-  }
-  if (error.message === CHANGE_USERNAME_ERRORS.USERNAME_ALREADY_TAKEN) {
-      throw new ConflictException('El nombre de usuario ya está en uso.');
-  }
-  if (error.message.includes('Solo puedes cambiar tu nombre de usuario una vez al año')) {
-      throw new BadRequestException(error.message);
-  }
-
-    if (error.message === 'USER_NOT_FOUND') {
-      throw new NotFoundException('User not found');
-    }
-    if (
-      error.message === CREATE_USER_ERROR_CODES.USER_EMAIL_ALREADY_EXISTS ||
-      error.message === CREATE_USER_ERROR_CODES.USER_USERNAME_ALREADY_EXISTS 
-  ) {
-      throw new ConflictException(error.message);
-  }
-
-    if (error instanceof InvalidArgumentError) {
-        throw new BadRequestException(error.message);
-    }
-
-    if (error instanceof BadRequestException || error instanceof ConflictException) {
-        throw error;
-    }
-
-    console.error(error); 
-    throw new InternalServerErrorException('Unexpected error creating user');
-}
 }

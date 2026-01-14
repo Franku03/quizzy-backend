@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\domain\entity\session.player.ts
+
 import { Entity } from "src/core/domain/abstractions/entity";
 import { PlayerId } from "../value-objects";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";
@@ -26,11 +37,11 @@ export class Player extends Entity<PlayerProps, PlayerId> {
 
     public changeNickname( newNickname: string ): void {
 
-        const { cleanNickname, isValid, error } = validateNicknameInvariants( newNickname );
+        const { cleanNickname, isValid, errorMessage } = validateNicknameInvariants( newNickname );
 
         if( !isValid ) {
 
-            throw new Error( error );
+            throw new Error( errorMessage );
 
         } 
 

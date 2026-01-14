@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\domain\ports\IActiveMultiplayerSessionRepository.ts
+
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSession } from "../aggregates/multiplayer-session";
 
@@ -14,17 +25,20 @@ export interface ActiveSessionContext {
 // repositorio para las operaciones de tiempo real (búsqueda por PIN, gestión de estado volátil).
 export interface IActiveMultiplayerSessionRepository {
 
-    // ========== LEGACY (NO TOCAR) ==========
+    // ========== LEGACY (NO TOCAR - Compatibilidad) ==========
 
     saveSession(sessionWraper: ActiveSessionContext): Promise<string>;
     findByPin(pin: string): Promise< ActiveSessionContext | null >;
     findByTemporalToken(token: string): Promise<ActiveSessionContext | null>;
-    delete(pin: string): Promise<void>;
-    // IsUserSessionHost( pin: string, userId: string ): Promise<boolean>;
+    updateSession(pin: string): Promise<ActiveSessionContext | null>
+    deleteSession(pin: string): Promise<void>;
     
-    // ========== VERSION CON EITHER (ROP) ==========
-
-    // findByPin(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
+    // ========== VERSION CON EITHER (ROP - Nueva Arquitectura) ==========
+    saveSessionEither(sessionWraper: ActiveSessionContext): Promise< Either<ErrorData,string> >;
+    findByPinEither(pin: string): Promise< Either<ErrorData, ActiveSessionContext> >;
+    findByTemporalTokenEither(token: string): Promise< Either<ErrorData,ActiveSessionContext> >;
+    updateSessionEither(pin: string): Promise< Either<ErrorData,ActiveSessionContext> >
+    deleteSessionEither(pin: string): Promise< Either<ErrorData,void> >;
 
 }
 

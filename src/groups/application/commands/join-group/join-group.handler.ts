@@ -16,16 +16,22 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 @CommandHandler(JoinGroupCommand)
 export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
+    private readonly useCase: string = 'User joins a group using an invitation token';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject(RepositoryName.User)
         private readonly userRepository: IUserRepository,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
     ) { }
 
+    @Log()
     async execute(command: JoinGroupCommand): Promise<Either<ErrorData, JoinGroupResponse>> {
         const errorContext = createDomainContext('Group', 'joinGroup', {
             userId: command.userId,

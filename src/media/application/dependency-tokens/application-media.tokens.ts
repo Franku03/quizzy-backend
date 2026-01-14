@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\dependency-tokens\application-media.tokens.ts
+
 export const MEDIA_TOKENS = {
   // --- Infrastructure (External Ports) ---
   ASSET_STORAGE_SERVICE: Symbol('ASSET_STORAGE_SERVICE'),
@@ -19,13 +30,13 @@ export const MEDIA_TOKENS = {
   THEME_LIST_QUERY_HANDLER: Symbol('THEME_LIST_QUERY_HANDLER'),
   // El Handler real que hace el find() en Mongo (GetThemesHandler)
   RAW_THEME_LIST_QUERY_HANDLER: Symbol('RAW_THEME_LIST_QUERY_HANDLER'),
-  
+
   // --- Orchestration (Factories & Resolvers) ---
   MEDIA_ENRICHMENT_SERVICE: Symbol('MEDIA_ENRICHMENT_SERVICE'),
   ENRICHMENT_HANDLER_FACTORY: Symbol('ENRICHMENT_HANDLER_FACTORY'),
-  HANDLER_RESOLVER: Symbol('HANDLER_RESOLVER'), 
+  HANDLER_RESOLVER: Symbol('HANDLER_RESOLVER'),
 
   // --- Individual Handlers (Chain of Responsibility) ---
   URL_ENRICHMENT_HANDLER: Symbol('URL_ENRICHMENT_HANDLER'),
-  THEME_ENRICHMENT_HANDLER: Symbol('THEME_ENRICHMENT_HANDLER'), 
+  THEME_ENRICHMENT_HANDLER: Symbol('THEME_ENRICHMENT_HANDLER'),
 } as const;

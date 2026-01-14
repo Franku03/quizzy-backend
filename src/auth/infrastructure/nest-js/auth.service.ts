@@ -1,13 +1,15 @@
-import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { IPasswordHasher } from 'src/users/domain/domain-services/i.password-hasher.interface';
 import type { IUserRepository } from 'src/users/domain/ports/IUserRepository';
-import { UserEmail } from 'src/users/domain/value-objects/user.email';
+import { UserName } from 'src/users/domain/value-objects/user.user-name';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { LoginUserDto } from '../dtos/login-user.dto';
 import { User } from 'src/users/domain/aggregates/user';
+import { Either } from 'src/core/types/either';
+import { ErrorData, ErrorLayer } from 'src/core/types';
 
 @Injectable()
 export class AuthService {
@@ -19,57 +21,99 @@ export class AuthService {
     private readonly passwordHasher: IPasswordHasher,
   ) {}
 
-  async login(loginDto: LoginUserDto) {
-    const { email, password } = loginDto;
+  async login(loginDto: LoginUserDto): Promise<Either<ErrorData, any>> {
+    const { username, password } = loginDto;
 
-    const userOptional = await this.userRepository.findByEmail(
-      new UserEmail(email),
+    const userOptional = await this.userRepository.findByUsername(
+      new UserName(username),
     );
     if (!userOptional.hasValue())
-      throw new UnauthorizedException('Credenciales no validas (email)');
+      return Either.makeLeft(
+        new ErrorData(
+          'INVALID_CREDENTIALS',
+          'Credenciales no validas (username)',
+          ErrorLayer.DOMAIN,
+        ),
+      );
 
     const user = userOptional.getValue();
 
     // Verificar si el usuario está bloqueado
     if (user.isBlocked()) {
-      throw new UnauthorizedException('Usuario bloqueado');
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_BLOCKED',
+          'Usuario bloqueado',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
     // Verificar si el usuario está activo
     if (!user.isActive()) {
-      throw new UnauthorizedException('Usuario inactivo');
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_INACTIVE',
+          'Usuario inactivo',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
     if (
       !(await this.passwordHasher.compare(password, user.passwordHash.value))
     ) {
-      throw new UnauthorizedException('Credenciales no validas (contraseña)');
+      return Either.makeLeft(
+        new ErrorData(
+          'INVALID_CREDENTIALS',
+          'Credenciales no validas (contraseña)',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
-    return this.generateTokenResponse(user);
+    return Either.makeRight(this.generateTokenResponse(user));
   }
 
-  async checkAuthStatus(userId: string) {
+  async checkAuthStatus(userId: string): Promise<Either<ErrorData, any>> {
     const id = new UserId(userId);
 
     const userOptional = await this.userRepository.findById(id);
 
     if (!userOptional.hasValue()) {
-      throw new UnauthorizedException('Usuario no encontrado');
+      return Either.makeLeft(
+        new ErrorData(
+          'INVALID_CREDENTIALS',
+          'Usuario no encontrado',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
     const user = userOptional.getValue();
 
     // Verificar estado del usuario
     if (user.isBlocked()) {
-      throw new UnauthorizedException('Usuario bloqueado');
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_BLOCKED',
+          'Usuario bloqueado',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
     if (!user.isActive()) {
-      throw new UnauthorizedException('Usuario inactivo');
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_INACTIVE',
+          'Usuario inactivo',
+          ErrorLayer.DOMAIN,
+        ),
+      );
     }
 
-    return this.generateTokenResponse(user);
+    return Either.makeRight(this.generateTokenResponse(user));
   }
 
   private generateTokenResponse(user: User) {
@@ -90,19 +134,26 @@ export class AuthService {
     };
 
     return {
+      token: this.jwtService.sign(payload),
       user: {
         id: user.id.value,
         email: user.email.value,
         username: user.username.value,
+        type: user.type,
         state: user.state, // Nuevo: incluir estado
-        roles: payload.roles,
-        isAdmin: user.isAdmin(), // Método helper para compatibilidad
-        profile: {
+        // roles: payload.roles,
+        // isAdmin: user.isAdmin(), // Método helper para compatibilidad
+        preferences: {
+          theme: user.userPreferences.themePreference
+       },
+        userProfileDetails: {
           name: user.userProfileDetails.name,
-          avatarUrl: user.userProfileDetails.avatarImageURL,
+          description: user.userProfileDetails.description,
+          avatarAssetUrl: null,
         },
+        isPremium: user.isUserPremium(),
       },
-      token: this.jwtService.sign(payload),
     };
   }
+
 }

@@ -13,17 +13,29 @@ import { ICommandHandler } from "src/core/application/cqrs/command-handler.inter
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { createDomainContext } from "src/core/errors/helpers/domain-error-context.helper";
 import { DomainErrorFactory } from "src/core/errors/factories/domain-error.factory";
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
+import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 
 @CommandHandler(GenerateInvitationCommand)
 export class GenerateInvitationHandler implements ICommandHandler<GenerateInvitationCommand> {
+    private readonly useCase: string = 'Admin generates an invitation link for a group';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
         @Inject('ITokenGenerator')
         private readonly tokenGenerator: ITokenGenerator,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(DaoName.Group) private readonly groupsQueryDao: IGroupsDao,
     ) { }
 
+    @Log()
+    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: GenerateInvitationCommand): Promise<Either<ErrorData, InvitationResponse>> {
         const errorContext = createDomainContext('Group', 'generateInvitation', {
             domainObjectId: command.groupId,
@@ -40,12 +52,6 @@ export class GenerateInvitationHandler implements ICommandHandler<GenerateInvita
 
         const group = groupOptional.getValue();
         const requesterId = new UserId(command.adminId);
-
-        if (!group.isAdmin(requesterId)) {
-            return Either.makeLeft(
-                DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
-            );
-        }
 
         try {
             const tokenVO = group.generateInvitation(

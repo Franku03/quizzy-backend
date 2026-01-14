@@ -1,10 +1,20 @@
-// src/media/application/commands/upload-asset/upload-asset.command.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\media\application\commands\upload-asset\upload-asset.command.ts
+
 import { ICommand } from 'src/core/application/cqrs/command.interface';
 
 export class UploadAssetCommand implements ICommand {
   constructor(
     public readonly fileBuffer: Buffer,
     public readonly mimeType: string,
-    public readonly originalName: string
+    public readonly originalName: string,
   ) {}
 }

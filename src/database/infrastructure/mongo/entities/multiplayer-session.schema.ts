@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\entities\multiplayer-session.schema.ts
+
 // multiplayer-session.schema.ts (Persistence Structure)
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
@@ -126,8 +137,14 @@ export class MultiplayerSessionMongo extends Document {
   @Prop({ required: true, index: true })
   public hostId: string;
 
-  @Prop({ required: true, index: true })
+  @Prop({ required: true, index: true }) // Para obtener el título en futuras consultas, otra técnica sería guardar directamente el título en el documento
   public kahootId: string;
+
+  @Prop({ 
+    required: true, 
+    default: 'Título no disponible (Sesión antigua)' 
+  })
+  public kahootTitle: string;
 
   @Prop({
     required: true,

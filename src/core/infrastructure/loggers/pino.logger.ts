@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\infrastructure\loggers\pino.logger.ts
+
 // core/infrastructure/loggers/pino.logger.ts
 
 import { ILogger } from 'src/core/application/aspects/logging/logger.interface';
@@ -52,10 +63,13 @@ export class PinoLogger implements ILogger {
     });
 
     // Create the Pino logger instance with the transport
-    this.logger = pino({
-      level: 'info',
-      timestamp: pino.stdTimeFunctions.isoTime,
-    }, transport);
+    this.logger = pino(
+      {
+        level: 'info',
+        timestamp: pino.stdTimeFunctions.isoTime,
+      },
+      transport,
+    );
   }
 
   log(message: string, metadata?: Record<string, any>): void {
@@ -93,5 +107,4 @@ export class PinoLogger implements ILogger {
       this.logger.error(message);
     }
   }
-
 }

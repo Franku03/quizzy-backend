@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\multiplayer-sessions.module.ts
+
 import { Module } from '@nestjs/common';
 import { MultiplayerSessionsController, MultiplayerSessionsGateway, MultiplayerSessionsTracingService } from './infrastructure/nest-js';
 
@@ -28,6 +39,7 @@ import { InMemoryActiveSessionRepository } from './infrastructure/repositories/i
 import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
 import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
 import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
+import { AuthModule } from 'src/auth/auth.module';
 
 
 
@@ -36,6 +48,7 @@ import { FileSystemPinRepository } from './infrastructure/adapters/file-system.p
     RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
     RepositoryFactoryModule.forFeature(RepositoryName.MultiplayerSession),
     DaoFactoryModule.forFeature(DaoName.User), 
+    AuthModule,
     MediaModule,
     CqrsModule,
   ],

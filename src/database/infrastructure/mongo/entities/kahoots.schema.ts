@@ -1,10 +1,21 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\entities\kahoots.schema.ts
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
 import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
 
 // Database Collection Name
-const COLLECTION_NAME: string = 'kahoots';
+const COLLECTION_NAME = 'kahoots';
 
 // Esta interfaz representa el objeto plano que devuelve .lean()
 export interface IKahootDocument {

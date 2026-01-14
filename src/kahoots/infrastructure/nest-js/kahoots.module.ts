@@ -1,4 +1,13 @@
-// src/kahoots/infrastructure/nest-js/kahoots.module.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\kahoots\infrastructure\nest-js\kahoots.module.ts
 
 import { Module } from '@nestjs/common';
 
@@ -16,6 +25,7 @@ import { CreateKahootHandler } from '../../application/commands/create-kahoot/cr
 import { UpdateKahootHandler } from '../../application/commands/update-kahoot/update-kahoot.handler';
 import { DeleteKahootHandler } from 'src/kahoots/application/commands/delete-kahoot/delete-kahoot.handler';
 import { GetKahootByIdHandler } from '../../application/queries/get-kahoot-by-id/get-kahoot-by-id.handler';
+import { GetKahootUserDetailHandler } from 'src/kahoots/application/queries/get-kahoot-preview-by-id/get-kahoot-user-detail-by-id.handler';
 
 // --- Mappers & Tokens ---
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
@@ -42,6 +52,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
     UpdateKahootHandler,
     DeleteKahootHandler,
     GetKahootByIdHandler,
+    GetKahootUserDetailHandler,
 
     // --- Mapeo de Salida (Response) ---
     {
@@ -58,7 +69,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
       provide: APPLICATION_CORE_TOKENS.MAPPER.UPDATE_KAHOOT_REQUEST,
       useClass: UpdateKahootRequestMapper,
     },
-    
+
     AttemptCleanupService,
   ],
   exports: [],

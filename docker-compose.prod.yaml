@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  quizzy-backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: quizzy_server
+    restart: always
+    ports:
+      - "3000:3000"
+      - "3003:3003" # Puerto dedicado para WebSockets
+    env_file:
+      - .env
+    
+    # --- CONFIGURACIÓN DE LOGS (EVITA LLENAR EL DISCO) ---
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10k"
+        max-file: "1"
+    
+    # --- CONTROL DE RECURSOS EMPRESARIAL ---
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'    
+          memory: 24G   
+
+    networks:
+      - quizzy_net
+
+networks:
+  quizzy_net:
+    driver: bridge

@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\application\commands\index.ts
+
 // COMMANDS
 export * from './create-session/create-session.command';
 export * from './get-pin-with-qr-token/get-pin-with-qr-token.command';
@@ -26,9 +37,3 @@ export * from './verify-connection-availability/verify-connection-availability.h
 export * from './sync-state/sync-state.handler';
 export * from './delete-session/delete-session.handler'
 
-// ERRORS
-export * from './create-session/create-session.errors'
-export * from './get-pin-with-qr-token/get-pin-with-qr-token.errors'
-export * from './host-next-phase/host-next-phase.errors';
-export * from './host-start-game/host-start-game.errors';
-export * from './player-submit-answer/player-submit-answer.errors';
