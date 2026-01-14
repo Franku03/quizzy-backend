@@ -32,7 +32,7 @@ class UserProfileSchema {
   description: string;
 
   @Prop({ type: String, required: false })
-  avatarUrl: string;
+  avatarAssetId: string;
 }
 
 @Schema({ _id: false })

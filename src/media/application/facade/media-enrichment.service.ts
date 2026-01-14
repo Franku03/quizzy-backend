@@ -25,6 +25,7 @@ import {
 import { LibraryReadModel } from 'src/library/application/queries/read-model/library.read.model';
 import { IHasMediaAssets } from 'src/core/domain/abstractions/media.assets.interface';
 import { IThemeable } from 'src/core/domain/abstractions/themeable.interface';
+import { BackOfficeUserPaginationReadModel, BackOfficeUserReadModel } from 'src/backoffice/application/read-model/backoffice-user.read.model';
 
 @Injectable()
 export class MediaEnrichmentService {
@@ -143,11 +144,15 @@ export class MediaEnrichmentService {
     return this.enrich(resume);
   }
 
-  public async enrinchBackofficeUserReadModel(backofficeUser: BackOfficeUserReadModel): Promise<BackOfficeUserReadModel> {
+  public async enrinchBackofficeUserReadModel(
+    backofficeUser: BackOfficeUserReadModel,
+  ): Promise<BackOfficeUserReadModel> {
     return this.enrich(backofficeUser);
   }
 
-  public async enrinchBackofficeUserPaginationReadModel(backofficeUser: BackOfficeUserPaginationReadModel): Promise<BackOfficeUserPaginationReadModel> {
+  public async enrinchBackofficeUserPaginationReadModel(
+    backofficeUser: BackOfficeUserPaginationReadModel,
+  ): Promise<BackOfficeUserPaginationReadModel> {
     return this.enrich(backofficeUser);
   }
 
