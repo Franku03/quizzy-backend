@@ -23,6 +23,7 @@ export class UpdateKahootCommandMother {
 
     // ID de usuario constante para pruebas controladas de propiedad (Ownership)
     private static readonly USER_ID = "55b777c7-984e-497c-bc41-4a2a961ad210";
+    private static readonly KAHOOT_ID = "7aa6533f-2316-426f-83ec-8b2b85e11262";
 
     /**
      * Genera un comando de actualización válido para un Kahoot en estado borrador.
@@ -30,7 +31,7 @@ export class UpdateKahootCommandMother {
      */
     static validDraftUpdate(): UpdateKahootCommand {
         return new UpdateKahootCommand({
-            id: "7aa6533f-2316-426f-83ec-8b2b85e11262",
+            id: this.KAHOOT_ID,
             userId: this.USER_ID,
             title: "TEST ACTUALIZADO",
             description: "Descripción corregida.",
@@ -59,10 +60,16 @@ export class UpdateKahootCommandMother {
      * lo cual debería disparar una violación de invariantes en el Dominio.
      */
     static invalidPublicDraftUpdate(): UpdateKahootCommand {
+        const base = this.validDraftUpdate();
         return new UpdateKahootCommand({
-            ...this.validDraftUpdate(),
+            id: base.kahootId, 
+            userId: base.userId,
+            title: base.title,
+            description: base.description,
+            themeId: base.themeId,
             visibility: "PUBLIC",
-            status: "DRAFT" 
+            status: "DRAFT",
+            slides: base.slides
         });
     }
 }

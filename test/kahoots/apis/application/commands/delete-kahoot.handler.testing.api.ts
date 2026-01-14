@@ -103,6 +103,7 @@ export class DeleteKahootTestAPI {
 
         this.currentCommand = {
             ...base,
+            kahootId: "1234",
             operationName: 'DeleteKahoot',
             validatedResource: resource,
             userId: resource.authorId // El ID que pide borrar coincide con el dueño

@@ -71,7 +71,7 @@ export class KahootSecurityTestAPI {
         // Ejecución de la lógica de autorización
         this.result = await this.sut.authorize(
             { 
-                id: 'kahoot-id', 
+                kahootId: 'kahoot-id', 
                 userId, 
                 operationName: operationMap[accion] || accion 
             },

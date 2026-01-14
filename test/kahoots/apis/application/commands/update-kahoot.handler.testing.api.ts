@@ -120,12 +120,13 @@ export class UpdateKahootTestAPI {
     private buildSecureCommand(base: UpdateKahootCommand): this {
         const resource = this.getExistingKahoot();
         
-        this.currentCommand = {
-            ...base,
+        // Enriquecemos el comando con las propiedades de seguridad requeridas por el Authorizer
+        this.currentCommand = Object.assign(base, {
+            kahootId: base.kahootId, // Sincronizamos el ID para el Authorizer
             operationName: 'UpdateKahoot',
             validatedResource: resource,
-            userId: resource.authorId // Simula que el usuario solicitante es el autor
-        };
+            userId: resource.authorId // El autor del recurso
+        }) as SecureUpdateCommand;
 
         return this;
     }
@@ -173,7 +174,9 @@ export class UpdateKahootTestAPI {
     // ============ HELPERS ============
 
     private getExistingKahoot(): Kahoot {
-        if (!this.existingKahoot) throw new Error("Falta: givenAnExistingDraftKahoot()");
+        if (!this.existingKahoot) {
+             throw new Error("Falta: givenAnExistingDraftKahoot()");
+        }
         return this.existingKahoot;
     }
 
