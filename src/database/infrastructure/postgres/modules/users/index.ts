@@ -9,5 +9,5 @@
 
 // File: src\database\infrastructure\postgres\modules\users\index.ts
 
-export * from './users.dao.postgres';
-export * from './users.repository.postgres';
+export * from './users.dao.pg';
+export * from './users.repository.pg';

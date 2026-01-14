@@ -34,6 +34,7 @@ export const APPLICATION_CORE_TOKENS = {
         // PostgreSQL: Une tablas via JOINs complejos
         KAHOOT_USER_DETAIL_PG_READ: Symbol('KAHOOT_USER_DETAIL_PG_READ_MAPPER'),
         // --- Output Mappers (Domain/App -> Response DTO) ---
+        USER_PG_READ: Symbol('USER_PG_READ_MAPPER'),
         RESPONSE_MAPPER: Symbol('RESPONSE_MAPPER'),
 
         // --- Input Mappers (Request DTO -> Command) ---
