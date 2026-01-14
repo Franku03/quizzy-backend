@@ -13,7 +13,6 @@ import { Inject } from "@nestjs/common";
 import { CommandHandler } from "src/core/infrastructure/cqrs";
 import { ICommandHandler } from "src/core/application/cqrs";
 
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessions/domain/ports";
 
 import { PlayerSubmitAnswerCommand } from "./player-submit-answer.command";
@@ -35,6 +34,8 @@ import { Log } from "src/core/application/aspects/logging/log.decorator";
 import type { ILogger } from "src/core/application/aspects/logging/logger.interface";
 import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 
+import type { ISessionConcurrencyManager } from "../../ports/i-session-concurrency-manager.interface";
+
 
 @CommandHandler( PlayerSubmitAnswerCommand )
 export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAnswerCommand> {
@@ -42,9 +43,10 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
     private readonly playerSubmissionEvaluationService: PlayerSubmissionEvaluationService
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO  )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
-
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER ) 
+        private readonly concurrencyManager: ISessionConcurrencyManager,
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
         private readonly logger: ILogger,
     ){
@@ -57,33 +59,43 @@ export class PlayerSubmitAnswerHandler implements ICommandHandler<PlayerSubmitAn
         // Contexto para logs (incluimos sessionPin y questionId)
         const appContext = createMultiplayerSessionAppContext('submitAnswer', { actorId: command.userId, sessionPin: command.sessionPin });
 
-        return pipeAsync<ErrorData, PlayerSubmitAnswerResponse>(
-            
-            Either.makeRight(command),
+        // Envolvemos todo el flujo en el lock para que sea administrado por el concurrency manager
+        return this.concurrencyManager.runInSequence( command.sessionPin, async () => {
 
-            cmd => cmd.chainAsync(c => this.loadSessionContext(c)),
+            // Dentro de este bloque, somos los únicos tocando esta sesión.
+            // Node puede atender otras peticiones HTTP, pero ninguna otra PlayerSubmitAnswer 
+            // pues ESTE pin entrará aquí, y no liberará el candado hasta que retornemos, asegurando que todos los usuarios registren respuestas adecuadamente
 
-            // 3) Validar slide antes de seguir
-            // Buscamos el slide y verificamos que exista. Si no, devolvemos Left.
-            // Input: Context -> Output: Promise<Either<Error, Context + SlideInfo>>
-            ctx => ctx.chain(c => this.validateAndLoadSlide(c)),
+            return pipeAsync<ErrorData, PlayerSubmitAnswerResponse>(
+                
+                Either.makeRight(command),
+    
+                cmd => cmd.chainAsync((c: PlayerSubmitAnswerCommand) => this.loadSessionContext(c)),
+    
+                // 3) Validar slide antes de seguir
+                // Buscamos el slide y verificamos que exista. Si no, devolvemos Left.
+                // Input: Context -> Output: Promise<Either<Error, Context + SlideInfo>>
+                ctx => ctx.chain((c: PlayerSubmitContextWithSession) => this.validateAndLoadSlide(c)),
+    
+                // 4) Construir Submission y evaluar para registrar resultado
+                // Usamos Factory + Servicio de Dominio
+                // Input: Context -> Output: Promise<Either<Error, Context + Submission>>
+                ctx => ctx.chain((c: PlayerSubmitContextWithSlide) => this.processSubmission(c)),
+    
+                // 5) Actualizamos la sesión en memoria (lastActivity)
+                ctx => ctx.chainAsync((c: PlayerSubmitContextWithSlide) => this.persistState(c)),
+    
+                // 6) Respuesta - Calculamos el número de respuestas hasta ahora para notificar al host
+                ctx => ctx.map( (c: PlayerSubmitContextWithSlide ) => ({ 
+                    numberOfSubmissions: c.sessionCtx.session.getNumberOfAnswersForASlide( c.slideId ) ?? 0 // Si llega 0 quiere decir que hubo un error con la slide solicitada
+                })),
+    
+                // 7. ERRORES
+                result => result.mapLeft(err => err.setContext(appContext))
+            );
 
-            // 4) Construir Submission y evaluar para registrar resultado
-            // Usamos Factory + Servicio de Dominio
-            // Input: Context -> Output: Promise<Either<Error, Context + Submission>>
-            ctx => ctx.chain(c => this.processSubmission(c)),
+        });
 
-            // 5) Actualizamos la sesión en memoria (lastActivity)
-            ctx => ctx.chainAsync(c => this.persistState(c)),
-
-            // 6) Respuesta - Calculamos el número de respuestas hasta ahora para notificar al host
-            ctx => ctx.map( (c: PlayerSubmitContextWithSlide ) => ({ 
-                numberOfSubmissions: c.sessionCtx.session.getNumberOfAnswersForASlide( c.slideId ) ?? 0 // Si llega 0 quiere decir que hubo un error con la slide solicitada
-            })),
-
-            // 7. ERRORES
-            result => result.mapLeft(err => err.setContext(appContext))
-        );
     }
 
     // --- MÉTODOS PRIVADOS ---

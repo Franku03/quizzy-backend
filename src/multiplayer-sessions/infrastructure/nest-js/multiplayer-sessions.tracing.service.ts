@@ -48,6 +48,9 @@ export class MultiplayerSessionsTracingService {
 
         const roomPin = client.handshake.headers.pin as string;
 
+        if( this.availableRooms.has( roomPin ))
+            return //La sala ya existe, no deberíamos volverla a registrarla causando su borrado
+
         this.availableRooms.set( roomPin, {} );
 
     }

@@ -34,12 +34,19 @@ import {
   VerifyPinHandler
 } from './application/commands';
 
-import { InMemoryActiveSessionRepository } from './infrastructure/repositories/in-memory.session.repository';
+import { 
+  CryptoGeneratePinService, 
+  FileSystemPinRepository, 
+  InMemoryActiveSessionRepository, 
+  MutexSessionConcurrencyManager 
+} from './infrastructure/adapters';
 
-import { UuidGenerator } from 'src/core/infrastructure/adapters/idgenerator/uuid-generator';
-import { CryptoGeneratePinService } from './infrastructure/adapters/crypto-generate-pin';
-import { FileSystemPinRepository } from './infrastructure/adapters/file-system.pin.repository';
 import { AuthModule } from 'src/auth/auth.module';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+import { CryptoGeneratePinServiceErrorMapper } from './infrastructure/errors/crypto-generate-pin.error.mapper';
+import { FileSystemPinRepositoryErrorMapper } from './infrastructure/errors/file-system-pin-repository.error.mapper';
+import { InMemoryActiveSessionRepositoryErrorMapper } from './infrastructure/errors/in-memory-session-respository.error.mapper';
 
 
 
@@ -55,11 +62,7 @@ import { AuthModule } from 'src/auth/auth.module';
   providers: [
     MultiplayerSessionsGateway, 
     MultiplayerSessionsTracingService,
-    // Injectables
-    InMemoryActiveSessionRepository,
-    CryptoGeneratePinService,
-    FileSystemPinRepository,
-    UuidGenerator,
+
     //Commands
     CreateSessionHandler,
     GetPinWithQrTokenHandler,
@@ -72,8 +75,39 @@ import { AuthModule } from 'src/auth/auth.module';
     VerifyHostHandler,
     VerifyPinHandler,
     SyncStateHandler,
-    DeleteSessionHandler
+    DeleteSessionHandler,
 
+    // Injectables - servicios y repos¨
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.PIN_GENERATOR_SERVICE,
+      useClass: CryptoGeneratePinService
+    },
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO,
+      useClass: InMemoryActiveSessionRepository
+    },
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.PIN_REPO,
+      useClass: FileSystemPinRepository
+    },
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.CONCURRENCY_MANAGER,
+      useClass: MutexSessionConcurrencyManager
+    },
+
+    // Mappers de erroers
+    {
+      provide: ERROR_TOKENS.MAPPERS.CRYPTO,
+      useClass: CryptoGeneratePinServiceErrorMapper
+    },
+    {
+      provide: ERROR_TOKENS.MAPPERS.FILESYSTEM,
+      useClass: FileSystemPinRepositoryErrorMapper
+    },
+    {
+      provide: ERROR_TOKENS.MAPPERS.MEMORY,
+      useClass: InMemoryActiveSessionRepositoryErrorMapper
+    },
   ],
   controllers: [MultiplayerSessionsController],
 })

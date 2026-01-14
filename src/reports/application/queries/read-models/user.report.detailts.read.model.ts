@@ -1,6 +1,7 @@
 export enum GameType {
 
-    MULTIPLAYER = "Multiplayer",
+    MULTIPLAYER_HOST = "Multiplayer_host",
+    MULTIPLAYER_PLAYER = "Multiplayer_player",
     SINGLEPLAYER = "Singleplayer",
 
 }
@@ -18,8 +19,8 @@ export interface UserResult {
     gameType:        GameType;
     title:           string;
     completionDate:  Date;
-    finalScore:      number;
-    rankingPosition: number;
+    finalScore?:      number; // Si es el usuario fue host no debería tener finalScore
+    rankingPosition?: number; // Si es attempt no tiene ranking, si fue host no tiene ranking
 }
 
 export class UserGameReportDetails {

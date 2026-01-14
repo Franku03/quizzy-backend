@@ -20,6 +20,7 @@ import { MongoErrorMapper } from './errors/mongo-error.mapper';
 import { KahootReadMapper } from './modules/kahoots/mappers/kahoot.handler.mapper';
 // IMPORTA EL NUEVO MAPPER
 import { KahootUserDetailMapper } from './modules/kahoots/mappers/kahoot.user.details.mapper'; 
+import { MultiplayerSessionMongoMapper } from './modules/multiplayer-session/mappers/session.mongo.mapper';
 
 @Global()
 @Module({
@@ -36,11 +37,16 @@ import { KahootUserDetailMapper } from './modules/kahoots/mappers/kahoot.user.de
       provide: APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_MONGO_READ,
       useClass: KahootUserDetailMapper,
     },
+    {
+      provide: APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_MONGO_READ,
+      useClass: MultiplayerSessionMongoMapper
+    }
   ],
   exports: [
     ERROR_TOKENS.MAPPERS.MONGO,
     APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_MONGO_SNAPSHOT,
     APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_MONGO_READ,
+    APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_MONGO_READ,
   ],
 })
 export class MongoMappersModule {}
