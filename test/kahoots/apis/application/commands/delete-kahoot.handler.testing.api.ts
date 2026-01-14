@@ -38,130 +38,141 @@ type SecureDeleteCommand = DeleteKahootCommand & IKahootOwnershipRequest;
  * API de soporte para las pruebas unitarias del caso de uso de delete kahoot.
  */
 export class DeleteKahootTestAPI {
-    // --- Mocks de dependencias (Puertos de Infraestructura) ---
-    private repoMock: MockProxy<IKahootRepository> = mock<IKahootRepository>();
-    private cleanupMock: MockProxy<AttemptCleanupService> = mock<AttemptCleanupService>();
-    private loggerMock: MockProxy<ILogger> = mock<ILogger>();
+  // --- Mocks de dependencias (Puertos de Infraestructura) ---
+  private repoMock: MockProxy<IKahootRepository> = mock<IKahootRepository>();
+  private cleanupMock: MockProxy<AttemptCleanupService> =
+    mock<AttemptCleanupService>();
+  private loggerMock: MockProxy<ILogger> = mock<ILogger>();
 
-    // --- Estado interno de la prueba ---
-    private result?: Either<ErrorData, void>;
-    private currentCommand?: SecureDeleteCommand;
-    private existingKahoot?: Kahoot;
+  // --- Estado interno de la prueba ---
+  private result?: Either<ErrorData, void>;
+  private currentCommand?: SecureDeleteCommand;
+  private existingKahoot?: Kahoot;
 
-    constructor() {
-        this.configureDefaultMocks();
-    }
+  constructor() {
+    this.configureDefaultMocks();
+  }
 
-    /**
-     * Configuración base de los mocks para evitar errores por dependencias no configuradas.
-     */
-    private configureDefaultMocks(): void {
-        this.cleanupMock.cleanupById.mockResolvedValue(void 0);
-        // Por defecto, el borrado funciona
-        this.repoMock.deleteKahootEither.mockResolvedValue(Either.makeRight(undefined));
-    }
+  /**
+   * Configuración base de los mocks para evitar errores por dependencias no configuradas.
+   */
+  private configureDefaultMocks(): void {
+    this.cleanupMock.cleanupById.mockResolvedValue(void 0);
+    // Por defecto, el borrado funciona
+    this.repoMock.deleteKahootEither.mockResolvedValue(
+      Either.makeRight(undefined),
+    );
+  }
 
-    // ============ GIVEN: Configuración de Escenarios ============
+  // ============ GIVEN: Configuración de Escenarios ============
 
-    /**
-     * Configura el repositorio para un borrado exitoso.
-     */
-    public givenTheSystemIsReadyToDeleteData(): this {
-        this.repoMock.deleteKahootEither.mockResolvedValue(Either.makeRight(undefined));
-        return this;
-    }
+  /**
+   * Configura el repositorio para un borrado exitoso.
+   */
+  public givenTheSystemIsReadyToDeleteData(): this {
+    this.repoMock.deleteKahootEither.mockResolvedValue(
+      Either.makeRight(undefined),
+    );
+    return this;
+  }
 
-    /**
-     * Simula un fallo de infraestructura (ej. la base de datos no responde).
-     */
-    public givenTheStorageIsDown(message: string): this {
-        const error = new ErrorData('INFRA_ERROR', message, ErrorLayer.INFRASTRUCTURE);
-        this.repoMock.deleteKahootEither.mockResolvedValue(Either.makeLeft(error));
-        return this;
-    }
+  /**
+   * Simula un fallo de infraestructura (ej. la base de datos no responde).
+   */
+  public givenTheStorageIsDown(message: string): this {
+    const error = new ErrorData(
+      'INFRA_ERROR',
+      message,
+      ErrorLayer.INFRASTRUCTURE,
+    );
+    this.repoMock.deleteKahootEither.mockResolvedValue(Either.makeLeft(error));
+    return this;
+  }
 
-    /**
-     * Prepara un Kahoot existente que será el objetivo de la eliminación.
-     */
-    public givenAnExistingKahoot(): this {
-        this.existingKahoot = KahootAggregateMother.existingDraft();
-        return this;
-    }
+  /**
+   * Prepara un Kahoot existente que será el objetivo de la eliminación.
+   */
+  public givenAnExistingKahoot(): this {
+    this.existingKahoot = KahootAggregateMother.existingDraft();
+    return this;
+  }
 
-    /**
-     * Crea el comando seguro inyectando el recurso validado y el ID de usuario.
-     */
-    public givenAValidDeleteKahootCommand(): this {
-        return this.buildSecureCommand(DeleteKahootCommandMother.valid());
-    }
+  /**
+   * Crea el comando seguro inyectando el recurso validado y el ID de usuario.
+   */
+  public givenAValidDeleteKahootCommand(): this {
+    return this.buildSecureCommand(DeleteKahootCommandMother.valid());
+  }
 
-    /**
-     * Construcción Type-Safe del comando con los datos de propiedad.
-     */
-    private buildSecureCommand(base: DeleteKahootCommand): this {
-        const resource = this.getExistingKahoot();
+  /**
+   * Construcción Type-Safe del comando con los datos de propiedad.
+   */
+  private buildSecureCommand(base: DeleteKahootCommand): this {
+    const resource = this.getExistingKahoot();
 
-        this.currentCommand = {
-            ...base,
-            kahootId: "1234",
-            operationName: 'DeleteKahoot',
-            validatedResource: resource,
-            userId: resource.authorId // El ID que pide borrar coincide con el dueño
-        };
+    this.currentCommand = {
+      ...base,
+      kahootId: '1234',
+      operationName: 'DeleteKahoot',
+      validatedResource: resource,
+      userId: resource.authorId, // El ID que pide borrar coincide con el dueño
+    };
 
-        return this;
-    }
+    return this;
+  }
 
-    // ============ WHEN: Ejecución de la acción ============
+  // ============ WHEN: Ejecución de la acción ============
 
-    /**
-     * Instancia el caso de uso (SUT) y ejecuta la lógica de aplicación.
-     */
-    public async whenDeletingKahoot(): Promise<this> {
-        const handler = new DeleteKahootHandler(
-            this.repoMock,
-            this.cleanupMock,
-            this.loggerMock
-        );
-        this.result = await handler.execute(this.getCurrentCommand());
-        return this;
-    }
+  /**
+   * Instancia el caso de uso (SUT) y ejecuta la lógica de aplicación.
+   */
+  public async whenDeletingKahoot(): Promise<this> {
+    const handler = new DeleteKahootHandler(
+      this.repoMock,
+      this.cleanupMock,
+      this.loggerMock,
+    );
+    this.result = await handler.execute(this.getCurrentCommand());
+    return this;
+  }
 
-    // ============ THEN: Verificaciones y Expectativas ============
+  // ============ THEN: Verificaciones y Expectativas ============
 
-    /**
-     * Verifica que el borrado fue exitoso y se notificó al repositorio.
-     */
-    public thenShouldBeDeleted(): void {
-        expect(this.repoMock.deleteKahootEither).toHaveBeenCalled();
-        expect(this.result?.isRight()).toBe(true);
-    }
+  /**
+   * Verifica que el borrado fue exitoso y se notificó al repositorio.
+   */
+  public thenShouldBeDeleted(): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(this.repoMock.deleteKahootEither).toHaveBeenCalled();
+    expect(this.result?.isRight()).toBe(true);
+  }
 
-    /**
-     * Verifica que la operación falló con el mensaje indicado.
-     */
-    public thenShouldFailDueTo(message: string): void {
-        expect(this.result?.isLeft()).toBe(true);
-        const error = this.result?.getLeft();
-        expect(error?.message.toLowerCase()).toContain(message.toLowerCase());
-    }
+  /**
+   * Verifica que la operación falló con el mensaje indicado.
+   */
+  public thenShouldFailDueTo(message: string): void {
+    expect(this.result?.isLeft()).toBe(true);
+    const error = this.result?.getLeft();
+    expect(error?.message.toLowerCase()).toContain(message.toLowerCase());
+  }
 
-    /**
-     * Verifica que se disparó la limpieza de intentos del Kahoot.
-     */
-    public thenCleanupShouldBeTriggered(): void {
-        expect(this.cleanupMock.cleanupById).toHaveBeenCalled();
-    }
+  /**
+   * Verifica que se disparó la limpieza de intentos del Kahoot.
+   */
+  public thenCleanupShouldBeTriggered(): void {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(this.cleanupMock.cleanupById).toHaveBeenCalled();
+  }
 
-    // ============ HELPERS ============
+  // ============ HELPERS ============
 
-    private getExistingKahoot(): Kahoot {
-        if (!this.existingKahoot) throw new Error("Falta: givenAnExistingKahoot()");
-        return this.existingKahoot;
-    }
+  private getExistingKahoot(): Kahoot {
+    if (!this.existingKahoot) throw new Error('Falta: givenAnExistingKahoot()');
+    return this.existingKahoot;
+  }
 
-    private getCurrentCommand(): SecureDeleteCommand {
-        if (!this.currentCommand) throw new Error("Falta configurar el comando");
-        return this.currentCommand;
-    }
+  private getCurrentCommand(): SecureDeleteCommand {
+    if (!this.currentCommand) throw new Error('Falta configurar el comando');
+    return this.currentCommand;
+  }
 }

@@ -9,8 +9,8 @@
 
 // File: test\kahoots\object-mothers\application\authorization-strategys\kahoowOwnership.strategy.mother.ts
 
-import { KahootStatusEnum } from "src/kahoots/domain/value-objects/kahoot.status";
-import { VisibilityStatusEnum } from "src/kahoots/domain/value-objects/kahoot.visibility-status";
+import { KahootStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.status';
+import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 
 /**
  * KahootSecurityMother
@@ -19,43 +19,42 @@ import { VisibilityStatusEnum } from "src/kahoots/domain/value-objects/kahoot.vi
  * estrategias de autorización (Authorizers) sin cargar todo el agregado.
  */
 export class KahootSecurityMother {
-    
-    /**
-     * Genera un recurso básico con un autor dinámico.
-     * Útil para testear escenarios de "Mismo Usuario" vs "Usuario Diferente"
-     * sobre un Kahoot publicado.
-     */
-    static basicKahoot(authorId: string) {
-        return { 
-            authorId, 
-            status: KahootStatusEnum.PUBLISH, 
-            visibility: VisibilityStatusEnum.PUBLIC 
-        };
-    }
+  /**
+   * Genera un recurso básico con un autor dinámico.
+   * Útil para testear escenarios de "Mismo Usuario" vs "Usuario Diferente"
+   * sobre un Kahoot publicado.
+   */
+  static basicKahoot(authorId: string) {
+    return {
+      authorId,
+      status: KahootStatusEnum.PUBLISH,
+      visibility: VisibilityStatusEnum.PUBLIC,
+    };
+  }
 
-    /**
-     * Genera un recurso en estado de borrador (DRAFT) y privado.
-     * Representa un Kahoot que aún no ha sido finalizado y cuya visibilidad
-     * debe estar restringida estrictamente al autor.
-     */
-    static draftKahoot() {
-        return { 
-            authorId: 'propietario-1', 
-            status: KahootStatusEnum.DRAFT, 
-            visibility: VisibilityStatusEnum.PRIVATE 
-        };
-    }
+  /**
+   * Genera un recurso en estado de borrador (DRAFT) y privado.
+   * Representa un Kahoot que aún no ha sido finalizado y cuya visibilidad
+   * debe estar restringida estrictamente al autor.
+   */
+  static draftKahoot() {
+    return {
+      authorId: 'propietario-1',
+      status: KahootStatusEnum.DRAFT,
+      visibility: VisibilityStatusEnum.PRIVATE,
+    };
+  }
 
-    /**
-     * Genera un recurso publicado y de visibilidad pública.
-     * Representa un Kahoot finalizado que permite acciones de lectura y juego
-     * por parte de usuarios terceros (no autores).
-     */
-    static publicPublishedKahoot() {
-        return { 
-            authorId: 'propietario-1', 
-            status: KahootStatusEnum.PUBLISH, 
-            visibility: VisibilityStatusEnum.PUBLIC
-        };
-    }
+  /**
+   * Genera un recurso publicado y de visibilidad pública.
+   * Representa un Kahoot finalizado que permite acciones de lectura y juego
+   * por parte de usuarios terceros (no autores).
+   */
+  static publicPublishedKahoot() {
+    return {
+      authorId: 'propietario-1',
+      status: KahootStatusEnum.PUBLISH,
+      visibility: VisibilityStatusEnum.PUBLIC,
+    };
+  }
 }

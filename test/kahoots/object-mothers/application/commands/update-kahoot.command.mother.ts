@@ -16,60 +16,59 @@ import { KahootOptionCommand } from 'src/kahoots/application/commands/base/base-
 /**
  * UpdateKahootCommandMother
  * Clase encargada de centralizar la creación de comandos
- * para las pruebas. Utiliza el patrón Object Mother para desacoplar los tests 
+ * para las pruebas. Utiliza el patrón Object Mother para desacoplar los tests
  * de la estructura interna de los comandos.
  */
 export class UpdateKahootCommandMother {
+  // ID de usuario constante para pruebas controladas de propiedad (Ownership)
+  private static readonly USER_ID = '55b777c7-984e-497c-bc41-4a2a961ad210';
+  private static readonly KAHOOT_ID = '7aa6533f-2316-426f-83ec-8b2b85e11262';
 
-    // ID de usuario constante para pruebas controladas de propiedad (Ownership)
-    private static readonly USER_ID = "55b777c7-984e-497c-bc41-4a2a961ad210";
-    private static readonly KAHOOT_ID = "7aa6533f-2316-426f-83ec-8b2b85e11262";
+  /**
+   * Genera un comando de actualización válido para un Kahoot en estado borrador.
+   * Mantiene la coherencia de negocio: un DRAFT suele ser PRIVATE.
+   */
+  static validDraftUpdate(): UpdateKahootCommand {
+    return new UpdateKahootCommand({
+      id: this.KAHOOT_ID,
+      userId: this.USER_ID,
+      title: 'TEST ACTUALIZADO',
+      description: 'Descripción corregida.',
+      themeId: '5f0e8c89-f434-4dff-baaf-83a4aa4feb26',
+      visibility: 'PRIVATE', // Coherente con el estado de borrador
+      status: 'DRAFT',
+      slides: [
+        new KahootSlideCommand({
+          position: 0,
+          slideType: 'SINGLE',
+          points: 1000,
+          timeLimit: 45,
+          question: 'SINGLE SLIDE UPDATED',
+          options: [
+            new KahootOptionCommand({ text: 'OPTION 1', isCorrect: true }),
+            new KahootOptionCommand({ text: 'OPTION 2', isCorrect: false }),
+          ],
+        }),
+      ],
+    });
+  }
 
-    /**
-     * Genera un comando de actualización válido para un Kahoot en estado borrador.
-     * Mantiene la coherencia de negocio: un DRAFT suele ser PRIVATE.
-     */
-    static validDraftUpdate(): UpdateKahootCommand {
-        return new UpdateKahootCommand({
-            id: this.KAHOOT_ID,
-            userId: this.USER_ID,
-            title: "TEST ACTUALIZADO",
-            description: "Descripción corregida.",
-            themeId: "5f0e8c89-f434-4dff-baaf-83a4aa4feb26",
-            visibility: "PRIVATE", // Coherente con el estado de borrador
-            status: "DRAFT",
-            slides: [
-                new KahootSlideCommand({
-                    position: 0,
-                    slideType: "SINGLE",
-                    points: 1000,
-                    timeLimit: 45,
-                    question: "SINGLE SLIDE UPDATED",
-                    options: [
-                        new KahootOptionCommand({ text: "OPTION 1", isCorrect: true }),
-                        new KahootOptionCommand({ text: "OPTION 2", isCorrect: false })
-                    ]
-                })
-            ]
-        });
-    }
-
-    /**
-     * Genera un comando inválido que rompe las reglas de visibilidad.
-     * Simula el escenario donde se intenta hacer público un Kahoot que sigue en estado DRAFT,
-     * lo cual debería disparar una violación de invariantes en el Dominio.
-     */
-    static invalidPublicDraftUpdate(): UpdateKahootCommand {
-        const base = this.validDraftUpdate();
-        return new UpdateKahootCommand({
-            id: base.kahootId, 
-            userId: base.userId,
-            title: base.title,
-            description: base.description,
-            themeId: base.themeId,
-            visibility: "PUBLIC",
-            status: "DRAFT",
-            slides: base.slides
-        });
-    }
+  /**
+   * Genera un comando inválido que rompe las reglas de visibilidad.
+   * Simula el escenario donde se intenta hacer público un Kahoot que sigue en estado DRAFT,
+   * lo cual debería disparar una violación de invariantes en el Dominio.
+   */
+  static invalidPublicDraftUpdate(): UpdateKahootCommand {
+    const base = this.validDraftUpdate();
+    return new UpdateKahootCommand({
+      id: base.kahootId,
+      userId: base.userId,
+      title: base.title,
+      description: base.description,
+      themeId: base.themeId,
+      visibility: 'PUBLIC',
+      status: 'DRAFT',
+      slides: base.slides,
+    });
+  }
 }

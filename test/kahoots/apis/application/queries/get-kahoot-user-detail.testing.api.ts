@@ -23,67 +23,81 @@ import type { ILogger } from 'src/core/application/aspects/logging/logger.interf
 
 // --- Object Mothers ---
 import { KahootUserDetailMother } from 'test/kahoots/object-mothers/application/dtos/kahoot-user-detail.read.model.dto.mother';
-import { GetKahootUserDetailQueryMother, SecureDetailQuery } from 'test/kahoots/object-mothers/application/queries/get-kahoot-user-detail.query.mother';
+import {
+  GetKahootUserDetailQueryMother,
+  SecureDetailQuery,
+} from 'test/kahoots/object-mothers/application/queries/get-kahoot-user-detail.query.mother';
 
 /**
  * API de soporte para las pruebas unitarias del caso de uso de get kahoot user detail.
  */
 export class GetKahootUserDetailTestAPI {
-    private daoMock: MockProxy<IKahootDao> = mock<IKahootDao>();
-    private mediaMock: MockProxy<MediaEnrichmentService> = mock<MediaEnrichmentService>();
-    private loggerMock: MockProxy<ILogger> = mock<ILogger>();
+  private daoMock: MockProxy<IKahootDao> = mock<IKahootDao>();
+  private mediaMock: MockProxy<MediaEnrichmentService> =
+    mock<MediaEnrichmentService>();
+  private loggerMock: MockProxy<ILogger> = mock<ILogger>();
 
-    private result?: Either<ErrorData, KahootUserDetailReadModel>;
-    private currentQuery?: SecureDetailQuery;
-    private existingReadModel?: KahootUserDetailReadModel;
+  private result?: Either<ErrorData, KahootUserDetailReadModel>;
+  private currentQuery?: SecureDetailQuery;
+  private existingReadModel?: KahootUserDetailReadModel;
 
-    constructor() {
-        this.configureDefaultMocks();
-    }
+  constructor() {
+    this.configureDefaultMocks();
+  }
 
-    private configureDefaultMocks(): void {
-        this.mediaMock.enrich.mockImplementation(async (readModel) => readModel);
-        this.loggerMock.error.mockImplementation(() => { });
-    }
+  private configureDefaultMocks(): void {
+    this.mediaMock.enrich.mockImplementation((readModel) =>
+      Promise.resolve(readModel),
+    );
+    this.loggerMock.error.mockImplementation(() => undefined);
+  }
 
-    // ============ GIVEN: Escenarios de Estado ============
+  // ============ GIVEN: Escenarios de Estado ============
 
-    /**
-     * Prepara un modelo de lectura (ReadModel) válido de detalles de Kahoot.
-     */
-    public givenAnExistingUserDetailReadModel(): this {
-        this.existingReadModel = KahootUserDetailMother.valid();
-        return this;
-    }
+  /**
+   * Prepara un modelo de lectura (ReadModel) válido de detalles de Kahoot.
+   */
+  public givenAnExistingUserDetailReadModel(): this {
+    this.existingReadModel = KahootUserDetailMother.valid();
+    return this;
+  }
 
-    /**
-     * Configura la Query con el recurso validado inyectado y sus identificadores.
-     * La creación de la query se delega al Mother internamente.
-     */
-    public givenAValidGetDetailQuery(): this {
-        if (!this.existingReadModel) throw new Error("Falta: givenAnExistingUserDetailReadModel()");
-        
-        // Se hace AQUÍ adentro, la API orquesta a los Mothers
-        this.currentQuery = GetKahootUserDetailQueryMother.valid(this.existingReadModel);
+  /**
+   * Configura la Query con el recurso validado inyectado y sus identificadores.
+   * La creación de la query se delega al Mother internamente.
+   */
+  public givenAValidGetDetailQuery(): this {
+    if (!this.existingReadModel)
+      throw new Error('Falta: givenAnExistingUserDetailReadModel()');
 
-        return this;
-    }
+    // Se hace AQUÍ adentro, la API orquesta a los Mothers
+    this.currentQuery = GetKahootUserDetailQueryMother.valid(
+      this.existingReadModel,
+    );
 
-    // ============ WHEN: Ejecución de la Query (SUT) ============
+    return this;
+  }
 
-    public async whenExecutingQuery(): Promise<this> {
-        const handler = new GetKahootUserDetailHandler(this.mediaMock, this.loggerMock, this.daoMock);
-        if (!this.currentQuery) throw new Error("Falta configurar la Query");
-        
-        this.result = await handler.execute(this.currentQuery);
-        return this;
-    }
+  // ============ WHEN: Ejecución de la Query (SUT) ============
 
-    // ============ THEN: Verificaciones ============
+  public async whenExecutingQuery(): Promise<this> {
+    const handler = new GetKahootUserDetailHandler(
+      this.mediaMock,
+      this.loggerMock,
+      this.daoMock,
+    );
+    if (!this.currentQuery) throw new Error('Falta configurar la Query');
 
-    public thenShouldReturnUserDetail(): void {
-        expect(this.result?.isRight()).toBe(true);
-        expect(this.mediaMock.enrich).toHaveBeenCalled();
-        expect(this.result?.getRight()?.id).toBe(this.existingReadModel?.id);
-    }
+    this.result = await handler.execute(this.currentQuery);
+    return this;
+  }
+
+  // ============ THEN: Verificaciones ============
+
+  public thenShouldReturnUserDetail(): void {
+    expect(this.result?.isRight()).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(this.mediaMock.enrich).toHaveBeenCalled();
+    expect(this.result?.getRight().id).toBe(this.existingReadModel?.id);
+  }
 }
