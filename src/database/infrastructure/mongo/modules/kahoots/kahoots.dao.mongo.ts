@@ -23,7 +23,6 @@ import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
 import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-user-detail.read.model.dto';
 import { KahootUserDetailInput } from './mappers/kahoot.user.details.mapper';
 
-
 // --- Application Ports ---
 import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
 
@@ -59,12 +58,18 @@ export class KahootDaoMongo implements IKahootDao {
     @InjectModel(AttemptMongo.name)
     private readonly attemptModel: Model<AttemptMongo>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
-    private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+    private readonly mongoErrorMapper: IErrorMapper<
+      unknown,
+      IDatabaseErrorContext
+    >,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_MONGO_SNAPSHOT)
     private readonly kahootReadMapper: IMapper<IKahootDocument, KahootSnapshot>,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_MONGO_READ)
-    private readonly userDetailMapper: IMapper<KahootUserDetailInput, KahootUserDetailReadModel>,
-  ) { }
+    private readonly userDetailMapper: IMapper<
+      KahootUserDetailInput,
+      KahootUserDetailReadModel
+    >,
+  ) {}
   // ==========================================
   // HELPERS PRIVADOS
   // ==========================================
@@ -72,14 +77,18 @@ export class KahootDaoMongo implements IKahootDao {
   /**
    * Genera el contexto de error inyectando la identidad del DAO.
    */
-  private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
+  private getCtx(
+    operation: string,
+    entityId?: string,
+    extra?: Record<string, unknown>,
+  ) {
     return createDatabaseContext(
       this.contextBase,
       this.adapterName,
       this.portName,
       operation,
       entityId,
-      extra
+      extra,
     );
   }
 
@@ -87,19 +96,23 @@ export class KahootDaoMongo implements IKahootDao {
   // IMPLEMENTACIÓN DE MÉTODOS (IKahootDao)
   // ==========================================
 
-  async getKahootById(id: string): Promise<Either<ErrorData, KahootSnapshot | null>> {
+  async getKahootById(
+    id: string,
+  ): Promise<Either<ErrorData, KahootSnapshot | null>> {
     const ctx = this.getCtx('getKahootById', id);
 
     const result = await Either.tryCatch(
       this.kahootModel.findOne({ id }).lean<IKahootDocument>().exec(),
-      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx),
     );
 
     // Ahora usamos .map() del contrato IMapper
-    return result.map(doc => doc ? this.kahootReadMapper.map(doc) : null);
+    return result.map((doc) => (doc ? this.kahootReadMapper.map(doc) : null));
   }
 
-  async getKahootValidationDataByKahootId(id: string): Promise<Either<ErrorData, { userId: string, visibility: string } | null>> {
+  async getKahootValidationDataByKahootId(
+    id: string,
+  ): Promise<Either<ErrorData, { userId: string; visibility: string } | null>> {
     const ctx = this.getCtx('getKahootValidationDataByKahootId', id);
 
     // Definimos una interfaz local para el select específico si no queremos traer todo el IKahootDocument
@@ -114,14 +127,14 @@ export class KahootDaoMongo implements IKahootDao {
         .select('authorId visibility')
         .lean<ValidationData>()
         .exec(),
-      (err) => this.mongoErrorMapper.toErrorData(err, ctx)
+      (err) => this.mongoErrorMapper.toErrorData(err, ctx),
     );
 
-    return result.map(doc => {
+    return result.map((doc) => {
       if (!doc) return null;
       return {
         userId: doc.authorId,
-        visibility: doc.visibility
+        visibility: doc.visibility,
       };
     });
   }
@@ -143,7 +156,7 @@ export class KahootDaoMongo implements IKahootDao {
    */
   private async fetchAndMapUserDetail(
     kahootId: string,
-    userId: string
+    userId: string,
   ): Promise<KahootUserDetailReadModel | null> {
     const [kahoot, user, lastAttempt] = await Promise.all([
       this.kahootModel.findOne({ id: kahootId }).lean<IKahootDocument>().exec(),

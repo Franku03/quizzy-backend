@@ -22,16 +22,18 @@ interface UserProps {
 }
 */
 
-import { Entity } from './entity'; 
-import { UuidVO } from './vo.id'; 
+import { Entity } from './entity';
+import { UuidVO } from './vo.id';
 
-export abstract class AggregateRoot<TProps, TId extends UuidVO> extends Entity<TProps, TId> {
+export abstract class AggregateRoot<TProps, TId extends UuidVO> extends Entity<
+  TProps,
+  TId
+> {
+  protected constructor(properties: TProps, id: TId) {
+    super(properties, id);
+  }
 
-    protected constructor(properties: TProps, id: TId) {
-        super(properties, id);
-    }
+  protected abstract checkInvariants(): void;
 
-    protected abstract checkInvariants(): void;
-
-    /*public abstract toPrimitives(): TProps & { id: string };*/
+  /*public abstract toPrimitives(): TProps & { id: string };*/
 }

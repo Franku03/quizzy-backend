@@ -9,6 +9,4 @@
 
 // File: src\core\application\cqrs\query.interface.ts
 
-export interface IQuery {
-  readonly [key: string]: any;
-}
+export type IQuery = Readonly<Record<string, any>>;

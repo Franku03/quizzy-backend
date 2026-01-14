@@ -77,7 +77,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             const sessionId = this.idGenerator.generateId()  
 
             // Creamos el contexto de error (para saber dónde falló si algo pasa)
-            const appContext = createMultiplayerSessionAppContext('createSession', { actorId: command.id, aggregateId: sessionId } );
+            const appContext = createMultiplayerSessionAppContext('createSession', { actorId: command.userId, aggregateId: sessionId } );
 
             return pipeAsync<ErrorData, CreateSessionResponse>(
                 // INICIO: Arrancamos karril con kahoot validado

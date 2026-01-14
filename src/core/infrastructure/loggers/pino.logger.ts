@@ -63,10 +63,13 @@ export class PinoLogger implements ILogger {
     });
 
     // Create the Pino logger instance with the transport
-    this.logger = pino({
-      level: 'info',
-      timestamp: pino.stdTimeFunctions.isoTime,
-    }, transport);
+    this.logger = pino(
+      {
+        level: 'info',
+        timestamp: pino.stdTimeFunctions.isoTime,
+      },
+      transport,
+    );
   }
 
   log(message: string, metadata?: Record<string, any>): void {
@@ -104,5 +107,4 @@ export class PinoLogger implements ILogger {
       this.logger.error(message);
     }
   }
-
 }

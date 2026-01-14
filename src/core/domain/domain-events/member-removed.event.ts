@@ -9,10 +9,14 @@
 
 // File: src\core\domain\domain-events\member-removed.event.ts
 
-import { DomainEvent } from "../abstractions/domain-event";
+import { DomainEvent } from '../abstractions/domain-event';
 
 export class MemberRemovedEvent extends DomainEvent {
-    constructor(public readonly userId: string, public readonly groupId: string, public readonly removedBy: string) {
-        super(MemberRemovedEvent.name);
-    }
+  constructor(
+    public readonly userId: string,
+    public readonly groupId: string,
+    public readonly removedBy: string,
+  ) {
+    super(MemberRemovedEvent.name);
+  }
 }

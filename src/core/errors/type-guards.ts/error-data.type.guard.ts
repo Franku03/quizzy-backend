@@ -9,8 +9,8 @@
 
 // File: src\core\errors\type-guards.ts\error-data.type.guard.ts
 
-import { ErrorData } from "../error.type";
+import { ErrorData } from '../error.type';
 
-export function isErrorData(error: any): error is ErrorData {
-    return error instanceof ErrorData;
+export function isErrorData(error: unknown): error is ErrorData {
+  return error instanceof ErrorData;
 }

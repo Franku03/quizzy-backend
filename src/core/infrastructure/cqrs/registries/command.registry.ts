@@ -13,10 +13,10 @@ export type CommandConstructor = new (...args: any[]) => any;
 export type CommandHandlerConstructor = new (...args: any[]) => any;
 
 export class CommandRegistry {
-  private static readonly registrations: Array<{
+  private static readonly registrations: {
     command: CommandConstructor;
     handler: CommandHandlerConstructor;
-  }> = [];
+  }[] = [];
 
   static register(
     command: CommandConstructor,
@@ -25,10 +25,10 @@ export class CommandRegistry {
     this.registrations.push({ command, handler });
   }
 
-  static getRegistrations(): Array<{
+  static getRegistrations(): {
     command: CommandConstructor;
     handler: CommandHandlerConstructor;
-  }> {
+  }[] {
     return [...this.registrations];
   }
 

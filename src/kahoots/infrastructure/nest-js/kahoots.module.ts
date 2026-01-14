@@ -37,7 +37,6 @@ import { UpdateKahootRequestMapper } from '../adapters/mappers/update-kahoot.req
 import { AttemptCleanupService } from '../../application/services/attempt-clear.service';
 import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
-
 @Module({
   controllers: [KahootController],
   imports: [
@@ -53,7 +52,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
     UpdateKahootHandler,
     DeleteKahootHandler,
     GetKahootByIdHandler,
-    GetKahootUserDetailHandler ,
+    GetKahootUserDetailHandler,
 
     // --- Mapeo de Salida (Response) ---
     {
@@ -70,7 +69,7 @@ import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
       provide: APPLICATION_CORE_TOKENS.MAPPER.UPDATE_KAHOOT_REQUEST,
       useClass: UpdateKahootRequestMapper,
     },
-    
+
     AttemptCleanupService,
   ],
   exports: [],

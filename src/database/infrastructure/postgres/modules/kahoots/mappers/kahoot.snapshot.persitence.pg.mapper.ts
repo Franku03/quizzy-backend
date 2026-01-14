@@ -15,46 +15,55 @@ import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 import { KahootEntity } from '../../../entities/kahoot/kahoot.entity.pg';
 import { SlideEntity } from '../../../entities/kahoot/slide.entitity.pg';
 import { OptionEntity } from '../../../entities/kahoot/option.entity.pg';
+import { OptionSnapshot } from 'src/core/domain/snapshots/snapshot.option';
+import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
 
-export class KahootPersistencePgMapper implements IMapper<KahootSnapshot, DeepPartial<KahootEntity>> {
-
+export class KahootPersistencePgMapper implements IMapper<
+  KahootSnapshot,
+  DeepPartial<KahootEntity>
+> {
   public map(snapshot: KahootSnapshot): DeepPartial<KahootEntity> {
     const { styling, details, slides, ...rest } = snapshot;
 
     return {
       ...rest,
       themeId: styling.themeId,
-      coverImageId: styling.imageId ?? undefined,
-      
-      title: details?.title ?? undefined,
-      description: details?.description ?? undefined,
-      category: details?.category ?? undefined,
+      coverImageId: styling.imageId,
+      title: details?.title,
+      description: details?.description,
+      category: details?.category,
 
-      slides: slides ? this.mapSlidesToPersistence(slides, snapshot.id) : [],
+      slides: this.mapSlidesToPersistence(slides, snapshot.id),
     };
   }
 
-  private mapSlidesToPersistence(slides: any[], kahootId: string): DeepPartial<SlideEntity>[] {
+  private mapSlidesToPersistence(
+    slides: SlideSnapshot[],
+    kahootId: string,
+  ): DeepPartial<SlideEntity>[] {
     return slides.map((slide) => ({
       id: slide.id,
       position: slide.position,
       slideType: slide.slideType,
       timeLimitSeconds: slide.timeLimitSeconds,
-      questionText: slide.questionText ?? undefined,
-      slideImageId: slide.slideImageId ?? undefined,
-      pointsValue: slide.pointsValue ?? undefined,
-      descriptionText: slide.descriptionText ?? undefined,
-      kahoot: { id: kahootId }, 
-      options: slide.options ? this.mapOptionsToPersistence(slide.options, slide.id) : [],
+      questionText: slide.questionText,
+      slideImageId: slide.slideImageId,
+      pointsValue: slide.pointsValue,
+      descriptionText: slide.descriptionText,
+      kahoot: { id: kahootId } as DeepPartial<KahootEntity>,
+      options: this.mapOptionsToPersistence(slide.options, slide.id),
     }));
   }
 
-  private mapOptionsToPersistence(options: any[], slideId: string): DeepPartial<OptionEntity>[] {
+  private mapOptionsToPersistence(
+    options: OptionSnapshot[],
+    slideId: string,
+  ): DeepPartial<OptionEntity>[] {
     return options.map((option) => ({
-      optionText: option.optionText ?? undefined,
+      optionText: option.optionText,
       isCorrect: option.isCorrect,
-      optionImageId: option.optionImageId ?? undefined,
-      slide: { id: slideId }
+      optionImageId: option.optionImageId,
+      slide: { id: slideId } as DeepPartial<SlideEntity>,
     }));
   }
 }

@@ -9,4 +9,4 @@
 
 // File: src\core\domain\shared-value-objects\constants\global-kahoot-constants.ts
 
-export const GLOBAL_MAX_QUESTION_LENGTH = 120;    
+export const GLOBAL_MAX_QUESTION_LENGTH = 120;

@@ -22,32 +22,27 @@ interface UserProps {
 }
 */
 
-import { UuidVO } from './vo.id'; 
+import { UuidVO } from './vo.id';
 
-export abstract class Entity<TProps, TId extends UuidVO> { 
+export abstract class Entity<TProps, TId extends UuidVO> {
+  public readonly id: TId;
+  protected properties: TProps;
 
-    public readonly id: TId; 
-    protected properties: TProps; 
+  protected constructor(properties: TProps, id: TId) {
+    this.id = id;
+    this.properties = properties;
+  }
 
-    protected constructor(properties: TProps, id: TId) {
-        if (!id) {
-            throw new Error("El ID de la Entidad no puede ser null.");
-        }
-        this.id = id;
-        this.properties = properties;
+  public equals(entity?: Entity<TProps, TId>): boolean {
+    if (entity?.constructor !== this.constructor) {
+      return false;
     }
+    return this.id.equals(entity.id);
+  }
 
-    public equals(entity?: Entity<TProps, TId>): boolean {
-        if (!entity || entity.constructor !== this.constructor) {
-            return false;
-        }
-        return this.id.equals(entity.id);
-    }
+  public idToString(): string {
+    return this.id.value;
+  }
 
-
-    public idToString(): string {
-        return this.id.value; 
-    }
-    
-    /*public abstract toPrimitives(): TProps & { id: string };*/
+  /*public abstract toPrimitives(): TProps & { id: string };*/
 }

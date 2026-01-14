@@ -9,12 +9,18 @@ import { createApplicationContext } from 'src/core/errors/helpers/app-error-cont
 import { AppErrorFactory } from 'src/core/errors/factories/app-error.factory';
 
 export interface IRequestWithUserAsPlayer {
-    sessionId: string,
-    userId: string
+  sessionId: string;
+  userId: string;
 }
 
-export class SessionPlayerAuthorizer implements IAuthorizer<IRequestWithUserAsPlayer, IMultiplayerSessionDao> {
-  async authorize(request: IRequestWithUserAsPlayer, context: IMultiplayerSessionDao): Promise<Either<ErrorData, void>> {
+export class SessionPlayerAuthorizer implements IAuthorizer<
+  IRequestWithUserAsPlayer,
+  IMultiplayerSessionDao
+> {
+  async authorize(
+    request: IRequestWithUserAsPlayer,
+    context: IMultiplayerSessionDao,
+  ): Promise<Either<ErrorData, void>> {
     const userId = request.userId;
     const sessionId = request.sessionId;
 
@@ -24,30 +30,25 @@ export class SessionPlayerAuthorizer implements IAuthorizer<IRequestWithUserAsPl
     });
 
     if (!userId) {
-      return Either.makeLeft(
-        AppErrorFactory.unauthorized(errorContext)
-      );
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
     }
 
     // const isAdminResult = await context.isUserSessionHost( userId, sessionId );
-    const isPlayerResult = await context.isUserSessionPlayer( userId, sessionId );
+    const isPlayerResult = await context.isUserSessionPlayer(userId, sessionId);
 
     // if( isAdminResult.isLeft() )
     //     return Either.makeLeft( isAdminResult.getLeft() );
 
-    if( isPlayerResult.isLeft() )
-        return Either.makeLeft( isPlayerResult.getLeft() );  
+    if (isPlayerResult.isLeft())
+      return Either.makeLeft(isPlayerResult.getLeft());
 
-    console.log(isPlayerResult.getRight() )
+    console.log(isPlayerResult.getRight());
 
     // Verificamos que sea jugador como para acceder a reportes de esta sesión
-    if (!isPlayerResult.getRight() ) {
-      return Either.makeLeft(
-        AppErrorFactory.unauthorized(errorContext)
-      );
+    if (!isPlayerResult.getRight()) {
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
     }
 
     return Either.makeRight(undefined);
   }
 }
-

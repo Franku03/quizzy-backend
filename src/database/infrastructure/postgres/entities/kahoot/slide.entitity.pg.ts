@@ -9,7 +9,14 @@
 
 // File: src\database\infrastructure\postgres\entities\kahoot\slide.entitity.pg.ts
 
-import { Entity, Column, PrimaryColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { KahootEntity } from './kahoot.entity.pg';
 import { OptionEntity } from './option.entity.pg';
 import { DbPostgresEntity } from '../../decorators/db-postgres-entity.decorator';
@@ -49,7 +56,7 @@ export class SlideEntity {
   // Relaciones
   @ManyToOne(() => KahootEntity, (kahoot) => kahoot.slides, {
     onDelete: 'CASCADE', // Si se borra el Kahoot, desaparecen las slides
-    nullable: false,     // PROHIBE que TypeORM ponga kahootId en NULL durante el UPDATE
+    nullable: false, // PROHIBE que TypeORM ponga kahootId en NULL durante el UPDATE
   })
   @JoinColumn({ name: 'kahootId' })
   kahoot: KahootEntity;

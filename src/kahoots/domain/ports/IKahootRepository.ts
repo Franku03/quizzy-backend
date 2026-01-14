@@ -20,8 +20,8 @@ export interface IKahootRepository {
   // ========== NUEVO CON Either (CON string, NO KahootId) ==========
   // Ahora reciben string puro para desacoplar
   saveKahootEither(kahoot: Kahoot): Promise<Either<ErrorData, void>>;
-  findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>>; 
+  findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>>;
   findAllKahootsEither(): Promise<Either<ErrorData, Kahoot[]>>;
-  deleteKahootEither(id: string): Promise<Either<ErrorData, void>>; 
+  deleteKahootEither(id: string): Promise<Either<ErrorData, void>>;
   existsKahootEither(id: string): Promise<Either<ErrorData, boolean>>;
 }

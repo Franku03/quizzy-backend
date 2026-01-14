@@ -14,7 +14,7 @@ export interface IAssetUrlGenerator {
    * Genera URL para un asset
    */
   generateUrl(publicId: string): string;
-  
+
   /**
    * Genera URLs para múltiples assets
    */

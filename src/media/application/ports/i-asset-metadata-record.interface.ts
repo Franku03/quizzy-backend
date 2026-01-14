@@ -11,27 +11,27 @@
 
 export interface AssetMetadataRecord {
   // IDs
-  assetId: string;               // UUID generado en handler
-  publicId: string;              // ID en storage (ej: "uploads/uuid-here")
-  
+  assetId: string; // UUID generado en handler
+  publicId: string; // ID en storage (ej: "uploads/uuid-here")
+
   // Storage
-  provider: string;              // 'cloudinary', 's3', 'local'
-  
+  provider: string; // 'cloudinary', 's3', 'local'
+
   // Archivo (del UploadAssetCommand)
-  originalName: string;          // Nombre original del archivo
-  mimeType: string;              // Tipo MIME (image/jpeg, etc.)
-  size: number;                  // Tamaño en bytes
-  
+  originalName: string; // Nombre original del archivo
+  mimeType: string; // Tipo MIME (image/jpeg, etc.)
+  size: number; // Tamaño en bytes
+
   // Deduplicación
-  contentHash: string;           // SHA-256 del buffer
-  
+  contentHash: string; // SHA-256 del buffer
+
   // Referencias
-  referenceCount: number;        // Cuántas entidades usan este asset
-  
+  referenceCount: number; // Cuántas entidades usan este asset
+
   // Metadata calculada
-  format: string;                // 'jpg', 'png', 'pdf' (del mimeType)
-  category: string;              // 'image', 'video', 'document' (del mimeType)
-  theme?: boolean; 
+  format: string; // 'jpg', 'png', 'pdf' (del mimeType)
+  category: string; // 'image', 'video', 'document' (del mimeType)
+  theme?: boolean;
   // Temporal
-  uploadedAt: Date;              // Cuándo se subió por primera vez
+  uploadedAt: Date; // Cuándo se subió por primera vez
 }
