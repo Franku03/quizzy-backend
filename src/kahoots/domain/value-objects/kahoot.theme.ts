@@ -9,17 +9,18 @@
 
 // File: src\kahoots\domain\value-objects\kahoot.theme.ts
 
-import { Either, ErrorData } from "src/core/types";
-import { UuidVO } from "src/core/domain/abstractions/vo.id";
+import { Either, ErrorData } from 'src/core/types';
+import { UuidVO } from 'src/core/domain/abstractions/vo.id';
 
 export class ThemeId extends UuidVO {
-    private constructor(value: string) {
-        super(value);
-    }
+  private constructor(value: string) {
+    super(value);
+  }
 
-    public static create(value: string): Either<ErrorData, ThemeId> {
-        // Si el check pasa, hacemos el new. Si no, devolvemos el error. 
-        return UuidVO.check(value, 'ThemeId')
-            .map(validId => new ThemeId(validId));
-    }
+  public static create(value: string): Either<ErrorData, ThemeId> {
+    // Si el check pasa, hacemos el new. Si no, devolvemos el error.
+    return UuidVO.check(value, 'ThemeId').map(
+      (validId) => new ThemeId(validId),
+    );
+  }
 }

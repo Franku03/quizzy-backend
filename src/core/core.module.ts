@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\core\core.module.ts
+
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
@@ -46,15 +57,15 @@ import { ResultInterceptor } from './infrastructure/interceptors/response.interc
     },
 
     // ID Generator centralizado
-    { 
-      provide: APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR, 
-      useClass: UuidGenerator 
+    {
+      provide: APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR,
+      useClass: UuidGenerator,
     },
 
     // Event Bus
-    { 
-      provide: EVENT_BUS_TOKEN, 
-      useClass: InMemoryEventBus 
+    {
+      provide: EVENT_BUS_TOKEN,
+      useClass: InMemoryEventBus,
     },
 
     // Logger centralizado
@@ -76,7 +87,7 @@ import { ResultInterceptor } from './infrastructure/interceptors/response.interc
     CommandQueryExecutorService,
     EVENT_BUS_TOKEN,
     AllExceptionsFilter, // Exportado para acceso externo
-    ResultInterceptor,   // Exportado para acceso externo
+    ResultInterceptor, // Exportado para acceso externo
     APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR,
     APPLICATION_CORE_TOKENS.UTILS.LOGGER,
     APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE,

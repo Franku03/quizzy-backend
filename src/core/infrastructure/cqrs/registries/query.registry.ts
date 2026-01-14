@@ -13,10 +13,10 @@ export type QueryConstructor = new (...args: any[]) => any;
 export type QueryHandlerConstructor = new (...args: any[]) => any;
 
 export class QueryRegistry {
-  private static readonly registrations: Array<{
+  private static readonly registrations: {
     query: QueryConstructor;
     handler: QueryHandlerConstructor;
-  }> = [];
+  }[] = [];
 
   static register(
     query: QueryConstructor,
@@ -25,10 +25,10 @@ export class QueryRegistry {
     this.registrations.push({ query, handler });
   }
 
-  static getRegistrations(): Array<{
+  static getRegistrations(): {
     query: QueryConstructor;
     handler: QueryHandlerConstructor;
-  }> {
+  }[] {
     return [...this.registrations];
   }
 

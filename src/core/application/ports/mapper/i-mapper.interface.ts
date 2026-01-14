@@ -10,5 +10,5 @@
 // File: src\core\application\ports\mapper\i-mapper.interface.ts
 
 export interface IMapper<I, O> {
-  map(input: I): O ;
+  map(input: I): O;
 }

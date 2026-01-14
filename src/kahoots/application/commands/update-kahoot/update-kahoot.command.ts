@@ -9,27 +9,27 @@
 
 // File: src\kahoots\application\commands\update-kahoot\update-kahoot.command.ts
 
-import { BaseKahootCommand } from "../base/base-kahoot.command";
-import { KahootSlideCommand } from "../base/base-kahoot-slide.command";
+import { BaseKahootCommand } from '../base/base-kahoot.command';
+import { KahootSlideCommand } from '../base/base-kahoot-slide.command';
 
 // Interfaz que define las propiedades que el Command puede aceptar
 interface UpdateCommandProps {
-    userId: string;
-    id: string;
-    title?: string;
-    description?: string;
-    imageId?: string;
-    themeId: string;
-    category?: string;
-    visibility: string;
-    status: string;
-    slides?: KahootSlideCommand[];
+  userId: string;
+  id: string;
+  title?: string;
+  description?: string;
+  imageId?: string;
+  themeId: string;
+  category?: string;
+  visibility: string;
+  status: string;
+  slides?: KahootSlideCommand[];
 }
 
 export class UpdateKahootCommand extends BaseKahootCommand {
-    public readonly id: string; 
-    constructor(props: UpdateCommandProps) {
-        super(props); 
-        this.id = props.id;
-    }
+  public readonly kahootId: string;
+  constructor(props: UpdateCommandProps) {
+    super(props);
+    this.kahootId = props.id;
+  }
 }

@@ -10,14 +10,14 @@
 // File: src\kahoots\application\commands\context\base-kahoot-context.ts
 
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
-export const createKahootAppContext = (operation: string, aggregateId?: string, actorId?: string) => {
-    return createDomainContext(
-        'Kahoot',
-        operation,
-        {
-            rootAggregateName: 'Kahoot',
-            rootAggregateId: aggregateId,
-            actorId: actorId,
-        }
-    );
+export const createKahootAppContext = (
+  operation: string,
+  aggregateId?: string,
+  actorId?: string,
+) => {
+  return createDomainContext('Kahoot', operation, {
+    rootAggregateName: 'Kahoot',
+    rootAggregateId: aggregateId,
+    actorId: actorId,
+  });
 };

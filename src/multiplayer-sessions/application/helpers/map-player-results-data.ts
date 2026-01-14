@@ -35,10 +35,13 @@ export const mapPlayerResultsData = (
         total: session.getTotalOfSlides(),
     }
 
-    if( playerAnswer ){
+    const player = session.getPlayerById( playerId );
+
+    // Si hay respuesta asociada a la slide y existe el jugador, mappeamos una respuesta completa , en base a su respuesta
+    if( playerAnswer && player ){
 
         // No debería haber problema dado que, si hay una respuesta registrada para el usuario, evidentemente existe en el dominio
-        const streak = session.getPlayerById( playerId )?.getStreak()!
+        const streak = player.getStreak()
         
         const motivationalMessage = FeedbackGenerator.generate({
             isCorrect: playerAnswer.isCorrect(),
@@ -63,15 +66,15 @@ export const mapPlayerResultsData = (
                     
     }
 
-    // Respuesta default para usuarios que no respondieron
+    // Respuesta default para usuarios que no respondieron, pero igual deben recuperar su info registrada
     return {
         state: state,
         isCorrect: false,
         pointsEarned: 0,
-        totalScore: 0, // O buscar su score en otro lado si fuera crítico
-        rank: 0,
-        previousRank: 0,
-        streak: 0,
+        totalScore: entry.getScore() ?? 0, 
+        rank: entry.getRank() ?? 0,
+        previousRank: entry.getPreviousRank() ?? 0, // Protego en caso de undefined, aunque sería raro que algo así ocurriese dado el flujo del mappeo y donde se ejecuta este método
+        streak: player?.getStreak() ?? 0,
         correctAnswerIds: options.correctAnswerId,
         message: FeedbackGenerator.noAnswerMessages[Math.floor( Math.random() * FeedbackGenerator.noAnswerMessages.length )],
         progress: progress, 

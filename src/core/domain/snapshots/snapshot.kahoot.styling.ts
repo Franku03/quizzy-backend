@@ -9,9 +9,9 @@
 
 // File: src\core\domain\snapshots\snapshot.kahoot.styling.ts
 
-import { ThemeObject } from "src/core/types/theme.object";
-import { IHasMediaAssets } from "../abstractions/media.assets.interface";
-import { IThemeable } from "../abstractions/themeable.interface";
+import { ThemeObject } from 'src/core/types/theme.object';
+import { IHasMediaAssets } from '../abstractions/media.assets.interface';
+import { IThemeable } from '../abstractions/themeable.interface';
 
 export interface KahootStylingSnapshotData {
   themeId: string;
@@ -23,10 +23,12 @@ export class KahootStylingSnapshot implements IHasMediaAssets, IThemeable {
   private constructor(
     public themeId: string,
     public imageId?: string,
-    public theme?: ThemeObject
+    public theme?: ThemeObject,
   ) {}
 
-  public static fromRaw(data: KahootStylingSnapshotData): KahootStylingSnapshot {
+  public static fromRaw(
+    data: KahootStylingSnapshotData,
+  ): KahootStylingSnapshot {
     return new KahootStylingSnapshot(data.themeId, data.imageId, data.theme);
   }
 

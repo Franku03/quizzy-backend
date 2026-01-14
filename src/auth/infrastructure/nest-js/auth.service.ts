@@ -10,6 +10,7 @@ import { LoginUserDto } from '../dtos/login-user.dto';
 import { User } from 'src/users/domain/aggregates/user';
 import { Either } from 'src/core/types/either';
 import { ErrorData, ErrorLayer } from 'src/core/types';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject('IPasswordHasher')
     private readonly passwordHasher: IPasswordHasher,
+    private readonly mediaEnrichmentService: MediaEnrichmentService,
   ) {}
 
   async login(loginDto: LoginUserDto): Promise<Either<ErrorData, any>> {
@@ -72,7 +74,7 @@ export class AuthService {
       );
     }
 
-    return Either.makeRight(this.generateTokenResponse(user));
+    return Either.makeRight(await this.generateTokenResponse(user));
   }
 
   async checkAuthStatus(userId: string): Promise<Either<ErrorData, any>> {
@@ -113,10 +115,10 @@ export class AuthService {
       );
     }
 
-    return Either.makeRight(this.generateTokenResponse(user));
+    return Either.makeRight(await this.generateTokenResponse(user));
   }
 
-  private generateTokenResponse(user: User) {
+  private async generateTokenResponse(user: User) {
     // Usar los roles del usuario directamente
     const roles = [...user.roles]; // Copia del array de roles
 
@@ -134,7 +136,7 @@ export class AuthService {
       roles: roles,
     };
 
-    return {
+    const response: any = {
       token: this.jwtService.sign(payload),
       user: {
         id: user.id.value,
@@ -155,6 +157,30 @@ export class AuthService {
         isPremium: user.isUserPremium(),
       },
     };
+
+    response.getMediaAssetIds = () => {
+      const id = user.userProfileDetails.avatarAssetId;
+      return id ? [id] : [];
+  };
+
+  // 2. Método para aplicar las URLs que encuentre el servicio
+  response.applyMediaUrls = (urlMap: Map<string, string>) => {
+       const id = user.userProfileDetails.avatarAssetId;
+       // Actualizamos directamente la propiedad del objeto response
+       if(id) {
+           response.user.userProfileDetails.avatarAssetUrl = urlMap.get(id) || null;
+       }
+  };
+
+  // 3. Ejecutamos el enriquecimiento
+  await this.mediaEnrichmentService.enrich(response);
+
+  // 4. Limpieza (Opcional): Borramos los métodos auxiliares para que no ensucien el JSON final
+  delete response.getMediaAssetIds;
+  delete response.applyMediaUrls;
+
+  return response;
+
   }
 
 }

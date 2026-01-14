@@ -11,7 +11,7 @@
 
 import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
 import { createDomainContext } from 'src/core/errors/helpers/domain-error-context.helper';
-import { COMMON_ERRORS } from '../../common.errors';
+import { COMMON_ERRORS } from './common.errors';
 
 export const createSlideNotFoundError = (operation: string, aggregateId?: string, actorId?: string ) => {
 

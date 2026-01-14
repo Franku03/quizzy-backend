@@ -26,7 +26,7 @@ export class UpdateSessionProgressAndRankingService {
     ): Either< ErrorData, void > {
 
 
-        // Actualizamos progreso y ranking de la sesion
+        // Actualizamos progreso, puntajes y streaks de jugadors y ranking de la sesion
         const slideId = session.getCurrentSlideInSession();
 
         const slideResult = session.getSlideResultsBySlideId( slideId );
@@ -36,7 +36,8 @@ export class UpdateSessionProgressAndRankingService {
             return Either.makeLeft( this.buildUpdateRankingProgressErrorData( error ) );
         }
 
-        session.updatePlayersScores( slideResult );
+        // session.updatePlayersScores( slideResult );
+        session.updatePlayersScoresAndStreaks( slideResult );
 
         session.updateRanking();
 

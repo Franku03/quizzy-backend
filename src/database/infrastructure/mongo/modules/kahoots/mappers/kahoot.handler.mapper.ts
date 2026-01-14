@@ -9,25 +9,21 @@
 
 // File: src\database\infrastructure\mongo\modules\kahoots\mappers\kahoot.handler.mapper.ts
 
-import { 
-  IKahootDocument, 
-  SlideSnapshot, 
-  OptionSnapshot 
+import {
+  IKahootDocument,
+  SlideSnapshot as MongoSlide,
+  OptionSnapshot as MongoOption,
 } from '../../../entities/kahoots.schema';
 import { KahootSnapshot } from 'src/core/domain/snapshots/snapshot.kahoot';
+import { SlideSnapshot } from 'src/core/domain/snapshots/snapshot.slide';
+import { OptionSnapshot } from 'src/core/domain/snapshots/snapshot.option';
 import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.type';
 import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
-
-export class KahootReadMapper implements IMapper<IKahootDocument, KahootSnapshot> {
-
-  // ==========================================
-  // IMPLEMENTACIÓN DE IMapper
-  // ==========================================
-
-  /**
-   * Transforma un documento de MongoDB (IKahootDocument) en un Snapshot de dominio.
-   */
+export class KahootReadMapper implements IMapper<
+  IKahootDocument,
+  KahootSnapshot
+> {
   public map(document: IKahootDocument): KahootSnapshot {
     return KahootSnapshot.fromRaw({
       id: document.id,
@@ -35,55 +31,58 @@ export class KahootReadMapper implements IMapper<IKahootDocument, KahootSnapshot
       createdAt: new Date(document.createdAt).toISOString(),
       status: document.status,
       visibility: document.visibility,
-      playCount: document.playCount ?? 0,
+      playCount: document.playCount,
 
-      details: document.details ? {
-        title: document.details.title ?? undefined,
-        description: document.details.description ?? undefined,
-        category: document.details.category ?? undefined,
-      } : undefined,
+      details: document.details
+        ? {
+            title: document.details.title ?? undefined,
+            description: document.details.description ?? undefined,
+            category: document.details.category ?? undefined,
+          }
+        : undefined,
 
       styling: {
         themeId: document.styling.themeId,
         imageId: document.styling.imageId ?? undefined,
       },
 
-      // Usamos el helper privado con el tipado correcto de tu Schema
       slides: document.slides ? this.mapSlidesData(document.slides) : [],
     });
   }
 
-  // ==========================================
-  // MÉTODOS PRIVADOS DE APOYO
-  // ==========================================
-
   /**
-   * Mapea el array de slides usando la clase SlideSnapshot del esquema.
+   * Mapea los slides usando el Snapshot del DOMINIO.
    */
-  private mapSlidesData(slides: SlideSnapshot[]): any[] {
-    return slides.map((slide) => ({
-      id: slide.id,
-      position: slide.position,
-      slideType: slide.slideType as SlideTypeEnum,
-      timeLimitSeconds: slide.timeLimitSeconds,
-      questionText: slide.questionText ?? undefined,
-      slideImageId: slide.slideImageId ?? undefined,
-      pointsValue: slide.pointsValue ?? undefined,
-      descriptionText: slide.descriptionText ?? undefined,
-      options: this.mapOptionsData(slide.options)
-    }));
+  private mapSlidesData(slides: MongoSlide[]): SlideSnapshot[] {
+    return slides.map((slide) =>
+      SlideSnapshot.fromRaw({
+        id: slide.id,
+        position: slide.position,
+        slideType: slide.slideType as SlideTypeEnum,
+        timeLimitSeconds: slide.timeLimitSeconds,
+        questionText: slide.questionText ?? undefined,
+        slideImageId: slide.slideImageId ?? undefined,
+        pointsValue: slide.pointsValue ?? undefined,
+        descriptionText: slide.descriptionText ?? undefined,
+        options: this.mapOptionsData(slide.options),
+      }),
+    );
   }
 
   /**
-   * Mapea las opciones usando la clase OptionSnapshot del esquema.
+   * Mapea las opciones usando el Snapshot del DOMINIO.
    */
-  private mapOptionsData(options: OptionSnapshot[] | null | undefined): any[] {
+  private mapOptionsData(
+    options: MongoOption[] | null | undefined,
+  ): OptionSnapshot[] {
     if (!options || options.length === 0) return [];
 
-    return options.map((option) => ({
-      optionText: option.optionText ?? undefined,
-      isCorrect: option.isCorrect,
-      optionImageId: option.optionImageId ?? undefined
-    }));
+    return options.map((option) =>
+      OptionSnapshot.fromRaw({
+        optionText: option.optionText ?? undefined,
+        isCorrect: option.isCorrect,
+        optionImageId: option.optionImageId ?? undefined,
+      }),
+    );
   }
 }

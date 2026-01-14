@@ -1,13 +1,18 @@
+# --- Dependencias y Bloqueos (Solo Yarn) ---
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+
 # --- Compilación y Salida ---
 dist/
 build/
-/node_modules
 /postgres
 /mongo
 
-# --- Entorno ---
+# --- Entorno y Secretos ---
 .env
 .env.*
+!.env.template
 !.env.example
 /active_pins.txt
 
@@ -16,17 +21,15 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 
-# --- Sistema (Windows/macOS) ---
+# --- Sistema (Windows/macOS/OneDrive) ---
 Thumbs.db
 .DS_Store
 desktop.ini
 $RECYCLE.BIN/
-
-# --- OneDrive / Sync Issues ---
 *.sync-conflict-*
-.DS_Store
 *.tmp
 *.temp
 
@@ -43,7 +46,10 @@ $RECYCLE.BIN/
 # --- Scripts de Automatización y basurilla ---
 licenciar*.ps1
 limpiar*.ps1
-# Archivos corruptos por encoding fallido
 *.Ã­
 *.Ã
 * Rodriguez *
+
+# --- NestJS específicos ---
+# Si usas el CLI de Nest, a veces genera reportes de cobertura
+coverage/

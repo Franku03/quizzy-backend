@@ -10,5 +10,5 @@
 // File: src\core\application\ports\crypto\i-crypto.interface.ts
 
 export interface ICryptoService {
-    calculateSha256(buffer: Buffer): string;
+  calculateSha256(buffer: Buffer): string;
 }

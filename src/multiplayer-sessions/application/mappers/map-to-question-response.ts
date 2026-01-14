@@ -18,7 +18,7 @@ import { SlideSnapshot } from "src/core/domain/snapshots/snapshot.slide";
 import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
 import { QuestionStartedResponse } from "../response-dtos/question-started.response.dto";
 
-import { COMMON_ERRORS } from "../commands/common.errors";
+import { COMMON_ERRORS } from "../commands/context/errors/common.errors";
 import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.type";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 import { AppErrorFactory } from "src/core/errors/factories/app-error.factory";

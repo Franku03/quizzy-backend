@@ -243,6 +243,7 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
         return Either.makeRight( undefined )
     }
 
+    // DEPRECATED, no actualizaba bien los streaks
     public updatePlayersScores( results: SlideResult ): void {
 
         const playerResults = results.getPlayersAnswers();
@@ -255,6 +256,33 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
             player?.updateScore( Score.create( player.getScore() + result.getEarnedScore() ) );
 
             player?.updateStreak( result.isCorrect() );
+
+        }
+
+    }
+
+    
+    public updatePlayersScoresAndStreaks( results: SlideResult ): void {
+
+        const players = this.getPlayers();
+
+        for( const player of players ){
+
+            // Buscamos si el jugador regirtos una respuesta
+            const result = results.searchPlayerAnswer( player.id );
+
+            // si no hay respuesta registrada rompemos streak y dejamos su score intacto
+            if( !result ){
+
+                player.updateScore( Score.create( player.getScore() ) );
+                player.updateStreak( false );
+
+            } else {
+                // Si la había actualizamos acorde
+                player.updateScore( Score.create( player.getScore() + result.getEarnedScore() ) );
+                player.updateStreak( result.isCorrect() );
+
+            }
 
         }
 
@@ -474,8 +502,8 @@ export class MultiplayerSession extends AggregateRoot<MultiplayerSessionProps, M
 
             // Si el jugador respondió
             if (answer) {
-                // Obtenemos los IDs que seleccionó (asumiendo que answer.selectedOptions es un array de strings)
-                // Esto funciona tanto para Single Select como Multi Select
+                // Obtenemos los IDs que seleccionó
+                // Esto funciona tanto para selección simple y múltiple
                 const selectedIds = answer.getAnswerIndex(); 
 
                 selectedIds.forEach( optionId => {

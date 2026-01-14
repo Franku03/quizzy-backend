@@ -16,47 +16,57 @@ import { AttemptStatusEnum } from 'src/solo-attempts/domain/value-objects/attemp
 import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-user-detail.read.model.dto';
 import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
-
-export type KahootUserDetailInput = {
+export interface KahootUserDetailInput {
   readonly kahoot: IKahootDocument;
   readonly user: UserMongo | null;
   readonly lastAttempt: AttemptMongo | null;
-};
+}
 
-export class KahootUserDetailMapper implements IMapper<KahootUserDetailInput, KahootUserDetailReadModel> {
-  
+export class KahootUserDetailMapper implements IMapper<
+  KahootUserDetailInput,
+  KahootUserDetailReadModel
+> {
   public map(input: KahootUserDetailInput): KahootUserDetailReadModel {
     const { kahoot, user, lastAttempt } = input;
-    
+
+    const details = kahoot.details ?? {
+      title: null,
+      description: null,
+      category: null,
+    };
+    const styling = kahoot.styling;
+
     const isInProgress = lastAttempt?.status === AttemptStatusEnum.IN_PROGRESS;
     const isCompleted = lastAttempt?.status === AttemptStatusEnum.COMPLETED;
-    const isFavorite = user?.favoriteKahoots?.includes(kahoot.id) ?? false;
+    const isFavorite = user?.favoriteKahoots.includes(kahoot.id) ?? false;
 
     return new KahootUserDetailReadModel(
       kahoot.id,
-      kahoot.details?.title ?? null,
-      kahoot.details?.description ?? null,
-      kahoot.styling?.imageId ?? null,
+      details.title,
+      details.description,
+      styling.imageId ?? null,
       kahoot.visibility,
-      kahoot.styling.themeId,
-      { 
-        id: kahoot.authorId, 
-        name: user?.username ?? 'Usuario Desconocido' 
+      styling.themeId,
+      {
+        id: kahoot.authorId,
+        name: user?.username ?? 'Usuario Desconocido',
       },
       kahoot.createdAt,
       kahoot.playCount,
-      kahoot.details?.category ?? null,
+      details.category,
       kahoot.status,
       isInProgress,
       isCompleted,
       isFavorite,
-      lastAttempt ? {
-        attemptId: lastAttempt.id,
-        currentScore: lastAttempt.totalScore,
-        currentSlide: lastAttempt.progress.questionsAnswered,
-        totalSlides: lastAttempt.progress.totalQuestions,
-        lastPlayedAt: lastAttempt.timeDetails.lastPlayedAt,
-      } : null
+      lastAttempt
+        ? {
+            attemptId: lastAttempt.id,
+            currentScore: lastAttempt.totalScore,
+            currentSlide: lastAttempt.progress.questionsAnswered,
+            totalSlides: lastAttempt.progress.totalQuestions,
+            lastPlayedAt: lastAttempt.timeDetails.lastPlayedAt,
+          }
+        : null,
     );
   }
 }

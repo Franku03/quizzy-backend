@@ -9,7 +9,7 @@
 
 // File: src\kahoots\application\commands\index.ts
 
-export * from "./base";
-export { CreateKahootCommand } from "./create-kahoot/create-kahoot.command";
-export { UpdateKahootCommand } from "./update-kahoot/update-kahoot.command";
-export { DeleteKahootCommand } from "./delete-kahoot/delete-kahoot.command";
+export * from './base';
+export { CreateKahootCommand } from './create-kahoot/create-kahoot.command';
+export { UpdateKahootCommand } from './update-kahoot/update-kahoot.command';
+export { DeleteKahootCommand } from './delete-kahoot/delete-kahoot.command';

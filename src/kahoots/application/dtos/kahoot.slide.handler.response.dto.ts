@@ -9,15 +9,15 @@
 
 // File: src\kahoots\application\dtos\kahoot.slide.handler.response.dto.ts
 
-import { OptionHandlerResponseDto } from "./kahoot.slide.option.handler.response.dto";
+import { OptionHandlerResponseDto } from './kahoot.slide.option.handler.response.dto';
 
 export class SlideHandlerResponseDto {
-    id: string;
-    text: string | null;
-    mediaId: string | null;  
-    type: string;
-    timeLimit: number;
-    points: number | null;
-    position: number;
-    answers: OptionHandlerResponseDto[] | null;
+  id: string;
+  text: string | null;
+  mediaId: string | null;
+  type: string;
+  timeLimit: number;
+  points: number | null;
+  position: number;
+  answers: OptionHandlerResponseDto[] | null;
 }

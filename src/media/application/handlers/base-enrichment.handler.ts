@@ -14,16 +14,16 @@ export abstract class BaseEnrichmentHandler<T> {
 
   public setNext(handler: BaseEnrichmentHandler<T>): this {
     this.nextHandler = handler;
-    return this; 
+    return this;
   }
 
   public async handle(target: T): Promise<T> {
     const processed = await this.process(target);
-    
+
     if (this.nextHandler) {
       return this.nextHandler.handle(processed);
     }
-    
+
     return processed;
   }
 

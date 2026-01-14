@@ -7,57 +7,77 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
-// File: src\media\infrastructure\nest-js\media.controller.ts
+// File: src\media\application\queries\get-themes\get-themes.proxy.ts
 
 import {
   Controller,
   Post,
   UseInterceptors,
   UploadedFile,
-  HttpException,
-  HttpStatus,
   Get,
-  Query
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadAssetCommand } from 'src/media/application/commands/upload-asset/upload-asset.command';
-import { File } from 'multer';
 import { UploadAssetResponse } from 'src/media/application/dtos/upload-asset.response.dto';
 import { GetThemesQuery } from 'src/media/application/queries/get-themes/get-themes.query';
 import { ThemeResponse } from 'src/media/application/dtos/theme.response.dto';
-import { GetThemesDTO } from '../dtos/get-themes.dto';
+import { GetThemesDTO } from 'src/media/infrastructure/dtos/get-themes.dto';
 import { Auth } from 'src/auth/infrastructure/decorators/auth.decorator';
 import { CommandBus } from 'src/core/infrastructure/cqrs/buses/command-bus';
 import { QueryBus } from 'src/core/infrastructure/cqrs/buses/query-bus';
+import { Either, ErrorData, ErrorLayer } from 'src/core/types';
+
+interface MulterFile {
+  buffer: Buffer;
+  mimetype: string;
+  originalname: string;
+  size: number;
+}
 
 @Controller('media')
 export class MediaController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    
-  ) { }
+  ) {}
 
   @Post('upload')
   @Auth()
   @UseInterceptors(FileInterceptor('file'))
-  async uploadAsset(@UploadedFile() file: File): Promise<UploadAssetResponse> {
+  async uploadAsset(
+    @UploadedFile() file?: MulterFile,
+  ): Promise<Either<ErrorData, UploadAssetResponse>> {
     if (!file) {
-      throw new HttpException('No se proporcionó ningún archivo', HttpStatus.BAD_REQUEST);
+      return Either.makeLeft(
+        new ErrorData(
+          'MISSING_FILE',
+          'No file was provided for upload',
+          ErrorLayer.INFRASTRUCTURE,
+        ),
+      );
     }
 
     const command = new UploadAssetCommand(
       file.buffer,
       file.mimetype,
-      file.originalname
+      file.originalname,
     );
 
-    return await this.commandBus.execute(command);
+    return (await this.commandBus.execute(command)) as Either<
+      ErrorData,
+      UploadAssetResponse
+    >;
   }
 
   @Get('themes')
-  async getThemes(@Query() params: GetThemesDTO): Promise<ThemeResponse[]> {
+  async getThemes(
+    @Query() params: GetThemesDTO,
+  ): Promise<Either<ErrorData, ThemeResponse[]>> {
     const query = new GetThemesQuery(params);
-    return await this.queryBus.execute(query);
+    return (await this.queryBus.execute(query)) as Either<
+      ErrorData,
+      ThemeResponse[]
+    >;
   }
 }

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  mongo_dev:
+    image: mongo:7
+    container_name: mongo_dev
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-dev}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-superSecretPass123}
+      MONGO_INITDB_DATABASE: ${DB_NAME:-quizzy}
+    volumes: 
+      - ./mongo_data:/data/db

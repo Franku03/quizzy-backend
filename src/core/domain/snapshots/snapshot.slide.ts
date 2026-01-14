@@ -9,20 +9,20 @@
 
 // File: src\core\domain\snapshots\snapshot.slide.ts
 
-import { SlideTypeEnum } from "src/kahoots/domain/value-objects/kahoot.slide.type";
-import { IHasMediaAssets } from "../abstractions/media.assets.interface";
-import { OptionSnapshotData, OptionSnapshot } from "./snapshot.option";
+import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.type';
+import { IHasMediaAssets } from '../abstractions/media.assets.interface';
+import { OptionSnapshotData, OptionSnapshot } from './snapshot.option';
 
 export interface SlideSnapshotData {
-    id: string; 
-    position: number;
-    slideType: SlideTypeEnum; 
-    timeLimitSeconds: number; 
-    questionText?: string; 
-    slideImageId?: string; 
-    pointsValue?: number; 
-    descriptionText?: string; 
-    options?: OptionSnapshotData[]; 
+  id: string;
+  position: number;
+  slideType: SlideTypeEnum;
+  timeLimitSeconds: number;
+  questionText?: string;
+  slideImageId?: string;
+  pointsValue?: number;
+  descriptionText?: string;
+  options?: OptionSnapshotData[];
 }
 
 export class SlideSnapshot implements IHasMediaAssets {
@@ -33,9 +33,9 @@ export class SlideSnapshot implements IHasMediaAssets {
     public timeLimitSeconds: number,
     public questionText?: string,
     public slideImageId?: string,
-    public pointsValue?: number,     
-    public descriptionText?: string,  
-    public options: OptionSnapshot[] = []
+    public pointsValue?: number,
+    public descriptionText?: string,
+    public options: OptionSnapshot[] = [],
   ) {}
 
   static fromRaw(data: SlideSnapshotData): SlideSnapshot {
@@ -46,15 +46,15 @@ export class SlideSnapshot implements IHasMediaAssets {
       data.timeLimitSeconds,
       data.questionText,
       data.slideImageId,
-      data.pointsValue,      
-      data.descriptionText, 
-      data.options?.map(opt => OptionSnapshot.fromRaw(opt)) || []
+      data.pointsValue,
+      data.descriptionText,
+      data.options?.map((opt) => OptionSnapshot.fromRaw(opt)) ?? [],
     );
   }
 
   getMediaAssetIds(): string[] {
     const ids = this.slideImageId ? [this.slideImageId] : [];
-    this.options.forEach(opt => ids.push(...opt.getMediaAssetIds()));
+    this.options.forEach((opt) => ids.push(...opt.getMediaAssetIds()));
     return ids;
   }
 
@@ -63,6 +63,8 @@ export class SlideSnapshot implements IHasMediaAssets {
       const url = urlMap.get(this.slideImageId);
       if (url) this.slideImageId = url;
     }
-    this.options.forEach(opt => opt.applyMediaUrls(urlMap));
+    this.options.forEach((opt) => {
+      opt.applyMediaUrls(urlMap);
+    });
   }
 }

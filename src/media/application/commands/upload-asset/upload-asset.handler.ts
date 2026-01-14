@@ -33,61 +33,77 @@ import { UploadAssetResponse } from '../../dtos/upload-asset.response.dto';
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import type { IAssetUrlGenerator } from '../../ports/i-asset-url-generator.interface';
 
+interface StorageData {
+  publicId: string;
+  provider: string;
+  mimeType: string;
+  size: number;
+  format: string;
+}
+
 @CommandHandler(UploadAssetCommand)
 export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
   constructor(
-    @Inject(DaoName.AssetMetadata) 
+    @Inject(DaoName.AssetMetadata)
     private readonly metadataDao: IAssetMetadataDao,
-    
-    @Inject(MEDIA_TOKENS.ASSET_STORAGE_SERVICE) 
+
+    @Inject(MEDIA_TOKENS.ASSET_STORAGE_SERVICE)
     private readonly assetStorageService: IAssetStorageService,
-    
-    @Inject(APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE) 
+
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.CRYPTO_SERVICE)
     private readonly cryptoService: ICryptoService,
-    
-    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR) 
+
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR)
     private readonly idGenerator: IdGenerator<string>,
 
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)
     private readonly urlService: IAssetUrlGenerator,
 
-    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
-  ) { }
-  
-  @Log()
-  async execute(command: UploadAssetCommand): Promise<Either<ErrorData, UploadAssetResponse>> {
-    // 1. Cálculo de Hash previo
-    const contentHash = this.cryptoService.calculateSha256(command.fileBuffer || Buffer.alloc(0));
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
+    private readonly logger: ILogger,
+  ) {}
 
-    // 2. FLUJO ROP ESTRICTO: La consulta de deduplicación es lo que inicia el ROP
-    const deduplicationResult = await this.metadataDao.findByContentHash(contentHash);
+  @Log()
+  async execute(
+    command: UploadAssetCommand,
+  ): Promise<Either<ErrorData, UploadAssetResponse>> {
+    // 1. Cálculo de Hash previo - Manejo seguro de buffer
+    const bufferToHash =
+      command.fileBuffer.length > 0 ? command.fileBuffer : Buffer.alloc(0);
+
+    const contentHash = this.cryptoService.calculateSha256(bufferToHash);
+
+    // 2. FLUJO ROP ESTRICTO
+    const deduplicationResult =
+      await this.metadataDao.findByContentHash(contentHash);
 
     return deduplicationResult.chainAsync(async (existingAsset) => {
-      
-      // CASO A: El asset ya existe (Deduplicación exitosa)
-      if (existingAsset) {
+      // Esto es para evitar repetido (Dedupleccion)
+      if (existingAsset !== null) {
         return this.handleExistingAsset(existingAsset);
       }
 
-      // CASO B: El asset es nuevo (Flujo de Subida y Registro)
-      const assetId = await this.idGenerator.generateId();
-      
-      // B.1 Subida al almacenamiento externo (Cloudinary/S3)
+      // 3. Generación de ID
+      const assetId = this.idGenerator.generateId();
+
+      // 4. Subida al almacenamiento
       const storageResult = await this.assetStorageService.upload(
-        command.fileBuffer, 
-        command.mimeType, 
-        command.originalName, 
-        `kahoot_images/${assetId}`
+        command.fileBuffer,
+        command.mimeType,
+        command.originalName,
+        `kahoot_images/${assetId}`,
       );
 
-      // B.2 Registro en Base de Datos con Compensación
-      return storageResult.chainAsync(async (storage) => {
+      // 5. Registro con Compensación
+      return storageResult.chainAsync(async (storage: StorageData) => {
         const record = this.mapToRecord(assetId, storage, command, contentHash);
         const saveResult = await this.metadataDao.insert(record);
 
-        // Si el insert falla, disparamos tapLeftAsync para borrar el archivo del storage
         const compensatedResult = await saveResult.tapLeftAsync(async () => {
-          await this.assetStorageService.delete(storage.publicId, storage.provider);
+          await this.assetStorageService.delete(
+            storage.publicId,
+            storage.provider,
+          );
         });
 
         return compensatedResult.map(() => this.mapToResponse(record));
@@ -95,43 +111,44 @@ export class UploadAssetHandler implements ICommandHandler<UploadAssetCommand> {
     });
   }
 
-  /**
-   * Maneja assets existentes incrementando su contador de referencias.
-   */
-  private async handleExistingAsset(asset: AssetMetadataRecord): Promise<Either<ErrorData, UploadAssetResponse>> {
-    const incrementResult = await this.metadataDao.incrementReferenceCount(asset.publicId);
+  private async handleExistingAsset(
+    asset: AssetMetadataRecord,
+  ): Promise<Either<ErrorData, UploadAssetResponse>> {
+    const incrementResult = await this.metadataDao.incrementReferenceCount(
+      asset.publicId,
+    );
     return incrementResult.map(() => this.mapToResponse(asset));
   }
 
   private mapToResponse(data: AssetMetadataRecord): UploadAssetResponse {
-    return { 
+    return {
       assetId: data.assetId,
-      url: this.urlService.generateUrl(data.publicId), 
-      mimeType: data.mimeType, 
-      size: data.size, 
-      format: data.format, 
-      category: data.category 
+      url: this.urlService.generateUrl(data.publicId),
+      mimeType: data.mimeType,
+      size: data.size,
+      format: data.format,
+      category: data.category,
     };
   }
 
   private mapToRecord(
-    assetId: string, 
-    storage: any, 
-    cmd: UploadAssetCommand, 
-    hash: string
+    assetId: string,
+    storage: StorageData,
+    cmd: UploadAssetCommand,
+    hash: string,
   ): AssetMetadataRecord {
     return {
-      assetId, 
-      publicId: storage.publicId, 
-      provider: storage.provider, 
+      assetId,
+      publicId: storage.publicId,
+      provider: storage.provider,
       originalName: cmd.originalName,
-      mimeType: storage.mimeType, 
-      size: storage.size, 
-      contentHash: hash, 
+      mimeType: storage.mimeType,
+      size: storage.size,
+      contentHash: hash,
       referenceCount: 1,
-      format: storage.format, 
-      category: MimeTypeHelper.getCategory(cmd.mimeType), 
-      theme: false, 
+      format: storage.format,
+      category: MimeTypeHelper.getCategory(cmd.mimeType),
+      theme: false,
       uploadedAt: new Date(),
     };
   }

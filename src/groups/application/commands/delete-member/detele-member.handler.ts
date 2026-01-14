@@ -17,14 +17,12 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
-import { Authorize } from 'src/core/application/aspects/auth/authorization.decorator';
-import { GroupAdminAuthorizer } from 'src/core/application/aspects/auth/strategies/groupAdmin.strategy';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 
 @CommandHandler(DeleteMemberCommand)
 export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand> {
-    private readonly useCase: string = 'Admin removes a member from a group';
+    private readonly useCase: string = 'User removes a member from a group or leaves the group';
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
@@ -35,16 +33,15 @@ export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand>
     ) { }
 
     @Log()
-    @Authorize(GroupAdminAuthorizer, 'groupsQueryDao')
     async execute(command: DeleteMemberCommand): Promise<Either<ErrorData, void>> {
         const errorContext = createDomainContext('Group', 'deleteMember', {
             domainObjectId: command.groupId,
-            actorId: command.requesterId,
-            userId: command.requesterId,
+            actorId: command.userId,
+            userId: command.userId,
             targetUserId: command.targetUserId,
         });
 
-        const requesterId = new UserId(command.requesterId);
+        const requesterId = new UserId(command.userId);
         const targetUserId = new UserId(command.targetUserId);
 
         const groupOptional = await this.groupRepository.findById(command.groupId);
@@ -61,6 +58,17 @@ export class DeleteMemberHandler implements ICommandHandler<DeleteMemberCommand>
             return Either.makeLeft(
                 DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER)
             );
+        }
+
+        const isSelfRemoval = requesterId.equals(targetUserId);
+
+        if (!isSelfRemoval) {
+            const isAdmin = await this.groupsQueryDao.isGroupAdmin(command.groupId, command.userId);
+            if (!isAdmin) {
+                return Either.makeLeft(
+                    DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_ADMIN)
+                );
+            }
         }
 
         if (group.isAdmin(targetUserId)) {

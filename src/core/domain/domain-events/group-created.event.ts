@@ -9,10 +9,13 @@
 
 // File: src\core\domain\domain-events\group-created.event.ts
 
-import { DomainEvent } from "../abstractions/domain-event";
+import { DomainEvent } from '../abstractions/domain-event';
 
 export class GroupCreatedEvent extends DomainEvent {
-    constructor(public readonly groupId: string, public readonly createdBy: string) {
-        super(GroupCreatedEvent.name);
-    }
+  constructor(
+    public readonly groupId: string,
+    public readonly createdBy: string,
+  ) {
+    super(GroupCreatedEvent.name);
+  }
 }

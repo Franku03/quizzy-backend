@@ -34,6 +34,12 @@ export class PlayerSubmissionEvaluationService {
 
         const [ playerIdValue, playerSubmission ] = submission;
 
+        // Verificamos que estemos en etapa QUESTION, en otros estados no se puede suministrar respuestas
+        if( !session.getSessionState().isQuestion() ){
+            const error = new Error("No se pueden suministrar respuestas cuando no hay pregunta en juego!");;
+            return Either.makeLeft( this.buildEvaluationErrorData( error, playerIdValue ) ) ;
+        }
+
         // Creamos este Id temporal para buscar al jugador, y obtener su id ya en memoria
         const tempId = new PlayerId( playerIdValue );
 

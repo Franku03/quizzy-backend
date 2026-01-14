@@ -17,7 +17,7 @@ import { QuestionResultsPlayerResponse, QuestionResultsResponse } from "../respo
 import { HostNextPhaseType } from "../response-dtos/enums/host-next-phase-type.enum";
 import { getOptionsIdsAndCorrectAnswers, mapHostResultsData, mapPlayerResultsData } from "../helpers";
 
-import { COMMON_ERRORS } from "../commands/common.errors";
+import { COMMON_ERRORS } from "../commands/context/errors/common.errors";
 import { createSlideNotFoundError } from "../commands/context/errors/create-handler-errors.error";
 import { Either } from '../../../core/types/either';
 import { ErrorData } from "src/core/types";
@@ -38,6 +38,10 @@ export const mapEntriesToResultsResponse = ( session: MultiplayerSession, kahoot
         return Either.makeLeft( result.getLeft() )
 
     const { correctAnswerId, optionsId } = result.getRight() ;
+
+
+    // --------- Mappeo de la respuesta, lo anterior es simplemente la optención segura y controlada del snapshot
+
 
     // Ahora mapeamos todo lo referente al scoreboard y las stats para el host
     const hostData = mapHostResultsData( session, slideId, { correctAnswerId, optionsId } );        

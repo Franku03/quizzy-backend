@@ -6,6 +6,7 @@ import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { AuthController } from './infrastructure/nest-js/auth.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from '../users/users.module';
+import { MediaModule } from 'src/media/infrastructure/nest-js/media.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UsersModule } from '../users/users.module';
       signOptions: { expiresIn: '24h' },
     }),
     forwardRef(() => UsersModule),
+    MediaModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

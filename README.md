@@ -53,12 +53,12 @@
 
 <br>
 
-## Dockerización
+## 🐳 Dockerización
 
 El backend está diseñado para ser agnóstico a la persistencia, permitiendo el despliegue mediante contenedores con aislamiento de recursos, optimización de logs y un entorno de desarrollo determinista.
 
 > [!TIP]
-> **Zero-Install Development:** El desarrollador **no necesita instalar** Node.js, PostgreSQL o MongoDB en su máquina local. Docker encapsula todas las herramientas y bases de datos, garantizando que el proyecto funcione igual en cualquier computador.
+> **Zero-Install Development:** El desarrollador no necesita instalar Node.js, PostgreSQL o MongoDB localmente. Docker encapsula todo el stack, garantizando paridad entre entornos.
 
   
 ### 🏗️ Estrategia de Servicios
@@ -70,8 +70,8 @@ Contamos con una configuración modular que permite levantar el stack de acuerdo
 | Servicio | Imagen | Puerto | Persistencia | Rol |
 | :--- | :--- | :--- | :--- | :--- |
 | **Quizzy Backend** | `node:20-slim` | `3000` / `3003` | N/A | NestJS API & WebSockets |
-| **PostgreSQL** | `postgres:18` | `5432` | `postgres_quizzy` | Persistencia Relacional |
-| **MongoDB** | `mongo:7` | `27017` | `mongo_quizzy` | Persistencia Documental |
+| **PostgreSQL** | `postgres:18` | `5432` | `postgres_data` | Persistencia Relacional |
+| **MongoDB** | `mongo:7` | `27017` | `mongo_data` | Persistencia Documental |
 
 </div>
 
@@ -95,58 +95,76 @@ Antes de ejecutar, configura tus credenciales y preferencias de infraestructura:
 
 ### 2. Flujos de Ejecución (Elegir un camino)
 
-#### **Opción A: Desarrollo Total en Docker (Recomendado) 🐳**
+Contamos con tres modalidades de arranque dependiendo de tus necesidades de desarrollo o despliegue:
+
+#### **Opción A: Desarrollo Full-Stack (Recomendado) 🐳**
 Ideal para trabajar con **Hot-Reload** sin instalar herramientas locales (Node, DBs, etc). Docker gestiona todo el ciclo de vida del entorno.
+```bash
+docker compose -f docker-compose.dev.yaml up
+```
+#### **Opción B: Desarrollo Híbrido (Solo Infraestructura) 🗄️**
 
-* **Con MongoDB:** `docker compose -f docker-compose.dev.mongo.yaml up -d`
-* **Con PostgreSQL:** `docker compose -f docker-compose.dev.postgres.yaml up -d`
+Ideal si prefieres usar tu terminal local para depurar el código con yarn pero quieres las bases de datos en Docker.
 
-#### **Opción B: Desarrollo Híbrido (Docker DB + Host Node) 💻**
-Ideal si prefieres usar tu terminal local para depurar el código con `yarn`.
+* Para trabajar con MongoDB
+```bash
+docker compose -f docker-compose.mongo.yaml up -d
+```
+* Para trabajar con PostgreSQL
+```bash
+docker compose -f docker-compose.postgres.yaml up -d
+```
+* Luego ejecuta la API localmente
+```bash
+yarn install && yarn run start:dev
+```
 
-1. **Levantar solo la DB:**
-   ```bash
-   # Elige una según tu configuración:
-   docker compose -f docker-compose.local.mongo.yaml up -d
-   docker compose -f docker-compose.local.postgres.yaml up -d
-   ```
-2. **Ejecutar la API:**
-   ```bash
-   yarn install && yarn run start:dev
-   ```
-3. Servidor de Producción
-Levanta únicamente la instancia del servidor optimizada para despliegue final utilizando la imagen productiva compilada:
+#### **Opción C: Producción 🚀**
+Levanta la instancia del servidor optimizada utilizando la imagen productiva compilada:
 
 ```bash
-docker compose -f docker-compose.yaml up -d
+docker compose -f docker-compose.prod.yaml up -d
 ```
 ---
 
-## 🐳 Ingeniería del Dockerfile 
+## 🐳 Ingeniería de Docker
 
- Nuestro `Dockerfile` utiliza el patrón **Multi-stage builds** para separar el entorno de construcción del de ejecución, garantizando imágenes ligeras, seguras y de alto rendimiento:
-1.  **Stage 1 (Deps):** Instalación de dependencias completas con `yarn --frozen-lockfile` sobre una imagen `node:20-slim`.
-2.  **Stage 2 (Builder):** Compilación de TypeScript a JavaScript (`/dist`) eliminando el código fuente innecesario para reducir el peso de la imagen final.
-3.  **Stage 3 (Runner):** Imagen final de producción. Solo incluye el bundle compilado y las dependencias esenciales de ejecución (`--production`), garantizando una superficie de ataque mínima.
+Nuestro flujo de trabajo separa el entorno de construcción del de ejecución para garantizar imágenes ligeras, seguras y de alto rendimiento:
 
-### ⚡ Rendimiento y Control de Recursos
-En el despliegue de servidor (`docker-compose.yaml`), hemos configurado límites de nivel empresarial para garantizar la resiliencia:
-* **Logging:** Driver `json-file` con rotación automática (`max-size: 10k`) para evitar el consumo excesivo de disco por logs acumulados de `Pino`.
-* **Resources:** Capacidad de escalado hasta **8 CPUs** y **24GB de RAM**, optimizado para el motor V8 y permitiendo procesar miles de eventos de WebSockets por segundo durante sesiones masivas de quizzes.
+* **Dockerfile.dev:** Diseñado para la agilidad en el desarrollo. Mantiene las dependencias completas (`devDependencies`) y utiliza un volumen vinculado para habilitar **Hot-Reload**. Cualquier cambio en el código fuente reinicia el servidor NestJS automáticamente dentro del contenedor.
+
+* **Dockerfile.prod:** Implementa el patrón **Multi-stage build** para optimizar la imagen final:
+    * **Stage 1 (Deps):** Instalación de dependencias completas con `yarn --frozen-lockfile`.
+    * **Stage 2 (Builder):** Compilación de TypeScript a JavaScript (`/dist`) y limpieza de archivos fuente.
+    * **Stage 3 (Runner):** Imagen final ultra-ligera que solo incluye el bundle compilado y las dependencias esenciales de ejecución (`--production`).
+
+#### ⚡ Rendimiento y Control de Recursos
+En el despliegue de servidor (`docker-compose.prod.yaml`), hemos configurado límites de nivel empresarial para garantizar la resiliencia:
+* **Logging:** Driver `json-file` con rotación automática (`max-size: 10k`) para evitar el consumo excesivo de disco por logs acumulados.
+* **Resources:** Capacidad de escalado hasta **8 CPUs** y **24GB de RAM**, optimizado para el motor V8 y permitiendo procesar miles de eventos de WebSockets por segundo durante sesiones masivas.
+
+---
 
 ## 🔍 Configuración de Red y Persistencia
 
-### 🌐 Red Privada y DNS Interno
-Los servicios están aislados en una red interna de alta velocidad (`quizzy_net`) con driver `bridge`. La aplicación se conecta a las bases de datos usando nombres lógicos (ej. `host: postgres`) en lugar de direcciones IP volátiles.
 
-### 💾 Gestión de Volúmenes y Datos
-* **Persistencia Total:** Los archivos `docker-compose.local.*` mapean los datos directamente a tu disco local (`./mongo` o `./postgres`). Esto asegura que los datos sobrevivan incluso si se eliminan o reconstruyen los contenedores.
-* **Aislamiento de node_modules:** Utilizamos volúmenes anónimos para `node_modules` dentro del contenedor, evitando conflictos de arquitectura entre los binarios compilados en Linux (Docker) y tu sistema operativo host (Windows/Mac).
 
-### 📍 Puntos de Acceso
+#### 🌐 Red Privada y DNS Interno
+Los servicios están aislados en una red interna de alta velocidad (`bridge`). La aplicación se conecta a las bases de datos usando nombres lógicos (ej. `mongo_dev` o `postgres_dev`) definidos en el orquestador. Esto permite que la comunicación sea segura, privada y agnóstica a direcciones IP volátiles.
+
+#### 💾 Gestión de Volúmenes y Datos
+* **Persistencia Total:** Los archivos mapean los datos directamente a tu disco local en las carpetas `./mongo_data` y `./postgres_data`. Esto asegura que la información de tus bases de datos sobreviva incluso si los contenedores son eliminados o reconstruidos.
+* **Aislamiento de node_modules:** Utilizamos volúmenes anónimos para `node_modules` dentro del contenedor. Esto evita conflictos de arquitectura entre los binarios compilados para Linux (Docker) y los de tu sistema operativo host (Windows o Mac).
+
+---
+
+## 📍 Puntos de Acceso
+
+Una vez levantado el stack tecnológico, estos son los puntos de entrada principales para interactuar con el backend:
+
 * **HTTP API:** `http://localhost:3000/api`
 * **WebSockets:** `ws://localhost:3000/multiplayer-sessions`
-* **WS Direct Port:** `3003` (Puerto dedicado para el servidor de sockets configurado en `.env`)
+* **WS Direct Port:** `3003` (Puerto dedicado para el servidor de sockets configurado en el archivo `.env`).
 
 
 ## 🪛 Correr Tests
@@ -287,35 +305,53 @@ La clase `ErrorData` encapsula toda la información de error de manera estructur
   - Separadores distintivos para cada sección
   - Formato jerárquico para detalles y contexto
 
-### 2. Clase Either<TLeft, TRight>
-Implementación completa del patrón Either que sirve como contenedor de resultados:
+### 2. 📦 Clase Either<TLeft, TRight>
+La clase Either es una mónada que representa un valor que puede tener uno de dos tipos: un error/fallo (Left) o un éxito (Right). Es la herramienta principal para implementar Railway Oriented Programming.
 
-**Estado y Acceso**:
-- `isLeft()` / `isRight()`: Métodos de consulta del estado
-- `getLeft()` / `getRight()`: Extracción segura de valores con validación de tipo
+**🔍 1. Estado y Acceso**
+Métodos para consultar el estado del objeto y extraer sus valores de forma segura:
 
-**Fábricas Estáticas**:
-- `makeLeft()`: Crea una instancia representando un fallo (valor izquierdo)
-- `makeRight()`: Crea una instancia representando un éxito (valor derecho)
+- `isLeft()`: Retorna `true` si el objeto contiene un valor de tipo `TLeft`.
+- `isRight()`: Retorna `true` si el objeto contiene un valor de tipo `TRight`.
+- `getLeft()`: Extrae el valor `Left`. Lanza error si se intenta acceder a un valor inexistente.
+- `getRight()`: Extrae el valor `Right`. Lanza error si se intenta acceder a un valor inexistente.
 
-**Transformaciones Sincrónicas**:
-- `map()`: Transforma el valor Right manteniendo posibles Left
-- `mapLeft()`: Transforma el valor Left manteniendo posibles Right
-- `chain()`: Encadena operaciones que devuelven Either (validaciones secuenciales)
+**🏗️ 2. Fábricas Estáticas**
+Métodos para crear instancias de la clase sin utilizar el constructor directamente:
 
-**Operaciones Asincrónicas**:
-- `chainAsync()`: Encadena operaciones asíncronas que devuelven Promise<Either>
-- `mapAsync()`: Transforma valores Right mediante promesas
-- `tapChainAsync()`: Ejecuta efectos asíncronos manteniendo valores
-- `tapLeftAsync()`: Ejecuta efectos solo en caso de error
+- `makeLeft<L, R>(value)`: Crea una instancia representando un fallo o valor izquierdo.
+- `makeRight<L, R>(value)`: Crea una instancia representando un éxito o valor derecho.
+- `isEither(obj)`: Type Guard para verificar si un objeto es una instancia de `Either`.
 
-**Flujos Condicionales**:
-- `chainUnless()` / `chainUnlessAsync()`: Ejecuta encadenamiento solo si NO se cumple condición
-- `mapUnlessAsync()`: Transforma valores solo si NO se cumple condición
+**⚙️ 3. Transformaciones Sincrónicas**
+Operaciones para manipular el flujo de datos de forma lineal:
 
-**Utilidades Avanzadas**:
-- `tryCatch()`: Elimina try-catch de promesas, convirtiéndolas en Either automáticamente
-- `isEither()`: Type Guard para verificar instancias de Either
+- `map(fn)`: Transforma el valor `Right` mediante una función; mantiene el `Left` si existe.
+- `mapLeft(fn)`: Transforma el valor `Left` mediante una función; mantiene el `Right` si existe.
+- `chain(fn)`: Encadena otra operación que devuelve un `Either`; ideal para validaciones secuenciales.
+- `tap(fn)`: Ejecuta un efecto secundario (como un log) y retorna el `Either` original.
+
+**⏳ 4. Operaciones Asincrónicas**
+Métodos diseñados para trabajar con Promises y flujos asíncronos:
+
+- `chainAsync(fn)`: Encadena una operación asíncrona que devuelve un `Promise<Either>`.
+- `mapAsync(fn)`: Transforma el valor `Right` mediante una promesa; retorna `Promise<Either>`.
+- `tapChainAsync(fn)`: Ejecuta un efecto asíncrono y mantiene el valor original si el efecto tiene éxito.
+- `tapLeftAsync(fn)`: Ejecuta un efecto asíncrono solo si el estado es `Left`.
+
+**🛣️ 5. Flujos Condicionales**
+Control de flujo avanzado para ejecutar lógica basada en predicados:
+
+- `chainUnless(condition, fn)`: Ejecuta el encadenamiento solo si NO se cumple la condición.
+- `chainUnlessAsync(condition, fn)`: Versión asíncrona de `chainUnless`.
+- `mapUnlessAsync(condition, fn)`: Transforma el valor mediante una promesa solo si NO se cumple la condición.
+
+**🛠️ 6. Utilidad Anti-Try/Catch**
+Método para convertir promesas estándar en flujos de Either:
+- `tryCatch(promise, onError)`: Ejecuta una promesa y captura cualquier excepción, convirtiéndola automáticamente en un `Either.makeLeft` mediante la función `onError`, o en un `Either.makeRight` si tiene éxito.
+
+> [!NOTE] 
+> El parámetro fn en todos los métodos anteriores hace referencia a una función de callback que el usuario debe proveer para procesar el valor interno del Either.
 
 ### 3. Función pipeAsync
 Orquesta la ejecución secuencial de operaciones con mecanismo de cortocircuito:

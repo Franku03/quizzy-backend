@@ -9,6 +9,4 @@
 
 // File: src\core\application\cqrs\command.interface.ts
 
-export interface ICommand {
-  readonly [key: string]: any;
-}
+export type ICommand = Readonly<Record<string, any>>;
