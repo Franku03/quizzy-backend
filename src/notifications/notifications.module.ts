@@ -7,7 +7,7 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 import { KahootAssignedListener } from './application/event-listeners/kahoot-assigned.listener';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
-import { KahootAssignedEvent } from 'src/notifications/application/events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 import { FirebaseNotifierAdapter } from './infrastructure/adapters/firebase-notifier.adapter';
 import { MongoDeviceRepository } from 'src/database/infrastructure/mongo/modules/notifications/device.repository.mongo';
 import { NotifyKahootAssignedUseCase } from './application/use-cases/notify-kahoot-assigned.use-case';
