@@ -19,6 +19,8 @@ export enum DaoName {
   Explore = 'ExploreDao',
   AssetMetadata = 'AssetMetadataDao',
   MultiplayerSession = 'MultiplayerSession',
+  Notification = 'NotificationDao',
+  Device = 'DeviceDao',
 }
 
 export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
@@ -30,5 +32,6 @@ export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
   [DaoName.Explore]: 'DB_EXPLORE_DAO_TYPE',
   [DaoName.AssetMetadata]: 'DB_ASSETMETADATA_DAO_TYPE',
   [DaoName.MultiplayerSession]: 'DB_MULTIPLAYERSESSION_DAO_TYPE',
-
+  [DaoName.Notification]: 'DB_NOTIFICATION_DAO_TYPE',
+  [DaoName.Device]: 'DB_DEVICE_DAO_TYPE',
 };
