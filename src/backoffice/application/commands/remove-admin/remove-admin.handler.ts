@@ -34,6 +34,14 @@ export class RemoveAdminHandler implements ICommandHandler<RemoveAdminCommand> {
   async execute(
     command: RemoveAdminCommand,
   ): Promise<Either<ErrorData, BackOfficeUserReadModel>> {
+
+    if (command.adminId === command.userToRemoveAdminId)
+      return this.handleError(
+        '400',
+        'An user can not remove himself from being admin',
+        ErrorLayer.APPLICATION,
+      );
+
     // Definicion de Variables
     let adminUUID: UserId;
     let userToRemoveAdminUUID: UserId;

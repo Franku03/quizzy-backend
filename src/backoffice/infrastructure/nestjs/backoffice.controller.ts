@@ -44,8 +44,7 @@ export class BackofficeController {
   ) {
     const response: Either<ErrorData, BackOfficeUserPaginationReadModel> =
       await this.queryBus.execute(paginationDto.toGetBackofficeUsersQuery());
-    if (response.isLeft()) throw response.getLeft();
-    return response.getRight().toJson();
+    return response;
   }
 
   // Bloquear un Usuario
@@ -60,8 +59,7 @@ export class BackofficeController {
       await this.commandBus.execute(
         new BlockUserCommand(adminId, userToBeBlockedId),
       );
-    if (response.isLeft()) throw response.getLeft();
-    return response.getRight().toJson();
+    return response;
   }
 
   // Desbloquear un Usuario
@@ -76,8 +74,7 @@ export class BackofficeController {
       await this.commandBus.execute(
         new UnblockUserCommand(adminId, userToBeUnblockedId),
       );
-    if (response.isLeft()) throw response.getLeft();
-    return response.getRight().toJson();
+    return response;
   }
 
   // Dar Permisos de Admin a un usuario
@@ -92,8 +89,7 @@ export class BackofficeController {
       await this.commandBus.execute(
         new GiveAdminCommand(adminId, userToGiveAdminId),
       );
-    if (response.isLeft()) throw response.getLeft();
-    return response.getRight().toJson();
+    return response;
   }
 
   // Quitar Permisos de Admin a un usuario
@@ -108,8 +104,7 @@ export class BackofficeController {
       await this.commandBus.execute(
         new RemoveAdminCommand(adminId, userToRemoveFromAdminId),
       );
-    if (response.isLeft()) throw response.getLeft();
-    return response.getRight().toJson();
+    return response;
   }
 
   // Eliminar un Usuario
@@ -124,7 +119,8 @@ export class BackofficeController {
       await this.commandBus.execute(
         new DeleteUserCommand(adminId, userToDeleteId),
       );
-    if (response.isLeft()) throw response.getLeft();
+    if (response.isLeft())
+      return Either.makeLeft<ErrorData, void>(response.getLeft());
   }
 
   // Enviar Notficacion en Masa (FALTA TOMAR EL BODY DE LA REQUEST)

@@ -33,6 +33,14 @@ export class UnblockUserHandler implements ICommandHandler<UnblockUserCommand> {
   async execute(
     command: UnblockUserCommand,
   ): Promise<Either<ErrorData, BackOfficeUserReadModel>> {
+
+    if (command.adminId === command.userToUnblockId)
+      return this.handleError(
+        '400',
+        'An user can not unblock himself',
+        ErrorLayer.APPLICATION,
+      );
+
     // Definicion de Variables
     let userUUID: UserId;
 

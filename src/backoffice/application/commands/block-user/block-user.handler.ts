@@ -36,6 +36,13 @@ export class BlockUserHandler implements ICommandHandler<BlockUserCommand> {
     // Definicion de Variables
     let userUUID: UserId;
 
+    if (command.adminId === command.userToBeBlockedId)
+      return this.handleError(
+        '400',
+        'An user can not block himself',
+        ErrorLayer.APPLICATION,
+      );
+
     // Manejo de Errores de Dominio
     try {
       userUUID = new UserId(command.userToBeBlockedId);

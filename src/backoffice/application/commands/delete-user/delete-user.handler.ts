@@ -34,6 +34,14 @@ export class DeleteUserHandler implements ICommandHandler<DeleteUserCommand> {
   async execute(
     command: DeleteUserCommand,
   ): Promise<Either<ErrorData, BackOfficeUserReadModel>> {
+
+    if (command.adminId === command.userToDeleteId)
+      return this.handleError(
+        '400',
+        'An user can not delete himself',
+        ErrorLayer.APPLICATION,
+      );
+
     // Definicion de Variables
     let adminUUID: UserId;
     let userToDeleteUUID: UserId;

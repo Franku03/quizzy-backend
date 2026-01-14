@@ -34,6 +34,14 @@ export class GiveAdminHandler implements ICommandHandler<GiveAdminCommand> {
   async execute(
     command: GiveAdminCommand,
   ): Promise<Either<ErrorData, BackOfficeUserReadModel>> {
+
+    if (command.adminId === command.userToGiveAdminId)
+      return this.handleError(
+        '400',
+        'An user can not make himself admin',
+        ErrorLayer.APPLICATION,
+      );
+
     // Definicion de Variables
     let adminUUID: UserId;
     let userToGiveAdminUUID: UserId;
