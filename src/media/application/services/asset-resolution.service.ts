@@ -11,7 +11,7 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 @Injectable()
 export class AssetResolutionService implements IImageUrlEnricher {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo)
+    @Inject(DaoName.AssetMetadata)
     private readonly mediaDao: IAssetMetadataDao,
     
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR)

@@ -13,7 +13,7 @@ import { DaoName } from "src/database/infrastructure/catalogs/dao.catalog.enum";
 @Injectable()
 export class ThemeResolutionService implements IThemeEnricher {
   constructor(
-    @Inject(DaoName.AssetMetadataMongo) private readonly mediaDao: IAssetMetadataDao,
+    @Inject(DaoName.AssetMetadata) private readonly mediaDao: IAssetMetadataDao,
     @Inject(MEDIA_TOKENS.ASSET_URL_GENERATOR) private readonly urlGenerator: IAssetUrlGenerator,
   ) {}
 

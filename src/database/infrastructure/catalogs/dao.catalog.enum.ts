@@ -6,7 +6,8 @@ export enum DaoName {
   Kahoot = 'KahootDao',
   SoloAttempt = 'SoloAttemptDao',
   Explore = 'ExploreDao',
-  AssetMetadataMongo = 'AssetMetadataDao',
+  AssetMetadata = 'AssetMetadataDao',
+  Backoffice = 'BackofficeDao',
 }
 
 export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
@@ -16,5 +17,6 @@ export const DAO_OVERRIDE_ENV_MAP: Record<DaoName, string> = {
   [DaoName.Kahoot]: 'DB_KAHOOT_DAO_TYPE',
   [DaoName.SoloAttempt]: 'DB_SOLOATTEMPT_DAO_TYPE',
   [DaoName.Explore]: 'DB_EXPLORE_DAO_TYPE',
-  [DaoName.AssetMetadataMongo]: 'DB_ASSETMETADATA_DAO_TYPE',
+  [DaoName.AssetMetadata]: 'DB_ASSETMETADATA_DAO_TYPE',
+  [DaoName.Backoffice]: 'DB_BACKOFFICE_DAO_TYPE',
 };

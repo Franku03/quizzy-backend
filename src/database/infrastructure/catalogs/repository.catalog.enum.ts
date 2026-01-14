@@ -5,6 +5,7 @@ export enum RepositoryName {
   Attempt = 'AttemptRepository',
   Group = 'GroupRepository',
   MultiplayerSession = 'MultiplayerSessionRepository',
+  MassMessage = 'MassMessageRepository',
 }
 
 export const REPOSITORY_OVERRIDE_ENV_MAP: Record<RepositoryName, string> = {
@@ -13,4 +14,5 @@ export const REPOSITORY_OVERRIDE_ENV_MAP: Record<RepositoryName, string> = {
   [RepositoryName.Attempt]: 'DB_ATTEMPT_REPO_TYPE',
   [RepositoryName.Group]: 'DB_GROUP_REPO_TYPE',
   [RepositoryName.MultiplayerSession]: 'DB_MULTIPLAYERSESSION_REPO_TYPE',
+  [RepositoryName.MassMessage]: 'DB_MASS_MESSAGE_REPO_TYPE',
 };

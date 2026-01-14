@@ -20,7 +20,7 @@ class UserProfileSchema {
   @Prop({ type: String, required: true })
   description: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: false })
   avatarUrl: string;
 }
 

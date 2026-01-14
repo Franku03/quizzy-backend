@@ -10,3 +10,4 @@ import './media';
 import './multiplayer-session';
 import './solo-attempts';
 import './users';
+import './backoffice';

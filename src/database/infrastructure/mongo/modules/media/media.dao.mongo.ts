@@ -46,7 +46,7 @@ export interface IAssetMetadataDocument {
   uploadedAt: Date;
 }
 
-@DaoMongo(DaoName.AssetMetadataMongo)
+@DaoMongo(DaoName.AssetMetadata)
 @Injectable()
 export class AssetMetadataMongoDao implements IAssetMetadataDao {
   private readonly contextBase = ASSET_MONGO_BASE;
