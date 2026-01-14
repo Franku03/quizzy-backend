@@ -216,6 +216,12 @@ export class User extends AggregateRoot<UserProps, UserId> {
   }
 
   public isUserPremium(): boolean {
+    const validatedStatus = this.properties.subscriptionStatus.validateStatus();
+
+    if (!this.properties.subscriptionStatus.equals(validatedStatus)) {
+        this.properties.subscriptionStatus = validatedStatus;
+    }
+
     return this.properties.subscriptionStatus.isPremium();
   }
 

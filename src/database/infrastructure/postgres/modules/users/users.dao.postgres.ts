@@ -11,40 +11,37 @@
 
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IUserDao } from 'src/users/application/queries/ports/users.dao.port';
-import { UserEntity } from '../../entities/users.entity';
 import { Repository } from 'typeorm';
-import { Optional } from 'src/core/types/optional';
-import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
 import { DaoPostgres } from '../../decorators/dao-postgres.decorator';
-import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { DaoName } from '../../../catalogs/dao.catalog.enum'; 
+import { UserEntity } from '../../entities/users.entity';
+import { IUserDao } from 'src/users/application/queries/ports/users.dao.port';
+import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
+import { Optional } from 'src/core/types/optional';
+import { UserReadPgMapper } from './mappers/user.read.postgres.mapper';
 
 @DaoPostgres(DaoName.User)
 @Injectable()
-export class UserDaoPostgres implements IUserDao {
+export class UserDao implements IUserDao {
+
   constructor(
     @InjectRepository(UserEntity)
-    private readonly userRepo: Repository<UserEntity>,
+    private readonly repository: Repository<UserEntity>
   ) {}
 
-  async getUserByName(name: string): Promise<Optional<UserReadModel>> {
-    const user = await this.userRepo.findOne({ where: { name } });
-    if (!user) return new Optional<UserReadModel>();
+  async getUserByName(username: string): Promise<Optional<UserReadModel>> {
+    const entity = await this.repository.findOne({ where: { username } });
 
-    return new Optional<UserReadModel>(
-      new UserReadModel('id-fake', 'email-fake', user.name),
-    );
+    if (!entity) return new Optional();
+
+    return new Optional(UserReadPgMapper.map(entity));
   }
 
-  // 👇 AGREGAMOS ESTE MÉTODO FALTANTE
   async getUserById(id: string): Promise<Optional<UserReadModel>> {
-    // Implementación temporal para que compile (ya que estás usando Mongo)
-    const user = await this.userRepo.findOne({ where: { id } });
+    const entity = await this.repository.findOne({ where: { id } });
 
-    if (!user) return new Optional<UserReadModel>();
+    if (!entity) return new Optional();
 
-    return new Optional<UserReadModel>(
-      new UserReadModel(user.id, 'email-fake', 'name-fake'), // Ajusta según tu Entity real
-    );
+    return new Optional(UserReadPgMapper.map(entity));
   }
 }

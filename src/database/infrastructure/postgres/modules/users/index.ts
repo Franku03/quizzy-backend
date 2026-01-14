@@ -11,3 +11,4 @@
 
 export * from './users.dao.postgres';
 export * from './users.repository.postgres';
+export * from './mappers/user.read.postgres.mapper';
