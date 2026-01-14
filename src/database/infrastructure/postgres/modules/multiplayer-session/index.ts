@@ -9,5 +9,5 @@
 
 // File: src\database\infrastructure\postgres\modules\multiplayer-session\index.ts
 
-// export * from './tudao';
-// export * from './turepo';
+export * from './multiplayer-session.dao.pg';
+export * from './multiplayer-session.repository.pg';

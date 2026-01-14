@@ -12,7 +12,7 @@
 import { DatabaseModuleBase } from 'src/core/errors/helpers/database-error-context.helper';
 
 export const ASSET_POSTGRES_BASE: DatabaseModuleBase = {
-    module: 'media',
-    databaseType: 'postgresql',
-    collectionOrTable: 'asset_metadata',
+  module: 'media',
+  databaseType: 'postgresql',
+  collectionOrTable: 'asset_metadata',
 } as const;
