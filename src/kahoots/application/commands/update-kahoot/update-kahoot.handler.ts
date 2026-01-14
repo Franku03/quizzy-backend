@@ -72,7 +72,7 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
     private readonly idGenerator: IdGenerator<string>,
     @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
     private readonly logger: ILogger,
-  ) {}
+  ) { }
 
   @Log()
   @Authorize(KahootOwnershipAuthorizer, 'kahootRepository')
@@ -128,14 +128,8 @@ export class UpdateKahootHandler implements ICommandHandler<UpdateKahootCommand>
       )
       .chain((styling) => kahoot.updateStyling(styling))
       .chain(() => VisibilityStatus.create(command.visibility))
-      .chain((visibility) => {
-        kahoot.changeVisibility(visibility.value);
-        return KahootFactory.assembleDetails(
-          command.title,
-          command.description,
-          command.category,
-        );
-      })
+      .chain((visibility) => kahoot.changeVisibility(visibility.value))
+      .chain(() => KahootFactory.assembleDetails(command.title,command.description,command.category,))
       .chain((details) => kahoot.updateDetails(details))
       .chain(() => KahootStatus.create(command.status))
       .chain((status) => kahoot.changeStatus(status.value))
