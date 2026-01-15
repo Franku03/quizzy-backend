@@ -110,6 +110,8 @@ export class UpdateProfileHandler implements ICommandHandler<UpdateProfileComman
           user.changeUserPreferences(newPrefs);
       }
 
+      user.isUserPremium();
+
       await this.userRepo.save(user);
       
       const responseDto = UpdateProfileResponseDto.fromDomain(user);
