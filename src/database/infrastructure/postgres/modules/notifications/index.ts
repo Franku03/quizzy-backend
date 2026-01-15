@@ -7,7 +7,8 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
-// File: src\database\infrastructure\postgres\modules\groups\index.ts
+// File: src\database\infrastructure\postgres\modules\notifications\index.ts
 
-export * from './groups.dao.pg';
-export * from './groups.repository.pg';
+export * from './notification.dao.pg';
+export * from './notification.repository.pg';
+export * from './device.repository.pg';

@@ -57,19 +57,29 @@ export class JoinGroupHandler implements ICommandHandler<JoinGroupCommand> {
 
         try {
             const userToJoin = new UserId(command.userId);
-            // pending: descomentar cuando se tenga el repositorio de usuarios
 
-            /*
-            const user = await this.userRepository.findById(userToJoin);
-                        if (!user.hasValue()) {
-                            return Either.makeLeft(new Error(GROUP_ERRORS.USER_NOT_FOUND));
-                        }
-                        const user = userOptional.getValue();
-                        
-                        
-            */
-            // pending: aplicar logica real cuando se tenga el repositorio de usuarios
-            const isAdminPremium = false;
+            const userOptional = await this.userRepository.findById(userToJoin);
+            if (!userOptional.hasValue()) {
+                return Either.makeLeft(
+                    DomainErrorFactory.notFound(
+                        { ...updatedContext, domainObjectType: 'User', domainObjectId: command.userId },
+                        GROUP_ERRORS.USER_NOT_FOUND
+                    )
+                );
+            }
+
+            const adminOptional = await this.userRepository.findById(group.getAdminId());
+            if (!adminOptional.hasValue()) {
+                return Either.makeLeft(
+                    DomainErrorFactory.notFound(
+                        updatedContext,
+                        GROUP_ERRORS.USER_NOT_FOUND
+                    )
+                );
+            }
+
+            const admin = adminOptional.getValue();
+            const isAdminPremium = admin.isUserPremium();
 
             const storedToken = group.toPrimitives().invitationToken;
             const tokenVO = InvitationToken.fromPrimitives(

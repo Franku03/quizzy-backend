@@ -5,11 +5,12 @@ import type { IDeviceRepository } from 'src/notifications/domain/ports/device.re
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
 @CommandHandler(RegisterDeviceCommand)
 export class RegisterDeviceHandler implements ICommandHandler<RegisterDeviceCommand> {
     constructor(
-        @Inject('IDeviceRepository')
+        @Inject(RepositoryName.Device)
         private readonly deviceRepository: IDeviceRepository,
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER)
         private readonly logger: ILogger,
