@@ -20,7 +20,7 @@ export const createSocketErrorPayload = ( error: unknown, errorType: ServerError
             return{
                 statusCode: 500,
                 message: message,
-                error: "WS Internal Server Error",
+                error: "WS Sync Internal Server Error",
             }
             
         default:

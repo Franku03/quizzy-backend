@@ -18,10 +18,16 @@ export interface IUserOwnershipRequest {
   targetUserId: string;
 }
 
-export class UserOwnershipAuthorizer implements IAuthorizer<IUserOwnershipRequest, IUserRepository> {
-  async authorize(command: IUserOwnershipRequest, context: IUserRepository): Promise<void> {
+export class UserOwnershipAuthorizer implements IAuthorizer<
+  IUserOwnershipRequest,
+  IUserRepository
+> {
+  async authorize(
+    command: IUserOwnershipRequest,
+    context: IUserRepository,
+  ): Promise<void> {
     if (command.userId !== command.targetUserId) {
-      throw new Error("Unauthorized: You can only modify your own profile.");
+      throw new Error('Unauthorized: You can only modify your own profile.');
     }
   }
 }

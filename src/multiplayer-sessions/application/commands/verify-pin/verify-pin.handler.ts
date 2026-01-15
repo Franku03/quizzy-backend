@@ -13,7 +13,7 @@ import { Inject } from '@nestjs/common';
 import { ICommandHandler } from 'src/core/application/cqrs';
 import { CommandHandler } from 'src/core/infrastructure/cqrs';
 
-import { InMemoryActiveSessionRepository } from 'src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository';
+import { InMemoryActiveSessionRepository } from 'src/multiplayer-sessions/infrastructure/adapters/in-memory.session.repository';
 import type { IActiveMultiplayerSessionRepository } from 'src/multiplayer-sessions/domain/ports';
 import { VerifyPinCommand } from './verify-pin.command';
 
@@ -32,11 +32,12 @@ export class VerifyPinHandler implements ICommandHandler< VerifyPinCommand > {
 
     constructor(
 
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
 
-        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) 
+        private readonly logger: ILogger,
 
     ){}
 

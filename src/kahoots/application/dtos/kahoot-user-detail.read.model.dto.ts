@@ -16,9 +16,9 @@ export class KahootUserDetailReadModel implements IHasMediaAssets {
     public readonly id: string,
     public title: string | null,
     public description: string | null,
-    public coverImageId: string | null, 
+    public coverImageId: string | null,
     public visibility: string,
-    public themeId: string,            
+    public themeId: string,
     public author: { id: string; name: string },
     public createdAt: string,
     public playCount: number,
@@ -43,7 +43,6 @@ export class KahootUserDetailReadModel implements IHasMediaAssets {
     const ids: string[] = [];
     if (this.coverImageId) ids.push(this.coverImageId);
     if (this.themeId) ids.push(this.themeId);
-    // Si el avatar del autor también fuera un ID, lo sumas aquí
     return ids;
   }
 
@@ -51,12 +50,15 @@ export class KahootUserDetailReadModel implements IHasMediaAssets {
    * Muta las propiedades reemplazando el ID por la URL firmada/final
    */
   applyMediaUrls(urlMap: Map<string, string>): void {
-    if (this.coverImageId && urlMap.has(this.coverImageId)) {
-      this.coverImageId = urlMap.get(this.coverImageId)!;
+    if (this.coverImageId) {
+      this.coverImageId = urlMap.get(this.coverImageId) ?? this.coverImageId;
     }
-    
-    if (this.themeId && urlMap.has(this.themeId)) {
-      this.themeId = urlMap.get(this.themeId)!;
+
+    if (this.themeId) {
+      const url = urlMap.get(this.themeId);
+      if (url) {
+        this.themeId = url;
+      }
     }
   }
 }

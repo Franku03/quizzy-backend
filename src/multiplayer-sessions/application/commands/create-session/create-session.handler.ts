@@ -16,7 +16,6 @@ import { ICommandHandler } from "src/core/application/cqrs";
 import { CreateSessionCommand } from "./create-session.command";
 
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
-import { InMemoryActiveSessionRepository } from "src/multiplayer-sessions/infrastructure/repositories/in-memory.session.repository";
 
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
 import type { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
@@ -25,8 +24,6 @@ import type { IActiveMultiplayerSessionRepository } from "src/multiplayer-sessio
 
 import { Kahoot } from "src/kahoots/domain/aggregates/kahoot";
 import { MultiplayerSessionFactory } from "src/multiplayer-sessions/domain/factories/multiplayer-session.factory";
-import { UuidGenerator } from "src/core/infrastructure/adapters/idgenerator/uuid-generator";
-import { CryptoGeneratePinService } from "src/multiplayer-sessions/infrastructure/adapters/crypto-generate-pin";
 import { MediaEnrichmentService } from "src/media/application/facade/media-enrichment.service";
 
 
@@ -46,24 +43,23 @@ import { ErrorData } from "src/core/types";
 
 
 
-
 @CommandHandler( CreateSessionCommand )
 export class CreateSessionHandler implements ICommandHandler<CreateSessionCommand> {
 
     constructor(
-        @Inject( InMemoryActiveSessionRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ACTIVE_SESSION_REPO )
         private readonly sessionRepository: IActiveMultiplayerSessionRepository,
 
         @Inject( RepositoryName.Kahoot )
         private readonly kahootRepository: IKahootRepository,
 
-        @Inject( UuidGenerator )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR )
         private readonly idGenerator: IdGenerator<string>,
 
-        @Inject( CryptoGeneratePinService )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.PIN_GENERATOR_SERVICE )
         private readonly sessionPinGenerator: IGeneratePinService,
     
-        @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.LOGGER ) private readonly logger: ILogger,
 
         private readonly mediaService: MediaEnrichmentService,
 
@@ -81,7 +77,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
             const sessionId = this.idGenerator.generateId()  
 
             // Creamos el contexto de error (para saber dónde falló si algo pasa)
-            const appContext = createMultiplayerSessionAppContext('createSession', { actorId: command.id, aggregateId: sessionId } );
+            const appContext = createMultiplayerSessionAppContext('createSession', { actorId: command.userId, aggregateId: sessionId } );
 
             return pipeAsync<ErrorData, CreateSessionResponse>(
                 // INICIO: Arrancamos karril con kahoot validado
@@ -90,7 +86,7 @@ export class CreateSessionHandler implements ICommandHandler<CreateSessionComman
                 // 1) Generar Contexto
                 // prepareSessionContext retorna Promise<Either>, así que usamos chainAsync
                 // Input: Kahoot -> Output: Promise<Either<Error, Context>>
-                k => k.chainAsync( kahoot => this.prepareSessionContext( kahoot, sessionId ) ),
+                k => k.chainAsync( (kahoot: Kahoot) => this.prepareSessionContext( kahoot, sessionId ) ),
 
                 // 2) Crear Sesión (Factory)
                 // createSessionWithFactory retorna un valor, así que usamos map 

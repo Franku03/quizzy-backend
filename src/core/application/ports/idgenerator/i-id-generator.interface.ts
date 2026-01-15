@@ -10,5 +10,5 @@
 // File: src\core\application\ports\idgenerator\i-id-generator.interface.ts
 
 export interface IdGenerator<T> {
-    generateId (): T
+  generateId(): T;
 }

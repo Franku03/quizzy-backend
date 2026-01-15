@@ -28,14 +28,36 @@ export class UserSubscriptionStatus extends ValueObject<UserSubscriptionStatusPr
     }
 
     public isActive(): boolean {
-        if (this.properties.state !== SubscriptionState.ACTIVE) return false;
-        
-        const now = DateISO.generate();
-        
-        return this.properties.expiresAt.isGreaterThan(now);
+        return this.properties.state === SubscriptionState.ACTIVE;
     }
 
     public isPremium(): boolean {
-        return this.isActive() && this.properties.plan === SubscriptionPlan.MONTHLY_PREMIUM;
+        return this.properties.plan === SubscriptionPlan.MONTHLY_PREMIUM && 
+               this.properties.state === SubscriptionState.ACTIVE;
+    }
+
+    public validateStatus(): UserSubscriptionStatus {
+        if (this.properties.plan === SubscriptionPlan.FREE) {
+            return this;
+        }
+
+        if (this.properties.state === SubscriptionState.INACTIVE) {
+            return this;
+        }
+
+        const now = DateISO.generate();
+        
+        const hasExpired = !this.properties.expiresAt.isGreaterThan(now);
+
+        if (hasExpired) {
+            
+            return new UserSubscriptionStatus(
+                SubscriptionState.INACTIVE,
+                this.properties.plan,
+                this.properties.expiresAt
+            );
+        }
+
+        return this;
     }
 }

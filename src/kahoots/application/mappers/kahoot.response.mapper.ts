@@ -19,45 +19,49 @@ import { OptionSnapshot } from 'src/core/domain/snapshots/snapshot.option';
 import { IMapper } from 'src/core/application/ports/mapper/i-mapper.interface';
 
 @Injectable()
-export class KahootMapperService implements IMapper<KahootSnapshot, KahootHandlerResponseDto> {
-  
+export class KahootMapperService implements IMapper<
+  KahootSnapshot,
+  KahootHandlerResponseDto
+> {
   public map(snapshot: KahootSnapshot): KahootHandlerResponseDto {
     const response = new KahootHandlerResponseDto();
     const { details, styling } = snapshot;
-    
+
     // Mapeo básico con lógica de formato interna
     response.id = snapshot.id;
     response.authorId = snapshot.authorId;
     response.createdAt = snapshot.createdAt;
     response.playCount = snapshot.playCount;
-    
-    response.status = this.capitalize(snapshot.status)!;
-    response.visibility = this.capitalize(snapshot.visibility)!;
-    
-    response.theme = styling?.theme ?? null; 
-    response.coverImageId = styling?.imageId ?? null;
-    
+
+    // Se usa ?? '' para cumplir con @typescript-eslint/prefer-nullish-coalescing
+    response.status = this.capitalize(snapshot.status) ?? '';
+    response.visibility = this.capitalize(snapshot.visibility) ?? '';
+
+    response.theme = styling.theme ?? null;
+    response.coverImageId = styling.imageId ?? null;
+
     // Detalles
     response.title = details?.title ?? null;
     response.description = details?.description ?? null;
     response.category = details?.category ?? null;
-    
+
     // Slides
-    response.questions = this.mapSlides(snapshot.slides ?? null);
+    response.questions = this.mapSlides(snapshot.slides);
 
     return response;
   }
 
   private capitalize(value: string | null): string | null {
-    if (typeof value !== 'string' || !value?.trim()) {
-        return value === undefined ? null : value; 
+    if (typeof value !== 'string' || !value.trim()) {
+      return null;
     }
     const trimmed = value.trim().toLowerCase();
-    if (trimmed.length === 0) return null;
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   }
 
-  private mapSlides(slides: SlideSnapshot[] | null): SlideHandlerResponseDto[] | null {
+  private mapSlides(
+    slides: SlideSnapshot[] | null,
+  ): SlideHandlerResponseDto[] | null {
     if (!slides || slides.length === 0) return null;
 
     return slides.map((slide): SlideHandlerResponseDto => {
@@ -75,7 +79,9 @@ export class KahootMapperService implements IMapper<KahootSnapshot, KahootHandle
     });
   }
 
-  private mapOptions(options?: OptionSnapshot[] | null): OptionHandlerResponseDto[] | null {
+  private mapOptions(
+    options?: OptionSnapshot[] | null,
+  ): OptionHandlerResponseDto[] | null {
     if (!options || options.length === 0) return null;
 
     return options.map((opt, index): OptionHandlerResponseDto => {

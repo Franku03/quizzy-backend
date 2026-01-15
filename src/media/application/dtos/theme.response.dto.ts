@@ -9,7 +9,7 @@
 
 // File: src\media\application\dtos\theme.response.dto.ts
 
-export type ThemeResponse = {
+export interface ThemeResponse {
   assetId: string;
   url: string;
   mimeType: string;
@@ -17,4 +17,4 @@ export type ThemeResponse = {
   format: string;
   category: string;
   name: string;
-};
+}

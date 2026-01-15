@@ -1,4 +1,4 @@
-import { KahootAssignedEvent } from '../events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 import { NotifyKahootAssignedUseCase } from '../use-cases/notify-kahoot-assigned.use-case';
 
 export class KahootAssignedListener {

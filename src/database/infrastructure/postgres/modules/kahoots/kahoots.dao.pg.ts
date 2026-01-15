@@ -47,26 +47,36 @@ export class KahootDao implements IKahootDao {
   constructor(
     @InjectRepository(KahootEntity)
     private readonly kahootRepo: Repository<KahootEntity>,
-    
+
     @Inject(ERROR_TOKENS.MAPPERS.POSTGRES)
-    private readonly pgErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
-    
+    private readonly pgErrorMapper: IErrorMapper<
+      unknown,
+      IDatabaseErrorContext
+    >,
+
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT)
-    private readonly kahootSnapshotMapper: IMapper<KahootEntity, KahootSnapshot>,
+    private readonly kahootSnapshotMapper: IMapper<
+      KahootEntity,
+      KahootSnapshot
+    >,
   ) {}
 
   // ==========================================
   // HELPERS PRIVADOS
   // ==========================================
 
-  private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
+  private getCtx(
+    operation: string,
+    entityId?: string,
+    extra?: Record<string, unknown>,
+  ) {
     return createDatabaseContext(
       this.contextBase,
       this.adapterName,
       this.portName,
       operation,
       entityId,
-      extra
+      extra,
     );
   }
 
@@ -74,7 +84,9 @@ export class KahootDao implements IKahootDao {
   // IMPLEMENTACIÓN DE MÉTODOS (IKahootDao)
   // ==========================================
 
-  async getKahootById(id: string): Promise<Either<ErrorData, KahootSnapshot | null>> {
+  async getKahootById(
+    id: string,
+  ): Promise<Either<ErrorData, KahootSnapshot | null>> {
     const ctx = this.getCtx('getKahootById', id);
 
     const result = await Either.tryCatch(
@@ -82,29 +94,33 @@ export class KahootDao implements IKahootDao {
         where: { id },
         relations: ['slides', 'slides.options'], // Importante para que el mapper tenga la data
       }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+      (err) => this.pgErrorMapper.toErrorData(err, ctx),
     );
 
-    return result.map(entity => entity ? this.kahootSnapshotMapper.map(entity) : null);
+    return result.map((entity) =>
+      entity ? this.kahootSnapshotMapper.map(entity) : null,
+    );
   }
 
-  async getKahootValidationDataByKahootId(id: string): Promise<Either<ErrorData, { userId: string, visibility: string } | null>> {
+  async getKahootValidationDataByKahootId(
+    id: string,
+  ): Promise<Either<ErrorData, { userId: string; visibility: string } | null>> {
     const ctx = this.getCtx('getKahootValidationDataByKahootId', id);
 
     // En TypeORM, select() nos permite traer solo columnas específicas
     const result = await Either.tryCatch(
       this.kahootRepo.findOne({
         where: { id },
-        select: ['authorId', 'visibility'] 
+        select: ['authorId', 'visibility'],
       }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+      (err) => this.pgErrorMapper.toErrorData(err, ctx),
     );
 
-    return result.map(entity => {
+    return result.map((entity) => {
       if (!entity) return null;
       return {
         userId: entity.authorId,
-        visibility: entity.visibility
+        visibility: entity.visibility,
       };
     });
   }
@@ -117,15 +133,18 @@ export class KahootDao implements IKahootDao {
 
     /**
      * @implementación_pendiente
-     * Retornamos ErrorData explícito ya que faltan las entidades de User y Attempt en Postgres.
      */
-    return Either.makeLeft(
-      new ErrorData(
-        "INFRA_NOT_IMPLEMENTED",
-        "Method getKahootUserDetail not yet implemented for PostgreSQL provider.",
-        ErrorLayer.INFRASTRUCTURE,
-        ctx
-      )
+    // Envolvemos en Promise.resolve para satisfacer el contrato async
+    // y quitamos el error de "no await"
+    return Promise.resolve(
+      Either.makeLeft(
+        new ErrorData(
+          'INFRA_NOT_IMPLEMENTED',
+          'Method getKahootUserDetail not yet implemented for PostgreSQL provider.',
+          ErrorLayer.INFRASTRUCTURE,
+          ctx,
+        ),
+      ),
     );
   }
 }

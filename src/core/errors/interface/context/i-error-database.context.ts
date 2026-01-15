@@ -9,10 +9,10 @@
 
 // File: src\core\errors\interface\context\i-error-database.context.ts
 
-import { IInfrastructureErrorContext } from "./i-error-infraestructure-context.interface";
+import { IInfrastructureErrorContext } from './i-error-infraestructure-context.interface';
 
 export interface IDatabaseErrorContext extends IInfrastructureErrorContext {
-    databaseType: 'mongodb' | 'postgresql';
-    collectionOrTable?: string;
-    entityId?: string;
+  databaseType: 'mongodb' | 'postgresql';
+  collectionOrTable?: string;
+  entityId?: string;
 }

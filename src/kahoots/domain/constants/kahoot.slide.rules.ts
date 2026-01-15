@@ -9,7 +9,7 @@
 
 // File: src\kahoots\domain\constants\kahoot.slide.rules.ts
 
-import {GLOBAL_MAX_QUESTION_LENGTH} from "./../../../core/domain/shared-value-objects/constants/global-kahoot-constants";
+import { GLOBAL_MAX_QUESTION_LENGTH } from './../../../core/domain/shared-value-objects/constants/global-kahoot-constants';
 
 export const SLIDE_POINTS_STD: readonly number[] = [0, 1000, 2000];
 

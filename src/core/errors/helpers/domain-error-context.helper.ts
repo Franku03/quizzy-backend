@@ -9,28 +9,32 @@
 
 // File: src\core\errors\helpers\domain-error-context.helper.ts
 
-import { IDomainErrorContext } from "../interface/context/i-error-domain.context";
+import { IDomainErrorContext } from '../interface/context/i-error-domain.context';
 
 export const createDomainContext = (
-    domainObjectType: string,
-    operation?: string,
-    params?: {
-        domainObjectId?: string;
-        actorId?: string;
-        domainObjectKind?: 'ValueObject' | 'Entity' | 'AggregateRoot' | 'DomainService';
-        rootAggregateName?: string;
-        rootAggregateId?: string;
-        [key: string]: any;
-    }
+  domainObjectType: string,
+  operation?: string,
+  params?: {
+    domainObjectId?: string;
+    actorId?: string;
+    domainObjectKind?:
+      | 'ValueObject'
+      | 'Entity'
+      | 'AggregateRoot'
+      | 'DomainService';
+    rootAggregateName?: string;
+    rootAggregateId?: string;
+    [key: string]: unknown;
+  },
 ): IDomainErrorContext => {
-    return {
-        operation,
-        domainObjectType,
-        domainObjectId: params?.domainObjectId,
-        actorId: params?.actorId,
-        domainObjectKind: params?.domainObjectKind,
-        rootAggregateName: params?.rootAggregateName,
-        rootAggregateId: params?.rootAggregateId,
-        ...params,
-    };
+  return {
+    operation,
+    domainObjectType,
+    domainObjectId: params?.domainObjectId,
+    actorId: params?.actorId,
+    domainObjectKind: params?.domainObjectKind,
+    rootAggregateName: params?.rootAggregateName,
+    rootAggregateId: params?.rootAggregateId,
+    ...(params ?? {}),
+  };
 };

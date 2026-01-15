@@ -44,7 +44,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    */
   catch(exception: unknown, host: ArgumentsHost) {
     const type = host.getType();
-    
+
     // 1. CAPTURA DE CONTEXTO
     const infraContext = this.getInfraContext(host, type);
 
@@ -57,12 +57,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // 4. MAPPING Y RESPUESTA (Separado por protocolo)
     if (type === 'http') {
       // Flujo HTTP: Usa IErrorResponse
-      const clientResponse = this.errorMappingService.toClientResponse(errorToProcess);
+      const clientResponse =
+        this.errorMappingService.toClientResponse(errorToProcess);
       this.handleHttpResponse(host, clientResponse);
-
     } else if (type === 'ws') {
       // Flujo WS: Usa IMappedSocketError (Evento + Data)
-      const socketResponse = this.errorMappingService.toSocketResponse(errorToProcess);
+      const socketResponse =
+        this.errorMappingService.toSocketResponse(errorToProcess);
       this.handleWsResponse(host, socketResponse);
     }
   }
@@ -88,14 +89,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     } 
     */
-  private getInfraContext(host: ArgumentsHost, type: ContextType): IErrorContext {
+  private getInfraContext(
+    host: ArgumentsHost,
+    type: ContextType,
+  ): IErrorContext {
     if (type === 'http') {
       const ctx = host.switchToHttp();
       const request = ctx.getRequest();
-      
+
       // Capturamos la IP real si estás tras un proxy (como Nginx o Cloudflare)
       const realIp = request.headers['x-forwarded-for'] || request.ip;
-      
+
       // El User-Agent nos dirá si es un bot de escaneo (ej. "sqlmap", "python-requests")
       const userAgent = request.headers['user-agent'] || 'unknown';
 
@@ -107,7 +111,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         operation: 'HTTP_REQUEST',
         // Te recomiendo añadir estos campos a tu interfaz IErrorContext si es posible:
         userAgent: userAgent,
-        referer: request.headers['referer'] || 'none',
+        referer: request.headers.referer || 'none',
       };
     }
     if (type === 'ws') {
@@ -131,7 +135,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
   /**
    * Unifica cualquier tipo de error en ErrorData.
    */
-  private resolveErrorData(exception: unknown, infraContext: IErrorContext): ErrorData {
+  private resolveErrorData(
+    exception: unknown,
+    infraContext: IErrorContext,
+  ): ErrorData {
     if (isErrorData(exception)) {
       const ctx = { ...infraContext, ...exception.details };
       if (!exception.details?.operation) {
@@ -140,33 +147,37 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // return exception.setContext(ctx); // Si ErrorData es mutable, úsalo así
       // Si no, asignamos manualmente (asumiendo que ErrorData lo permite o se clona)
       // Como tu ErrorData parece tener setContext o ser mutable:
-      return exception; 
+      return exception;
     }
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const responseBody = exception.getResponse() as any;
-      const details = typeof responseBody === 'object' ? responseBody : { message: responseBody };
+      const details =
+        typeof responseBody === 'object'
+          ? responseBody
+          : { message: responseBody };
 
       return new ErrorData(
         details.error || `HTTP_ERROR_${status}`,
         details.message || exception.message,
         status >= 500 ? ErrorLayer.INFRASTRUCTURE : ErrorLayer.APPLICATION,
         { ...infraContext, ...details },
-        exception
+        exception,
       );
     }
 
     if (exception instanceof WsException) {
       const errorData = exception.getError() as any;
-      const message = typeof errorData === 'string' ? errorData : errorData.message;
+      const message =
+        typeof errorData === 'string' ? errorData : errorData.message;
 
       return new ErrorData(
         'WS_ERROR',
         message,
         ErrorLayer.INFRASTRUCTURE,
         infraContext,
-        exception
+        exception,
       );
     }
 
@@ -175,17 +186,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
       (exception as Error)?.message || 'Internal Server Error',
       ErrorLayer.APPLICATION,
       infraContext,
-      exception as Error
+      exception as Error,
     );
   }
 
   /**
    * Maneja el envío de respuesta vía HTTP.
    */
-  private handleHttpResponse(host: ArgumentsHost, clientResponse: IErrorResponse): void {
+  private handleHttpResponse(
+    host: ArgumentsHost,
+    clientResponse: IErrorResponse,
+  ): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
-    
+
     if (!response.headersSent) {
       response.status(clientResponse.status).json(clientResponse);
     }
@@ -195,7 +209,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * Maneja el envío de respuesta vía WebSocket.
    * CAMBIO: Ahora recibe IMappedSocketError para saber QUÉ evento emitir y con QUÉ datos.
    */
-  private handleWsResponse(host: ArgumentsHost, socketResponse: IMappedSocketError): void {
+  private handleWsResponse(
+    host: ArgumentsHost,
+    socketResponse: IMappedSocketError,
+  ): void {
     const wsCtx = host.switchToWs();
     const client = wsCtx.getClient();
 
@@ -204,7 +221,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // 2. Enviamos el objeto 'data' completo (que incluye statusCode, message, error, errorId)
       client.emit(socketResponse.event, socketResponse.data);
     } else {
-      this.logger.warn('No se pudo emitir el error WS al cliente (Cliente desconectado o inválido)');
+      this.logger.warn(
+        'No se pudo emitir el error WS al cliente (Cliente desconectado o inválido)',
+      );
     }
   }
 }

@@ -31,8 +31,10 @@ export const APPLICATION_CORE_TOKENS = {
         // --- Application Read Models (Infra -> Read Model DTO) ---
         // MongoDB: Une documentos via agregaciones o múltiples finds
         KAHOOT_USER_DETAIL_MONGO_READ: Symbol('KAHOOT_USER_DETAIL_MONGO_READ_MAPPER'),
+        SESSION_REPORT_DETAILS_MONGO_READ: Symbol('SESSION_REPORT_DETAILS_MONGO_READ_MAPPER'),
         // PostgreSQL: Une tablas via JOINs complejos
         KAHOOT_USER_DETAIL_PG_READ: Symbol('KAHOOT_USER_DETAIL_PG_READ_MAPPER'),
+        SESSION_REPORT_DETAILS_PG_READ: Symbol('SESSION_REPORT_DETAILS_PG_READ_MAPPER'),
         // --- Output Mappers (Domain/App -> Response DTO) ---
         RESPONSE_MAPPER: Symbol('RESPONSE_MAPPER'),
 
@@ -44,6 +46,10 @@ export const APPLICATION_CORE_TOKENS = {
     UTILS: {
         ID_GENERATOR: Symbol('ID_GENERATOR'),
         CRYPTO_SERVICE: Symbol('CRYPTO_SERVICE'),
+        PIN_GENERATOR_SERVICE: Symbol('PIN_GENERATOR_SERVICE'),
+        PIN_REPO: Symbol('PIN_REPO'),
+        ACTIVE_SESSION_REPO: Symbol('ACTIVE_SESSION_REPO'),
+        CONCURRENCY_MANAGER: Symbol('CONCURRENCY_MANAGER'),
         LOGGER: Symbol('LOGGER_SERVICE'),
     }
 };

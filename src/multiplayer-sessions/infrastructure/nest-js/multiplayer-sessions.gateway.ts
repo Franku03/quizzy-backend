@@ -204,7 +204,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // * Desconexión de jugador
       // solo hacemos esta notificacion en caso de que el jugador ya haya confirmado que esta sincronizado,
-      // ue tenga nickname registrado (hizo player_join) y la sala exista
+      // que tenga nickname registrado (hizo player_join) y la sala exista
       const validPlayerDisconnectionToNotify = role === SessionRoles.PLAYER && !this.readyTimeouts.has( client.id ) && nickname && roomExists
 
       if ( validPlayerDisconnectionToNotify ) {
@@ -246,7 +246,6 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
 
       this.logger.log(`Cliente Desconectado: [${client.id}: ${ client.data.role }]`);
-      this.tracingWsService.logConnectedClients(); // Imprimimos de nuevo el loggin en memoria
 
     }
 
@@ -299,8 +298,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
 
       // Una vez sincronizado con éxito, lo registramos oficialmente en la traza/juego
       this.tracingWsService.registerClient(client);
-
-      if (client.data.role === SessionRoles.HOST)  this.tracingWsService.logConnectedClients(); // Si es host imprimos en consola 
+      // registramos de nuevo su nombre en el servicio de traza       
+      if( client.data.role === SessionRoles.PLAYER ) this.tracingWsService.registerClientNickname( client );
+      this.tracingWsService.logConnectedClients(); // Imprimimos de nuevo el loggin en memoria
 
     }
 
@@ -421,7 +421,7 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
     }
 
     // --------------------------------------------------------------------------
-    // * Método privado para gestionar cierres de sesión de manera segura o procedimientos de envio de eventos
+    // * Método privado para gestionar cierres de sesión de manera segura
     // --------------------------------------------------------------------------
     private async closeSession( roomPin: string ){
 
@@ -535,14 +535,9 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
               // Marcamos que el usuario ya estaba conectado de antes en la partida
               playerLobbyUpdate.connectedBefore = true;
               client.emit(ServerEvents.PLAYER_CONNECTED_TO_SESSION, { ...playerLobbyUpdate, theme: result.theme } as PlayerLobbyUpdateResponse );
-
-              // registramos de nuevo su nombre en el servicio de traza       
-              this.tracingWsService.registerClientNickname( client );
           
               // Notificamos al host
               await this.handleRoomHostNotification( client.data.roomPin, hostLobbyUpdate, ServerEvents.HOST_LOBBY_UPDATE);
-
-              this.tracingWsService.logConnectedClients(); // Imprimimos en consola para dejar constancia del regreso
 
             }
           }

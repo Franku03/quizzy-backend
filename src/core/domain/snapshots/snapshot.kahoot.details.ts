@@ -10,9 +10,7 @@
 // File: src\core\domain\snapshots\snapshot.kahoot.details.ts
 
 export interface KahootDetailsSnapshot {
-    title?: string;
-    description?: string;
-    category?: string;
+  title?: string;
+  description?: string;
+  category?: string;
 }
-
-

@@ -11,7 +11,7 @@
 
 import { Inject, Injectable } from '@nestjs/common';
 import * as cloudinary from 'cloudinary';
-import { UploadApiResponse} from 'cloudinary';
+import { UploadApiResponse } from 'cloudinary';
 import { IAssetStorageService } from 'src/media/application/ports/i-asset-storage.interface';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { IExternalServiceErrorContext } from 'src/core/errors/interface/context/i-external-service.context';
@@ -23,18 +23,32 @@ import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-
 export class CloudinaryStorageAdapter implements IAssetStorageService {
   constructor(
     @Inject(ERROR_TOKENS.MAPPERS.CLOUDINARY)
-    private readonly errorMapper: IErrorMapper<unknown,IExternalServiceErrorContext>,
+    private readonly errorMapper: IErrorMapper<
+      unknown,
+      IExternalServiceErrorContext
+    >,
     @Inject(MEDIA_TOKENS.CLOUDINARY_CONFIG)
-    private readonly cloudinaryInstance: typeof cloudinary.v2
-  ) { }
+    private readonly cloudinaryInstance: typeof cloudinary.v2,
+  ) {}
 
   async upload(
     fileBuffer: Buffer,
     mimeType: string,
     originalName: string,
-    publicId: string
-  ): Promise<Either<ErrorData, { publicId: string; provider: string; mimeType: string; format: string; size: number }>> {
-    const baseFolder = process.env.CLOUDINARY_ASSET_FOLDER || 'quizzy_assets';
+    publicId: string,
+  ): Promise<
+    Either<
+      ErrorData,
+      {
+        publicId: string;
+        provider: string;
+        mimeType: string;
+        format: string;
+        size: number;
+      }
+    >
+  > {
+    const baseFolder = process.env.CLOUDINARY_ASSET_FOLDER ?? 'quizzy_assets';
     const [folderPath, assetId] = publicId.split('/');
     const cleanName = this.slugify(originalName);
     const targetFolder = `${baseFolder}/${folderPath}`;
@@ -49,12 +63,12 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
       adapterName: CloudinaryStorageAdapter.name,
       portName: 'IAssetStorageService',
       serviceName: 'cloudinary',
-      resourceId: fileName
+      resourceId: fileName,
     };
 
-    try {
-      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
-        this.cloudinaryInstance.uploader.upload_stream(
+    const uploadPromise = new Promise<UploadApiResponse>((resolve, reject) => {
+      this.cloudinaryInstance.uploader
+        .upload_stream(
           {
             public_id: fileName,
             folder: targetFolder,
@@ -65,46 +79,73 @@ export class CloudinaryStorageAdapter implements IAssetStorageService {
             flags: 'preserve_transparency',
           },
           (error, result) => {
-            if (error) return reject(error);
-            if (!result) return reject(new Error('Cloudinary upload result is undefined'));
+            if (error) {
+              reject(new Error('Cloudinary upload failed'));
+              return;
+            }
+            if (!result) {
+              reject(new Error('Cloudinary result is undefined'));
+              return;
+            }
             resolve(result);
-          }
-        ).end(fileBuffer);
-      });
+          },
+        )
+        .end(fileBuffer);
+    });
 
-      return Either.makeRight({
-        publicId: result.public_id,
-        provider: 'cloudinary',
-        mimeType: shouldConvert ? 'image/webp' : mimeType,
-        format: shouldConvert ? 'webp' : result.format,
-        size: result.bytes
-      });
-    } catch (error) {
-      return Either.makeLeft(this.errorMapper.toErrorData(error, context));
-    }
+    const resultEither = await Either.tryCatch(uploadPromise, (error) =>
+      this.errorMapper.toErrorData(error, context),
+    );
+
+    return resultEither.map((result) => ({
+      publicId: result.public_id,
+      provider: 'cloudinary',
+      mimeType: shouldConvert ? 'image/webp' : mimeType,
+      format: shouldConvert ? 'webp' : result.format,
+      size: result.bytes,
+    }));
   }
 
-  async delete(publicId: string, provider: string): Promise<Either<ErrorData, void>> {
+  async delete(
+    publicId: string,
+    provider: string,
+  ): Promise<Either<ErrorData, void>> {
     const context: IExternalServiceErrorContext = {
       operation: 'delete',
       adapterName: CloudinaryStorageAdapter.name,
       portName: 'IAssetStorageService',
       serviceName: 'cloudinary',
-      resourceId: publicId
+      resourceId: publicId,
     };
 
-    try {
-      if (provider !== 'cloudinary') {
-        return Either.makeLeft(new ErrorData("ADAPTER_MISMATCH", "Expected cloudinary", ErrorLayer.INFRASTRUCTURE, context));
-      }
-      await this.cloudinaryInstance.uploader.destroy(publicId, { resource_type: 'auto' });
-      return Either.makeRight(undefined);
-    } catch (error) {
-      return Either.makeLeft(this.errorMapper.toErrorData(error, context));
+    if (provider !== 'cloudinary') {
+      return Either.makeLeft(
+        new ErrorData(
+          'ADAPTER_MISMATCH',
+          'Expected cloudinary',
+          ErrorLayer.INFRASTRUCTURE,
+          context,
+        ),
+      );
     }
+
+    return await Either.tryCatch(
+      this.cloudinaryInstance.uploader.destroy(publicId, {
+        resource_type: 'auto',
+      }),
+      (error) => this.errorMapper.toErrorData(error, context),
+    );
   }
 
   private slugify(text: string): string {
-    return text.split('.')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').trim();
+    return text
+      .split('.')[0]
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .trim();
   }
 }

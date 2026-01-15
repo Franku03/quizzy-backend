@@ -18,6 +18,7 @@ import { Optional } from 'src/core/types/optional';
 import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
 
 @DaoMongo(DaoName.User)
 @Injectable()
@@ -38,11 +39,14 @@ export class UserDaoMongo implements IUserDao {
       return new Optional<UserReadModel>();
     }
 
+    const isPremium = this.checkPremiumStatus(user);
+
     return new Optional<UserReadModel>(
       new UserReadModel(
         user.userId,
         user.email,
         user.username,
+        isPremium,
       ),
     );
   }
@@ -57,12 +61,30 @@ export class UserDaoMongo implements IUserDao {
       return new Optional<UserReadModel>();
     }
 
+    const isPremium = this.checkPremiumStatus(user);
+
     return new Optional<UserReadModel>(
       new UserReadModel(
         user.userId,
         user.email,
         user.username,
+        isPremium,
       ),
     );
+  }
+
+  private checkPremiumStatus(user: any): boolean {
+    if (!user.subscription) return false;
+
+    const { state, plan, expiresAt } = user.subscription;
+
+    if (plan !== 'MONTHLY_PREMIUM' && state !== 'ACTIVE') {
+        return false;
+    }
+
+    const expiresDate = DateISO.createFrom(expiresAt);
+    const now = DateISO.generate();
+
+    return expiresDate.isGreaterThan(now);
   }
 }

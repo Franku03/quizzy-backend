@@ -9,38 +9,38 @@ import { createApplicationContext } from 'src/core/errors/helpers/app-error-cont
 import { AppErrorFactory } from 'src/core/errors/factories/app-error.factory';
 
 export interface IRequestWithUserAsHost {
-    sessionId: string,
-    userId: string
+  sessionId: string;
+  userId: string;
 }
 
-export class SessionHostAuthorizer implements IAuthorizer<IRequestWithUserAsHost, IMultiplayerSessionDao> {
-  async authorize(request: IRequestWithUserAsHost, context: IMultiplayerSessionDao): Promise<Either<ErrorData, void>> {
+export class SessionHostAuthorizer implements IAuthorizer<
+  IRequestWithUserAsHost,
+  IMultiplayerSessionDao
+> {
+  async authorize(
+    request: IRequestWithUserAsHost,
+    context: IMultiplayerSessionDao,
+  ): Promise<Either<ErrorData, void>> {
     const userId = request.userId;
     const sessionId = request.sessionId;
 
     const errorContext = createApplicationContext('getDetailedHostReport', {
-        actorId: userId,
-        resourceTargetId: sessionId 
+      actorId: userId,
+      resourceTargetId: sessionId,
     });
 
     if (!userId) {
-      return Either.makeLeft(
-        AppErrorFactory.unauthorized(errorContext)
-      );
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
     }
 
-    const isAdminResult = await context.isUserSessionHost( userId, sessionId );
+    const isAdminResult = await context.isUserSessionHost(userId, sessionId);
 
-    if( isAdminResult.isLeft() )
-        return Either.makeLeft( isAdminResult.getLeft() );
+    if (isAdminResult.isLeft()) return Either.makeLeft(isAdminResult.getLeft());
 
     if (!isAdminResult.getRight()) {
-      return Either.makeLeft(
-        AppErrorFactory.unauthorized(errorContext)
-      );
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
     }
 
     return Either.makeRight(undefined);
   }
 }
-

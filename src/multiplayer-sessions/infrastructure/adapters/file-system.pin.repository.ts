@@ -10,19 +10,26 @@
 // File: src\multiplayer-sessions\infrastructure\adapters\file-system.pin.repository.ts
 
 import * as fs from 'fs/promises';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
-import { Either, ErrorData } from 'src/core/types';
 import { FileSystemPinRepositoryErrorContext, FileSystemPinRepositoryErrorMapper } from '../errors/file-system-pin-repository.error.mapper';
-import { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
+import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import { IInfrastructureErrorContext } from 'src/core/errors/interface/context/i-error-infraestructure-context.interface';
+import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+import { Either, ErrorData } from 'src/core/types';
 
 @Injectable()
 export class FileSystemPinRepository implements IPinRepository, OnModuleInit {
 
     private readonly PIN_FILE_PATH = 'active_pins.txt'
     private readonly memoryCache = new Set<string>();
-    private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> = new FileSystemPinRepositoryErrorMapper()
+    private readonly logger: Logger = new Logger('PinRepository');
+
+    constructor(
+        @Inject( ERROR_TOKENS.MAPPERS.FILESYSTEM )
+        private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> 
+    ){}
+
     
     private getCtx( operation: string, pin?: string ): FileSystemPinRepositoryErrorContext {
         return {
@@ -78,11 +85,11 @@ export class FileSystemPinRepository implements IPinRepository, OnModuleInit {
             // El uso de fs.writeFile es más seguro para sobrescribir que appendFile.
             await fs.writeFile(this.PIN_FILE_PATH, newFileContent, { encoding: 'utf-8' });
 
-            console.log(`✅ PIN ${pinToRemove} liberado exitosamente.`);
+            this.logger.log(`✅ PIN ${pinToRemove} liberado exitosamente.`);
 
         } catch (error: any) {
             if (error.code === 'ENOENT') {
-                console.error(`❌ Error: PIN no encontrado en ${this.PIN_FILE_PATH}. No se puede liberar el PIN ${pinToRemove}.`);
+                this.logger.error(`❌ Error: PIN no encontrado en ${this.PIN_FILE_PATH}. No se puede liberar el PIN ${pinToRemove}.`);
                 return;
             }
             throw error; // Re-lanzar otros errores del sistema de archivos

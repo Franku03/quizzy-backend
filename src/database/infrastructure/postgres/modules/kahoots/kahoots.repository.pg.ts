@@ -48,37 +48,61 @@ export class KahootRepository implements IKahootRepository {
     @InjectRepository(KahootEntity)
     private readonly repo: Repository<KahootEntity>,
     @Inject(ERROR_TOKENS.MAPPERS.POSTGRES)
-    private readonly pgErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+    private readonly pgErrorMapper: IErrorMapper<
+      unknown,
+      IDatabaseErrorContext
+    >,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT) // Mapper específico para aplanar Entity -> Snapshot
     private readonly pgReadMapper: IMapper<KahootEntity, KahootSnapshot>,
     @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_PERSISTENCE)
-    private readonly pgPersistenceMapper: IMapper<KahootSnapshot, DeepPartial<KahootEntity>>,
+    private readonly pgPersistenceMapper: IMapper<
+      KahootSnapshot,
+      DeepPartial<KahootEntity>
+    >,
     private readonly dataSource: DataSource, // Para transacciones manuales si fuera necesario
-  ) { }
+  ) {}
 
   private getCtx(operation: string, entityId?: string) {
-    return createDatabaseContext(this.contextBase, this.adapterName, this.portName, operation, entityId);
+    return createDatabaseContext(
+      this.contextBase,
+      this.adapterName,
+      this.portName,
+      operation,
+      entityId,
+    );
   }
 
   // ==========================================
   // MÉTODOS DE DOMINIO
   // ==========================================
 
-  public async saveKahootEither(kahoot: Kahoot): Promise<Either<ErrorData, void>> {
+  public async saveKahootEither(
+    kahoot: Kahoot,
+  ): Promise<Either<ErrorData, void>> {
     const ctx = this.getCtx('save', kahoot.id.value);
     const snap = kahoot.getSnapshot();
-    const ids = snap.slides.map(s => s.id);
+    const ids = snap.slides.map((s) => s.id);
 
-    return (await Either.tryCatch(
-      (async () => {
-        if (ids.length > 0) await this.repo.manager.delete(SlideEntity, { kahootId: snap.id, id: Not(In(ids)) });
-        return this.repo.save(this.repo.create(this.pgPersistenceMapper.map(snap)));
-      })(),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
-    )).map(() => undefined);
+    return (
+      await Either.tryCatch(
+        (async () => {
+          if (ids.length > 0)
+            await this.repo.manager.delete(SlideEntity, {
+              kahootId: snap.id,
+              id: Not(In(ids)),
+            });
+          return this.repo.save(
+            this.repo.create(this.pgPersistenceMapper.map(snap)),
+          );
+        })(),
+        (err) => this.pgErrorMapper.toErrorData(err, ctx),
+      )
+    ).map(() => undefined);
   }
-  
-  public async findKahootByIdEither(id: string): Promise<Either<ErrorData, Kahoot | null>> {
+
+  public async findKahootByIdEither(
+    id: string,
+  ): Promise<Either<ErrorData, Kahoot | null>> {
     const ctx = this.getCtx('findById', id);
 
     const result = await Either.tryCatch(
@@ -86,7 +110,7 @@ export class KahootRepository implements IKahootRepository {
         where: { id },
         relations: ['slides', 'slides.options'], // Importante: Cargar el árbol completo
       }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+      (err) => this.pgErrorMapper.toErrorData(err, ctx),
     );
 
     return result.chain((entity) => {
@@ -101,7 +125,7 @@ export class KahootRepository implements IKahootRepository {
 
     const result = await Either.tryCatch(
       this.repo.find({ relations: ['slides', 'slides.options'] }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+      (err) => this.pgErrorMapper.toErrorData(err, ctx),
     );
 
     return result.chain((entities) => {
@@ -116,20 +140,22 @@ export class KahootRepository implements IKahootRepository {
     });
   }
 
-  public async deleteKahootEither(id: string): Promise<Either<ErrorData, void>> {
+  public async deleteKahootEither(
+    id: string,
+  ): Promise<Either<ErrorData, void>> {
     const ctx = this.getCtx('delete', id);
-    const result = await Either.tryCatch(
-      this.repo.delete({ id }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+    const result = await Either.tryCatch(this.repo.delete({ id }), (err) =>
+      this.pgErrorMapper.toErrorData(err, ctx),
     );
     return result.map(() => undefined);
   }
 
-  public async existsKahootEither(id: string): Promise<Either<ErrorData, boolean>> {
+  public async existsKahootEither(
+    id: string,
+  ): Promise<Either<ErrorData, boolean>> {
     const ctx = this.getCtx('exists', id);
-    const result = await Either.tryCatch(
-      this.repo.countBy({ id }),
-      (err) => this.pgErrorMapper.toErrorData(err, ctx)
+    const result = await Either.tryCatch(this.repo.countBy({ id }), (err) =>
+      this.pgErrorMapper.toErrorData(err, ctx),
     );
     return result.map((count) => count > 0);
   }

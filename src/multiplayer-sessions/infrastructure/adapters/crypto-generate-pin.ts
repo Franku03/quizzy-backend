@@ -14,11 +14,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { IGeneratePinService } from "src/multiplayer-sessions/domain/domain-services";
 import type { IPinRepository } from 'src/multiplayer-sessions/domain/ports';
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
-import { FileSystemPinRepository } from './file-system.pin.repository';
 import { IInfrastructureErrorContext } from 'src/core/errors/interface/context/i-error-infraestructure-context.interface';
 import { Either, ErrorData } from 'src/core/types';
-import { CryptoGeneratePinServiceErrorMapper } from '../errors/crypto-generate-pin.error.mapper';
 import { ERROR_TOKENS } from 'src/core/errors/dependecy-tokens/application-core-erros.tokens';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 
 
 @Injectable()
@@ -27,14 +26,14 @@ export class CryptoGeneratePinService implements IGeneratePinService {
     // Máximo de intentos para generar un PIN único
     private readonly MAX_ATTEMPTS = process.env.PIN_GENERATION_ATTEMPTS ? +process.env.PIN_GENERATION_ATTEMPTS : 50;
 
-    private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext> = new CryptoGeneratePinServiceErrorMapper()
 
 
     constructor(
-        @Inject( FileSystemPinRepository )
+        @Inject( APPLICATION_CORE_TOKENS.UTILS.PIN_REPO )
         private readonly fileSystemRepo: IPinRepository,
 
-        // @Inject( ERROR_TOKENS.MAPPERS.PIN )
+        @Inject( ERROR_TOKENS.MAPPERS.CRYPTO )
+        private readonly errorMapper: IErrorMapper<unknown, IInfrastructureErrorContext>
     ){}
 
     public async generateUniquePin(): Promise<Either<ErrorData,string>> {

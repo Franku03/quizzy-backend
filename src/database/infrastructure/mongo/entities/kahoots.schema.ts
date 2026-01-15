@@ -15,7 +15,7 @@ import { DbMongoDocument } from '../decorators/db-mongo-document.decorator';
 import { DbMongoSchema } from '../decorators/db-mongo-schema.decorator';
 
 // Database Collection Name
-const COLLECTION_NAME: string = 'kahoots';
+const COLLECTION_NAME = 'kahoots';
 
 // Esta interfaz representa el objeto plano que devuelve .lean()
 export interface IKahootDocument {

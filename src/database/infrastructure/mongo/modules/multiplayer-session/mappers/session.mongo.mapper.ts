@@ -87,14 +87,19 @@ export class MultiplayerSessionMongoMapper implements MultiplayerSessionMapper<M
 
   public mapUserDetails(session: MultiplayerSessionMongo, userId: string): UserResult {
     const playerInRanking = session.ranking.find(r => r.playerId === userId);
+
+    // Lógica de determinación de tipo
+    const isHost = session.hostId === userId;
+    const type = isHost ? GameType.MULTIPLAYER_HOST : GameType.MULTIPLAYER_PLAYER;
+
     return {
       kahootId: session.kahootId,
       gameId: session.sessionId,
-      gameType: GameType.MULTIPLAYER,
+      gameType: type,
       title: session.kahootTitle  ?? 'Kahoot sin título (Histórico)',
       completionDate: session.timeDetails.completedAt,
-      finalScore: playerInRanking?.score ?? 0,
-      rankingPosition: playerInRanking?.rank ?? 0
+      finalScore: isHost ? undefined : playerInRanking?.score ?? 0,
+      rankingPosition: isHost? undefined : playerInRanking?.rank ?? 0
     };
   }
 }

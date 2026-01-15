@@ -20,12 +20,6 @@ export interface FileSystemPinRepositoryErrorContext extends IInfrastructureErro
 
 }
 
-export const REPOSITORY_ERRORS = {
-    SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
-    SAVE_FAILED: 'SAVE_FAILED',
-    DELETE_FAILED: 'DELETE_FAILED'
-};
-
 export class FileSystemPinRepositoryErrorMapper implements IErrorMapper<unknown, FileSystemPinRepositoryErrorContext> {
 
     public toErrorData(error: unknown, context: IInfrastructureErrorContext): ErrorData {

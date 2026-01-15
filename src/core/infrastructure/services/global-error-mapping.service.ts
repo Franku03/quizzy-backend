@@ -7,17 +7,16 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
-// File: src/core/infrastructure/services/global-error-mapping.service.ts
+//File: src\core\infrastructure\services\global-error-mapping.service.ts
 
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { ErrorData, ErrorLayer } from 'src/core/types';
 import { IErrorResponse } from 'src/core/errors/interface/i-error-response.interface';
-import { IMappedSocketError } from 'src/core/errors/interface/i-error-socket.interface'; 
+import { IMappedSocketError } from 'src/core/errors/interface/i-error-socket.interface';
 import { ServerErrorEvents } from 'src/multiplayer-sessions/infrastructure/nest-js/enums/websocket.events.enum';
 
 @Injectable()
 export class ErrorMappingService {
-
   public toClientResponse(errorData: ErrorData): IErrorResponse {
     const [status, message] = this.determineStatusCodeAndMessage(errorData);
 
@@ -30,38 +29,37 @@ export class ErrorMappingService {
     };
   }
 
-  /**
-   * CAMBIO AQUÍ: El tipo de retorno ahora es IMappedSocketError
-   */
   public toSocketResponse(errorData: ErrorData): IMappedSocketError {
-    
     const [statusCode, message] = this.determineStatusCodeAndMessage(errorData);
     const errorName = this.getErrorNameByStatus(statusCode);
     const event = this.determineSocketEvent(errorData, statusCode);
 
-    // Ahora esto coincide con la interfaz IMappedSocketError
     return {
-      event: event,
+      event,
       data: {
-        statusCode: statusCode,
-        message: message,
+        statusCode,
+        message,
         error: errorName,
-        errorId: errorData.errorId
-      }
+        errorId: errorData.errorId,
+      },
     };
   }
 
-  // ===========================================================================
-  // PRIVATE HELPER METHODS
-  // ===========================================================================
-
   private determineSocketEvent(error: ErrorData, statusCode: number): string {
-    if (statusCode === HttpStatus.NOT_FOUND && 
-       (error.code.includes('SESSION') || error.code.includes('LOBBY'))) {
+    // Cast a number para evitar @typescript-eslint/no-unsafe-enum-comparison
+    const status = statusCode;
+
+    if (
+      status === (HttpStatus.NOT_FOUND as number) &&
+      (error.code.includes('SESSION') || error.code.includes('LOBBY'))
+    ) {
       return ServerErrorEvents.UNAVAILABLE_SESSION;
     }
 
-    if (statusCode === HttpStatus.CONFLICT || error.code === 'STATE_MISMATCH') {
+    if (
+      status === (HttpStatus.CONFLICT as number) ||
+      error.code === 'STATE_MISMATCH'
+    ) {
       return ServerErrorEvents.SYNC_ERROR;
     }
 
@@ -69,19 +67,21 @@ export class ErrorMappingService {
   }
 
   private getErrorNameByStatus(status: number): string {
-    switch (status) {
-      case 400: return 'Bad Request';
-      case 401: return 'Unauthorized';
-      case 403: return 'Forbidden';
-      case 404: return 'Not Found';
-      case 409: return 'Conflict';
-      case 422: return 'Unprocessable Entity';
-      case 500: return 'Internal Server Error';
-      default: return 'Error';
-    }
+    const map: Record<number, string> = {
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      403: 'Forbidden',
+      404: 'Not Found',
+      409: 'Conflict',
+      500: 'Internal Server Error',
+    };
+    return map[status] ?? 'Error';
   }
 
-  private sanitizeDetails(error: ErrorData, status: number): any {
+  private sanitizeDetails(
+    error: ErrorData,
+    status: number,
+  ): Record<string, unknown> | undefined {
     if (
       status >= 500 ||
       error.layer === ErrorLayer.INFRASTRUCTURE ||
@@ -89,53 +89,107 @@ export class ErrorMappingService {
     ) {
       return {
         info: 'A technical error has occurred. Contact support with your errorId.',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
-    return error.details;
+    return error.details as Record<string, unknown> | undefined;
   }
 
-  private determineStatusCodeAndMessage(error: ErrorData): [HttpStatus, string] {
+  private determineStatusCodeAndMessage(
+    error: ErrorData,
+  ): [HttpStatus, string] {
     const { layer, code, details, message } = error;
 
     if (layer === ErrorLayer.DOMAIN) {
       const domainMap: Record<string, [HttpStatus, string]> = {
-        'RESOURCE_NOT_FOUND': [HttpStatus.NOT_FOUND, 'The requested resource does not exist.'],
-        'UNAUTHORIZED_ACCESS': [HttpStatus.FORBIDDEN, 'You do not have permissions for this action.'],
-        'VALIDATION_FAILED': [HttpStatus.BAD_REQUEST, 'The provided data is invalid.'],
-        'INVALID_NICKNAME': [HttpStatus.BAD_REQUEST, 'The nickname provided is invalid.'], 
-        'CONFLICT': [HttpStatus.CONFLICT, 'Conflict in the resource state.'],
-        'INVALID_PARAMETER_LENGTH': [HttpStatus.BAD_REQUEST, 'The parameter length is not valid.'],
-        'INVALID_CREDENTIALS': [HttpStatus.UNAUTHORIZED, 'Incorrect credentials.'],
-        'ACCOUNT_BLOCKED': [HttpStatus.FORBIDDEN, 'Your account has been blocked. Contact support.'],
-        'ACCOUNT_INACTIVE': [HttpStatus.FORBIDDEN, 'Your account has been deactivated. Contact support.'],
+        RESOURCE_NOT_FOUND: [
+          HttpStatus.NOT_FOUND,
+          'The requested resource does not exist.',
+        ],
+        UNAUTHORIZED_ACCESS: [
+          HttpStatus.FORBIDDEN,
+          'You do not have permissions for this action.',
+        ],
+        VALIDATION_FAILED: [
+          HttpStatus.BAD_REQUEST,
+          'The provided data is invalid.',
+        ],
+        INVALID_NICKNAME: [
+          HttpStatus.BAD_REQUEST,
+          'The nickname provided is invalid.',
+        ],
+        CONFLICT: [HttpStatus.CONFLICT, 'Conflict in the resource state.'],
+        INVALID_PARAMETER_LENGTH: [
+          HttpStatus.BAD_REQUEST,
+          'The parameter length is not valid.',
+        ],
+        INVALID_CREDENTIALS: [
+          HttpStatus.UNAUTHORIZED,
+          'Incorrect credentials.',
+        ],
+        ACCOUNT_BLOCKED: [
+          HttpStatus.FORBIDDEN,
+          'Your account has been blocked. Contact support.',
+        ],
+        ACCOUNT_INACTIVE: [
+          HttpStatus.FORBIDDEN,
+          'Your account has been deactivated. Contact support.',
+        ],
       };
-      
-      return domainMap[code] ?? [HttpStatus.BAD_REQUEST, message || 'Business rule violation.'];
+
+      return (
+        domainMap[code] ?? [
+          HttpStatus.BAD_REQUEST,
+          message || 'Business rule violation.',
+        ]
+      );
     }
 
     if (layer === ErrorLayer.APPLICATION) {
-      const category = details?.errorCategory;
+      const detailsObj = details as Record<string, string> | undefined;
+      const category = detailsObj?.errorCategory;
 
       if (code === 'Bad Request' || code === 'HTTP_ERROR_400') {
-            return [HttpStatus.BAD_REQUEST, message]; 
-        }
+        return [HttpStatus.BAD_REQUEST, message];
+      }
 
       const appMap: Record<string, [HttpStatus, string]> = {
-        'NOT_FOUND': [HttpStatus.NOT_FOUND, 'Resource not found.'],
-        'UNAUTHORIZED': [HttpStatus.UNAUTHORIZED, 'Not authorized to perform this action.'],
-        'FORBIDDEN': [HttpStatus.FORBIDDEN, 'Access forbidden due to resource state or policies.'],
-        'HTTP_ERROR_401': [HttpStatus.UNAUTHORIZED, 'Invalid or missing authentication token.'],
-        'HTTP_ERROR_403': [HttpStatus.FORBIDDEN, 'You do not have permission to access this resource.'],
+        NOT_FOUND: [HttpStatus.NOT_FOUND, 'Resource not found.'],
+        UNAUTHORIZED: [
+          HttpStatus.UNAUTHORIZED,
+          'Not authorized to perform this action.',
+        ],
+        FORBIDDEN: [
+          HttpStatus.FORBIDDEN,
+          'Access forbidden due to resource state or policies.',
+        ],
+        HTTP_ERROR_401: [
+          HttpStatus.UNAUTHORIZED,
+          'Invalid or missing authentication token.',
+        ],
+        HTTP_ERROR_403: [
+          HttpStatus.FORBIDDEN,
+          'You do not have permission to access this resource.',
+        ],'400': [HttpStatus.BAD_REQUEST, message || 'Bad Request'],
+        '401': [HttpStatus.UNAUTHORIZED, message || 'Unauthorized'],
+        '403': [HttpStatus.FORBIDDEN, message || 'Forbidden'],
+        '404': [HttpStatus.NOT_FOUND, message || 'NOT_FOUND'],
       };
 
-      return appMap[category] ?? appMap[code] ?? [HttpStatus.BAD_REQUEST, 'Application orchestration error.'];
+      // Se usa 'in' para verificar la existencia en el objeto de forma segura para TS y ESLint
+      const finalKey = category && category in appMap ? category : code;
+
+      return (
+        appMap[finalKey] ?? [
+          HttpStatus.BAD_REQUEST,
+          'Application orchestration error.',
+        ]
+      );
     }
 
-    if (layer === ErrorLayer.INFRASTRUCTURE || layer === ErrorLayer.EXTERNAL) {
-      return [HttpStatus.INTERNAL_SERVER_ERROR, 'Infrastructure or external service error.'];
-    }
-
-    return [HttpStatus.INTERNAL_SERVER_ERROR, 'Unexpected system error.'];
+    return [
+      HttpStatus.INTERNAL_SERVER_ERROR,
+      'Infrastructure or external service error.',
+    ];
   }
 }

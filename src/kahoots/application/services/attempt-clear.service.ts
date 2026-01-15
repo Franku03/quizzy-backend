@@ -17,14 +17,17 @@ import { KahootId } from 'src/core/domain/shared-value-objects/id-objects/kahoot
 export class AttemptCleanupService {
   constructor(
     @Inject(RepositoryName.Attempt)
-    private readonly attemptRepository: SoloAttemptRepository
+    private readonly attemptRepository: SoloAttemptRepository,
   ) {}
 
   async cleanupById(kahootId: KahootId): Promise<void> {
     try {
       await this.attemptRepository.deleteAllActiveForKahootId(kahootId);
     } catch (error) {
-      console.warn(`No se pudieron limpiar intentos para kahoot ${kahootId.value}:`, error);
+      console.warn(
+        `No se pudieron limpiar intentos para kahoot ${kahootId.value}:`,
+        error,
+      );
     }
   }
 }

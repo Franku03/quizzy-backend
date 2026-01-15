@@ -19,7 +19,7 @@ export class GetThemesDTO implements GetThemesProps {
   category?: string;
 
   @IsOptional()
-  @Type(() => Number) 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)

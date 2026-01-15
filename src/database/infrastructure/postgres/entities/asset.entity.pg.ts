@@ -9,16 +9,20 @@
 
 // File: src\database\infrastructure\postgres\entities\asset.entity.pg.ts
 
-import { Entity, Column, PrimaryColumn, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
 import { DbPostgresEntity } from '../registries/db-model-postgres.registry';
-
 
 const ENTITY_NAME = 'asset_metadata';
 
 @DbPostgresEntity(ENTITY_NAME)
 @Entity('AssetMetadata')
 export class AssetMetadataEntity {
-  
   @PrimaryColumn('uuid')
   @Index({ unique: true })
   assetId: string;
@@ -36,7 +40,7 @@ export class AssetMetadataEntity {
   @Column()
   mimeType: string;
 
-  @Column('bigint') 
+  @Column('bigint')
   size: number;
 
   @Column()

@@ -11,10 +11,10 @@
 
 import { CommandRegistry } from '../registries/command.registry';
 
-export function CommandHandler<TCommand extends { new (...args: any[]): any }>(
+export function CommandHandler<TCommand extends new (...args: any[]) => any>(
   command: TCommand,
 ) {
-  return function <THandler extends { new (...args: any[]): any }>(
+  return function <THandler extends new (...args: any[]) => any>(
     handlerClass: THandler,
   ) {
     // Solo registra la relación estáticamente

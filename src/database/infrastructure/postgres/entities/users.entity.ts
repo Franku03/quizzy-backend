@@ -9,17 +9,71 @@
 
 // File: src\database\infrastructure\postgres\entities\users.entity.ts
 
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { DbPostgresEntity } from '../decorators/db-postgres-entity.decorator';
 
-const ENTITY_NAME = 'user';
+const ENTITY_NAME = 'user'; 
 
 @DbPostgresEntity(ENTITY_NAME)
-@Entity('User')
+@Entity('User') 
 export class UserEntity {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   id: string;
 
+  @Column({ unique: true })
+  email: string;
+
+  @Column({ unique: true })
+  username: string;
+
+  @Column({ name: 'password_hash' })
+  passwordHash: string;
+
+  @Column({ name: 'profile_name' })
+  profileName: string;
+
+  @Column({ name: 'profile_description', nullable: true })
+  profileDescription: string;
+
+  @Column({ name: 'avatar_asset_id', nullable: true })
+  avatarAssetId: string;
+
   @Column()
-  name: string;
+  type: string;
+
+  @Column()
+  state: string;
+
+  @Column({ type: 'boolean', default: false, name: 'is_deleted' })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_hash', nullable: true, type: 'text' })
+  deletedHash: string | null;
+
+  @Column({ type: 'jsonb' })
+  subscription: {
+      state: string;
+      plan: string;
+      expiresAt: string;
+  };
+
+  @Column({ type: 'jsonb', default: {} })
+  preferences: {
+      theme: string;
+  };
+
+  @Column({ type: 'jsonb', default: [] })
+  roles: string[];
+
+  @Column({ type: 'jsonb', default: [] })
+  favorites: string[]; 
+
+  @Column({ name: 'last_username_update', nullable: true, type: 'text' })
+  lastUsernameUpdate: string | null;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
+  updatedAt: Date;
 }

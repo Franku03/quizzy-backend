@@ -24,7 +24,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
-import { KahootAssignedEvent } from 'src/notifications/application/events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 
 
 @CommandHandler(AssignKahootToGroupCommand)

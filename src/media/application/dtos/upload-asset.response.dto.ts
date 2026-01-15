@@ -9,11 +9,11 @@
 
 // File: src\media\application\dtos\upload-asset.response.dto.ts
 
-export type UploadAssetResponse = {
+export interface UploadAssetResponse {
   assetId: string;
   url: string;
   mimeType: string;
   size: number;
   format: string;
   category: string;
-};
+}

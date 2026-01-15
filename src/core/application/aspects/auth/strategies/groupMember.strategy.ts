@@ -22,28 +22,36 @@ export interface IRequestWithGroupAndUser {
   operationName?: string;
 }
 
-export class GroupMemberAuthorizer implements IAuthorizer<IRequestWithGroupAndUser, IGroupsDao> {
-  async authorize(request: IRequestWithGroupAndUser, context: IGroupsDao): Promise<Either<ErrorData, void>> {
+export class GroupMemberAuthorizer implements IAuthorizer<
+  IRequestWithGroupAndUser,
+  IGroupsDao
+> {
+  async authorize(
+    request: IRequestWithGroupAndUser,
+    context: IGroupsDao,
+  ): Promise<Either<ErrorData, void>> {
     const groupId = request.groupId;
     const userId = request.userId;
 
-    const errorContext = createDomainContext('Group', request.operationName || 'authorize', {
-      domainObjectId: groupId,
-      actorId: userId,
-      userId: userId,
-      intendedAction: 'read',
-    });
+    const errorContext = createDomainContext(
+      'Group',
+      request.operationName || 'authorize',
+      {
+        domainObjectId: groupId,
+        actorId: userId,
+        userId: userId,
+        intendedAction: 'read',
+      },
+    );
 
     const isMember = await context.isGroupMember(groupId, userId);
 
     if (!isMember) {
       return Either.makeLeft(
-        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER)
+        DomainErrorFactory.unauthorized(errorContext, GROUP_ERRORS.NOT_MEMBER),
       );
     }
 
     return Either.makeRight(undefined);
   }
 }
-
-
