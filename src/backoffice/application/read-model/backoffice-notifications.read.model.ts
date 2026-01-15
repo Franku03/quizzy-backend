@@ -1,5 +1,18 @@
 import { IHasMediaAssets } from 'src/core/domain/abstractions/media.assets.interface';
 
+// Interfaz para el DAO al consultar usuarios
+export interface UserNotificationFilter {
+  sendToAdmins?: boolean;
+  sendToRegularUsers?: boolean;
+}
+
+// Interfaz para el DAO para los usuarios a los q se le manda notificacion
+export interface UserForNotification {
+  id: string; // userId
+  email: string;
+  name: string; // nombre del usuario para personalizar el saludo
+}
+
 // Interface para el sender (remitente)
 export interface NotificationSender {
   imageUrl: string | null;

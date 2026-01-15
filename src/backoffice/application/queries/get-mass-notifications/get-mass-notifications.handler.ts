@@ -21,6 +21,7 @@ import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/a
 
 //Manejo de Errores
 import { Either } from 'src/core/types';
+import { pipeAsync } from '../../../../core/errors/helpers/pipe-async';
 
 @QueryHandler(GetMassNotificationsQuery)
 export class GetMassNotificationsHandler implements IQueryHandler<GetMassNotificationsQuery> {
@@ -35,6 +36,16 @@ export class GetMassNotificationsHandler implements IQueryHandler<GetMassNotific
   async execute(
     query: GetMassNotificationsQuery,
   ): Promise<Either<Error, BackofficeNotificationPaginationReadModel>> {
-    return await this.backofficeDao.getMassNotifications(query);
+    return pipeAsync(
+      // Cargar libreria
+      this.backofficeDao.getMassNotifications(query),
+      // Enriquecemos los ImageUrlId para convertirlos en Urls
+      (res) =>
+        res.mapAsync((backofficeNotificationsReadModel) =>
+          this.mediaService.enrinchBackofficeNotificationPaginationReadModel(
+            backofficeNotificationsReadModel as BackofficeNotificationPaginationReadModel,
+          ),
+        ),
+    );
   }
 }

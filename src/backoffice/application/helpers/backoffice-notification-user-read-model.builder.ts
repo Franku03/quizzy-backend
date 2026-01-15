@@ -5,10 +5,10 @@ import {
 
 // Helper para construir notificaciones
 export class BackofficeNotificationReadModelBuilder {
-  private id: string = '';
-  private title: string = '';
-  private message: string = '';
-  private createdAt: string = '';
+  private id = '';
+  private title = '';
+  private message = '';
+  private createdAt = '';
   private sender: NotificationSender = {
     imageUrl: null,
     id: '',

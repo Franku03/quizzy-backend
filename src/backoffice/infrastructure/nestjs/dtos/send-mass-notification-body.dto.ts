@@ -34,8 +34,11 @@ export class SendMassNotificationDto {
   @Type(() => NotificationFiltersDto)
   filters?: NotificationFiltersDto;
 
-  public toSendMassNotificationCommand(): SendMassNotificationCommand {
+  public toSendMassNotificationCommand(
+    senderId: string,
+  ): SendMassNotificationCommand {
     return new SendMassNotificationCommand(
+      senderId,
       this.title,
       this.message,
       this.filters?.toAdmins || false,

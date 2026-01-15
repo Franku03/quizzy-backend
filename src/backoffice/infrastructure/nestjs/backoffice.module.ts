@@ -14,11 +14,15 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { GetBackofficeUsersHandler } from 'src/backoffice/application/queries/get-backoffice-users/get-backoffice-users.handler';
 import { GetMassNotificationsHandler } from 'src/backoffice/application/queries/get-mass-notifications/get-mass-notifications.handler';
 import { VerifyIfUserIsAdminService } from './domain-services/verify-if-user-is-admin.service';
+import { SendMassNotificationHandler } from 'src/backoffice/application/commands/send-mass-notification/send-mass-notification.handler';
+import { ResendNotificationService } from './external-services/resend-notification.service';
+import { ResendTestService } from './test/test.service';
 
 @Module({
   imports: [
     DaoFactoryModule.forFeature(DaoName.Backoffice),
     RepositoryFactoryModule.forFeature(RepositoryName.User),
+    RepositoryFactoryModule.forFeature(RepositoryName.MassMessage),
     MediaModule,
   ],
   controllers: [BackofficeController],
@@ -30,6 +34,7 @@ import { VerifyIfUserIsAdminService } from './domain-services/verify-if-user-is-
     DeleteUserHandler,
     GetBackofficeUsersHandler,
     GetMassNotificationsHandler,
+    SendMassNotificationHandler,
     {
       provide: 'IDeletedUserHasher',
       useClass: DeleteUserHasherService,
@@ -38,6 +43,11 @@ import { VerifyIfUserIsAdminService } from './domain-services/verify-if-user-is-
       provide: 'IVerifyIfUserIsAdminService',
       useClass: VerifyIfUserIsAdminService,
     },
+    {
+      provide: 'ISendNotificationService',
+      useClass: ResendNotificationService,
+    },
+    ResendTestService,
   ],
 })
 export class BackofficeModule {}

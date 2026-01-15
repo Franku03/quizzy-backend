@@ -1,28 +1,61 @@
-// SERVICIO DESCARTADO - EN DESUSO
+// File: src/backoffice/infrastructure/services/resend-notification.service.ts
 import { Injectable, Inject } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
+import { Resend } from 'resend';
 import { Either, ErrorData, ErrorLayer } from 'src/core/types';
 import { ISendNotificationService } from 'src/backoffice/domain/domain-services/send-notification.service.interface';
 import { MassMessage } from 'src/backoffice/domain/aggregates/mass.message';
 import type { IBackofficeDao } from 'src/backoffice/application/queries/ports/backoffice.dao.port';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { ConfigService } from '@nestjs/config';
 import {
-  UserNotificationFilter,
   UserForNotification,
+  UserNotificationFilter,
 } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
 
 @Injectable()
-export class SendMassNotificationService implements ISendNotificationService {
+export class ResendNotificationService implements ISendNotificationService {
   private readonly context = {
-    service: 'SendNotificationService',
+    service: 'ResendNotificationService',
     module: 'backoffice',
   };
+
+  private resend: Resend;
 
   constructor(
     @Inject(DaoName.Backoffice)
     private readonly backofficeDao: IBackofficeDao,
-    private readonly mailerService: MailerService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // Configurar Resend
+    const apiKey = this.configService.get('RESEND_API_KEY');
+
+    if (!apiKey) {
+      console.warn(
+        '⚠️ RESEND_API_KEY no configurada. Modo desarrollo activado.',
+      );
+      console.warn(
+        '   Los emails se mostrarán en consola pero no se enviarán.',
+      );
+    } else {
+      this.resend = new Resend(apiKey);
+      console.log('✅ Resend configurado correctamente');
+
+      // Verificar que estamos usando un dominio de prueba
+      const fromEmail = this.configService.get('MAIL_FROM');
+      if (
+        fromEmail &&
+        !fromEmail.includes('resend.dev') &&
+        !fromEmail.includes('shipwithresend.com')
+      ) {
+        console.warn(
+          `⚠️  Advertencia: El email "${fromEmail}" puede necesitar verificación de dominio.`,
+        );
+        console.warn(
+          `   Considera usar: notifications@resend.dev o hello@shipwithresend.com`,
+        );
+      }
+    }
+  }
 
   async execute(massMessage: MassMessage): Promise<Either<ErrorData, void>> {
     const massMessageId = massMessage.massMessageId.value;
@@ -48,8 +81,8 @@ export class SendMassNotificationService implements ISendNotificationService {
         return Either.makeRight(undefined);
       }
 
-      // Enviar correos en segundo plano
-      this.sendEmailsInBackground(users, massMessage);
+      // Enviar correos en segundo plano usando Resend
+      this.sendEmailsWithResend(users, massMessage);
 
       return Either.makeRight(undefined);
     } catch (error) {
@@ -62,7 +95,7 @@ export class SendMassNotificationService implements ISendNotificationService {
     }
   }
 
-  private sendEmailsInBackground(
+  private sendEmailsWithResend(
     users: UserForNotification[],
     massMessage: MassMessage,
   ): void {
@@ -70,57 +103,68 @@ export class SendMassNotificationService implements ISendNotificationService {
     setTimeout(async () => {
       const title = massMessage.getTitle();
       const message = massMessage.getMessage();
+      const fromEmail = this.configService.get(
+        'MAIL_FROM',
+        'notifications@quizzy.com',
+      );
+      const fromName = this.configService.get(
+        'MAIL_FROM_NAME',
+        'Quizzy Notifications',
+      );
+
+      // Si no hay API Key, solo logueamos (modo desarrollo)
+      if (!this.resend) {
+        console.log(`[DEV] Se enviarían ${users.length} notificaciones:`);
+        console.log(`[DEV] Título: ${title}`);
+        console.log(`[DEV] Mensaje: ${message}`);
+        users.forEach((user) => {
+          console.log(`[DEV] → Para: ${user.name} <${user.email}>`);
+        });
+        return;
+      }
 
       try {
-        const BATCH_SIZE = 10;
+        const BATCH_SIZE = 10; // Resend maneja bien los batches
         let successful = 0;
         let failed = 0;
 
         for (let i = 0; i < users.length; i += BATCH_SIZE) {
           const batch = users.slice(i, i + BATCH_SIZE);
 
-          const batchPromises = batch.map(async (user) => {
+          // Enviar cada email individualmente (Resend no tiene batch API todavía)
+          const emailPromises = batch.map(async (user) => {
             try {
-              await this.sendSingleEmail(user.email, title, message, user.name);
+              await this.resend.emails.send({
+                from: `${fromName} <${fromEmail}>`,
+                to: user.email,
+                subject: `Quizzy Notification: ${title}`,
+                text: message,
+                html: this.generateEmailHtml(title, message, user.name),
+              });
               successful++;
               return { success: true, email: user.email };
-            } catch {
+            } catch (emailError) {
               failed++;
-              return { success: false, email: user.email };
+              console.error(`Error enviando a ${user.email}:`, emailError);
+              return { success: false, email: user.email, error: emailError };
             }
           });
 
-          await Promise.allSettled(batchPromises);
+          await Promise.allSettled(emailPromises);
 
           // Pequeña pausa entre lotes
           if (i + BATCH_SIZE < users.length) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 500));
           }
         }
 
         console.log(
-          `Notification sent to ${successful} users, ${failed} failed`,
+          `✅ Resend: Enviados ${successful} emails, ${failed} fallidos`,
         );
-      } catch {
-        console.error('Batch email sending failed');
+      } catch (error) {
+        console.error('❌ Error en envío por Resend:', error);
       }
     }, 0);
-  }
-
-  private async sendSingleEmail(
-    to: string,
-    subject: string,
-    message: string,
-    userName: string,
-  ): Promise<void> {
-    const htmlContent = this.generateEmailHtml(subject, message, userName);
-
-    await this.mailerService.sendMail({
-      to,
-      subject: `Quizzy Notification: ${subject}`,
-      text: message,
-      html: htmlContent,
-    });
   }
 
   private generateEmailHtml(
@@ -145,50 +189,45 @@ export class SendMassNotificationService implements ISendNotificationService {
         <title>Quizzy Notification: ${subject}</title>
         <style>
           body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #333;
             margin: 0;
-            padding: 20px;
-            background-color: #f7f9fc;
+            padding: 0;
+            background-color: #f5f7fa;
           }
           .container {
             max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 8px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header {
-            background: #4CAF50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
+            padding: 30px 20px;
             text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 20px;
           }
           .content {
-            padding: 30px;
+            padding: 40px 30px;
           }
           .greeting {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
           }
           .message-box {
-            background-color: #f8fafc;
-            padding: 20px;
-            border-radius: 5px;
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
             border-left: 4px solid #4299e1;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
           }
           .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
+            background: #f1f5f9;
+            padding: 25px;
             text-align: center;
-            color: #718096;
+            color: #64748b;
             font-size: 14px;
           }
         </style>
@@ -196,20 +235,21 @@ export class SendMassNotificationService implements ISendNotificationService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>${subject}</h1>
+            <h1 style="margin: 0; font-size: 24px;">${subject}</h1>
           </div>
           <div class="content">
             <div class="greeting">
-              <h2>Hello ${userName},</h2>
+              <h2 style="margin: 0 0 10px 0;">Hello ${userName},</h2>
+              <p>You have a new notification from Quizzy.</p>
             </div>
             <div class="message-box">
-              <p>${safeMessage}</p>
+              <p style="margin: 0; font-size: 16px; color: #475569;">${safeMessage}</p>
             </div>
-            <p>This is an automated notification from Quizzy.</p>
+            <p>This is an automated notification.</p>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Quizzy Platform</p>
-            <p>This email was sent automatically.</p>
+            <p style="margin: 0 0 10px 0;">&copy; ${new Date().getFullYear()} Quizzy Platform</p>
+            <p style="margin: 0; font-size: 13px;">This email was sent automatically. Please do not reply.</p>
           </div>
         </div>
       </body>

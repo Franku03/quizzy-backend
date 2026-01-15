@@ -27,12 +27,18 @@ import { UnblockUserCommand } from 'src/backoffice/application/commands/unblock-
 import { GiveAdminCommand } from 'src/backoffice/application/commands/give-admin/give-admin.command';
 import { RemoveAdminCommand } from 'src/backoffice/application/commands/remove-admin/remove-admin.command';
 import { DeleteUserCommand } from 'src/backoffice/application/commands/delete-user/delete-user.command';
-import { BackofficeNotificationPaginationReadModel } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
+import {
+  BackofficeNotificationPaginationReadModel,
+  BackofficeNotificationReadModel,
+} from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
+import { ResendTestService } from './test/test.service';
+
 @Controller('backoffice')
 export class BackofficeController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly notif: ResendTestService,
   ) {}
 
   // Obtener lista de usuarios
@@ -132,9 +138,11 @@ export class BackofficeController {
     @GetUserId() adminId: string,
     @Body() sendMessageDto: SendMassNotificationDto,
   ) {
-    return {
-      message: `admin with id ${adminId} tried to send mass notification`,
-    };
+    const response: Either<ErrorData, BackofficeNotificationReadModel> =
+      await this.commandBus.execute(
+        sendMessageDto.toSendMassNotificationCommand(adminId),
+      );
+    return response;
   }
 
   // Obtener lista mensajes masivos enviados
@@ -152,5 +160,10 @@ export class BackofficeController {
       paginationDto.toGetMassNotificationsQuery(),
     );
     return response;
+  }
+
+  @Get('test')
+  async sendNotif(){
+    await this.notif.testResend();
   }
 }

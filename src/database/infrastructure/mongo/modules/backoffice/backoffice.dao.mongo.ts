@@ -16,6 +16,8 @@ import {
   BackofficeNotificationPaginationReadModel,
   BackofficeNotificationReadModel,
   NotificationSender,
+  UserForNotification,
+  UserNotificationFilter,
 } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
 import {
   BackOfficeUserPaginationReadModel,
@@ -368,6 +370,56 @@ export class BackofficeDaoMongo implements IBackofficeDao {
         Array.isArray(user.roles) && user.roles.includes(UserRole.ADMIN);
 
       return Either.makeRight(isAdmin);
+    } catch (error) {
+      const errorData = this.mongoErrorMapper.toErrorData(error, ctx);
+      return Either.makeLeft(errorData);
+    }
+  }
+
+  async getUsersForNotification(
+    filter: UserNotificationFilter,
+  ): Promise<Either<ErrorData, UserForNotification[]>> {
+    const ctx = this.getCtx('getUsersForNotification', {
+      sendToAdmins: filter.sendToAdmins,
+      sendToRegularUsers: filter.sendToRegularUsers,
+    });
+
+    try {
+      // Construir el filtro de MongoDB
+      const mongoFilter: FilterQuery<UserMongo> = {
+        isDeleted: false,
+        state: UserState.ACTIVE,
+      };
+
+      // Aplicar filtros de roles
+      if (
+        filter.sendToAdmins !== undefined &&
+        filter.sendToRegularUsers !== undefined
+      ) {
+        if (filter.sendToAdmins && !filter.sendToRegularUsers) {
+          mongoFilter.roles = UserRole.ADMIN;
+        } else if (!filter.sendToAdmins && filter.sendToRegularUsers) {
+          mongoFilter.roles = { $ne: UserRole.ADMIN };
+        }
+      }
+
+      // Ejecutar la consulta - seleccionamos solo los campos necesarios
+      const users = await this.userModel
+        .find(mongoFilter)
+        .select('userId email profile.name')
+        .lean<UserLeanDocument[]>()
+        .exec();
+
+      // Mapear a UserForNotification simplificado
+      const usersForNotification: UserForNotification[] = users.map(
+        (user: UserLeanDocument) => ({
+          id: user.userId,
+          email: user.email,
+          name: user.profile.name || user.username || 'User',
+        }),
+      );
+
+      return Either.makeRight(usersForNotification);
     } catch (error) {
       const errorData = this.mongoErrorMapper.toErrorData(error, ctx);
       return Either.makeLeft(errorData);
