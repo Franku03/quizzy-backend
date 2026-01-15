@@ -106,3 +106,26 @@ export const createInvalidTransitionStateError = (operation: string, aggregateId
 
 
 };
+
+
+export const createInvalidSyncStateError = (operation: string, aggregateId?: string, sessionPin?: string) => {
+
+    const ctx = createDomainContext(
+        'MultiplayerSession',
+        operation,
+        {
+            rootAggregateName: 'MultiplayerSession',
+            rootAggregateId: aggregateId,
+            domainObjectKind: 'AggregateRoot',
+            sessionPin: sessionPin,
+        }
+    );
+
+
+    return DomainErrorFactory.notFound(
+        ctx,
+        COMMON_ERRORS.SESSION_INVALID_SYNC_STATE
+    )
+
+
+};

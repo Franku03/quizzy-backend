@@ -34,7 +34,6 @@ export class CancelSubscriptionHandler implements ICommandHandler<CancelSubscrip
       userId: command.userId,
     });
 
-    // 1. Obtener Usuario
     const userOptional = await this.userRepository.findById(userIdVO);
     if (!userOptional.hasValue()) {
       return Either.makeLeft(

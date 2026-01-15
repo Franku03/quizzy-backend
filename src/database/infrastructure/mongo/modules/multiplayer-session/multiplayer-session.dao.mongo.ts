@@ -16,6 +16,7 @@ import { Meta, UserGameReportDetails, UserResult } from "src/reports/application
 
 import { MultiplayerSessionMongo } from "../../entities/multiplayer-session.schema";
 import type { IErrorMapper } from "src/core/errors/interface/mapper/i-error-mapper.interface";
+import { APPLICATION_CORE_TOKENS } from "src/core/application/dependecy-tokens/application-core.tokens";
 import { IDatabaseErrorContext } from "src/core/errors/interface/context/i-error-database.context";
 import { createDatabaseContext } from "src/core/errors/helpers/database-error-context.helper";
 
@@ -27,13 +28,14 @@ export class MultiplayerSessionsDaoMongo implements IMultiplayerSessionDao {
   private readonly contextBase = MULTIPLAYER_SESSIONS_MONGO_BASE;
   private readonly adapterName = MultiplayerSessionsDaoMongo.name;
   private readonly portName = 'IMultiplayerSessionDao';
-  private readonly mapper: MultiplayerSessionMapper<MultiplayerSessionMongo, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult > = new MultiplayerSessionMongoMapper();
 
   constructor(
     @InjectModel(MultiplayerSessionMongo.name)
     private readonly model: Model<MultiplayerSessionMongo>,
     @Inject(ERROR_TOKENS.MAPPERS.MONGO)
     private readonly mongoErrorMapper: IErrorMapper<unknown, IDatabaseErrorContext>,
+    @Inject( APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_MONGO_READ )
+    private readonly mapper: MultiplayerSessionMapper<MultiplayerSessionMongo, HostSessionDetailsReadModel, (PlayerSessionDetailsReadModel | null), UserResult >
   ) {}
 
   private getCtx(operation: string, entityId?: string, extra?: Record<string, unknown>) {
@@ -77,19 +79,27 @@ export class MultiplayerSessionsDaoMongo implements IMultiplayerSessionDao {
     const ctx = this.getCtx('getUserSessionDetailsById', "List", { userId });
     const skip = (page - 1) * limit;
 
-    const result = await Either.tryCatch(
+    // CAMBIO IMPORTANTE: Filtro $or
+    const filter = {
+      $or: [
+        { hostId: userId },               // Es el anfitrión
+        { 'players.playerId': userId }    // O es un jugador
+      ]
+    };
+
+  const result = await Either.tryCatch(
       Promise.all([
-        this.model.find({ 'players.playerId': userId })
+        this.model.find(filter) // Usamos el filtro definido arriba
           .sort({ 'timeDetails.startedAt': -1 })
           .skip(skip)
           .limit(limit)
           .lean()
           .exec(),
-        this.model.countDocuments({ 'players.playerId': userId }).exec()
+        this.model.countDocuments(filter).exec() // El count también debe usar el mismo filtro
       ]),
       (err) => this.mongoErrorMapper.toErrorData(err, ctx)
     );
-
+    
     if (result.isLeft()) return Either.makeLeft(result.getLeft());
     const [sessions, total] = result.getRight();
 
