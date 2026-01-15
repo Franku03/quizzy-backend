@@ -16,7 +16,7 @@ import { GetMassNotificationsHandler } from 'src/backoffice/application/queries/
 import { VerifyIfUserIsAdminService } from './domain-services/verify-if-user-is-admin.service';
 import { SendMassNotificationHandler } from 'src/backoffice/application/commands/send-mass-notification/send-mass-notification.handler';
 import { ResendNotificationService } from './external-services/resend-notification.service';
-import { ResendTestService } from './test/test.service';
+import { ResendEmailService } from './external-services/extra-send-message.service';
 
 @Module({
   imports: [
@@ -47,7 +47,7 @@ import { ResendTestService } from './test/test.service';
       provide: 'ISendNotificationService',
       useClass: ResendNotificationService,
     },
-    ResendTestService,
+    ResendEmailService,
   ],
 })
 export class BackofficeModule {}

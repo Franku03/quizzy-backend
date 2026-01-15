@@ -31,14 +31,15 @@ import {
   BackofficeNotificationPaginationReadModel,
   BackofficeNotificationReadModel,
 } from 'src/backoffice/application/read-model/backoffice-notifications.read.model';
-import { ResendTestService } from './test/test.service';
+import { ResendEmailService } from './external-services/extra-send-message.service';
+import { SendSingleEmailDto } from './dtos/extra-send-message.dto';
 
 @Controller('backoffice')
 export class BackofficeController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    private readonly notif: ResendTestService,
+    private readonly sendSingleMailService: ResendEmailService,
   ) {}
 
   // Obtener lista de usuarios
@@ -162,8 +163,15 @@ export class BackofficeController {
     return response;
   }
 
-  @Get('test')
-  async sendNotif(){
-    await this.notif.testResend();
+  @Post('sendMessage')
+  @HttpCode(200)
+  @Auth(ValidRoles.ADMIN)
+  async sendSingleEmail(@Body() dto: SendSingleEmailDto) {
+    await this.sendSingleMailService.sendSingleEmail(dto);
+    return {
+      success: true,
+      message: 'Email enviado correctamente',
+      recipient: dto.email,
+    };
   }
 }
