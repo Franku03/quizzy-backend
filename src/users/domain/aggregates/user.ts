@@ -15,6 +15,7 @@ import { UserFavorites } from '../value-objects/user.favorite-kahoots';
 import { IDeletedUserHasher } from '../domain-services/deleted-user-hashed.interface';
 import { UserState } from '../value-objects/user.state';
 import { UserRole } from '../value-objects/user.roles';
+import { SubscriptionPlan } from '../value-objects/user.subscription-plan';
 
 interface UserProps {
   email: UserEmail;
@@ -192,6 +193,10 @@ export class User extends AggregateRoot<UserProps, UserId> {
     hasher: IPasswordHasher,
   ): Promise<void> {
     this.properties.passwordHash = await newPassword.hash(hasher);
+  }
+
+  public changeSubscription(newPlan: SubscriptionPlan): void {
+    this.properties.subscriptionStatus = UserSubscriptionStatus.createForPlan(newPlan);
   }
 
   protected checkInvariants(): void {
