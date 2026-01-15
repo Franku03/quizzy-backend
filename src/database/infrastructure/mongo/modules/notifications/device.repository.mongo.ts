@@ -7,7 +7,10 @@ import { IDeviceRepository } from 'src/notifications/domain/ports/device.reposit
 import { DeviceTokenMongo } from '../../entities/devices.schema';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
 import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
+import { RepositoryMongo } from '../../decorators/repository-mongo.decorator';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
 
+@RepositoryMongo(RepositoryName.Device)
 @Injectable()
 export class MongoDeviceRepository implements IDeviceRepository {
     constructor(
