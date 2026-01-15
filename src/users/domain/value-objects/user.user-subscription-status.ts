@@ -60,4 +60,27 @@ export class UserSubscriptionStatus extends ValueObject<UserSubscriptionStatusPr
 
         return this;
     }
+
+    public static createForPlan(plan: SubscriptionPlan): UserSubscriptionStatus {
+        if (plan === SubscriptionPlan.FREE) {
+            return new UserSubscriptionStatus(
+                SubscriptionState.ACTIVE,
+                SubscriptionPlan.FREE,
+                DateISO.createFrom('2099-12-31')
+            );
+        }
+
+        const now = new Date();
+        const expiresDate = new Date(now);
+        expiresDate.setDate(expiresDate.getDate() + 30);
+
+        const expiresIsoString = expiresDate.toISOString().split('T')[0];
+
+        return new UserSubscriptionStatus(
+            SubscriptionState.ACTIVE,
+            plan,
+            DateISO.createFrom(expiresIsoString)
+        );
+    }
+    
 }
