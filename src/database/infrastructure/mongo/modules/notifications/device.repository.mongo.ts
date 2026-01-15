@@ -1,5 +1,7 @@
 // src/database/infrastructure/mongo/modules/notifications/device.repository.mongo.ts
+// src/database/infrastructure/mongo/modules/notifications/device.repository.mongo.ts
 
+import { Injectable, Inject } from '@nestjs/common';
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
