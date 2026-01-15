@@ -1,32 +1,12 @@
-// infrastructure/dto/pagination.dto.ts
-import { Transform, Type } from 'class-transformer';
-import {
-  IsOptional,
-  IsInt,
-  Min,
-  Max,
-  IsEnum,
-  IsString,
-  IsArray,
-} from 'class-validator';
-import { BackofficeUserQueryPaginationStructure } from 'src/backoffice/application/common/backoffice-user-query-pagination-structure';
-
-export enum StatusEnum {
-  DRAFT = 'draft',
-  PUBLISHED = 'published',
-  ALL = 'all',
-}
-
-export enum VisibilityEnum {
-  PUBLIC = 'public',
-  PRIVATE = 'private',
-  ALL = 'all',
-}
+import { Type } from 'class-transformer';
+import { IsOptional, IsInt, Min, Max, IsEnum, IsString } from 'class-validator';
+import { GetBackofficeUsersQuery } from 'src/backoffice/application/queries/get-backoffice-users/get-backoffice-users.query';
 
 export enum OrderByEnum {
   CREATED_AT = 'createdAt',
-  TITLE = 'title',
-  LIKES_COUNT = 'likesCount',
+  NAME = 'name',
+  USERTYPE = 'usertype',
+  UPDATED_AT = 'updatedAt',
 }
 
 export enum OrderEnum {
@@ -34,54 +14,67 @@ export enum OrderEnum {
   DESC = 'desc',
 }
 
-export class PaginationDto {
+export class BackofficeUserPaginationDto {
+  @IsOptional()
+  @IsString()
+  name?: string; // nombre del creador
+
+  @IsOptional()
+  @IsString()
+  userId?: string; // id del usuario
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(50)
-  limit: number = 20;
+  limit: number = 20; // cantidad maxima de users por page (default: 20, max: 50)
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page: number = 1;
-
-  @IsOptional()
-  @IsEnum(StatusEnum)
-  status: StatusEnum = StatusEnum.ALL;
-
-  @IsOptional()
-  @IsEnum(VisibilityEnum)
-  visibility: VisibilityEnum = VisibilityEnum.ALL;
+  page: number = 1; // numero de pagina (default: 1)
 
   @IsOptional()
   @IsEnum(OrderByEnum)
-  orderBy: OrderByEnum = OrderByEnum.CREATED_AT;
+  orderBy: OrderByEnum = OrderByEnum.CREATED_AT; // default: "createdAt"
 
   @IsOptional()
   @IsEnum(OrderEnum)
-  order: OrderEnum = OrderEnum.ASC;
+  order: OrderEnum = OrderEnum.ASC; // default: "asc", dirección de ordenamiento
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  @Transform(({ value }) => {
-    if (Array.isArray(value)) {
-      return value.map((v: unknown) => String(v));
+  public toGetBackofficeUsersQuery(): GetBackofficeUsersQuery {
+    // Construir objeto con solo los valores definidos
+    const params: {
+      name?: string;
+      userId?: string;
+      limit: number;
+      page: number;
+      orderBy: `${OrderByEnum}`;
+      order: 'asc' | 'desc';
+    } = {
+      limit: this.limit,
+      page: this.page,
+      orderBy: this.orderBy as `${OrderByEnum}`,
+      order: this.order,
+    };
+
+    if (this.name?.trim()) {
+      params.name = this.name.trim();
     }
-    return [String(value)];
-  })
-  categories: string[] = [];
 
-  @IsOptional()
-  @IsString()
-  q?: string;
+    if (this.userId?.trim()) {
+      params.userId = this.userId.trim();
+    }
 
-  /*
-  public toBackofficeUserPaginationQuery(): BackofficeUserQueryPaginationStructure {
-
+    return new GetBackofficeUsersQuery(
+      params.name,
+      params.userId,
+      params.limit,
+      params.page,
+      params.orderBy,
+      params.order,
+    );
   }
-  */
 }

@@ -22,6 +22,8 @@ import { UserEntity } from '../../entities/users.entity';
 import { UserPersistencePgMapper } from './mappers/user.postgres.mapper';
 import { RepositoryPostgres } from '../../decorators/repository-postgres.registry';
 import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { BackOfficeUserReadModel } from 'src/backoffice/application/read-model/backoffice-user.read.model';
+import { Either, ErrorData } from 'src/core/types';
 
 @RepositoryPostgres(RepositoryName.User)
 @Injectable()
@@ -30,6 +32,14 @@ export class UserRepositoryPostgres implements IUserRepository {
     @InjectRepository(UserEntity)
     private readonly repository: Repository<UserEntity>,
   ) {}
+  findUserByIdEither(id: UserId): Promise<Either<ErrorData, User | null>> {
+    throw new Error('Method not implemented.');
+  }
+  saveAndGetBackofficeUserEither(
+    user: User,
+  ): Promise<Either<ErrorData, BackOfficeUserReadModel>> {
+    throw new Error('Method not implemented.');
+  }
 
   async save(user: User): Promise<void> {
     const entity = UserPersistencePgMapper.toPersistence(user);

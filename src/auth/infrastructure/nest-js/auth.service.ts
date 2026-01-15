@@ -40,6 +40,17 @@ export class AuthService {
 
     const user = userOptional.getValue();
 
+    // Verificar si el usuario fue borrado
+    if (user.isDeleted) {
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_DELETED',
+          'Esta cuenta ha sido eliminada',
+          ErrorLayer.DOMAIN,
+        ),
+      );
+    }
+
     // Verificar si el usuario está bloqueado
     if (user.isBlocked()) {
       return Either.makeLeft(
@@ -93,6 +104,17 @@ export class AuthService {
     }
 
     const user = userOptional.getValue();
+
+    // Verificar si el usuario fue borrado
+    if (user.isDeleted) {
+      return Either.makeLeft(
+        new ErrorData(
+          'ACCOUNT_DELETED',
+          'Esta cuenta ha sido eliminada',
+          ErrorLayer.DOMAIN,
+        ),
+      );
+    }
 
     // Verificar estado del usuario
     if (user.isBlocked()) {

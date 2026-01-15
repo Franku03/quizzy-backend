@@ -73,7 +73,6 @@ export class ErrorMappingService {
       403: 'Forbidden',
       404: 'Not Found',
       409: 'Conflict',
-      422: 'Unprocessable Entity',
       500: 'Internal Server Error',
     };
     return map[status] ?? 'Error';
@@ -171,7 +170,10 @@ export class ErrorMappingService {
         HTTP_ERROR_403: [
           HttpStatus.FORBIDDEN,
           'You do not have permission to access this resource.',
-        ],
+        ],'400': [HttpStatus.BAD_REQUEST, message || 'Bad Request'],
+        '401': [HttpStatus.UNAUTHORIZED, message || 'Unauthorized'],
+        '403': [HttpStatus.FORBIDDEN, message || 'Forbidden'],
+        '404': [HttpStatus.NOT_FOUND, message || 'NOT_FOUND'],
       };
 
       // Se usa 'in' para verificar la existencia en el objeto de forma segura para TS y ESLint

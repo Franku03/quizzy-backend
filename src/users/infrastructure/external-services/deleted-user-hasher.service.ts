@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 import { IDeletedUserHasher } from 'src/users/domain/domain-services/deleted-user-hashed.interface';
 
 @Injectable()
-export class BcryptHasherService implements IDeletedUserHasher {
+export class DeleteUserHasherService implements IDeletedUserHasher {
   // 10 rondas es el estándar actual de la industria (seguro y rápido)
   private readonly SALT_ROUNDS = 10;
 
