@@ -153,7 +153,16 @@ export class SoloAttemptRepositoryPostgres implements SoloAttemptRepository {
   }
 
     public async save(attempt: SoloAttempt): Promise<void> {
-    // Use Mongo-style approach: Delete and reinsert
+    const slideIds = new Set<string>();
+
+    for (const answer of attempt.answers) {
+      const slideId = answer.slideId.value;
+      if (slideIds.has(slideId)) {
+        throw new Error(`Duplicate slideId ${slideId} found in attempt ${attempt.attemptId.value}`);
+      }
+      slideIds.add(slideId);
+    }
+
     const queryRunner = this.attemptRepo.manager.connection.createQueryRunner();
     
     await queryRunner.connect();
