@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     container_name: quizzy_backend_dev
+    command: sh -c "yarn install && yarn start:dev"
     ports:
       - "3000:3000"
       - "3003:3003"
@@ -15,8 +16,10 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     depends_on:
-      - postgres_dev
-      - mongo_dev
+      postgres_dev:
+        condition: service_healthy
+      mongo_dev:
+        condition: service_healthy
     networks:
       - quizzy_net
 
@@ -30,7 +33,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dev} -d ${DB_NAME:-quizzy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - quizzy_net
 
@@ -45,6 +53,11 @@ services:
       - "27017:27017"
     volumes:
       - ./mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - quizzy_net
 
