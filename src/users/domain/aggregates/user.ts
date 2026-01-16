@@ -15,6 +15,7 @@ import { UserFavorites } from '../value-objects/user.favorite-kahoots';
 import { IDeletedUserHasher } from '../domain-services/deleted-user-hashed.interface';
 import { UserState } from '../value-objects/user.state';
 import { UserRole } from '../value-objects/user.roles';
+import { SubscriptionPlan } from '../value-objects/user.subscription-plan';
 
 interface UserProps {
   email: UserEmail;
@@ -194,6 +195,10 @@ export class User extends AggregateRoot<UserProps, UserId> {
     this.properties.passwordHash = await newPassword.hash(hasher);
   }
 
+  public changeSubscription(newPlan: SubscriptionPlan): void {
+    this.properties.subscriptionStatus = UserSubscriptionStatus.createForPlan(newPlan);
+  }
+
   protected checkInvariants(): void {
     const lastUpdateVO = this.properties.lastUsernameUpdate;
 
@@ -216,6 +221,12 @@ export class User extends AggregateRoot<UserProps, UserId> {
   }
 
   public isUserPremium(): boolean {
+    const validatedStatus = this.properties.subscriptionStatus.validateStatus();
+
+    if (!this.properties.subscriptionStatus.equals(validatedStatus)) {
+        this.properties.subscriptionStatus = validatedStatus;
+    }
+
     return this.properties.subscriptionStatus.isPremium();
   }
 

@@ -6,6 +6,7 @@ export class UserReadModel {
   constructor(
       public readonly id: string,
       public readonly email: string,
-      public readonly username: string
+      public readonly username: string,
+      public readonly isPremium: boolean,
   ) {}
 }

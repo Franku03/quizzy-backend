@@ -17,6 +17,7 @@ import { BackofficeModule } from './backoffice/infrastructure/nestjs/backoffice.
 import { NotificationsModule } from './notifications/notifications.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 
 @Module({
@@ -41,6 +42,7 @@ import { join } from 'path';
     AuthModule,
     BackofficeModule,
     NotificationsModule,
+    SubscriptionModule,
   ],
   controllers: [WellKnownController],
 })

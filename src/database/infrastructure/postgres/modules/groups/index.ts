@@ -9,5 +9,5 @@
 
 // File: src\database\infrastructure\postgres\modules\groups\index.ts
 
-// export * from './tudao';
-// export * from './turepo';
+export * from './groups.dao.pg';
+export * from './groups.repository.pg';

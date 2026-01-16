@@ -19,5 +19,6 @@ import './kahoots';
 import './library';
 import './media';
 import './multiplayer-session';
+import './notifications';
 import './solo-attempts';
 import './users';

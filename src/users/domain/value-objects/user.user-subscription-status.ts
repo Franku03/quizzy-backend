@@ -28,14 +28,59 @@ export class UserSubscriptionStatus extends ValueObject<UserSubscriptionStatusPr
     }
 
     public isActive(): boolean {
-        if (this.properties.state !== SubscriptionState.ACTIVE) return false;
-        
-        const now = DateISO.generate();
-        
-        return this.properties.expiresAt.isGreaterThan(now);
+        return this.properties.state === SubscriptionState.ACTIVE;
     }
 
     public isPremium(): boolean {
-        return this.isActive() && this.properties.plan === SubscriptionPlan.MONTHLY_PREMIUM;
+        return this.properties.plan === SubscriptionPlan.MONTHLY_PREMIUM && 
+               this.properties.state === SubscriptionState.ACTIVE;
     }
+
+    public validateStatus(): UserSubscriptionStatus {
+        if (this.properties.plan === SubscriptionPlan.FREE) {
+            return this;
+        }
+
+        if (this.properties.state === SubscriptionState.INACTIVE) {
+            return this;
+        }
+
+        const now = DateISO.generate();
+        
+        const hasExpired = !this.properties.expiresAt.isGreaterThan(now);
+
+        if (hasExpired) {
+            
+            return new UserSubscriptionStatus(
+                SubscriptionState.INACTIVE,
+                this.properties.plan,
+                this.properties.expiresAt
+            );
+        }
+
+        return this;
+    }
+
+    public static createForPlan(plan: SubscriptionPlan): UserSubscriptionStatus {
+        if (plan === SubscriptionPlan.FREE) {
+            return new UserSubscriptionStatus(
+                SubscriptionState.ACTIVE,
+                SubscriptionPlan.FREE,
+                DateISO.createFrom('2099-12-31')
+            );
+        }
+
+        const now = new Date();
+        const expiresDate = new Date(now);
+        expiresDate.setDate(expiresDate.getDate() + 30);
+
+        const expiresIsoString = expiresDate.toISOString().split('T')[0];
+
+        return new UserSubscriptionStatus(
+            SubscriptionState.ACTIVE,
+            plan,
+            DateISO.createFrom(expiresIsoString)
+        );
+    }
+    
 }
