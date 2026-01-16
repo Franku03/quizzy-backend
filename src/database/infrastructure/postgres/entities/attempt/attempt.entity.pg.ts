@@ -18,7 +18,7 @@ const ENTITY_NAME = 'attempts';
 @DbPostgresEntity(ENTITY_NAME)
 @Entity('attempts')
 // Optimized indexes for repository methods
-@Index('idx_attempt_id_unique', { unique: true }) // For O(1) lookup
+@Index('idx_attempt_id_unique',['id'], { unique: true }) // For O(1) lookup
 @Index('idx_inspect_attempt', ['playerId', 'kahootId', 'status'])
 @Index('idx_resume_context', ['kahootId'])
 @Index('idx_attempts_player_kahoot_status', ['playerId', 'kahootId', 'status'])

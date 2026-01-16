@@ -58,6 +58,48 @@ export class LibraryDaoMongo implements ILibraryDao {
     private readonly attemptModel: Model<AttemptMongo>,
   ) {}
 
+  // ==========================================
+  // MÉTODO PRIVADO PARA FILTRAR KAHOOTS PRIVADOS
+  // ==========================================
+
+  /**
+   * Filtra los kahoots privados que no pertenecen al usuario
+   * @param libraryResult Resultado de la consulta
+   * @param userId ID del usuario que hace la consulta
+   * @returns LibraryReadModel filtrado
+   */
+  private filterPrivateKahootsFromOthers(
+    libraryResult: LibraryReadModel,
+    userId: string,
+  ): LibraryReadModel {
+    // Filtrar los datos
+    const filteredData = libraryResult.data.filter((kahoot) => {
+      // Si el kahoot es público, siempre se mantiene
+      if (kahoot.visibility.toLowerCase() === 'public') {
+        return true;
+      }
+
+      // Si el kahoot es privado, solo se mantiene si pertenece al usuario
+      if (kahoot.visibility.toLowerCase() === 'private') {
+        return kahoot.author.id === userId;
+      }
+
+      // Para cualquier otro tipo de visibilidad, se mantiene
+      return true;
+    });
+
+    // Crear nueva paginación con el conteo actualizado
+    const filteredPagination = new PaginationInfo(
+      libraryResult.pagination.page,
+      libraryResult.pagination.limit,
+      filteredData.length, // Total actualizado
+      Math.ceil(filteredData.length / libraryResult.pagination.limit),
+    );
+
+    // Retornar nuevo LibraryReadModel con los datos filtrados
+    return new LibraryReadModel(filteredData, filteredPagination);
+  }
+
   private buildQueryStructure(query: GetDraftsAndCreatedKahootsQuery) {
     // filtros base: por autor
     const filters: Record<string, any> = { authorId: query.userId };
@@ -238,7 +280,12 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<ErrorData, LibraryReadModel>(library);
+      // 7. Aplicar filtro de kahoots privados
+      const filteredLibrary = this.filterPrivateKahootsFromOthers(
+        library,
+        userId,
+      );
+      return Either.makeRight<ErrorData, LibraryReadModel>(filteredLibrary);
     } catch (err) {
       const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
         err,
@@ -335,7 +382,12 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<ErrorData, LibraryReadModel>(library);
+      // 7. Aplicar filtro de kahoots privados
+      const filteredLibrary = this.filterPrivateKahootsFromOthers(
+        library,
+        userId,
+      );
+      return Either.makeRight<ErrorData, LibraryReadModel>(filteredLibrary);
     } catch (err) {
       const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
         err,
@@ -350,7 +402,7 @@ export class LibraryDaoMongo implements ILibraryDao {
   ): Promise<Either<ErrorData, LibraryReadModel>> {
     const fullContext: IDatabaseErrorContext = {
       ...this.adapterContextBase,
-      operation: 'getCompletedKahoots',
+      operation: 'getInProgressKahoots',
       entityId: query.userId,
     };
     try {
@@ -399,7 +451,12 @@ export class LibraryDaoMongo implements ILibraryDao {
         totalPages,
       );
       const library = new LibraryReadModel(data, pagination);
-      return Either.makeRight<ErrorData, LibraryReadModel>(library);
+      // 7. Aplicar filtro de kahoots privados
+      const filteredLibrary = this.filterPrivateKahootsFromOthers(
+        library,
+        userId,
+      );
+      return Either.makeRight<ErrorData, LibraryReadModel>(filteredLibrary);
     } catch (err) {
       const errorData: ErrorData = this.mongoErrorMapper.toErrorData(
         err,

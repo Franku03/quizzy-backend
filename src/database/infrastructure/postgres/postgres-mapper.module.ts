@@ -20,9 +20,7 @@ import { PostgresErrorMapper } from './errors/pg-error.mapper';
 import { KahootSnapshotPgMapper } from './modules/kahoots/mappers/kahoot.snapshot.pg.mapper';
 import { KahootPersistencePgMapper } from './modules/kahoots/mappers/kahoot.snapshot.persitence.pg.mapper';
 import { MultiplayerSessionPgMapper } from './modules/multiplayer-session/mappers/session.pg.mapper';
-// Nota: Este Mapper lo dejamos como ErrorData en el DAO, pero aquí se registraría
-// cuando se tenga clase implementada.
-// import { KahootUserDetailPgMapper } from './modules/kahoots/mappers/kahoot.user.detail.pg.mapper'; 
+import { KahootUserDetailPgMapper } from './modules/kahoots/mappers/kahoot.user.details.mapper';
 
 @Global()
 @Module({
@@ -45,20 +43,19 @@ import { MultiplayerSessionPgMapper } from './modules/multiplayer-session/mapper
     {
       provide: APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_PG_READ,
       useClass: MultiplayerSessionPgMapper
-    }
-    /* 3. Lectura (DAOs)
+    },
     {
       provide: APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ,
       useClass: KahootUserDetailPgMapper,
     },
-    */
+  
   ],
   exports: [
     ERROR_TOKENS.MAPPERS.POSTGRES,
     APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_SNAPSHOT,
     APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_PG_PERSISTENCE,
-    APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_PG_READ
-    // APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ,
+    APPLICATION_CORE_TOKENS.MAPPER.SESSION_REPORT_DETAILS_PG_READ,
+    APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ,
   ],
 })
 export class PostgresMappersModule { }
