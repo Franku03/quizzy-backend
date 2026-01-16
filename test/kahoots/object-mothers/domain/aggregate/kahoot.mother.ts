@@ -19,6 +19,7 @@ import { SlideTypeEnum } from 'src/kahoots/domain/value-objects/kahoot.slide.typ
 import { VisibilityStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.visibility-status';
 import { KahootStatusEnum } from 'src/kahoots/domain/value-objects/kahoot.status';
 import { KahootCategoryEnum } from 'src/kahoots/domain/value-objects/kahoot.details';
+import { SlideSnapshotData } from 'src/core/domain/snapshots/snapshot.slide';
 
 /**
  * KahootAggregateMother
@@ -54,6 +55,19 @@ export class KahootAggregateMother {
     raw.visibility = 'PUBLIC';
     return this.reconstruct(raw);
   }
+
+  /**
+   * Genera un Agregado de Kahoot en estado Publicado (PUBLISH + PUBLIC). Con 2 Slides (Util para pruebas en MultiplayerSession o SoloAttempt)
+   * Representa un recurso finalizado que debería permitir acciones de juego y visualización.
+   */
+  static existingPublishedWith2Slides(): Kahoot {
+    const raw = this.baseRawData();
+    raw.slides?.push( this.baseRawExtraSlideData() );
+    raw.status = 'PUBLISH';
+    raw.visibility = 'PUBLIC';
+    return this.reconstruct(raw);
+  }
+
 
   /**
    * Utiliza la factory de dominio para reconstruir el Agregado a partir de un Snapshot.
@@ -105,6 +119,22 @@ export class KahootAggregateMother {
           ],
         },
       ],
+    };
+  }
+
+  private static baseRawExtraSlideData(): SlideSnapshotData {
+    return {
+      id: 'a187a224-95a9-47ca-8d68-509dd13d7c96',
+      position: 1,
+      slideType: SlideTypeEnum.SINGLE,
+      timeLimitSeconds: 20,
+      questionText: 'Pregunta del TestAPI',
+      pointsValue: 1000,
+      options: [
+        { optionText: 'Correcta', isCorrect: true },
+        { optionText: 'Falsa', isCorrect: false },
+      ],
+        
     };
   }
 }

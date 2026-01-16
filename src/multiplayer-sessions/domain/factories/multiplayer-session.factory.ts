@@ -39,8 +39,6 @@ export class MultiplayerSessionFactory {
         hostIdString: string,  // UserId
         sessionIdString: string, // MultiplayerSessionId
         pin: string,
-        // pinGenerationService: IGeneratePinService,
-        // pinVerificationService: IVerifyAvailablePinService,
     ): Either<ErrorData,MultiplayerSession> {
 
         // Lógica de creación de la info del kahoot
