@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\users\domain\value-objects\user.user-subscription-status.ts
+
 import { ValueObject } from "src/core/domain/abstractions/value.object";
 import { SubscriptionState } from "./user.subscription-state";
 import { SubscriptionPlan } from "./user.subscription-plan";
@@ -60,4 +71,27 @@ export class UserSubscriptionStatus extends ValueObject<UserSubscriptionStatusPr
 
         return this;
     }
+
+    public static createForPlan(plan: SubscriptionPlan): UserSubscriptionStatus {
+        if (plan === SubscriptionPlan.FREE) {
+            return new UserSubscriptionStatus(
+                SubscriptionState.ACTIVE,
+                SubscriptionPlan.FREE,
+                DateISO.createFrom('2099-12-31')
+            );
+        }
+
+        const now = new Date();
+        const expiresDate = new Date(now);
+        expiresDate.setDate(expiresDate.getDate() + 30);
+
+        const expiresIsoString = expiresDate.toISOString().split('T')[0];
+
+        return new UserSubscriptionStatus(
+            SubscriptionState.ACTIVE,
+            plan,
+            DateISO.createFrom(expiresIsoString)
+        );
+    }
+    
 }

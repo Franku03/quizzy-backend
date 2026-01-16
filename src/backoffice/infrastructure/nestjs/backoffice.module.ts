@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\backoffice\infrastructure\nestjs\backoffice.module.ts
+
 import { Module } from '@nestjs/common';
 import { BackofficeController } from './backoffice.controller';
 import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';

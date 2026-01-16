@@ -208,26 +208,12 @@ export class MultiplayerSessionsGateway  implements OnGatewayConnection, OnGatew
       const validPlayerDisconnectionToNotify = role === SessionRoles.PLAYER && !this.readyTimeouts.has( client.id ) && nickname && roomExists
 
       if ( validPlayerDisconnectionToNotify ) {
-
+        // Construimos la respuesta de jugador deja la partida
+        const playerLeftResponse = { userId: userId, nickname: nickname, message: `El jugador ${nickname} se ha desconectado.`}
         // Notificamos al host
-        const hostSocketId = this.tracingWsService.getRoomHostSocketId( roomPin ); 
-
-
-        if( hostSocketId ){
-
-          // Busca una sala llamada como el id del socket, en Socket.IO cada socket se une automáticamente a una sala con su propio ID
-          const clients = await this.wss.in( hostSocketId ).fetchSockets();
-          const hostClient = clients[0]; // Como el ID es único, solo vendrá uno
+        await this.handleRoomHostNotification( roomPin, playerLeftResponse, ServerEvents.PLAYER_LEFT_SESSION)
           
-          hostClient?.emit(ServerEvents.PLAYER_LEFT_SESSION, { 
-            userId: userId,
-            nickname: nickname,
-            message: `El jugador ${nickname} se ha desconectado.`
-          });
-          
-          this.logger.debug(`Jugador [${nickname}, ${userId}] salió de sala ${roomPin}. Host notificado.`);
-
-        }
+        this.logger.debug(`Jugador [${nickname}, ${userId}] salió de sala ${roomPin}. Host notificado.`);    
 
       }
 
