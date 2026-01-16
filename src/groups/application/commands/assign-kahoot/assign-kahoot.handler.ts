@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\application\commands\assign-kahoot\assign-kahoot.handler.ts
+
 import { RepositoryName } from "src/database/infrastructure/catalogs/repository.catalog.enum";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import type { IKahootRepository } from "src/kahoots/domain/ports/IKahootRepository";
@@ -24,7 +35,7 @@ import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import type { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
-import { KahootAssignedEvent } from 'src/notifications/application/events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 
 
 @CommandHandler(AssignKahootToGroupCommand)

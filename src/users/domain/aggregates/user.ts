@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\users\domain\aggregates\user.ts
+
 import { AggregateRoot } from 'src/core/domain/abstractions/aggregate.root';
 import { UserId } from 'src/core/domain/shared-value-objects/id-objects/user.id';
 import { UserEmail } from '../value-objects/user.email';
@@ -15,6 +26,7 @@ import { UserFavorites } from '../value-objects/user.favorite-kahoots';
 import { IDeletedUserHasher } from '../domain-services/deleted-user-hashed.interface';
 import { UserState } from '../value-objects/user.state';
 import { UserRole } from '../value-objects/user.roles';
+import { SubscriptionPlan } from '../value-objects/user.subscription-plan';
 
 interface UserProps {
   email: UserEmail;
@@ -192,6 +204,10 @@ export class User extends AggregateRoot<UserProps, UserId> {
     hasher: IPasswordHasher,
   ): Promise<void> {
     this.properties.passwordHash = await newPassword.hash(hasher);
+  }
+
+  public changeSubscription(newPlan: SubscriptionPlan): void {
+    this.properties.subscriptionStatus = UserSubscriptionStatus.createForPlan(newPlan);
   }
 
   protected checkInvariants(): void {

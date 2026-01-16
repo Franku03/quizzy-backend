@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\application\commands\create-group\create-group.handler.ts
+
 import { Group } from "../../../domain/aggregates/group";
 import type { IGroupRepository } from "src/groups/domain/ports/IGroupRepository";
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +28,8 @@ import { DomainErrorFactory } from "src/core/errors/factories/domain-error.facto
 import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
 import { Log } from 'src/core/application/aspects/logging/log.decorator';
 import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+import { UserId } from "src/core/domain/shared-value-objects/id-objects/user.id";
+import type { IUserRepository } from "src/users/domain/ports/IUserRepository";
 
 
 
@@ -27,6 +40,8 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
     constructor(
         @Inject(RepositoryName.Group)
         private readonly groupRepository: IGroupRepository,
+        @Inject(RepositoryName.User)
+        private readonly userRepository: IUserRepository,
         @Inject(EVENT_BUS_TOKEN)
         private readonly eventBus: EventBus,
         @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
@@ -52,9 +67,9 @@ export class CreateGroupHandler implements ICommandHandler<CreateGroupCommand> {
             );
         }
 
-        // pending: descomentar cuando se tenga el repositorio de usuarios
-        //const admin = await this.userRepository.findById(new UserId(command.adminId));
-        const admin = true;
+
+        const admin = await this.userRepository.findById(new UserId(command.adminId));
+
 
         if (!admin) {
             return Either.makeLeft(

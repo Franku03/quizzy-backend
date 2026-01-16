@@ -1,9 +1,20 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\notifications\application\use-cases\notify-kahoot-assigned.use-case.ts
+
 import type { INotificationRepository } from 'src/notifications/domain/ports/notification.repository.port';
 import type { INotification } from 'src/notifications/domain/INotification';
 import type { IDeviceRepository } from 'src/notifications/domain/ports/device.repository.port';
 import type { INotifier } from 'src/notifications/application/ports/notifier.port';
 import type { IdGenerator } from 'src/core/application/ports/idgenerator/i-id-generator.interface';
-import { KahootAssignedEvent } from '../events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 
 export class NotifyKahootAssignedUseCase {
     constructor(

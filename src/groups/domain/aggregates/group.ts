@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\domain\aggregates\group.ts
+
 import { AggregateRoot } from 'src/core/domain/abstractions/aggregate.root';
 
 import { Optional } from 'src/core/types/optional';
@@ -18,7 +29,7 @@ import { AttemptId } from 'src/core/domain/shared-value-objects/id-objects/singl
 import { DomainEvent } from 'src/core/domain/abstractions/domain-event';
 import { KahootAssignedToGroupEvent } from 'src/core/domain/domain-events/kahoot-assigned-to-group.event';
 
-//pending: revisar
+
 import { GroupMemberRole } from '../value-objects/group.member.role';
 
 
@@ -138,7 +149,6 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
       throw new Error("La invitación no es válida.");
     }
 
-    //pending: revisar
     this.properties.members.push(new GroupMember({ userId: userToJoin, role: new Role(GroupMemberRole.MEMBER), joinedAt: new Date() }, userToJoin));
 
   }
@@ -263,8 +273,6 @@ export class Group extends AggregateRoot<GroupProps, GroupId> {
     if (!this.isAdmin(requesterId)) {
       throw new Error("Solo el admin del grupo puede eliminar el grupo.");
     }
-
-    //pending: implementar la eliminacion del grupo (mediante repositorio)
   }
 
   public isAdmin(userId: UserId): boolean {

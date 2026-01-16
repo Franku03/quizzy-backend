@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\notifications\notifications.module.ts
+
 import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { NotificationsController } from './infrastructure/nest-js/notifications.controller';
@@ -7,9 +18,8 @@ import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.
 import { KahootAssignedListener } from './application/event-listeners/kahoot-assigned.listener';
 import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
 import type { EventBus } from 'src/core/domain/ports/event-bus.port';
-import { KahootAssignedEvent } from 'src/notifications/application/events/kahoot-assigned.event';
+import { KahootAssignedEvent } from 'src/core/domain/domain-events/kahoot-assigned.event';
 import { FirebaseNotifierAdapter } from './infrastructure/adapters/firebase-notifier.adapter';
-import { MongoDeviceRepository } from 'src/database/infrastructure/mongo/modules/notifications/device.repository.mongo';
 import { NotifyKahootAssignedUseCase } from './application/use-cases/notify-kahoot-assigned.use-case';
 import type { INotificationRepository } from 'src/notifications/domain/ports/notification.repository.port';
 import type { IDeviceRepository } from 'src/notifications/domain/ports/device.repository.port';
@@ -30,6 +40,7 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
     imports: [
         CqrsModule,
         RepositoryFactoryModule.forFeature(RepositoryName.Notification),
+        RepositoryFactoryModule.forFeature(RepositoryName.Device),
         MongooseModule.forFeature([
             { name: NotificationMongo.name, schema: NotificationSchema },
             { name: DeviceTokenMongo.name, schema: DeviceTokenSchema },
@@ -39,10 +50,6 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
         {
             provide: 'INotificationService',
             useClass: NotificationService,
-        },
-        {
-            provide: 'IDeviceRepository',
-            useClass: MongoDeviceRepository,
         },
         {
             provide: 'INotifier',
@@ -65,7 +72,7 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
             },
             inject: [
                 RepositoryName.Notification,
-                'IDeviceRepository',
+                RepositoryName.Device,
                 'INotifier',
                 APPLICATION_CORE_TOKENS.UTILS.ID_GENERATOR,
             ],

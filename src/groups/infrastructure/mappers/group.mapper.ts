@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\infrastructure\mappers\group.mapper.ts
+
 import { Group } from '../../domain/aggregates/group';
 import { GroupMongo } from 'src/database/infrastructure/mongo/entities/groups.schema';
 import { GroupId } from '../../domain/value-objects/group.id';
@@ -15,9 +26,23 @@ import { GroupAssignment } from '../../domain/entities/group.assignment';
 import { GroupAssignmentCompletion } from '../../domain/value-objects/group.assignment.completion';
 import { Optional } from 'src/core/types/optional';
 
+// Common type representing the data structure needed for mapping to Domain
+// This allows the mapper to work with both MongoDB and PostgreSQL entities
+export interface GroupPersistenceData {
+  groupId: string;
+  adminId: string;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  members: Array<{ id: string; userId?: string; role: string; joinedAt: Date }>;
+  assignments: Array<{ id: string; quizId: string; assignedBy: string; availableFrom: Date; availableUntil: Date; isAssignmentCompleted: boolean }>;
+  completions: Array<{ userId: string; quizId: string; attemptId: string; score: number }>;
+  invitationToken?: { value: string; expiresAt: Date };
+}
+
 export class GroupMapper {
 
-  static toDomain(raw: GroupMongo): Group {
+  static toDomain(raw: GroupPersistenceData): Group {
     const groupId = new GroupId(raw.groupId);
     const adminId = new UserId(raw.adminId);
     const details = GroupDetails.create(raw.name, raw.description);
