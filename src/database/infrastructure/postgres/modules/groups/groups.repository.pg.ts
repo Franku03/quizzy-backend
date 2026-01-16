@@ -65,11 +65,11 @@ export class GroupRepository implements IGroupRepository {
 
     async findByMemberAndKahoot(userId: string, kahootId: string): Promise<Group[]> {
         const entities = await this.groupRepository
-            .createQueryBuilder('group')
-            .where('group.members @> :memberFilter', {
+            .createQueryBuilder('g')
+            .where('g.members @> :memberFilter', {
                 memberFilter: JSON.stringify([{ id: userId }])
             })
-            .andWhere('group.assignments @> :assignmentFilter', {
+            .andWhere('g.assignments @> :assignmentFilter', {
                 assignmentFilter: JSON.stringify([{ quizId: kahootId }])
             })
             .getMany();
@@ -82,8 +82,8 @@ export class GroupRepository implements IGroupRepository {
 
     async findByInvitationToken(token: string): Promise<Optional<Group>> {
         const entity = await this.groupRepository
-            .createQueryBuilder('group')
-            .where('group.invitationToken::jsonb->>\'value\' = :token', { token })
+            .createQueryBuilder('g')
+            .where('g."invitationToken"::jsonb->>\'value\' = :token', { token })
             .getOne();
 
         if (!entity) {

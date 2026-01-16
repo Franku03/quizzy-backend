@@ -27,8 +27,8 @@ export class GroupsDao implements IGroupsDao {
 
     async getGroupsByUserId(userId: string): Promise<Optional<GroupReadModel[]>> {
         const groups = await this.groupRepository
-            .createQueryBuilder('group')
-            .where('group.members @> :memberFilter', {
+            .createQueryBuilder('g')
+            .where('g.members @> :memberFilter', {
                 memberFilter: JSON.stringify([{ id: userId }])
             })
             .getMany();
@@ -199,16 +199,16 @@ export class GroupsDao implements IGroupsDao {
 
     async isGroupMember(groupId: string, userId: string): Promise<boolean> {
         const group = await this.groupRepository
-            .createQueryBuilder('group')
-            .where('group.groupId = :groupId', { groupId })
+            .createQueryBuilder('g')
+            .where('g.groupId = :groupId', { groupId })
             .andWhere(
-                '(group.adminId = :userId OR group.members @> :memberFilter)',
+                '(g.adminId = :userId OR g.members @> :memberFilter)',
                 {
                     userId,
                     memberFilter: JSON.stringify([{ id: userId }])
                 }
             )
-            .select('group.groupId')
+            .select('g.groupId')
             .getOne();
 
         return !!group;
