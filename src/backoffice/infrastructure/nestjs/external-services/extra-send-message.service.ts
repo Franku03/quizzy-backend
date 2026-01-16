@@ -1,4 +1,14 @@
-// src/backoffice/infrastructure/services/resend-email.service.ts
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\backoffice\infrastructure\nestjs\external-services\extra-send-message.service.ts
+
 import { Injectable } from '@nestjs/common';
 import { Resend } from 'resend';
 import { SendSingleEmailDto } from '../dtos/extra-send-message.dto'; 

@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\application\use-cases\mark-assignment-completed.use-case.ts
+
 import { KahootId } from "src/core/domain/shared-value-objects/id-objects/kahoot.id";
 import { AttemptId } from "src/core/domain/shared-value-objects/id-objects/singleplayer-attempt.id";
 import { Score } from "src/core/domain/shared-value-objects/value-objects/value.object.score";

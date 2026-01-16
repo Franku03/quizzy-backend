@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\subscription\infrastructure\nest-js\subscription.controller.ts
+
 import { Controller, Delete, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { CommandQueryExecutorService } from 'src/core/infrastructure/services/command-query-executor.service';
 
