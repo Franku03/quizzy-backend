@@ -7,7 +7,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
  */
 
-import { BlockUserTestAPI } from 'test/backoffice/clean-tests/application/commands/block-user.handler.testing.api';
+import { BlockUserTestAPI } from 'test/backoffice/apis/application/commands/block-user.handler.testing.api';
 
 /**
  * Suite de pruebas MINIMA para BlockUserHandler
