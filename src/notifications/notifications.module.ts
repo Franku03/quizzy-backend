@@ -41,10 +41,10 @@ import { GetNotificationsHandler } from './application/queries/get-notifications
         CqrsModule,
         RepositoryFactoryModule.forFeature(RepositoryName.Notification),
         RepositoryFactoryModule.forFeature(RepositoryName.Device),
-        MongooseModule.forFeature([
+        /*MongooseModule.forFeature([
             { name: NotificationMongo.name, schema: NotificationSchema },
             { name: DeviceTokenMongo.name, schema: DeviceTokenSchema },
-        ]),
+        ]),*/
     ],
     providers: [
         {
