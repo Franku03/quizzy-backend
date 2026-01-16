@@ -24,7 +24,5 @@ export interface IExploreDao {
 
   // For GET /explore/categories - static category list
   getAvailableCategories(): Promise<CategoryReadModel[]>;
-
-  // Optional helper method if you need to fetch author details separately
-  getAuthorName(authorId: string): Promise<Optional<string>>;
+    
 }
