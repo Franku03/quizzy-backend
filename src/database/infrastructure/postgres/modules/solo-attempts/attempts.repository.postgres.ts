@@ -152,25 +152,98 @@ export class SoloAttemptRepositoryPostgres implements SoloAttemptRepository {
     return attemptEntities.map((entity) => this.mapToDomain(entity));
   }
 
-  // Persists the complete SoloAttempt aggregate to the PostgreSQL database.
-  // This method handles both creating new attempts and updating existing ones.
-  // We use TypeORM's save method with cascading to persist the entire aggregate graph.
-  public async save(attempt: SoloAttempt): Promise<void> {
-      // Convert the domain aggregate to the persistence entity structure.
-      // This transforms the rich domain model into the normalized database format.
-      const attemptEntity = this.mapToPersistence(attempt);
+    public async save(attempt: SoloAttempt): Promise<void> {
+    // Use Mongo-style approach: Delete and reinsert
+    const queryRunner = this.attemptRepo.manager.connection.createQueryRunner();
+    
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    
+    try {
+      // 1. Delete existing records (cascade will handle child tables)
+      await queryRunner.manager.delete(AttemptEntity, { id: attempt.attemptId.value });
       
-      try {
-          // TypeORM's save method performs an upsert operation: it will insert if the
-          // entity doesn't exist or update if it does. The cascade configuration in
-          // the entity relationships ensures that all related player answers and
-          // answer contents are also saved or updated automatically.
-          await this.attemptRepo.save(attemptEntity);
-      } catch (error) {
-          // Handle potential database errors and rethrow with a more descriptive message.
-          // This helps with debugging and provides better error context to callers.
-          throw new Error(`Failed to save attempt ${attempt.attemptId.value}: ${error.message}`);
+      // 2. Create fresh entity
+      const attemptEntity = new AttemptEntity();
+      
+      // Set all scalar fields
+      attemptEntity.id = attempt.attemptId.value;
+      attemptEntity.kahootId = attempt.kahootId.value;
+      attemptEntity.playerId = attempt.playerId.value;
+      attemptEntity.status = attempt.status.getEnum();
+      attemptEntity.totalScore = attempt.totalScore.getScore();
+      
+      // Calculate correct answers
+      const correctAnswers = attempt.answers.filter(answer => answer.isCorrect());
+      attemptEntity.correctAnswersCount = correctAnswers.length;
+      
+      // Set progress
+      attemptEntity.totalQuestions = attempt.progress.totalQuestions;
+      attemptEntity.questionsAnswered = attempt.progress.questionsAnswered;
+      
+      // Set time details
+      attemptEntity.startedAt = attempt.timeDetails.startedAt;
+      attemptEntity.lastPlayedAt = attempt.timeDetails.lastPlayedAt;
+      attemptEntity.completedAt = attempt.timeDetails.completedAt.hasValue() 
+        ? attempt.timeDetails.completedAt.getValue() 
+        : null;
+      
+      // Create answers array
+      attemptEntity.answers = [];
+      
+      // For each answer, create entity with contents
+      for (const answer of attempt.answers) {
+        const playerAnswerEntity = new PlayerAnswerEntity();
+        
+        // Set answer properties
+        playerAnswerEntity.slideId = answer.slideId.value;
+        playerAnswerEntity.slidePosition = answer.SlidePosition;
+        playerAnswerEntity.answerIndex = answer.answerIndex;
+        playerAnswerEntity.isAnswerCorrect = answer.isCorrect();
+        playerAnswerEntity.earnedScore = answer.earnedScore.getScore();
+        playerAnswerEntity.timeElapsed = answer.timeElapsed.toSeconds();
+        
+        // Set question snapshot
+        playerAnswerEntity.snapshotQuestionText = answer.questionSnapshot.questionText;
+        playerAnswerEntity.snapshotBasePoints = answer.questionSnapshot.basePoints.value;
+        playerAnswerEntity.snapshotTimeLimit = answer.questionSnapshot.timeLimit.value;
+        
+        // Create answer contents
+        playerAnswerEntity.answerContents = [];
+        
+        for (const content of answer.answerContent) {
+          const contentEntity = new PlayerAnswerContentEntity();
+          contentEntity.isCorrect = content.isCorrect;
+          
+          if (content.hasImage()) {
+            contentEntity.contentType = 'IMAGE';
+            contentEntity.value = content.getAnswerContent();
+          } else {
+            contentEntity.contentType = 'TEXT';
+            contentEntity.value = content.getAnswerContent();
+          }
+          
+          contentEntity.playerAnswer = playerAnswerEntity;
+          playerAnswerEntity.answerContents.push(contentEntity);
+        }
+        
+        // Set back-reference
+        playerAnswerEntity.attempt = attemptEntity;
+        attemptEntity.answers.push(playerAnswerEntity);
       }
+      
+      // 3. Save the entire graph
+      console.log('Saving attempt entity:', attemptEntity);
+      await queryRunner.manager.save(attemptEntity);
+      
+      await queryRunner.commitTransaction();
+      
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new Error(`Failed to save attempt ${attempt.attemptId.value}: ${error.message}`);
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // Deletes a specific attempt from the database using its unique identifier.
@@ -277,86 +350,5 @@ export class SoloAttemptRepositoryPostgres implements SoloAttemptRepository {
       timeDetails: timeDetails,
       answers: mappedAnswers,
     });
-  }
-
-
-  // Converts a SoloAttempt domain aggregate into PostgreSQL entity structure for persistence.
-  // This method handles the transformation from the rich domain model to the normalized
-  // relational database structure required by TypeORM.
-  private mapToPersistence(attempt: SoloAttempt): AttemptEntity {
-    // First, we create the main attempt entity with all its scalar properties.
-    // We extract primitive values from domain value objects for database storage.
-    const attemptEntity = new AttemptEntity();
-    attemptEntity.id = attempt.attemptId.value;
-    attemptEntity.kahootId = attempt.kahootId.value;
-    attemptEntity.playerId = attempt.playerId.value;
-    attemptEntity.status = attempt.status.getEnum();
-    attemptEntity.totalScore = attempt.totalScore.getScore();
-    
-    // We compute the correct answers count by filtering through all player answers.
-    // This precomputed value optimizes performance for summary queries.
-    const correctAnswers = attempt.answers.filter(answer => answer.isCorrect());
-    attemptEntity.correctAnswersCount = correctAnswers.length;
-    
-    // Flatten the AttemptProgress value object into separate columns.
-    // This follows the pattern of storing value objects as flattened columns.
-    attemptEntity.totalQuestions = attempt.progress.totalQuestions;
-    attemptEntity.questionsAnswered = attempt.progress.questionsAnswered;
-    
-    // Flatten the AttemptTimeDetails value object with proper null handling.
-    // We extract dates directly since they're already primitive Date objects.
-    attemptEntity.startedAt = attempt.timeDetails.startedAt;
-    attemptEntity.lastPlayedAt = attempt.timeDetails.lastPlayedAt;
-    
-    // Handle the optional completedAt date with null for in-progress attempts.
-    // The Optional type's hasValue() method tells us if a completion date exists.
-    attemptEntity.completedAt = attempt.timeDetails.completedAt.hasValue() 
-        ? attempt.timeDetails.completedAt.getValue() 
-        : null;
-    
-    // Now we transform the player answers array, which requires creating
-    // both PlayerAnswerEntity and PlayerAnswerContentEntity instances.
-    attemptEntity.answers = attempt.answers.map(answer => {
-        // Create the player answer entity with all its flattened properties.
-        // Each answer maps to a row in the player_answers table.
-        const playerAnswerEntity = new PlayerAnswerEntity();
-        playerAnswerEntity.slideId = answer.slideId.value;
-        playerAnswerEntity.slidePosition = answer.SlidePosition;
-        playerAnswerEntity.answerIndex = answer.answerIndex;
-        playerAnswerEntity.isAnswerCorrect = answer.isCorrect();
-        playerAnswerEntity.earnedScore = answer.earnedScore.getScore();
-        playerAnswerEntity.timeElapsed = answer.timeElapsed.toSeconds();
-        
-        // Flatten the QuestionSnapshot value object into separate columns.
-        // This preserves the state of the question as it existed when answered.
-        playerAnswerEntity.snapshotQuestionText = answer.questionSnapshot.questionText;
-        playerAnswerEntity.snapshotBasePoints = answer.questionSnapshot.basePoints.value;
-        playerAnswerEntity.snapshotTimeLimit = answer.questionSnapshot.timeLimit.value;
-        
-        // Transform the answer content array, which can contain mixed types.
-        // Each content item becomes a row in the player_answer_contents table.
-        playerAnswerEntity.answerContents = answer.answerContent.map(content => {
-            const contentEntity = new PlayerAnswerContentEntity();
-            contentEntity.isCorrect = content.isCorrect;
-            
-            // Determine the content type based on whether it contains an image.
-            // This discriminator field allows us to reconstruct the correct type later.
-            if (content.hasImage()) {
-                contentEntity.contentType = 'IMAGE';
-                // For image content, value stores the image UUID
-                contentEntity.value = content.getAnswerContent();
-            } else {
-                contentEntity.contentType = 'TEXT';
-                // For text content, value stores the answer text string
-                contentEntity.value = content.getAnswerContent();
-            }
-            
-            return contentEntity;
-        });
-        
-        return playerAnswerEntity;
-    });
-    
-    return attemptEntity;
   }
 }

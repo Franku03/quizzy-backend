@@ -72,13 +72,6 @@ export class AttemptEntity {
   })
   answers: PlayerAnswerEntity[];
 
-  // Infrastructure Audit Fields
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
   // Helper method for repository mapping
   getNextSlideIndex(): number {
     return this.questionsAnswered;
