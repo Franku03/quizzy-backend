@@ -1,12 +1,12 @@
 
 import { Entity, Column, PrimaryColumn, Index, VersionColumn, ManyToOne, JoinColumn } from 'typeorm';
-import type { 
-  TimeDetails, 
-  SessionProgress, 
-  PlayerSnapshot, 
-  ScoreboardEntry, 
-  SlideResult 
-} from '../modules/multiplayer-session/interfaces/multiplayer-session.pg-jsonb-types'; 
+import type {
+  TimeDetails,
+  SessionProgress,
+  PlayerSnapshot,
+  ScoreboardEntry,
+  SlideResult
+} from '../modules/multiplayer-session/interfaces/multiplayer-session.pg-jsonb-types';
 import { DbPostgresEntity } from '../registries/db-model-postgres.registry';
 import { KahootEntity } from './kahoot/kahoot.entity.pg';
 
@@ -14,17 +14,17 @@ const ENTITY_NAME = 'multiplayer_sessions';
 
 @DbPostgresEntity(ENTITY_NAME)
 @Entity('Multiplayer_Sessions')
-@Index(['hostId', 'timeDetails']) 
-@Index(['sessionPin'], { unique: false }) 
+@Index(['hostId', 'timeDetails'])
+@Index(['sessionPin'], { unique: false })
 export class MultiplayerSessionEntity {
-  
+
   @PrimaryColumn('uuid', { name: 'session_id' })
   sessionId: string;
 
   // -----------------------------------------------------
   // 1. Configuración de Foreign Key: HOST
   // -----------------------------------------------------
-  
+
   // Definimos la columna explícita para tener acceso rápido al ID sin hacer JOIN
   @Column('uuid', { name: 'host_id' })
   hostId: string;
@@ -41,7 +41,9 @@ export class MultiplayerSessionEntity {
   @Column('uuid', { name: 'kahoot_id' })
   kahootId: string;
 
-  @ManyToOne(() => KahootEntity)
+  @ManyToOne(() => KahootEntity, {
+    onDelete: 'CASCADE'
+  })
   @JoinColumn({ name: 'kahoot_id' })
   kahoot: KahootEntity;
 
