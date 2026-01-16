@@ -9,5 +9,4 @@
 
 // File: src\database\infrastructure\postgres\modules\explore\index.ts
 
-// export * from './tudao';
-// export * from './turepo';
+export * from './explore.dao.postgres';

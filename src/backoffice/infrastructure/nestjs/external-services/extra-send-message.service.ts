@@ -1,3 +1,4 @@
+// src/backoffice/infrastructure/services/resend-email.service.ts
 /**
  * MIT License | Copyright (c) 2025
  * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva

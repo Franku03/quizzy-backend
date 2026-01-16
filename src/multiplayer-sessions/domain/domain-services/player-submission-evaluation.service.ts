@@ -59,7 +59,14 @@ export class PlayerSubmissionEvaluationService {
         }
 
         // ? Momento donde se evalua la respuesta
-        const result = kahoot.evaluateAnswer( playerSubmission );
+        let result: Result;
+
+        try {
+            result = kahoot.evaluateAnswer( playerSubmission );
+        } catch (error) {
+            // SlideId invalido para el kahoot
+            return Either.makeLeft( error ) ;
+        }
 
         // Creamos la respuesta del jugador
         const playerEvaluation = SessionPlayerAnswer.create( result, playerId );

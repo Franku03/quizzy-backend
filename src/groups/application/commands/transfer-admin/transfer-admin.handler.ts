@@ -1,3 +1,14 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\application\commands\transfer-admin\transfer-admin.handler.ts
+
 import { CommandHandler } from "src/core/infrastructure/cqrs/decorators/command-handler.decorator";
 import { TransferAdminCommand } from "./transfer-admin.command";
 import { ICommandHandler } from "src/core/application/cqrs/command-handler.interface";

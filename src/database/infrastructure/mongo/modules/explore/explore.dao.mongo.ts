@@ -13,7 +13,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Optional } from 'src/core/types/optional';
 import { IExploreDao} from 'src/explore/application/queries/ports/explore.dao.port';
 import { GetPublicKahootsQueryParams } from 'src/explore/application/queries/ports/explore.dao.port';
 import { KahootMongo } from '../../entities/kahoots.schema';
@@ -22,6 +21,7 @@ import { KahootListReadModel } from 'src/explore/application/read-models/kahoot-
 import { PaginatedKahootListReadModel } from 'src/explore/application/read-models/kahoot-list.read-model';
 import { DaoMongo } from '../../decorators/dao-mongo.decorator';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { UserMongo } from '../../entities/users.schema';
 
 @DaoMongo(DaoName.Explore)
 @Injectable()
@@ -29,6 +29,8 @@ export class ExploreMongoDao implements IExploreDao {
   constructor(
     @InjectModel(KahootMongo.name) 
     private readonly kahootModel: Model<KahootMongo>,
+    @InjectModel(UserMongo.name)
+    private readonly userModel: Model<UserMongo>,
   ) {}
 
 
@@ -50,7 +52,6 @@ export class ExploreMongoDao implements IExploreDao {
       filter.$or = [
         { 'details.title': { $regex: searchTerm, $options: 'i' } },
         { 'details.description': { $regex: searchTerm, $options: 'i' } },
-        // Note: Author search will be integrated when user module is ready
       ];
     }
 
@@ -96,9 +97,15 @@ export class ExploreMongoDao implements IExploreDao {
         .exec(),
       this.kahootModel.countDocuments(filter).exec()
     ]);
+  
 
-    // Transform MongoDB documents into read models for the application layer
-    // This mapping ensures clean separation between persistence and presentation
+    // Extract all unique author IDs from the fetched kahoots
+    const authorIds = [...new Set(kahoots.map(k => k.authorId).filter(id => id))];
+
+    // Fetch author names in a single batch query for efficiency
+    const authorNamesMap = await this.getAuthorNamesMap(authorIds);
+
+    // Transform MongoDB documents into read models
     const data = kahoots.map(kahoot => {
       return new KahootListReadModel(
         kahoot.id,
@@ -107,8 +114,8 @@ export class ExploreMongoDao implements IExploreDao {
         kahoot.details?.category || 'Uncategorized',
         {
           id: kahoot.authorId,
-          // Temporary placeholder until user module is integrated
-          name: this.getAuthor(kahoot.authorId)
+          // Use author name from the batch fetch, or fallback if not found
+          name: authorNamesMap.get(kahoot.authorId) || 'Unknown Author'
         },
         kahoot.playCount || 0,
         new Date(kahoot.createdAt),
@@ -116,6 +123,7 @@ export class ExploreMongoDao implements IExploreDao {
         kahoot.styling?.themeId || 'default-theme'
       );
     });
+
 
     // Calculate pagination metadata to help clients navigate results
     const totalPages = Math.ceil(totalCount / limit);
@@ -180,7 +188,13 @@ export class ExploreMongoDao implements IExploreDao {
       featuredKahoots.push(...olderKahoots);
     }
 
-    // Transform results into the standardized read model format
+    // Extract all unique author IDs from the featured kahoots
+    const featuredAuthorIds = [...new Set(featuredKahoots.map(k => k.authorId).filter(id => id))];
+
+    // Fetch author names in a single batch query for efficiency
+    const featuredAuthorNamesMap = await this.getAuthorNamesMap(featuredAuthorIds);
+
+    // Transform results into the standardized read model format with actual author names
     return featuredKahoots.map(kahoot => {
       return new KahootListReadModel(
         kahoot.id,
@@ -189,7 +203,8 @@ export class ExploreMongoDao implements IExploreDao {
         kahoot.details?.category || 'Uncategorized',
         {
           id: kahoot.authorId,
-          name: this.getAuthor(kahoot.authorId)
+          // Use author name from the batch fetch, or fallback if not found
+          name: featuredAuthorNamesMap.get(kahoot.authorId) || 'Unknown Author'
         },
         kahoot.playCount || 0,
         new Date(kahoot.createdAt),
@@ -198,12 +213,6 @@ export class ExploreMongoDao implements IExploreDao {
       );
     });
   }
-
-
-
-
-
-
 
 
   async getAvailableCategories(): Promise<CategoryReadModel[]> {
@@ -240,20 +249,32 @@ export class ExploreMongoDao implements IExploreDao {
       .map(category => new CategoryReadModel(category));
   }
 
-  async getAuthorName(authorId: string): Promise<Optional<string>> {
-    // This method fetches the author's name based on their ID from the user module
-    // When the user module is ready, this should query the user repository
-    // For now, return an empty Optional as we're using placeholders in the main methods
+
+  async getAuthorNamesMap(authorIds: string[]): Promise<Map<string, string>> {
+    // Fetch multiple author names in a single query to optimize database calls
+    // This avoids the N+1 query problem when processing lists of kahoots
     
-    console.warn('getAuthorName called but user module not integrated. Returning empty Optional.');
-    return new Optional<string>();
+    if (!authorIds.length) {
+      return new Map();
+    }
+
+    // Query users collection for the provided author IDs
+    const users = await this.userModel.find({
+      userId: { $in: authorIds }
+    }).select('userId profile.name').lean().exec();
+
+    // Create a map for O(1) lookups when building kahoot read models
+    const authorNamesMap = new Map<string, string>();
+    
+    users.forEach(user => {
+      // Use the user's profile name if available, otherwise fall back to a default
+      authorNamesMap.set(
+        user.userId, 
+        user.profile?.name || 'Unknown Author'
+      );
+    });
+
+    return authorNamesMap;
   }
 
-
-  // Generate a simple placeholder author name based on author ID
-  // This is temporary until the user module is integrated
-  private getAuthor(authorId: string): string {
-    // Use a consistent, predictable format for demo purposes
-    return `User ${authorId.substring(0, 8)}`;
-  }
 }
