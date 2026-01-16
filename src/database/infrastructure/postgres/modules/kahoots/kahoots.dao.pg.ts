@@ -14,7 +14,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 // --- Core Logic & Types ---
-import { ErrorData, Either, ErrorLayer } from 'src/core/types';
+import { ErrorData, Either } from 'src/core/types';
 import { createDatabaseContext } from 'src/core/errors/helpers/database-error-context.helper';
 
 // --- Read Models & Snapshots ---
@@ -25,6 +25,8 @@ import { KahootUserDetailReadModel } from 'src/kahoots/application/dtos/kahoot-u
 import { IKahootDao } from 'src/kahoots/application/ports/i-kahoot.dao.interface';
 
 // --- Infrastructure: Entities & Constants ---
+import { AttemptEntity } from '../../entities/attempt/attempt.entity.pg';
+import { UserEntity } from '../../entities/users.entity';
 import { KahootEntity } from '../../entities/kahoot/kahoot.entity.pg';
 import { KAHOOT_POSTGRES_BASE } from './constants/kahoot.pg-constants';
 
@@ -36,6 +38,8 @@ import { IDatabaseErrorContext } from 'src/core/errors/interface/context/i-error
 import type { IErrorMapper } from 'src/core/errors/interface/mapper/i-error-mapper.interface';
 import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
 import { DaoPostgres } from '../../decorators/dao-postgres.decorator';
+import { KahootUserDetailPgInput } from './mappers/kahoot.user.details.mapper';
+
 
 @DaoPostgres(DaoName.Kahoot)
 @Injectable()
@@ -46,7 +50,13 @@ export class KahootDao implements IKahootDao {
 
   constructor(
     @InjectRepository(KahootEntity)
-    private readonly kahootRepo: Repository<KahootEntity>,
+    private readonly KahootEntity: Repository<KahootEntity>,
+
+
+    @InjectRepository(UserEntity)
+    private readonly userEntity: Repository<UserEntity>,
+    @InjectRepository(AttemptEntity)
+    private readonly attemptEntity: Repository<AttemptEntity>,
 
     @Inject(ERROR_TOKENS.MAPPERS.POSTGRES)
     private readonly pgErrorMapper: IErrorMapper<
@@ -59,7 +69,10 @@ export class KahootDao implements IKahootDao {
       KahootEntity,
       KahootSnapshot
     >,
-  ) {}
+
+    @Inject(APPLICATION_CORE_TOKENS.MAPPER.KAHOOT_USER_DETAIL_PG_READ)
+    private readonly userDetailMapper: IMapper<KahootUserDetailPgInput, KahootUserDetailReadModel>,
+  ) { }
 
   // ==========================================
   // HELPERS PRIVADOS
@@ -90,7 +103,7 @@ export class KahootDao implements IKahootDao {
     const ctx = this.getCtx('getKahootById', id);
 
     const result = await Either.tryCatch(
-      this.kahootRepo.findOne({
+      this.KahootEntity.findOne({
         where: { id },
         relations: ['slides', 'slides.options'], // Importante para que el mapper tenga la data
       }),
@@ -109,7 +122,7 @@ export class KahootDao implements IKahootDao {
 
     // En TypeORM, select() nos permite traer solo columnas específicas
     const result = await Either.tryCatch(
-      this.kahootRepo.findOne({
+      this.KahootEntity.findOne({
         where: { id },
         select: ['authorId', 'visibility'],
       }),
@@ -130,21 +143,30 @@ export class KahootDao implements IKahootDao {
     userId: string,
   ): Promise<Either<ErrorData, KahootUserDetailReadModel | null>> {
     const ctx = this.getCtx('getKahootUserDetail', kahootId, { userId });
-
-    /**
-     * @implementación_pendiente
-     */
-    // Envolvemos en Promise.resolve para satisfacer el contrato async
-    // y quitamos el error de "no await"
-    return Promise.resolve(
-      Either.makeLeft(
-        new ErrorData(
-          'INFRA_NOT_IMPLEMENTED',
-          'Method getKahootUserDetail not yet implemented for PostgreSQL provider.',
-          ErrorLayer.INFRASTRUCTURE,
-          ctx,
-        ),
-      ),
+    return await Either.tryCatch<ErrorData, KahootUserDetailReadModel | null>(
+      this.fetchAndMapUserDetail(kahootId, userId),
+      (err) => this.pgErrorMapper.toErrorData(err, ctx),
     );
   }
+
+  /* Extract method al igual que en de MONGO*/
+
+  private async fetchAndMapUserDetail(
+    kahootId: string,
+    userId: string,
+  ): Promise<KahootUserDetailReadModel | null> {
+    const [kahoot, user, lastAttempt] = await Promise.all([
+      this.KahootEntity.findOne({ where: { id: kahootId } }),
+      this.userEntity.findOne({ where: { id: userId } }),
+      this.attemptEntity.findOne({
+        where: { kahootId, playerId: userId },
+        order: { lastPlayedAt: 'DESC' },
+      }),
+    ]);
+
+    if (!kahoot) return null;
+    return this.userDetailMapper.map({ kahoot, user, lastAttempt });
+  }
 }
+
+
