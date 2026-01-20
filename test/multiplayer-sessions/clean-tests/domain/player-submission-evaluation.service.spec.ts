@@ -4,7 +4,6 @@ describe('Pruebas en PlayerSubmissionEvaluationService (DOMAIN)', () =>{
 
     let test: PlayerSubmissionEvaluationServiceTestApi;
 
-
     beforeEach( ()=> {
         test = new PlayerSubmissionEvaluationServiceTestApi();
     });
