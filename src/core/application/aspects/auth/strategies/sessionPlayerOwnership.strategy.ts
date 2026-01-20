@@ -1,0 +1,54 @@
+import { IAuthorizer } from '../authorizer.interface';
+import { GROUP_ERRORS } from 'src/groups/application/commands/group.errors';
+import { IGroupsDao } from 'src/groups/application/queries/ports/groups.dao.port';
+import { Either, ErrorData } from 'src/core/types';
+
+import { DomainErrorFactory } from 'src/core/errors/factories/domain-error.factory';
+import { IMultiplayerSessionDao } from 'src/reports/application/ports/i-multiplayer-session.dao.interface';
+import { createApplicationContext } from 'src/core/errors/helpers/app-error-context.helper';
+import { AppErrorFactory } from 'src/core/errors/factories/app-error.factory';
+
+export interface IRequestWithUserAsPlayer {
+  sessionId: string;
+  userId: string;
+}
+
+export class SessionPlayerAuthorizer implements IAuthorizer<
+  IRequestWithUserAsPlayer,
+  IMultiplayerSessionDao
+> {
+  async authorize(
+    request: IRequestWithUserAsPlayer,
+    context: IMultiplayerSessionDao,
+  ): Promise<Either<ErrorData, void>> {
+    const userId = request.userId;
+    const sessionId = request.sessionId;
+
+    const errorContext = createApplicationContext('getDetailedPlayerReport', {
+        actorId: userId,
+        resourceTargetId: sessionId 
+    });
+
+    if (!userId) {
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
+    }
+
+    // const isAdminResult = await context.isUserSessionHost( userId, sessionId );
+    const isPlayerResult = await context.isUserSessionPlayer(userId, sessionId);
+
+    // if( isAdminResult.isLeft() )
+    //     return Either.makeLeft( isAdminResult.getLeft() );
+
+    if (isPlayerResult.isLeft())
+      return Either.makeLeft(isPlayerResult.getLeft());
+
+    console.log(isPlayerResult.getRight());
+
+    // Verificamos que sea jugador como para acceder a reportes de esta sesión
+    if (!isPlayerResult.getRight()) {
+      return Either.makeLeft(AppErrorFactory.unauthorized(errorContext));
+    }
+
+    return Either.makeRight(undefined);
+  }
+}

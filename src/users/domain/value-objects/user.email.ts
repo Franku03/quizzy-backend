@@ -1,0 +1,38 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\users\domain\value-objects\user.email.ts
+
+import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { InvalidArgumentError } from "../errors/invalid.argument.error";
+
+interface UserEmailProps {
+    readonly value: string;
+}
+
+export class UserEmail extends ValueObject<UserEmailProps> {
+
+    constructor(value: string) {
+        UserEmail.ensureIsValidEmail(value);
+        
+        super({ value }); 
+    }
+    
+    private static ensureIsValidEmail(value: string): void {
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+        
+        if (!emailRegex.test(value)) {
+            throw new InvalidArgumentError(`The email <${value}> is not valid.`);
+        }
+    }
+
+    get value(): string {
+        return this.properties.value;
+    }
+}

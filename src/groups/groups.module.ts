@@ -1,0 +1,101 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\groups\groups.module.ts
+
+import { Inject, Module, OnModuleInit } from '@nestjs/common';
+import { GroupsController } from './infrastructure/nest-js/groups.controller';
+import { RepositoryFactoryModule } from 'src/database/infrastructure/factories/repository.factory.module';
+import { RepositoryName } from 'src/database/infrastructure/catalogs/repository.catalog.enum';
+import { IGroupRepository } from 'src/groups/domain/ports/IGroupRepository';
+import { CreateGroupHandler } from './application/commands/create-group/create-group.handler';
+import { SoloAttemptCompletedListener } from './application/event-listeners/solo-attempt.listener';
+import { MarkAssignmentCompletedUseCase } from './application/use-cases/mark-assignment-completed.use-case';
+import { EVENT_BUS_TOKEN } from 'src/core/domain/ports/event-bus.token';
+import type { EventBus } from 'src/core/domain/ports/event-bus.port';
+import { SoloAttemptCompletedEvent } from 'src/core/domain/domain-events/attempt-completed-event';
+import { CqrsModule } from '@nestjs/cqrs';
+import { DaoFactoryModule } from 'src/database/infrastructure/factories/data-access-object.factory.module';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { GetGroupsByUserHandler } from './application/queries/get-groups-by-user/get-group-by-user.handler';
+import { ModifyGroupInformationHandler } from './application/commands/modify-group-information/modify-group-information.handler';
+import { GenerateInvitationHandler } from './application/commands/generate-invitation/generate-invitation.handler';
+import { UuidTokenGenerator } from './infrastructure/adapters/uuid-token.generator';
+import { JoinGroupHandler } from './application/commands/join-group/join-group.handler';
+import { DeleteMemberHandler } from './application/commands/delete-member/detele-member.handler';
+import { DeleteGroupHandler } from './application/commands/delete-group/delete-group.handler';
+import { AssignKahootToGroupHandler } from './application/commands/assign-kahoot/assign-kahoot.handler';
+import { TransferAdminHandler } from './application/commands/transfer-admin/transfer-admin.handler';
+import { GetGroupLeaderboardHandler } from './application/queries/get-leaderboard/get-group-leaderboard.handler';
+import { GetKahootLeaderboardHandler } from './application/queries/get-kahoot-leaderboard/get-kahoot-leaderboard.handler';
+import { GetGroupQuizzesHandler } from './application/queries/get-group-quizzes/get-group-quizzes.handler';
+import { GetGroupMembersHandler } from './application/queries/get-group-members/get-group-members.handler';
+
+@Module({
+    controllers: [GroupsController],
+    imports: [
+        CqrsModule,
+        RepositoryFactoryModule.forFeature(RepositoryName.Group),
+        RepositoryFactoryModule.forFeature(RepositoryName.User),
+        RepositoryFactoryModule.forFeature(RepositoryName.Kahoot),
+        DaoFactoryModule.forFeature(DaoName.Group)
+    ],
+    providers: [
+        CreateGroupHandler,
+        GetGroupsByUserHandler,
+        ModifyGroupInformationHandler,
+        GenerateInvitationHandler,
+        JoinGroupHandler,
+        DeleteMemberHandler,
+        DeleteGroupHandler,
+        AssignKahootToGroupHandler,
+        TransferAdminHandler,
+        GetGroupLeaderboardHandler,
+        GetKahootLeaderboardHandler,
+        GetGroupQuizzesHandler,
+        GetGroupMembersHandler,
+        {
+            provide: 'ITokenGenerator',
+            useClass: UuidTokenGenerator,
+        },
+        {
+            provide: MarkAssignmentCompletedUseCase,
+            useFactory: (repo: IGroupRepository) => new MarkAssignmentCompletedUseCase(repo),
+            inject: [RepositoryName.Group]
+        },
+        {
+            provide: SoloAttemptCompletedListener,
+            useFactory: (useCase: MarkAssignmentCompletedUseCase) => {
+                return new SoloAttemptCompletedListener(useCase);
+            },
+            inject: [MarkAssignmentCompletedUseCase]
+        }
+    ],
+})
+export class GroupsModule implements OnModuleInit {
+
+
+    constructor(
+        @Inject(EVENT_BUS_TOKEN) private readonly eventBus: EventBus,
+        private readonly soloAttemptCompletedListener: SoloAttemptCompletedListener
+    ) { }
+
+    onModuleInit() {
+        this.eventBus.subscribe(
+            SoloAttemptCompletedEvent.name,
+            async (event: SoloAttemptCompletedEvent) => {
+                if (event instanceof SoloAttemptCompletedEvent) {
+                    await this.soloAttemptCompletedListener.on(event);
+                }
+            }
+        );
+        //console.log('GroupsModule: Suscrito a SoloAttemptCompletedEvent');
+    }
+
+}

@@ -1,0 +1,90 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\database\infrastructure\mongo\modules\users\user.dao.mongo.ts
+
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { IUserDao } from 'src/users/application/queries/ports/users.dao.port';
+import { UserMongo } from '../../entities/users.schema';
+import { Optional } from 'src/core/types/optional';
+import { UserReadModel } from 'src/users/application/queries/read-model/user.read.model';
+import { DaoMongo } from '../../decorators/dao-mongo.decorator';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import { DateISO } from 'src/core/domain/shared-value-objects/value-objects/value.object.date';
+
+@DaoMongo(DaoName.User)
+@Injectable()
+export class UserDaoMongo implements IUserDao {
+  
+  constructor(
+    @InjectModel(UserMongo.name)
+    private readonly userModel: Model<UserMongo>,
+  ) {}
+
+  async getUserByName(name: string): Promise<Optional<UserReadModel>> {
+    const user = await this.userModel
+      .findOne({ username: name })
+      .lean()
+      .exec();
+
+    if (!user) {
+      return new Optional<UserReadModel>();
+    }
+
+    const isPremium = this.checkPremiumStatus(user);
+
+    return new Optional<UserReadModel>(
+      new UserReadModel(
+        user.userId,
+        user.email,
+        user.username,
+        isPremium,
+      ),
+    );
+  }
+
+  async getUserById(id: string): Promise<Optional<UserReadModel>> {
+    const user = await this.userModel
+      .findOne({ userId: id })
+      .lean()
+      .exec();
+
+    if (!user) {
+      return new Optional<UserReadModel>();
+    }
+
+    const isPremium = this.checkPremiumStatus(user);
+
+    return new Optional<UserReadModel>(
+      new UserReadModel(
+        user.userId,
+        user.email,
+        user.username,
+        isPremium,
+      ),
+    );
+  }
+
+  private checkPremiumStatus(user: any): boolean {
+    if (!user.subscription) return false;
+
+    const { state, plan, expiresAt } = user.subscription;
+
+    if (plan !== 'MONTHLY_PREMIUM' && state !== 'ACTIVE') {
+        return false;
+    }
+
+    const expiresDate = DateISO.createFrom(expiresAt);
+    const now = DateISO.generate();
+
+    return expiresDate.isGreaterThan(now);
+  }
+}

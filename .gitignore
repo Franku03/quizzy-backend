@@ -1,59 +1,57 @@
-# compiled output
-/dist
-/node_modules
-/build
+# --- Dependencias y Bloqueos (Solo Yarn) ---
+node_modules/
+package-lock.json
+pnpm-lock.yaml
 
-# env files
+# --- Compilación y Salida ---
+dist/
+build/
+/postgres
+/mongo
+
+# --- Entorno y Secretos ---
 .env
+.env.*
+!.env.template
+!.env.example
+/active_pins.txt
+postgres_data/
+mongo_data/
 
-# Logs
+# --- Logs ---
 logs
 *.log
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+pnpm-debug.log*
 
-# OS
+# --- Sistema (Windows/macOS/OneDrive) ---
+Thumbs.db
 .DS_Store
+desktop.ini
+$RECYCLE.BIN/
+*.sync-conflict-*
+*.tmp
+*.temp
 
-# Tests
-/coverage
-/.nyc_output
-
-# IDEs and editors
-/.idea
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
-
-# IDE - VSCode
+# --- IDEs (VS Code / JetBrains) ---
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# --- Scripts de Automatización y basurilla ---
+licenciar*.ps1
+limpiar*.ps1
+*.Ã­
+*.Ã
+* Rodriguez *
 
-# temp directory
-.temp
-.tmp
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# --- NestJS específicos ---
+# Si usas el CLI de Nest, a veces genera reportes de cobertura
+coverage/

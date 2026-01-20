@@ -1,0 +1,68 @@
+// src/explore/application/queries/get-public-kahoots/get-public-kahoots.handler.ts
+import { IQueryHandler } from 'src/core/application/cqrs/query-handler.interface';
+import { QueryHandler } from 'src/core/infrastructure/cqrs/decorators/query-handler.decorator';
+import { Inject } from '@nestjs/common';
+import { GetPublicKahootsQuery } from './get.public.kahoots.query';
+import { PaginatedKahootListReadModel } from '../../read-models/kahoot-list.read-model';
+import type { IExploreDao } from '../ports/explore.dao.port';
+import { EXPLORE_ERROR_CODES } from '../explore.query.errors';
+import { DaoName } from 'src/database/infrastructure/catalogs/dao.catalog.enum';
+import type { ILogger } from 'src/core/application/aspects/logging/logger.interface';
+import { Log } from 'src/core/application/aspects/logging/log.decorator';
+import { LOGGER_TOKEN } from 'src/core/application/aspects/logging/logger.token';
+import { MediaEnrichmentService } from 'src/media/application/facade/media-enrichment.service';
+import { APPLICATION_CORE_TOKENS } from 'src/core/application/dependecy-tokens/application-core.tokens';
+
+// This handler processes the query to fetch public kahoots with pagination and filtering.
+// It serves the GET /explore endpoint by retrieving published, public kahoots based on
+// various search and filter criteria provided by the user.
+@QueryHandler(GetPublicKahootsQuery)
+export class GetPublicKahootsHandler implements IQueryHandler<GetPublicKahootsQuery> {
+  private readonly useCase: string = 'User retrieves the list of public kahoots';
+
+  constructor(
+    @Inject(DaoName.Explore)
+    private readonly exploreDao: IExploreDao,
+    @Inject(APPLICATION_CORE_TOKENS.UTILS.LOGGER) private readonly logger: ILogger,
+    private readonly mediaService: MediaEnrichmentService,
+  ) {}
+
+  // The Log decorator automatically logs method execution details. Uses default "logger" property.
+  @Log() 
+  async execute(query: GetPublicKahootsQuery): Promise<PaginatedKahootListReadModel> {
+    // Throw error if pagination parameters are invalid
+    if (query.page !== undefined && query.page <= 0) {
+      throw new Error(EXPLORE_ERROR_CODES.INVALID_PAGINATION_PARAMS);
+    }
+    if (query.limit !== undefined && query.limit <= 0) {
+      throw new Error(EXPLORE_ERROR_CODES.INVALID_PAGINATION_PARAMS);
+    }
+
+    // default limit to 20 if not provided
+    const limit = query.limit? query.limit : 20;
+    // default page to 1 if not provided
+    const page = query.page? query.page : 1;
+    
+    // Only published, public kahoots are visible in explore
+    // The DAO implementation enforces this by filtering on status and visibility
+    // when querying the database.
+    try {
+      // Delegate to the DAO to fetch public kahoots with the specified parameters
+      const kahoots = await this.exploreDao.getPublicKahoots({
+        searchTerm: query.searchTerm,
+        categories: query.categories,
+        page: page, 
+        limit: limit,
+        orderBy: query.orderBy,
+        order: query.order,
+      });
+      // before returning, we enrich media URLs
+      const enrichedKahoots = await this.mediaService.enrichPaginatedKahootList(kahoots);
+      return enrichedKahoots;
+    } catch (error) {
+      // If the DAO throws an error related to invalid parameters, we re-throw it
+      // with a specific error code for proper handling at the controller level
+      throw new Error(EXPLORE_ERROR_CODES.DATABASE_ERROR);
+    }
+  }
+}

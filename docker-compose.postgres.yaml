@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  postgres_dev:
+    image: postgres:18
+    container_name: postgres_dev
+    restart: always
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-superSecretPass123}
+      POSTGRES_DB: ${DB_NAME:-quizzy}
+      # THIS LINE FIXES YOUR ERROR:
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dev} -d ${DB_NAME:-quizzy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

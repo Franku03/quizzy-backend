@@ -1,0 +1,121 @@
+/**
+ * MIT License | Copyright (c) 2025
+ * Authors: G. Kufatty, L. Monroy, L. Ochoa, F. Quintana, Sergio Rodriguez, Santiago Silva
+ * Project: quizzy-backend
+ *
+ * Full license text available in the LICENSE file at the root of this project.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+ */
+
+// File: src\multiplayer-sessions\domain\value-objects\session.progress.ts
+
+import { ValueObject } from "src/core/domain/abstractions/value.object";
+import { SlideId } from '../../../core/domain/shared-value-objects/id-objects/kahoot.slide.id';
+import { Optional } from "src/core/types";
+
+interface SessionProgressProps {
+    currentSlide: SlideId,
+    previousSlide: Optional<SlideId>, // * Este valor es opcional ya que al inicio de la partida no existe una slide previa
+    totalSlides: number,
+    slidesAnswered: number // * Tambien nos define el indice del slide actual donde se encuentra la partida
+}
+
+export class SessionProgress extends ValueObject<SessionProgressProps> {
+
+
+    public constructor( props: SessionProgressProps ){
+
+        super({ ...props });
+
+    }
+
+    public static create(currentSlide: SlideId, previousSlide: Optional<SlideId>, totalSlides: number, slidesAnswered: number ): SessionProgress {
+
+        if( !Number.isInteger( totalSlides) || !Number.isInteger( slidesAnswered ))
+            throw new Error('Ya se el numero de totalSlides o el numero de slidesAnswered dado no es un número entero');
+
+        if( totalSlides < 1 )
+            throw new Error('El número de slides en total es menor a 1');
+
+        if( slidesAnswered < 0 )
+            throw new Error('El número de slides respondidas es menor a 0');
+
+        return new SessionProgress({ currentSlide, previousSlide,totalSlides, slidesAnswered });
+
+    }
+
+    public addSlideAnswered( nextSlide: SlideId ): SessionProgress {
+
+        if( !this.hasMoreSlidesLeft() )
+            return this; // Para evitar que podamos actualizar el progreso si no hay mas slides restantes
+
+        return new SessionProgress({ 
+            currentSlide: nextSlide,
+            previousSlide: new Optional( this.properties.currentSlide ),
+            totalSlides: this.properties.totalSlides, 
+            slidesAnswered: this.properties.slidesAnswered + 1 
+        });
+    }
+
+
+    // Para cerrar por completo el progreso como completado
+    public completeProgress( ): SessionProgress {
+
+        if(this.hasMoreSlidesLeft() ){
+            return new SessionProgress({ 
+                currentSlide: this.properties.currentSlide,
+                previousSlide: this.properties.previousSlide,
+                totalSlides: this.properties.totalSlides, 
+                slidesAnswered: this.properties.slidesAnswered + 1 // * Esto es la parte importante, sumar la ultima slide respondida
+            });
+        } 
+
+        return this // Para evitar que podamos actualizar el progreso como completado si siguen quedando slides
+
+    }
+
+    public getProgressPercentage(): number {
+
+        return ( this.properties.slidesAnswered*100 ) / this.properties.totalSlides; 
+        
+    }
+
+    public hasMoreSlidesLeft(): boolean {
+
+        return this.properties.slidesAnswered < this.properties.totalSlides; 
+
+    }
+
+    // * Quizas no use este metodo pero lo dejare por los momentos
+    public getHowManySlidesAreLeft(): number{
+
+        return this.properties.totalSlides - this.properties.slidesAnswered; 
+
+    }
+
+    public getNumberOfSlidesAnswered(): number {
+
+        return this.properties.slidesAnswered;
+
+    }
+
+
+    public getNumberOfTotalSlides(): number {
+
+        return this.properties.totalSlides;
+
+    }
+
+    public getCurrentSlide(): SlideId {
+        return this.properties.currentSlide;
+    }
+
+    public getPreviousSlide(): SlideId | undefined {
+
+        if( !this.properties.previousSlide.hasValue() )
+            return undefined;
+
+        return this.properties.previousSlide.getValue();
+    }
+
+}

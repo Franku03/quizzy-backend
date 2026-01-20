@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: quizzy_backend_dev
+    command: sh -c "yarn install && yarn start:dev"
+    ports:
+      - "3000:3000"
+      - "3003:3003"
+    env_file:
+      - .env
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    depends_on:
+      postgres_dev:
+        condition: service_healthy
+      mongo_dev:
+        condition: service_healthy
+    networks:
+      - quizzy_net
+
+  postgres_dev:
+    image: postgres:18
+    container_name: postgres_dev
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-superSecretPass123}
+      POSTGRES_DB: ${DB_NAME:-quizzy}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-dev} -d ${DB_NAME:-quizzy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quizzy_net
+
+  mongo_dev:
+    image: mongo:7
+    container_name: mongo_dev
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-dev}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-superSecretPass123}
+      MONGO_INITDB_DATABASE: ${DB_NAME:-quizzy}
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - quizzy_net
+
+networks:
+  quizzy_net:
+    driver: bridge
